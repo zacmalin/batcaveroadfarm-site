@@ -87,3 +87,12 @@ Updated: 2026-10-23 (code review done)
 - Tested 8 cases on MariaDB. Old emails (old secret) fall back to prefilled form.
 - Watch: Cloudflare bot protection could block Gmail's one-click POST; add WAF skip for /unsubscribe.php if needed.
 - 2026-10-23: unsubscribe pack installed and tested by user: OK.
+
+## GitHub repo (2026-10-23)
+- PRIVATE https://github.com/zacmalin/batcaveroadfarm-site (branch main). Local checkout: /home/user/workspace/bcrf-repo
+- Initial commit = src snapshot + packs A-H, deleted log_sale/get_products/get_sales_trends/newsletter_send, hello@->support@ in admin/views/newsletter.php.
+- 7 files still have REDACTED placeholders (listed in README): nutrition_config.php (USDA key), schema.js, schema.php, panel_ingredient_nutrition.php, newsletter.php, passes/index.php, js/min.auth.js. Get live copies as .txt to fix.
+- Going forward: commit every fix to the repo too.
+
+## USDA key (2026-10-23): usda-key-1-file-2026-10-23.zip
+- nutrition_config.php reads USDA_API_KEY from bcrf-secrets.php (fallback DEMO_KEY). Repo: all REDACTED placeholders restored from live copies.
