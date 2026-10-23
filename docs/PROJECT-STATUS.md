@@ -135,3 +135,4 @@ Updated: 2026-10-23 (code review done)
 - booking/index.php csrf_field(); booking/submit.php csrf_verify + 5 requests/IP/hour (bcrf_rl 'booking_ip'); cancel-booking.php csrf on POST, expired token re-shows the confirm button with "tap once more".
 - review/index.php is only a redirect (no form); checkout -> stripe_session already had CSRF; booking/cancel.php is a message page only.
 - Tested PHP 8.5 + MariaDB 11.8, 13 checks pass. Waiting on Zac to install + test.
+- CONFIRMED 2026-10-23: Zac reports Pack L looks good. pack-l merged into main. Remaining loose ends: 10-24 stock-alert + first backup check; GitHub php-lint action; uptime monitor; JS bundling + logo WebP; Cloudflare JS Detections CSP console error; optional audit_log VARCHAR SQL; delete merged branches.
