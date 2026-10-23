@@ -152,3 +152,7 @@ Updated: 2026-10-23 (code review done)
 - Waiting on: Zac to install + create monitors + confirm both green.
 - CONFIRMED 2026-10-23: Zac installed Pack N; UptimeRobot monitors BCRF homepage + BCRF database both green (Cloudflare did not block). pack-n merged into main.
 - 2026-10-23: Zac confirmed GSC indexing requests, poblano nutrition fix, audit_log VARCHAR SQL all done. Deleted merged branches pack-k/l/m/n, seo-pack-i/j (only main remains). Cloudflare JS Detections: on Free plan it is automatic with Bot Fight Mode and cannot be turned off separately; console error is harmless; decision: leave it (only fixes are turn off Bot Fight Mode or nonce-based CSP).
+- 2026-10-23: Cloudflare JS Detections: Zac chose to leave it.
+
+## TO DO
+- [ ] Audit Log coverage: find admin actions not written to audit_log and fill the gaps (fix pack). Also in Zac's Google Tasks "My Tasks" as "BCRF: Audit Log coverage check".
