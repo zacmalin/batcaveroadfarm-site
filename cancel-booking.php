@@ -7,6 +7,7 @@
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/booking.php';
+require_once __DIR__ . '/includes/auth.php';   // csrf_token()/csrf_verify() (fix pack L)
 
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
@@ -16,6 +17,7 @@ $id     = (int)($_REQUEST['id'] ?? 0);
 $tok    = (string)($_REQUEST['t'] ?? '');
 
 $state  = 'invalid';   // invalid | confirm | done | already | locked
+$retryMsg = false;     // true = token expired, ask them to tap again
 $b      = null;
 $type   = null;
 
@@ -41,6 +43,12 @@ if ($valid) {
     }
     if (in_array($b['status'], ['cancelled', 'completed', 'no_show'], true)) {
         $state = ($b['status'] === 'cancelled') ? 'already' : 'locked';
+    } elseif ($method === 'POST' && !csrf_verify($_POST['csrf_token'] ?? null)) {
+        // Fix pack L: the button must come from this page in this browser. If the
+        // session timed out (page left open a long time), just show the button
+        // again with a fresh token instead of an error.
+        $state   = 'confirm';
+        $retryMsg = true;
     } elseif ($method === 'POST') {
         try {
             $up = $pdo->prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ? AND status IN ('pending','confirmed')");
@@ -99,6 +107,9 @@ $phone     = function_exists('site') ? site('phone.general') : '(828) 216-5488';
   <?php if ($state === 'confirm'): ?>
     <div class="emoji">🐐</div>
     <h1>Cancel your booking?</h1>
+    <?php if ($retryMsg): ?>
+    <p style="background:#fff3cd;border:1px solid #e8b84b;border-radius:8px;padding:10px 14px;font-size:.95rem">This page was open a while, so we need you to tap the button once more.</p>
+    <?php endif; ?>
     <div class="summary">
       <p style="margin:0 0 6px"><span>What:</span> <?php echo htmlspecialchars($type['label'] ?? 'Booking'); ?></p>
       <p style="margin:0 0 6px"><span>When:</span> <?php echo htmlspecialchars(booking_fmt_date($b['booking_date']) . ' · ' . booking_fmt_time($b['start_time'])); ?></p>
@@ -108,6 +119,7 @@ $phone     = function_exists('site') ? site('phone.general') : '(828) 216-5488';
       <form method="POST" action="https://batcaveroadfarm.com/cancel-booking.php" style="margin:0">
         <input type="hidden" name="id" value="<?php echo (int)$id; ?>">
         <input type="hidden" name="t" value="<?php echo htmlspecialchars($tok, ENT_QUOTES); ?>">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES); ?>">
         <button class="btn danger" type="submit">Yes, cancel it</button>
       </form>
       <a class="btn" href="https://batcaveroadfarm.com/">Keep my booking</a>

@@ -129,3 +129,9 @@ Updated: 2026-10-23 (code review done)
 - Not covered yet: booking/submit.php, cancel-booking.php, review/ have no CSRF (honeypot only).
 - HOTFIX K1 (2026-10-23): Zac reported correct staff password -> "Invalid credentials". Cause: hidden honeypot "website" text input placed above the email field got autofilled by the phone password manager, tripping the bot check (which showed "Invalid credentials."). Fix: removed honeypot from admin/login.php only (CSRF + lockouts remain); added autocomplete=username/current-password. File: hotfix-K1-admin-login-1-file-2026-10-23.zip. Lesson: never put a honeypot text input directly before a login's email/password fields.
 - CONFIRMED 2026-10-23: Zac reports Pack K + hotfix K1 installed and all good. pack-k merged into main. Still to check 2026-10-24: first nightly backup file in /home2/ddailnmy/bcrf-backups/ and backup_db.log 'OK' line (if cron added), plus stock-alert cron.
+
+## Fix pack L: booking security tokens (2026-10-23): fix-pack-L-booking-tokens-3-files-2026-10-23.zip
+- Folder fixes-2026-10-23l-booking-tokens/. GitHub branch pack-l. Requires pack K.
+- booking/index.php csrf_field(); booking/submit.php csrf_verify + 5 requests/IP/hour (bcrf_rl 'booking_ip'); cancel-booking.php csrf on POST, expired token re-shows the confirm button with "tap once more".
+- review/index.php is only a redirect (no form); checkout -> stripe_session already had CSRF; booking/cancel.php is a message page only.
+- Tested PHP 8.5 + MariaDB 11.8, 13 checks pass. Waiting on Zac to install + test.

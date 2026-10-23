@@ -5,6 +5,8 @@
 
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/booking.php';
+require_once __DIR__ . '/../includes/auth.php';        // csrf_verify() (fix pack L)
+require_once __DIR__ . '/../includes/rate_limit.php';  // bcrf_rl_*()   (fix pack L)
 
 $method = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET';
 
@@ -21,6 +23,14 @@ $isQuote   = false; // private event (request-a-quote) vs. confirmable booking
 
 if (!empty($_POST['website'])) {
     // honeypot tripped — pretend success, do nothing
+} elseif (!csrf_verify($_POST['csrf_token'] ?? null)) {
+    // Fix pack L: request must come from our own booking form in this browser.
+    $isError = true;
+    $errMsg  = "Your session timed out before the form was sent. Please tap your browser's Back button (your details should still be filled in), then press the button to send again.";
+} elseif (bcrf_rl_hit('booking_ip', bcrf_rl_ip(), 5, 3600)) {
+    // Fix pack L: max 5 booking requests per connection per hour (stops slot-filling spam).
+    $isError = true;
+    $errMsg  = "We've received several booking requests from you in the last hour. Please wait a bit before sending another.";
 } else {
     $noCrlf  = fn($v) => trim(preg_replace('/[\r\n]+/', ' ', (string)$v));
     $typeKey = trim(strip_tags((string)($_POST['type_key'] ?? '')));

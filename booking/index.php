@@ -47,6 +47,7 @@
             <?= htmlspecialchars(function_exists('site') ? site('phone.general') : '(828) 216-5488') ?> to book.</p>
     <?php else: ?>
     <form class="booking-form" action="https://batcaveroadfarm.com/booking/submit.php" method="POST">
+        <?php require_once __DIR__ . '/../includes/auth.php'; echo csrf_field(); /* fix pack L: submit.php checks this */ ?>
         <div class="hp" aria-hidden="true">
             <label for="website">Website</label>
             <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
