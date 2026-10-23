@@ -136,3 +136,11 @@ Updated: 2026-10-23 (code review done)
 - review/index.php is only a redirect (no form); checkout -> stripe_session already had CSRF; booking/cancel.php is a message page only.
 - Tested PHP 8.5 + MariaDB 11.8, 13 checks pass. Waiting on Zac to install + test.
 - CONFIRMED 2026-10-23: Zac reports Pack L looks good. pack-l merged into main. Remaining loose ends: 10-24 stock-alert + first backup check; GitHub php-lint action; uptime monitor; JS bundling + logo WebP; Cloudflare JS Detections CSP console error; optional audit_log VARCHAR SQL; delete merged branches.
+
+## Fix pack M: speed + code check (2026-10-23): fix-pack-M-speed-5-files-2026-10-23.zip
+- Folder fixes-2026-10-23m-speed-checks/. GitHub branch pack-m.
+- js/min.site.js = gtag+nav+app+hours+subscribe+analytics+theme (built by tools/build-js.mjs, terser 5.51.2; IIFE parts try/catch-isolated; gtag/app kept global). head.php loads it (defer); footer.php no longer loads the 5. BCRF_ASSET_V 20261023m. Old files kept (send-message.php uses min.gtag + min.analytics).
+- includes/webp.php bcrf_webp_src(): GD makes img/logo.webp on first view, used only if smaller; header.php <picture style="display:contents">. Logo PNG not in repo/archive/Drive; never seen real size.
+- .github/workflows/checks.yml: PHP 8.5 lint, node --check js/*.js, min.site.js up-to-date. Verified green + negative test fails correctly.
+- Reminder f4cd8956 (2026-10-24 10:30 ET) now also covers first backup check; renamed "Stock-alert cron + first backup check".
+- Waiting on: Zac to install + test.
