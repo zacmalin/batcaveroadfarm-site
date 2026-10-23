@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /admin.php
+
+Sitemap: https://batcaveroadfarm.com/sitemap.xml
+

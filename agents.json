@@ -1,0 +1,52 @@
+{
+  "name": "Bat Cave Road Farm",
+  "description": "A family-owned farm in Old Fort, NC offering a petting zoo, seasonal farmstand, and thrift shop.",
+  "url": "https://batcaveroadfarm.com",
+  "logo": "https://batcaveroadfarm.com/img/logo.png",
+  "contact": {
+    "phone": "(828) 216-5488",
+    "email": "support@batcaveroadfarm.com",
+    "address": {
+      "street": "4132 Bat Cave Road",
+      "city": "Old Fort",
+      "state": "NC",
+      "zip": "28762",
+      "country": "US"
+    }
+  },
+  "social": {
+    "facebook": "https://www.facebook.com/batcaveroadfarm",
+    "instagram": "https://www.instagram.com/batcaveroadfarm"
+  },
+  "hours": {
+    "general": "Tuesday through Sunday, 10:00 AM to 4:00 PM. Closed Mondays.",
+    "petting_zoo": "Tuesday through Sunday, 10:00 AM to 4:00 PM. Closed Mondays.",
+    "farmstand": "Tuesday through Sunday, 10:00 AM to 4:00 PM. Closed Mondays.",
+    "thrift_shop": "Tuesday through Sunday, 10:00 AM to 4:00 PM. Closed Mondays."
+  },
+  "services": [
+    {
+      "name": "Petting Zoo",
+      "description": "Interactive petting zoo with goats, pigs, white peacocks, donkey, ducklings, sheep, rabbits, and chickens. Appointments recommended. Call (828) 216-5488.",
+      "admission": "Paid admission. Group rates available.",
+      "url": "https://batcaveroadfarm.com/petting-zoo/"
+    },
+    {
+      "name": "Farm Stand",
+      "description": "Seasonal fresh produce, sourdough bread, pastries, farm eggs, local honey, homemade jams, pickles, and cut flowers.",
+      "url": "https://batcaveroadfarm.com/farm-stand/"
+    },
+    {
+      "name": "Thrift Shop",
+      "description": "Vintage kitchenware, antiques, collectibles, books, furniture, and one-of-a-kind finds. Donations accepted.",
+      "url": "https://batcaveroadfarm.com/thrift-shop/"
+    }
+  ],
+  "tags": [
+    "farm", "petting zoo", "farmstand", "thrift shop", "family farm",
+    "agritourism", "fresh produce", "baked goods", "animals", "Old Fort NC",
+    "Western North Carolina", "local food", "vintage", "antiques"
+  ],
+  "agent_instructions": "https://batcaveroadfarm.com/agent-instructions.md",
+  "llms_txt": "https://batcaveroadfarm.com/llms.txt"
+}

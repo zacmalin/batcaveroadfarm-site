@@ -1,0 +1,47 @@
+# Bat Cave Road Farm
+
+> Family-owned farm in Old Fort, North Carolina (near Asheville) with a hands-on petting zoo, a seasonal farmstand, and an on-farm thrift shop. Founded 2023. Open Tuesday-Sunday, 10:00 AM-4:00 PM. Closed Mondays.
+
+## Key facts
+
+- Address: 4132 Bat Cave Road, Old Fort, NC 28762, USA
+- Phone: (828) 216-5488
+- Email: support@batcaveroadfarm.com
+- Hours (all areas): Tuesday-Sunday, 10:00 AM-4:00 PM. Closed Mondays.
+- Petting zoo appointments recommended - call (828) 216-5488.
+- Payment: cash, credit/debit card, Venmo, PayPal, Cash App
+- Facebook: https://www.facebook.com/batcaveroadfarm
+- Instagram: https://www.instagram.com/batcaveroadfarm
+
+## Visit
+
+- [Plan Your Visit](https://batcaveroadfarm.com/plan-your-visit/): what to expect, hours, and tips
+- [Map & Directions](https://batcaveroadfarm.com/directions/): driving directions to the farm
+- [Day Tickets](https://batcaveroadfarm.com/tickets/): buy admission
+- [Annual Passes](https://batcaveroadfarm.com/passes/): year-round visits
+- [Book a Group](https://batcaveroadfarm.com/booking/): schools, groups, and appointments
+- [Private Events](https://batcaveroadfarm.com/private-events/): parties and private bookings
+- [Events](https://batcaveroadfarm.com/events/): seasonal happenings on the farm
+
+## What we offer
+
+- [Petting Zoo](https://batcaveroadfarm.com/petting-zoo/): goats, pigs, white peacocks, a donkey, ducks and ducklings, sheep, rabbits, and chickens. Feed is sold by staff (farm feed only).
+- [Farm Stand](https://batcaveroadfarm.com/farm-stand/): seasonal vegetables, sourdough bread, farm eggs, local honey, jams, pickles, and cut flowers
+- [Thrift Shop](https://batcaveroadfarm.com/thrift-shop/): vintage, antiques, collectibles, and one-of-a-kind finds. [Current items](https://batcaveroadfarm.com/thrift-shop/items/)
+- [Shop](https://batcaveroadfarm.com/shop/): online store
+
+## Learn more
+
+- [About Us](https://batcaveroadfarm.com/about/)
+- [FAQ](https://batcaveroadfarm.com/faq/)
+- [Gallery](https://batcaveroadfarm.com/gallery/)
+- [Contact Us](https://batcaveroadfarm.com/contact-us/)
+- [Blog - Farmstead Journal](https://batcaveroadfarm.com/blog/)
+- [Recipes](https://batcaveroadfarm.com/recipes/): farm-kitchen recipes using seasonal ingredients
+
+## Optional
+
+- [Agent instructions](https://batcaveroadfarm.com/agent-instructions.md): how AI assistants should describe the farm
+- [Structured data](https://batcaveroadfarm.com/agents.json)
+- [Sitemap](https://batcaveroadfarm.com/sitemap.php)
+- [Privacy Policy](https://batcaveroadfarm.com/privacy/) | [Terms](https://batcaveroadfarm.com/terms/) | [Accessibility](https://batcaveroadfarm.com/accessibility/)

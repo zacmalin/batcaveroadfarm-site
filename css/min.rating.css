@@ -1,0 +1,21 @@
+/* min.rating.css — read-only + interactive star ratings */
+
+.rate{display:inline-flex;align-items:center;gap:8px;font-family:'Lora',serif}
+.rate-stars{position:relative;display:inline-block;line-height:1;font-size:1.2rem;letter-spacing:2px}
+.rate-empty{color:#a98e6a}
+.rate-fill{position:absolute;top:0;left:0;overflow:hidden;white-space:nowrap;color:var(--gold-bright,#e8b84b);pointer-events:none;transition:width .12s ease}
+
+/* read-only (index/search cards sit on the light card background) */
+.rate--static{margin:2px 0 0}
+.rate--static .rate-count{font-size:.82rem;color:var(--brown-mid,#5c3317)}
+
+/* interactive (recipe page sits on the dark background) */
+.rate--interactive{margin:4px 0}
+.rate--interactive .rate-stars{cursor:pointer;font-size:1.5rem}
+.rate-input{position:absolute;top:0;left:0;width:100%;height:100%;display:flex}
+.rate-input .rate-hit{flex:1;height:100%;padding:0;margin:0;border:0;background:none;color:transparent;cursor:pointer}
+.rate-input .rate-hit:focus-visible{outline:2px solid var(--gold-bright,#e8b84b);outline-offset:3px;border-radius:3px}
+.rate--interactive .rate-label{font-size:.9rem;color:var(--cream,#f5ead6);text-shadow:1px 1px 2px rgba(0,0,0,.6)}
+.rate--interactive.rate--rated .rate-label{color:var(--gold-bright,#e8b84b)}
+
+@media (prefers-reduced-motion:reduce){.rate-fill{transition:none}}

@@ -1,0 +1,81 @@
+{
+  "name": "Bat Cave Road Farm",
+  "short_name": "Bat Cave Farm",
+  "description": "A family-owned farm in Old Fort, NC — petting zoo with goats, donkeys & more, seasonal farmstand, and on-farm thrift shop. Open Tue–Sun, 9AM–5PM.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#fafafa",
+  "theme_color": "#fafafa",
+  "lang": "en-US",
+  "categories": ["food", "shopping", "lifestyle"],
+  "icons": [
+    {
+      "src": "/img/logo.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/img/logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/img/animals1.png",
+      "type": "image/png",
+      "label": "Petting Zoo — goats, pigs, peacocks, donkeys and more"
+    },
+    {
+      "src": "/img/farmstand1.png",
+      "type": "image/png",
+      "label": "Farm Stand — fresh vegetables, eggs, honey, bread and flowers"
+    },
+    {
+      "src": "/img/thrift1.png",
+      "type": "image/png",
+      "label": "Thrift Shop — vintage finds, antiques and collectibles"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Petting Zoo",
+      "short_name": "Petting Zoo",
+      "description": "Learn about our farm animals",
+      "url": "/petting-zoo/",
+      "icons": [{ "src": "/img/pettingzoo.png", "sizes": "any" }]
+    },
+    {
+      "name": "Farm Stand",
+      "short_name": "Farm Stand",
+      "description": "Fresh seasonal produce and more",
+      "url": "/farm-stand/",
+      "icons": [{ "src": "/img/farmstand.png", "sizes": "any" }]
+    },
+    {
+      "name": "Thrift Shop",
+      "short_name": "Thrift Shop",
+      "description": "Vintage finds and treasures",
+      "url": "/thrift-shop/",
+      "icons": [{ "src": "/img/thriftshop.png", "sizes": "any" }]
+    },
+    {
+      "name": "Contact Us",
+      "short_name": "Contact",
+      "description": "Get in touch with the farm",
+      "url": "/contact-us/",
+      "icons": [{ "src": "/img/contact.png", "sizes": "any" }]
+    }
+  ],
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://batcaveroadfarm.com/"
+    }
+  ],
+  "prefer_related_applications": false
+}

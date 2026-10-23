@@ -1,0 +1,45 @@
+/* css/min.tickets.css — day-admission ticket selector */
+.tickets-wrap{max-width:620px;margin:0 auto;padding:0 16px 60px}
+.tickets-intro{text-align:center;margin:0 0 30px}
+.tickets-intro h1{font-family:'Rye',Georgia,serif;font-size:1.8rem;color:var(--cream,#f5ead6);text-shadow:2px 2px 6px rgba(0,0,0,.8),0 0 20px rgba(0,0,0,.4);margin:0 0 8px}
+.tickets-intro p{font-family:'Lora',serif;color:var(--cream-dark,#e8d5b0);text-shadow:1px 1px 4px rgba(0,0,0,.7);font-size:.95rem}
+.tickets-error{background:#fde8e8;border:1px solid #f5c6c6;border-radius:9px;padding:12px 16px;color:#b91c1c;font-size:.9rem;margin:0 0 24px;line-height:1.5}
+.tickets-error a{color:#b91c1c;font-weight:bold}
+.tickets-unavailable{text-align:center;color:var(--brown-mid);font-family:'Lora',serif;padding:40px 0}
+.tickets-section{background:linear-gradient(160deg,#fdf4e3,#f0ddb8);border:2px solid #c9923a;border-radius:12px;padding:22px 24px;margin:0 0 20px}
+.tickets-section h2{font-family:'Rye',Georgia,serif;font-size:1.05rem;color:var(--brown-dark);margin:0 0 18px}
+.ticket-type-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid rgba(201,146,58,.28)}
+.ticket-type-row:last-of-type{border-bottom:none}
+.ticket-type-info{flex:1;min-width:0}
+.ticket-type-name{display:block;font-family:'Lora',serif;font-weight:600;color:var(--brown-dark);font-size:.95rem;line-height:1.3}
+.ticket-type-price{display:block;font-family:'Rye',Georgia,serif;font-size:.92rem;color:var(--brown-mid);margin-top:2px}
+.ticket-qty-ctrl{display:flex;align-items:center;gap:0;border:2px solid #c9923a;border-radius:8px;overflow:hidden;flex-shrink:0}
+.qty-btn{background:#f0ddb8;color:var(--brown-dark);border:none;width:38px;height:38px;font-size:1.2rem;font-weight:bold;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .1s;-webkit-tap-highlight-color:transparent}
+.qty-btn:hover{background:#e8c97a}
+.qty-btn:active{background:#c9923a;color:#fff}
+.ticket-qty-input{width:44px;height:38px;border:none;border-left:1px solid #c9923a;border-right:1px solid #c9923a;text-align:center;font-family:'Rye',Georgia,serif;font-size:1rem;color:var(--brown-dark);background:#fffdf7;-moz-appearance:textfield;appearance:textfield}
+.ticket-qty-input::-webkit-inner-spin-button,.ticket-qty-input::-webkit-outer-spin-button{-webkit-appearance:none}
+.tickets-subtotal{display:flex;align-items:baseline;gap:8px;padding:14px 0 0;font-family:'Lora',serif;font-size:.95rem;color:var(--brown-mid)}
+.tickets-subtotal strong{font-family:'Rye',Georgia,serif;font-size:1.2rem;color:var(--brown-dark)}
+.tickets-people-count{font-size:.88rem;color:rgba(92,51,23,.65)}
+.tickets-group-warning{background:#fef3cd;border:1px solid #f5c542;border-radius:8px;padding:11px 14px;font-family:'Lora',serif;font-size:.88rem;color:#7d5a00;line-height:1.55;margin-top:14px}
+.tickets-group-warning a{color:#7d5a00;font-weight:bold}
+.tickets-date-wrap{margin:0 0 10px}
+.tickets-date-input{width:100%;padding:11px 14px;border:2px solid #c9923a;border-radius:9px;font-family:'Lora',serif;font-size:1rem;color:var(--brown-dark);background:#fffdf7;appearance:none;box-sizing:border-box}
+.tickets-date-input:focus{outline:none;border-color:var(--brown-mid);box-shadow:0 0 0 3px rgba(201,146,58,.25)}
+.tickets-date-feedback{font-family:'Lora',serif;font-size:.82rem;min-height:1.3em;margin-top:6px;line-height:1.4}
+.tickets-date-feedback.is-error{color:#b91c1c}
+.tickets-date-feedback.is-ok{color:#16a34a}
+.tickets-date-note{font-family:'Lora',serif;font-size:.82rem;color:var(--brown-mid);line-height:1.5;margin:0}
+.tickets-fields{display:grid;grid-template-columns:1fr;gap:14px}
+.tickets-field label{display:block;font-family:'Lora',serif;font-size:.82rem;font-weight:600;color:var(--brown-mid);text-transform:uppercase;letter-spacing:.06em;margin:0 0 5px}
+.tickets-field input{width:100%;padding:10px 14px;border:2px solid #c9923a;border-radius:9px;font-family:'Lora',serif;font-size:.95rem;color:var(--brown-dark);background:#fffdf7;box-sizing:border-box}
+.tickets-field input:focus{outline:none;border-color:var(--brown-mid);box-shadow:0 0 0 3px rgba(201,146,58,.25)}
+.tickets-optional{font-weight:400;opacity:.7;font-size:.9em}
+.tickets-actions{text-align:center;margin:6px 0 18px}
+.tickets-buy-btn{font-size:1.1rem;padding:15px 36px;min-width:220px}
+.tickets-buy-btn:disabled{opacity:.62;cursor:not-allowed;filter:grayscale(20%)}
+.tickets-secure-note{font-family:'Lora',serif;font-size:.8rem;color:var(--cream-dark,#e8d5b0);text-shadow:1px 1px 3px rgba(0,0,0,.7);margin:10px 0 0}
+.tickets-group-note{text-align:center;font-family:'Lora',serif;font-size:.88rem;color:var(--cream-dark,#e8d5b0);text-shadow:1px 1px 3px rgba(0,0,0,.7);padding:4px 0 0;line-height:1.55}
+.tickets-group-note a{color:var(--gold,#c9923a);font-weight:600;text-decoration:underline}
+@media(min-width:480px){.tickets-fields{grid-template-columns:1fr 1fr}.tickets-field:last-child{grid-column:1/-1}}

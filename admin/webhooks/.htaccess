@@ -1,0 +1,15 @@
+# admin/webhooks/.htaccess
+# These endpoints receive POST from Stripe/PayPal — must be publicly reachable.
+# Security is handled entirely by payload signature verification in each PHP file.
+# No authentication, no caching.
+
+<IfModule mod_headers.c>
+    Header set Cache-Control "no-store, no-cache, private"
+    Header unset Pragma
+</IfModule>
+
+# Explicitly allow GET/POST — some host configs restrict admin directories.
+<Limit GET POST>
+    Order allow,deny
+    Allow from all
+</Limit>

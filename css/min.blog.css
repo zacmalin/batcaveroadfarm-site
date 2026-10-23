@@ -1,0 +1,85 @@
+/* ===== Blog / Homestead Journal — rustic styling (tokens from min.style.css) ===== */
+.journal-intro{text-align:center;margin-bottom:28px}
+.journal-intro .section-heading{margin-bottom:6px}
+.journal-sub{font-family:'Caveat',cursive;font-size:1.6rem;color:var(--cream-dark);text-shadow:1px 1px 3px rgba(0,0,0,.6)}
+
+.journal-search{display:flex;flex-wrap:wrap;gap:10px;max-width:680px;margin:0 auto 34px;background:linear-gradient(160deg,#fdf4e3,#f0ddb8);border:2px solid var(--gold);border-radius:12px;padding:14px;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+.journal-search input{flex:1 1 auto;min-width:0;padding:11px 14px;border:1.5px solid var(--brown-light);border-radius:8px;background:#fffaf0;font-family:'Lora',serif;font-size:.95rem;color:var(--brown-dark)}
+.journal-search input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,146,58,.3)}
+.journal-search .cta-btn{margin-top:0;flex:0 0 auto;padding:11px 24px;font-size:.9rem}
+
+.journal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:26px;margin-bottom:38px}
+.journal-card{display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(160deg,#fdf4e3,#f0ddb8);border:2px solid var(--gold);border-radius:12px;overflow:hidden;box-shadow:0 8px 22px rgba(0,0,0,.45);transition:transform .2s,box-shadow .2s}
+.journal-card:hover{transform:translateY(-4px);box-shadow:0 14px 30px rgba(0,0,0,.55)}
+.journal-card .thumb{width:100%;height:180px;object-fit:cover;display:block;border-bottom:2px solid var(--gold)}
+.journal-card .card-inner{padding:18px 20px}
+.journal-date{font-family:'Lora',serif;font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--brown-mid)}
+.journal-card h2{font-family:'Playfair Display',serif;font-size:1.2rem;line-height:1.25;margin:6px 0 8px}
+.journal-card h2 a{color:var(--brown-dark)}
+.journal-card h2 a:hover{color:var(--red-barn)}
+.journal-card .excerpt{font-family:'Lora',serif;font-size:.9rem;line-height:1.6;color:#5a3a1a;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.journal-card-foot{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-top:1px solid rgba(139,92,42,.35);font-family:'Lora',serif;font-size:.76rem;color:var(--brown-mid)}
+.journal-card-foot .read{font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--red-barn)}
+.journal-card-foot .read:hover{text-decoration:underline}
+.journal-empty{grid-column:1/-1;text-align:center;padding:48px 20px;font-family:'Lora',serif;font-style:italic;font-size:1.05rem;color:var(--cream-dark);background:rgba(0,0,0,.28);border:2px dashed var(--gold);border-radius:12px}
+
+.journal-pager{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;background:none;border:none;position:static;border-bottom:none}
+.journal-pager a{font-family:'Lora',serif;font-weight:600;min-width:40px;text-align:center;padding:8px 13px;border:2px solid var(--gold);border-radius:8px;background:var(--cream);color:var(--brown-dark);transition:background .2s}
+.journal-pager a:hover{background:var(--cream-dark)}
+.journal-pager a.active{background:var(--brown-dark);color:var(--cream);border-color:var(--brown-dark)}
+
+/* ===== single article reader ===== */
+.article-reader{max-width:760px;margin:0 auto;background:#fffaf0;border:2px solid var(--gold);border-radius:14px;box-shadow:0 10px 26px rgba(0,0,0,.5);overflow:hidden}
+.article-reader header{background:linear-gradient(135deg,var(--brown-dark),var(--brown-mid) 55%,var(--brown-dark));border-bottom:3px solid var(--gold);padding:30px 36px}
+@media(max-width:600px){.article-reader header{padding:24px 20px}}
+.article-reader h1{font-family:'Rye',serif;font-size:clamp(1.5rem,4.5vw,2.4rem);color:var(--cream);line-height:1.2;margin:0 0 14px;text-shadow:2px 2px 6px rgba(0,0,0,.6)}
+.article-meta{font-family:'Lora',serif;font-size:.86rem;color:var(--cream-dark);display:flex;flex-wrap:wrap;gap:18px}
+.article-feature{display:block;width:100%;max-height:430px;object-fit:cover;border-bottom:2px solid var(--gold);margin:0}
+.article-content{font-family:'Lora',serif;font-size:1.08rem;line-height:1.9;color:#3f2a14;padding:30px 36px 0}
+@media(max-width:600px){.article-content{padding:24px 20px 0}}
+.article-content>*:first-child{margin-top:0}
+.article-content p{margin:0 0 1.15em}
+.article-content h2,.article-content h3,.article-content h4{font-family:'Rye',serif;color:var(--brown-dark);line-height:1.25;margin:1.5em 0 .5em}
+.article-content h2{font-size:1.4rem}
+.article-content h3{font-size:1.18rem}
+.article-content h4{font-size:1.02rem}
+.article-content a{color:var(--red-barn);text-decoration:underline}
+.article-content a:hover{color:var(--brown-dark)}
+.article-content ul,.article-content ol{margin:0 0 1.15em;padding-left:1.5em}
+.article-content li{margin:.35em 0}
+.article-content img{max-width:100%;height:auto;border-radius:8px;border:1px solid var(--gold);margin:1.2em 0;display:block}
+.article-content blockquote{margin:1.3em 0;padding:10px 20px;border-left:4px solid var(--gold);background:rgba(201,146,58,.12);font-style:italic;color:var(--brown-mid)}
+.article-content strong,.article-content b{color:var(--brown-dark)}
+.article-content hr{border:none;border-top:1px solid var(--gold);margin:1.6em 0}
+.article-back{display:inline-block;margin:26px 36px 32px}
+@media(max-width:600px){.article-back{margin:22px 20px 28px}}
+
+/* ===== category filter dropdown + chips ===== */
+.journal-search select{flex:0 1 auto;min-width:140px;padding:11px 12px;border:1.5px solid var(--brown-light);border-radius:8px;background:#fffaf0;font-family:'Lora',serif;font-size:.9rem;color:var(--brown-dark);cursor:pointer}
+.journal-search select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,146,58,.3)}
+@media(max-width:560px){.journal-search input{flex:1 1 100%}.journal-search select{flex:1 1 auto}}
+.journal-cats{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.journal-cat{font-family:'Lora',serif;font-size:.64rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--brown-dark);background:var(--gold-bright);border:1px solid var(--brown-mid);padding:3px 9px;border-radius:20px}
+.journal-cat:hover{background:var(--gold)}
+.article-cats{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.article-cat{font-family:'Lora',serif;font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--brown-dark);background:var(--gold-bright);border:1px solid var(--brown-dark);padding:3px 11px;border-radius:20px}
+.article-cat:hover{background:var(--cream)}
+
+/* --- Share bar (blog posts) --- */
+.share-bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.share-label{font-family:'Playfair Display',serif;font-weight:700;color:var(--brown-mid,#5c3317);margin-right:4px}
+.share-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;padding:0;border:1px solid var(--cream-dark,#e8d5b0);border-radius:50%;background:#fffaf0;color:var(--brown-mid,#5c3317);cursor:pointer;text-decoration:none;transition:background .15s,color .15s,border-color .15s,transform .1s}
+.share-btn:hover{background:var(--brown-mid,#5c3317);color:var(--cream,#f5ead6);border-color:var(--brown-mid,#5c3317);transform:translateY(-1px)}
+.share-btn:focus-visible{outline:3px solid var(--gold-bright,#e8b84b);outline-offset:2px}
+.share-btn svg{display:block}
+.share-fb:hover{background:#1877f2;border-color:#1877f2;color:#fff}
+.share-x:hover{background:#000;border-color:#000;color:#fff}
+.share-email:hover{background:var(--green,#4a6741);border-color:var(--green,#4a6741);color:#fff}
+.share-copy.is-copied{background:var(--green,#4a6741);border-color:var(--green,#4a6741);color:#fff}
+.share-copy.is-copied::after{content:'Copied!';position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);background:var(--brown-dark,#3b2010);color:var(--cream,#f5ead6);font-size:.7rem;font-family:'Lora',serif;padding:3px 9px;border-radius:6px;white-space:nowrap;pointer-events:none}
+.share-bar--compact{margin-top:14px}
+.share-bar--compact .share-btn{width:36px;height:36px}
+.share-bar--full{margin:30px 0 6px;padding-top:22px;border-top:1px solid var(--cream-dark,#e8d5b0)}
+
+/* Blog hero photo (min.blog.css loads only on blog pages) */
+.hero-photo{--hero-img:url('https://batcaveroadfarm.com/img/Bloghero.webp')}

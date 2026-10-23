@@ -1,0 +1,173 @@
+# ============================================================
+#  Bat Cave Road Farm — .htaccess
+#  The rewrite engine MUST be enabled before any Rewrite rule,
+#  otherwise every rule above the "RewriteEngine On" line is
+#  silently ignored (this was the original bug: HTTPS, www,
+#  trailing-slash and index.php redirects never ran).
+# ============================================================
+RewriteEngine On
+RewriteBase /
+
+# Always serve index.php for a bare directory request (so /recipes/ and /blog/
+# load their listing page, not whatever else is in the folder).
+DirectoryIndex index.php
+
+# --- Canonical scheme & host -------------------------------------------------
+# Force HTTPS (Cloudflare-aware).
+# Behind a proxy, the origin's %{HTTPS} reflects the Cloudflare->origin hop,
+# not the visitor's protocol. Cloudflare forwards the real scheme in
+# X-Forwarded-Proto, so check that first; fall back to %{HTTPS} for direct hits.
+RewriteCond %{HTTP:X-Forwarded-Proto} =http
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+RewriteCond %{HTTP:X-Forwarded-Proto} ^$
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Remove www.
+RewriteCond %{HTTP_HOST} ^www\.(.*) [NC]
+RewriteRule ^(.*)$ https://%1%{REQUEST_URI} [L,R=301]
+
+# Strip a trailing index.php from URLs (/about/index.php -> /about/)
+RewriteCond %{THE_REQUEST} /index\.php[?\s] [NC]
+RewriteRule ^(.*?)index\.php[^/]*$ /$1? [L,R=301,NC]
+
+# Add trailing slash to non-file URLs (never to anything with a file extension)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_URI} !\.[a-zA-Z0-9]{1,6}$
+RewriteCond %{REQUEST_URI} !(.*)/$
+RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1/ [L,R=301]
+
+# --- Clean-URL routing (internal rewrites — no redirect) ---------------------
+# The !-f / !-d guards stop these from matching real files/dirs. Without them,
+# the DirectoryIndex request for "recipes/index.php" matches ^recipes/([^/]+)/?$
+# (slug = "index.php") and gets hijacked into recipe_detail.php.
+# Old farm-stand catalog links (item_view.php no longer exists) -> farm stand page
+RewriteRule ^farm-stand/catalog/ /farm-stand/ [R=301,L]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^recipes/([^/]+)/?$ recipes/recipe_detail.php?slug=$1 [L,QSA]
+
+# Petting zoo breed detail: /petting-zoo/breeds/{id}/{slug} -> breed.php?id={id}
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^petting-zoo/breeds/([0-9]+)(?:/[^/]+)?/?$ petting-zoo/breeds/breed.php?id=$1 [L,QSA]
+
+# Petting zoo animal detail by id (must precede the legacy slug rule below)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^petting-zoo/animals/([0-9]+)(?:/[^/]+)?/?$ petting-zoo/animals/animal.php?id=$1 [L,QSA]
+
+# Old animal links by name (no id) -> petting zoo page (item_view.php no longer exists)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^petting-zoo/animals/([^/0-9][^/]*)/?$ /petting-zoo/ [R=301,L]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^blog/([^/]+)/?$ blog/article_view.php?slug=$1 [L,QSA]
+
+# Thrift / inventory items: /thrift-shop/items/{id}/{slug} -> item.php?id={id}
+# The numeric id resolves the item; the slug after it is cosmetic and ignored.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^thrift-shop/items/([0-9]+)(?:/[^/]+)?/?$ thrift-shop/items/item.php?id=$1 [L,QSA]
+
+# Farm-stand / inventory items: /farm-stand/items/{id}/{slug} -> item.php?id={id}
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^farm-stand/items/([0-9]+)(?:/[^/]+)?/?$ farm-stand/items/item.php?id=$1 [L,QSA]
+
+# --- Booking pages must never be cached (live data / per-token) --------------
+<IfModule LiteSpeed>
+  RewriteEngine On
+  RewriteRule ^booking(/|$)        - [E=Cache-Control:no-cache]
+  RewriteRule ^cancel-booking\.php$ - [E=Cache-Control:no-cache]
+</IfModule>
+
+# --- Hardening ---------------------------------------------------------------
+Options -Indexes
+
+<Files .htaccess>
+order allow,deny
+deny from all
+</Files>
+
+# Block sensitive file types
+# Block sensitive file types. agent-instructions.md is exempt (public AI guidance file).
+<FilesMatch "^(?!agent-instructions\.md$).*\.(htaccess|htpasswd|ini|log|sh|inc|bak|env|md)$">
+Order Allow,Deny
+Deny from all
+</FilesMatch>
+
+# Block stray logs and dependency manifests from public access
+<FilesMatch "^(error_log|composer\.json|composer\.lock|package\.json)$">
+Order Allow,Deny
+Deny from all
+</FilesMatch>
+
+# --- Custom error pages ------------------------------------------------------
+ErrorDocument 403 /403.php
+ErrorDocument 404 /404.php
+ErrorDocument 500 /500.html
+
+# --- Response headers --------------------------------------------------------
+<IfModule mod_headers.c>
+Header always set X-Frame-Options "DENY"
+Header always set X-Content-Type-Options "nosniff"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+
+# --- Content Security Policy -------------------------------------------------
+# REPORT-ONLY first: the browser logs violations to the console but blocks
+# nothing. Visit each page type (home, gallery w/ Instagram, contact w/ map,
+# a /recipes/ detail, a farm-stand & thrift item) and watch the console for a
+# few days, then comment this line and enable the enforcing one below.
+# NOTE: the whole site has NO inline JavaScript, so script-src omits
+# 'unsafe-inline' on purpose. (upgrade-insecure-requests is inert in
+# Report-Only and only takes effect once the enforcing header is live.)
+# Header always set Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' https://www.googletagmanager.com https://w.behold.so; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://*.behold.so; frame-src https://www.google.com https://maps.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+
+# When the report log is clean, comment the Report-Only line above and enable:
+Header always set Content-Security-Policy "default-src 'self'; script-src 'self' https://www.googletagmanager.com https://w.behold.so; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://*.behold.so; frame-src https://www.google.com https://maps.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+# HSTS commits browsers to HTTPS-only for max-age and is hard to undo.
+# HTTPS confirmed working (securityheaders.com grade A), so set to 6 months for full HSTS credit.
+# Optional later hardening: 31536000 (1 year). Do NOT add 'preload' on shared hosting (hard to undo).
+Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+</IfModule>
+
+# --- Compression -------------------------------------------------------------
+<IfModule mod_deflate.c>
+AddOutputFilterByType DEFLATE text/plain text/html text/xml text/css
+AddOutputFilterByType DEFLATE application/xml application/xhtml+xml application/rss+xml
+AddOutputFilterByType DEFLATE application/javascript application/x-javascript text/javascript
+AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+# --- Browser caching ---------------------------------------------------------
+<IfModule mod_expires.c>
+ExpiresActive On
+ExpiresByType image/jpeg "access plus 30 days"
+ExpiresByType image/png "access plus 30 days"
+ExpiresByType image/gif "access plus 30 days"
+ExpiresByType image/webp "access plus 30 days"
+ExpiresByType image/svg+xml "access plus 30 days"
+ExpiresByType image/x-icon "access plus 30 days"
+ExpiresByType text/css "access plus 1 year"
+ExpiresByType application/javascript "access plus 1 year"
+ExpiresByType text/javascript "access plus 1 year"
+ExpiresByType application/pdf "access plus 30 days"
+ExpiresByType text/html "access plus 1 hour"
+</IfModule>
+
+# php -- BEGIN cPanel-generated handler, do not edit
+# Set the “ea-php85” package as the default “PHP” programming language.
+<IfModule mime_module>
+  AddHandler application/x-httpd-ea-php85___lsphp .php .php8 .phtml
+</IfModule>
+# php -- END cPanel-generated handler, do not edit
+
+
+# Serve text files as UTF-8 so dashes/quotes display correctly
+AddType text/markdown .md
+AddCharset utf-8 .txt .md

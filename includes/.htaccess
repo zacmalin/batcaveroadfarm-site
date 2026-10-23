@@ -1,0 +1,11 @@
+# includes/.htaccess
+# Block direct HTTP access to server-side includes. These files are meant to be
+# include()'d / require()'d by PHP, never fetched directly over HTTP. PHP's
+# include/require is a filesystem operation and is unaffected by this rule.
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Order allow,deny
+  Deny from all
+</IfModule>

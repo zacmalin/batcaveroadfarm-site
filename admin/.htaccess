@@ -1,0 +1,29 @@
+# ============================================================
+#  /admin/.htaccess  —  deploy to <DOCROOT>/admin/.htaccess
+#
+#  The site-wide CSP from the root .htaccess is inherited here and
+#  blocks the admin's CDN assets, breaking its appearance. This file
+#  replaces it with a policy tuned to exactly what the admin loads:
+#
+#    scripts  : self + jsDelivr (Tailwind v4, Quill, ZXing)
+#               + cdnjs (Chart.js, JsBarcode)
+#    styles   : self + Google Fonts + jsDelivr (Quill CSS)
+#    fonts    : self + Google Fonts
+#    runtime  : 'unsafe-inline' (16 inline scripts, 108 on* handlers,
+#               138 inline styles) and 'unsafe-eval'/'wasm-unsafe-eval'
+#               (Tailwind compiles CSS in the browser)
+#    media    : blob: + worker-src for the barcode scanner / camera
+#    fetch    : self only (all AJAX posts to /admin/handlers/*)
+#
+#  Still enforced: no arbitrary external script hosts, no framing of
+#  the admin (frame-ancestors 'self'), no plugins (object-src 'none'),
+#  no <base> hijack (base-uri 'self'), no off-site form posts
+#  (form-action 'self'). The public site's strict CSP is untouched.
+# ============================================================
+
+<IfModule mod_headers.c>
+    # Drop the inherited public CSP, then set the admin-specific one.
+    Header always unset Content-Security-Policy
+    Header always unset Content-Security-Policy-Report-Only
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://cdn.jsdelivr.net; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+</IfModule>

@@ -1,0 +1,82 @@
+/* min.legal.css — Privacy Policy & Terms of Service pages
+   Reuses sitewide .page1 / .hero / .content-wrap1 / .divider from min.style.css. */
+
+.legal-doc{
+  max-width:820px;
+  margin:0 auto 64px;
+  background:#fffaf0;
+  border:1px solid var(--cream-dark,#e8d5b0);
+  border-radius:14px;
+  padding:34px 40px 44px;
+  box-shadow:0 10px 26px rgba(59,32,16,.10);
+  color:#3f2a14;
+  line-height:1.7;
+}
+.legal-updated{
+  font-family:'Caveat',cursive;
+  font-size:1.25rem;
+  color:var(--brown-light,#8b5c2a);
+  margin:0 0 6px;
+}
+.legal-intro{font-size:1.04rem;margin:0 0 26px}
+
+.legal-toc{
+  background:linear-gradient(160deg,#fdf4e3,#f0ddb8);
+  border:1px solid var(--cream-dark,#e8d5b0);
+  border-radius:10px;
+  padding:16px 22px;
+  margin:0 0 30px;
+}
+.legal-toc h2{font-family:'Rye',serif;font-size:1rem;margin:0 0 8px;color:var(--brown-dark,#3b2010)}
+.legal-toc ol{margin:0;padding-left:20px;columns:2;column-gap:28px}
+.legal-toc li{margin:3px 0;font-size:.92rem}
+.legal-toc a{color:var(--brown-mid,#5c3317);text-decoration:none}
+.legal-toc a:hover{text-decoration:underline;color:var(--gold,#c9923a)}
+
+.legal-doc h2{
+  font-family:'Playfair Display',serif;
+  font-weight:700;
+  font-size:1.32rem;
+  color:var(--brown-dark,#3b2010);
+  margin:34px 0 10px;
+  padding-bottom:7px;
+  border-bottom:2px solid var(--gold,#c9923a);
+  scroll-margin-top:90px;
+}
+.legal-doc h3{
+  font-family:'Lora',serif;
+  font-weight:600;
+  font-size:1.06rem;
+  color:var(--brown-mid,#5c3317);
+  margin:20px 0 6px;
+}
+.legal-doc p{margin:0 0 14px}
+.legal-doc ul,.legal-doc ol.legal-list{margin:0 0 16px;padding-left:24px}
+.legal-doc li{margin:6px 0}
+.legal-doc a{color:var(--green,#4a6741);font-weight:600}
+.legal-doc strong{color:var(--brown-dark,#3b2010)}
+
+.legal-callout{
+  background:#fcefe6;
+  border-left:5px solid var(--red-barn,#8b2018);
+  border-radius:8px;
+  padding:14px 18px;
+  margin:18px 0 22px;
+  font-size:.96rem;
+}
+.legal-callout strong{color:var(--red-barn,#8b2018)}
+
+.legal-contact{
+  margin-top:30px;
+  background:linear-gradient(160deg,#fdf4e3,#f0ddb8);
+  border-radius:10px;
+  padding:18px 22px;
+}
+.legal-contact h2{margin-top:0;border:0;padding:0}
+.legal-contact p{margin:4px 0}
+
+@media (max-width:640px){
+  .legal-doc{padding:24px 20px 32px}
+  .legal-toc ol{columns:1}
+  .legal-doc h2{font-size:1.18rem}
+}

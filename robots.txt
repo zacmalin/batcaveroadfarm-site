@@ -1,0 +1,35 @@
+# robots.txt — Bat Cave Road Farm
+# https://batcaveroadfarm.com
+
+User-agent: *
+Disallow: /admin/
+Disallow: /account/
+Disallow: /private/
+Disallow: /cgi-bin/
+Allow: /
+
+User-agent: Googlebot-Image
+Disallow: /admin/
+Disallow: /account/
+Allow: /img/
+
+User-agent: GPTBot
+Disallow: /admin/
+Disallow: /account/
+Allow: /
+
+User-agent: ClaudeBot
+Disallow: /admin/
+Disallow: /account/
+Allow: /
+
+User-agent: PerplexityBot
+Disallow: /admin/
+Disallow: /account/
+Allow: /
+
+# Sitemap location
+Sitemap: https://batcaveroadfarm.com/sitemap.php
+
+# AI Agent files
+AI-instructions: https://batcaveroadfarm.com/agent-instructions.md

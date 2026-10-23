@@ -1,0 +1,145 @@
+.produce-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:16px;margin-top:36px}.produce-item{background:linear-gradient(160deg,#fdf4e3,#f0ddb8);border:2px solid var(--gold);border-radius:12px;padding:18px 12px;text-align:center;font-size:.88rem;color:var(--brown-dark);font-weight:600;box-shadow:10px 10px 40px 3px rgba(0,0,0,.75)}.produce-item .emoji{font-size:2rem;display:block;margin-bottom:6px}
+/* ===== inventory directory + item detail (rustic) ===== */
+.stand-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px;margin-bottom:28px;padding-bottom:16px;border-bottom:3px solid var(--gold)}
+.stand-head h1{font-family:'Rye',serif;font-size:clamp(1.5rem,4vw,2.2rem);color:var(--cream-dark);text-shadow:1px 1px 3px rgba(0,0,0,.6);text-transform:capitalize;margin:0}
+.stand-tabs{display:flex;flex-wrap:wrap;gap:8px}
+.stand-tabs a{font-family:'Lora',serif;font-size:.76rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:8px 16px;border:2px solid var(--gold);border-radius:8px;background:var(--cream);color:var(--brown-dark);transition:background .2s}
+.stand-tabs a:hover{background:var(--cream-dark)}
+.stand-tabs a.active{background:var(--brown-dark);color:var(--cream);border-color:var(--brown-dark)}
+.stand-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:22px}
+.stand-card{display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(160deg,#fdf4e3,#f0ddb8);border:2px solid var(--gold);border-radius:12px;overflow:hidden;box-shadow:0 8px 22px rgba(0,0,0,.45);transition:transform .2s,box-shadow .2s}
+.stand-card:hover{transform:translateY(-4px);box-shadow:0 14px 30px rgba(0,0,0,.55)}
+.stand-card .thumb{width:100%;height:160px;object-fit:cover;display:block;border-bottom:2px solid var(--gold)}
+.stand-card .body{padding:16px 18px}
+.stand-card .title-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.stand-card .title-row .ic{font-size:1.3rem}
+.stand-card h2,.stand-card h3{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--brown-dark);margin:0;line-height:1.2}
+.stand-card .desc{font-family:'Lora',serif;font-size:.85rem;line-height:1.55;color:#5a3a1a;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.stand-card .foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 18px;border-top:1px solid rgba(139,92,42,.35)}
+.stand-card .foot .view{font-family:'Lora',serif;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--brown-mid)}
+.stand-card .foot .view:hover{color:var(--red-barn);text-decoration:underline}
+.stand-card .foot .recipes{font-family:'Lora',serif;font-size:.68rem;font-weight:700;color:var(--brown-dark);background:var(--gold-bright);border:1px solid var(--brown-light);padding:3px 9px;border-radius:6px;white-space:nowrap}
+.stand-empty{grid-column:1/-1;text-align:center;padding:48px 20px;font-family:'Lora',serif;font-style:italic;font-size:1.05rem;color:var(--cream-dark);background:rgba(0,0,0,.28);border:2px dashed var(--gold);border-radius:12px}
+.stock{display:inline-flex;align-items:center;gap:5px;margin-top:12px;font-family:'Lora',serif;font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 10px;border-radius:20px;border:1px solid}
+.stock-in{background:#e8f0e3;color:#36502f;border-color:#9bb38f}
+.stock-low{background:#fbedcf;color:#7a5310;border-color:#d9b36a}
+.stock-out{background:#f3dedc;color:var(--red-barn);border-color:#c98b86}
+.item-detail{max-width:880px;margin:0 auto;background:#fffaf0;border:2px solid var(--gold);border-radius:14px;box-shadow:0 10px 26px rgba(0,0,0,.5);overflow:hidden}
+.item-grid{display:flex;flex-wrap:wrap}
+.item-photo{width:100%;flex:1 1 280px;max-width:330px;object-fit:cover;min-height:300px;border-right:2px solid var(--gold);display:block}
+@media(max-width:640px){.item-photo{border-right:none;border-bottom:2px solid var(--gold);max-width:none;min-height:240px}}
+.item-info{flex:2 1 340px;padding:28px 30px}
+.item-pill{display:inline-block;font-family:'Lora',serif;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--brown-dark);background:var(--gold-bright);border:1px solid var(--brown-light);padding:3px 11px;border-radius:20px}
+a.item-pill{cursor:pointer;text-decoration:none;transition:transform .12s ease,box-shadow .12s ease,filter .12s ease}
+a.item-pill,a.item-pill:link,a.item-pill:visited{color:var(--brown-dark,#3b2010)}
+a.item-pill:hover{transform:translateY(-1px);box-shadow:0 2px 6px rgba(0,0,0,.18);filter:brightness(1.04)}
+a.item-pill:focus-visible{outline:2px solid var(--brown-dark,#3b2010);outline-offset:2px}
+.item-info h1{font-family:'Rye',serif;font-size:clamp(1.5rem,4vw,2.1rem);color:var(--brown-dark);line-height:1.15;margin:10px 0 4px}
+.item-breed{font-family:'Lora',serif;font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--brown-mid)}
+.item-tagline{font-family:'Caveat',cursive;font-size:1.4rem;color:var(--brown-mid);margin:10px 0}
+.item-desc{font-family:'Lora',serif;font-size:1rem;line-height:1.75;color:#3f2a14;margin:14px 0}
+.item-age{font-family:'Lora',serif;font-size:.95rem;color:var(--brown-dark);background:linear-gradient(160deg,#f3e4c6,#e9d6b2);border:1px solid var(--gold);border-radius:8px;padding:10px 14px;margin:14px 0}
+.item-ic{font-size:2rem;vertical-align:middle;margin-right:6px}
+.item-chips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.item-chip{font-family:'Lora',serif;font-size:.72rem;color:var(--brown-dark);background:var(--cream-dark);border:1px solid var(--brown-light);padding:2px 9px;border-radius:6px}
+.kitchen-box{margin:16px 0;padding:14px 16px;background:linear-gradient(160deg,#f3e4c6,#e9d6b2);border:1px solid var(--gold);border-radius:10px}
+.kitchen-box h2{font-family:'Rye',serif;font-size:.85rem;color:var(--brown-dark);margin:0 0 8px}
+.kitchen-box ul{list-style:none;margin:0;padding:0;font-family:'Lora',serif;font-size:.92rem}
+.kitchen-box li{padding:3px 0}
+.kitchen-box a{color:var(--red-barn);font-weight:600}
+.kitchen-box a:hover{text-decoration:underline}
+.item-stock-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:1px solid rgba(139,92,42,.35);font-family:'Lora',serif;font-size:.8rem;color:var(--brown-mid)}
+
+a.stand-card{text-decoration:none;color:var(--brown-dark)}
+a.stand-card .view{color:var(--brown-mid)}
+a.stand-card:hover .view{color:var(--red-barn)}
+.item-price{font-family:'Rye',serif;font-size:1.7rem;color:var(--red-barn);margin:10px 0}
+
+/* image lightbox + thrift disclaimer */
+.img-zoom{cursor:zoom-in}
+.lightbox{display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.85);align-items:center;justify-content:center;padding:24px;cursor:zoom-out}
+.lightbox.open{display:flex}
+.lightbox img{max-width:92vw;max-height:88vh;object-fit:contain;border:3px solid var(--gold);border-radius:8px;box-shadow:0 12px 44px rgba(0,0,0,.6)}
+.lightbox-close{position:absolute;top:16px;right:24px;font-size:2.6rem;line-height:1;color:var(--cream);background:none;border:none;cursor:pointer}
+.thrift-note{margin-top:16px;font-family:'Lora',serif;font-size:.78rem;font-style:italic;color:var(--brown-mid)}
+@media print{.lightbox{display:none!important}}
+
+/* center a small set of stand-cards (e.g. homepage preview) */
+.stand-grid--center{display:flex;flex-wrap:wrap;justify-content:center;gap:22px}
+.stand-grid--center .stand-card{flex:0 1 260px;max-width:320px}
+
+/* --- inventory-driven "what's in season" boxes --- */
+.produce-item .produce-name{display:block}
+.produce-item.has-img{position:relative;background-image:none;background-size:cover;background-position:center;background-repeat:no-repeat;color:var(--cream);border-color:var(--gold-bright);overflow:hidden;min-height:118px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.produce-item.has-img::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.22),rgba(0,0,0,.64));z-index:0}
+.produce-item.has-img .emoji,.produce-item.has-img .produce-name{position:relative;z-index:1;text-shadow:0 1px 5px rgba(0,0,0,.9)}
+.produce-subhead{font-family:'Rye',serif;font-size:clamp(1.15rem,3.4vw,1.65rem);color:var(--cream-dark);text-shadow:1px 1px 3px rgba(0,0,0,.6);text-align:center;margin:40px 0 4px}
+.produce-empty{text-align:center;padding:28px 20px;font-family:'Lora',serif;font-style:italic;color:var(--cream-dark);background:rgba(0,0,0,.26);border:2px dashed var(--gold);border-radius:12px;margin-top:24px}
+
+/* --- inventory page: per-category sections --- */
+.cat-section{margin:0 0 46px}
+.cat-section > h2{font-family:'Rye',serif;font-size:clamp(1.35rem,3.6vw,2rem);color:var(--cream-dark);text-shadow:1px 1px 3px rgba(0,0,0,.6);margin:0 0 18px;padding-bottom:10px;border-bottom:3px solid var(--gold);display:flex;align-items:center;gap:10px}
+
+/* --- square, uniform produce boxes + clickable --- */
+.produce-item{aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:12px 10px;overflow:hidden}
+.produce-item.has-img{min-height:0}
+a.produce-item{text-decoration:none;color:var(--brown-dark);transition:transform .2s,box-shadow .2s}
+a.produce-item.has-img{color:var(--cream)}
+a.produce-item:hover{transform:translateY(-3px);box-shadow:12px 12px 44px 4px rgba(0,0,0,.8)}
+.produce-item .produce-name{display:block;line-height:1.2}
+.produce-more{text-align:center;margin:12px 0 6px}
+.cta-btn--sm{font-size:.78rem;padding:8px 18px}
+/* detail page price-per-size + action row */
+.item-per{font-size:.55em;color:var(--brown-light);font-family:'Lora',serif;font-weight:400}
+.item-actions{display:flex;flex-wrap:wrap;align-items:center;gap:16px;margin-top:18px}
+
+/* keep produce squares small + centered (was stretching huge with few items) */
+.produce-grid{grid-template-columns:repeat(auto-fit,minmax(118px,150px));justify-content:center}
+
+/* detail page secondary action link readable on the light card */
+.item-actions .ulLink{color:var(--red-barn);font-weight:700;text-decoration:underline}
+.item-actions .ulLink:hover{color:var(--brown-dark)}
+
+/* tappable-item prompt under a section heading */
+.section-intro{text-align:center;font-family:'Lora',serif;font-style:italic;color:var(--cream-dark);margin:-2px 0 12px}
+
+/* --- Thrift finds search (matches blog/recipe search styling) --- */
+.stand-search{display:flex;flex-wrap:wrap;gap:10px;max-width:680px;margin:0 auto 34px;background:linear-gradient(160deg,#fdf4e3,#f0ddb8);border:2px solid var(--gold);border-radius:12px;padding:14px;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+.stand-search input{flex:1 1 auto;min-width:0;padding:11px 14px;border:1.5px solid var(--brown-light);border-radius:8px;background:#fffaf0;font-family:'Lora',serif;font-size:.95rem;color:var(--brown-dark)}
+.stand-search input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,146,58,.3)}
+.stand-search .cta-btn{margin-top:0;flex:0 0 auto;padding:11px 24px;font-size:.9rem}
+@media(max-width:560px){.stand-search input{flex:1 1 100%}}
+
+/* --- Farm-stand search: category select + results note --- */
+.stand-search select{flex:0 1 auto;min-width:150px;padding:11px 12px;border:1.5px solid var(--brown-light);border-radius:8px;background:#fffaf0;font-family:'Lora',serif;font-size:.9rem;color:var(--brown-dark);cursor:pointer}
+.stand-search select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,146,58,.3)}
+@media(max-width:560px){.stand-search select{flex:1 1 auto}}
+.stand-results-note{text-align:center;color:var(--cream-dark);font-family:'Lora',serif;margin:0 0 22px;text-shadow:1px 1px 3px rgba(0,0,0,.6)}
+
+/* ---- Converse: stand item -> recipes that use it ---- */
+.stand-cell{position:relative;display:flex}
+.stand-cell>.stand-card{flex:1;min-width:0}
+.stand-recipe-badge{position:absolute;top:10px;right:10px;z-index:3;display:inline-flex;align-items:center;gap:4px;background:var(--green,#4a6741);border:1px solid var(--brown-dark,#3b2010);border-radius:999px;padding:4px 9px;font-family:'Lora',serif;font-size:.7rem;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.35);transition:transform .12s ease,filter .12s ease}
+.stand-recipe-badge,.stand-recipe-badge:link,.stand-recipe-badge:visited,.stand-recipe-badge:hover,.stand-recipe-badge:active,.stand-recipe-badge:focus{color:#fff}
+.stand-recipe-badge svg{width:14px;height:14px;fill:#fff}
+.stand-recipe-badge:hover{transform:translateY(-1px);filter:brightness(1.08)}
+.stand-recipe-badge:focus-visible{outline:2px solid var(--cream,#f5ead6);outline-offset:2px}
+.item-recipe-card{display:flex;align-items:center;gap:13px;margin:16px 0;padding:14px 16px;background:linear-gradient(160deg,#fdf4e3,#f0ddb8);border:2px solid var(--green,#4a6741);border-radius:12px;text-decoration:none;box-shadow:0 6px 18px rgba(0,0,0,.35);transition:transform .15s ease,box-shadow .15s ease}
+.item-recipe-card,.item-recipe-card:link,.item-recipe-card:visited{color:var(--brown-dark,#3b2010)}
+.item-recipe-card:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(0,0,0,.5)}
+.item-recipe-card .irc-icon{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:var(--green,#4a6741);color:var(--cream,#f5ead6)}
+.item-recipe-card .irc-icon svg{width:20px;height:20px}
+.item-recipe-card .irc-text{font-family:'Lora',serif;font-size:.95rem;line-height:1.3}
+.item-recipe-card .irc-text strong{color:var(--green,#4a6741)}
+
+/* recipe-badge legend (shown only when >=1 item links to recipes) */
+.stand-recipe-legend{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;text-align:center;color:var(--cream-dark,#e8d5b0);font-family:'Lora',serif;font-size:.9rem;margin:0 0 22px;text-shadow:1px 1px 3px rgba(0,0,0,.6)}
+.stand-recipe-legend .srl-icon{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--green,#4a6741);color:var(--cream,#f5ead6)}
+.stand-recipe-legend .srl-icon svg{width:15px;height:15px}
+.stand-recipe-legend strong{color:var(--gold-bright,#e8b84b)}
+.stand-recipe-legend a,.stand-recipe-legend a:link,.stand-recipe-legend a:visited{color:var(--gold-bright,#e8b84b);text-decoration:underline}
+
+/* Thrift-shop hero photo (scoped to thrift page; farm-stand uses its own) */
+#page-thrift-shop .hero-photo{--hero-img:url('https://batcaveroadfarm.com/img/thrift1.webp')}
+/* Farm-stand hero photo (scoped to farm-stand page) */
+#page-farmstand .hero-photo{--hero-img:url('https://batcaveroadfarm.com/img/harvest1.png')}
