@@ -3,7 +3,7 @@
 // including static pages (gallery, about, faq, legal) that don't open the DB themselves.
 require_once __DIR__ . '/../config.php';
 // Single source of truth for cache-busting. Bump this date on ANY css/js change.
-if (!defined('BCRF_ASSET_V')) define('BCRF_ASSET_V', '20261023b');
+if (!defined('BCRF_ASSET_V')) define('BCRF_ASSET_V', '20261023k');
 // Default canonical to the CURRENT request path (not the homepage) when a
 // page hasn't set one, and let pages that use \$pageDescription still work.
 if (!isset($canonicalUrl)) {

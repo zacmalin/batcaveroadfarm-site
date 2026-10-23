@@ -56,6 +56,7 @@
             <div class="contact-form reveal" id="contactform">
               <h2 style="font-family:'Rye',serif;font-size:1.3rem;color:var(--brown-dark);margin-bottom:24px;text-align:center;">Send Us a Message</h2>
               <form  name="contact" id="contact" action="https://batcaveroadfarm.com/send-message.php" method="POST">
+                  <?php require_once __DIR__ . '/../includes/auth.php'; echo csrf_field(); /* fix pack K: send-message.php requires this token */ ?>
                   <div class="hp" aria-hidden="true">
                     <label for="website">Website</label>
                     <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">

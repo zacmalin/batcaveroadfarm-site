@@ -57,3 +57,43 @@ if (!function_exists('erp_row_label')) {
         }
     }
 }
+
+if (!function_exists('erp_audit_security')) {
+    /**
+     * Record a staff-login event (fix pack K): 'login', 'failed' or 'blocked'.
+     * Shows up in Admin > Audit Log under table "staff_login".
+     *
+     * If the audit_log.action column only allows create/update/delete (an ENUM),
+     * the event is stored as 'update' instead. The label always says what
+     * happened ("LOGIN FAILED: ..."), so nothing is lost either way.
+     */
+    function erp_audit_security(PDO $pdo, string $event, string $email, ?int $user_id = null, string $user_name = ''): void
+    {
+        static $actionOk = null;
+        $labels = ['login' => 'LOGIN OK', 'failed' => 'LOGIN FAILED', 'blocked' => 'LOCKED OUT'];
+        if (!isset($labels[$event])) return;
+
+        try {
+            if ($actionOk === null) {
+                $actionOk = true;
+                $col = $pdo->query("SHOW COLUMNS FROM audit_log LIKE 'action'")->fetch(PDO::FETCH_ASSOC);
+                $type = strtolower((string)($col['Type'] ?? ''));
+                if (str_starts_with($type, 'enum(') || str_starts_with($type, 'set(')) {
+                    $actionOk = str_contains($type, "'login'") && str_contains($type, "'failed'") && str_contains($type, "'blocked'");
+                } elseif (preg_match('/char\((\d+)\)/', $type, $m)) {
+                    $actionOk = (int)$m[1] >= 7;
+                }
+            }
+            $action = $actionOk ? $event : 'update';
+            $ip     = $_SERVER['HTTP_CF_CONNECTING_IP'] ?? ($_SERVER['REMOTE_ADDR'] ?? null);
+            $name   = $user_name !== '' ? $user_name : 'Login guard';
+            $label  = $labels[$event] . ': ' . $email;
+
+            $pdo->prepare("INSERT INTO audit_log (user_id, user_name, action, table_name, record_id, record_label, ip_address)
+                           VALUES (?, ?, ?, 'staff_login', NULL, ?, ?)")
+                ->execute([$user_id, mb_substr($name, 0, 100), $action, mb_substr($label, 0, 255), $ip ? substr((string)$ip, 0, 45) : null]);
+        } catch (Throwable $e) {
+            error_log('[ERP] Security audit failed: ' . $e->getMessage());
+        }
+    }
+}

@@ -2,6 +2,7 @@
 ob_start(); // buffer so header() redirects work even if an include emits whitespace
 require_once '../config.php';
 require_once '../includes/auth.php';
+require_once '../includes/rate_limit.php';   // fix pack K: server-side login limits
 
 $next = safe_next((string)($_GET['next'] ?? ($_POST['next'] ?? '')));
 
@@ -18,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Your session expired. Please try again.';
     } elseif (honeypot_tripped()) {
         $error = 'Something went wrong. Please try again.';
-    } elseif (throttle_hit('login', 8, 600)) {
+    } elseif (throttle_hit('login', 8, 600) || bcrf_login_locked($emailOld)) {
         $error = 'Too many attempts. Please wait a few minutes and try again.';
     } elseif ($emailOld === '' || $password === '') {
         $error = 'Email and password are required.';
@@ -28,11 +29,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([strtolower($emailOld)]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($user && password_verify($password, (string)($user['password'] ?? ''))) {
+                bcrf_login_success($emailOld);
                 auth_login_user($user);
                 ob_end_clean();
                 header('Location: ' . $next);
                 exit;
             }
+            bcrf_login_failed($emailOld);
             $error = 'Email or password is incorrect.';
         } catch (Throwable $e) {
             error_log('[Account login] ' . $e->getMessage());

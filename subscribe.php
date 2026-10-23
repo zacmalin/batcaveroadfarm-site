@@ -10,31 +10,42 @@ $message = '';
 $ok = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Fix pack K: double opt-in + server-side limits.
+    // Nothing is saved here any more. We email a signed link, and the address is
+    // added only when its owner taps it (see subscribe-confirm.php).
+    require_once __DIR__ . '/includes/rate_limit.php';
+    require_once __DIR__ . '/includes/subscribe_confirm.php';
+    require_once __DIR__ . '/admin/includes/email_template.php';
+
+    $checkInbox = "Almost done! Check your inbox and tap the link we sent to confirm your signup.";
+
     // Honeypot: real visitors leave this blank; bots tend to fill every field.
     if (!empty($_POST['website'])) {
         $ok = true;
-        $message = "You're on the list! Welcome to the farm community.";
+        $message = $checkInbox;
     } else {
         $email     = filter_var(trim($_POST['email'] ?? ''), FILTER_VALIDATE_EMAIL);
         $nursery   = isset($_POST['track_nursery']) ? 1 : 0;
         $inventory = isset($_POST['track_inventory']) ? 1 : 0;
 
-        if ($email) {
-            try {
-                $stmt = $pdo->prepare("INSERT INTO mailing_list (email, is_subscribed, track_nursery_updates, track_inventory_alerts)
-                                       VALUES (?, 1, ?, ?)
-                                       ON DUPLICATE KEY UPDATE is_subscribed = 1, track_nursery_updates = ?, track_inventory_alerts = ?");
-                $stmt->execute([$email, $nursery, $inventory, $nursery, $inventory]);
-                $ok = true;
-                $message = "You're on the list! Welcome to the farm community.";
-            } catch (Throwable $e) {
-                error_log('subscribe.php: ' . $e->getMessage());
-                $ok = false;
-                $message = "Something went wrong on our end — please try again in a moment.";
-            }
-        } else {
+        if (!$email) {
             $ok = false;
             $message = "That email doesn't look right — please check it and try again.";
+        } elseif (bcrf_rl_hit('sub_ip', bcrf_rl_ip(), 5, 3600)) {
+            // Max 5 signups per connection per hour
+            $ok = false;
+            $message = "Too many signups from this connection. Please try again in an hour.";
+        } elseif (bcrf_rl_hit('sub_email', $email, 3, 86400)) {
+            // Max 3 confirmation emails per address per day. Same reply as normal
+            // so this can't be used to find out anything about an address.
+            $ok = true;
+            $message = $checkInbox;
+        } elseif (bcrf_subconf_send($email, $nursery, $inventory)) {
+            $ok = true;
+            $message = $checkInbox;
+        } else {
+            $ok = false;
+            $message = "Something went wrong on our end — please try again in a moment.";
         }
     }
 

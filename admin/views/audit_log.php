@@ -53,13 +53,14 @@ $pages = max(1, (int)ceil($total / $per_page));
         class="border rounded p-2 bg-stone-50 outline-none w-40">
     <select name="action" class="border rounded p-2 bg-stone-50 outline-none">
         <option value="">All actions</option>
-        <?php foreach (['create','update','delete'] as $a): ?>
+        <?php foreach (['create','update','delete','login','failed','blocked'] as $a): ?>
         <option value="<?= $a ?>" <?= $filter_action === $a ? 'selected' : '' ?>><?= ucfirst($a) ?></option>
         <?php endforeach; ?>
     </select>
     <input type="text" name="tbl" placeholder="Table name" value="<?= htmlspecialchars($filter_table) ?>"
         class="border rounded p-2 bg-stone-50 outline-none w-44">
     <button type="submit" class="bg-stone-900 text-white px-4 py-2 rounded hover:bg-stone-700 transition uppercase tracking-wider text-[10px] font-bold">Filter</button>
+    <a href="?view=audit_log&amp;tbl=staff_login" class="border px-4 py-2 rounded hover:bg-stone-100 transition uppercase tracking-wider text-[10px] font-bold text-stone-600">Staff logins</a>
     <a href="?view=audit_log" class="border px-4 py-2 rounded hover:bg-stone-100 transition uppercase tracking-wider text-[10px] font-bold text-stone-600">Clear</a>
 </form>
 
@@ -83,6 +84,8 @@ $pages = max(1, (int)ceil($total / $per_page));
                 $action_color = match($log['action']) {
                     'create' => 'text-emerald-700 bg-emerald-50',
                     'delete' => 'text-red-700 bg-red-50',
+                    'login'  => 'text-sky-700 bg-sky-50',
+                    'failed', 'blocked' => 'text-red-800 bg-red-100',
                     default  => 'text-amber-700 bg-amber-50',
                 };
             ?>
@@ -93,7 +96,7 @@ $pages = max(1, (int)ceil($total / $per_page));
                 <td class="p-3 font-bold text-stone-800"><?= htmlspecialchars($log['user_name']) ?></td>
                 <td class="p-3">
                     <span class="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider <?= $action_color ?>">
-                        <?= $log['action'] ?>
+                        <?= htmlspecialchars((string)$log['action']) ?>
                     </span>
                 </td>
                 <td class="p-3 font-mono text-stone-600"><?= htmlspecialchars($log['table_name']) ?></td>

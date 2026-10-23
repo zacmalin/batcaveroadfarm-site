@@ -3,6 +3,7 @@
 ob_start();
 require_once '../config.php';
 require_once '../includes/auth.php';
+require_once '../includes/rate_limit.php';   // fix pack K
 require_once '../admin/includes/email_template.php';
 header('Cache-Control: no-store, private');
 
@@ -22,6 +23,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Too many requests. Please wait a little while and try again.';
     } elseif ($emailOld === '' || !filter_var($emailOld, FILTER_VALIDATE_EMAIL)) {
         $error = 'Please enter a valid email address.';
+    } elseif (bcrf_rl_hit('forgot_ip', bcrf_rl_ip(), 10, 3600)) {
+        $error = 'Too many requests. Please wait a little while and try again.';
+    } elseif (bcrf_rl_hit('forgot_email', $emailOld, 3, 3600)) {
+        // Max 3 reset emails per address per hour (stops someone flooding an inbox).
+        // Same "check your email" message as normal, so nothing is revealed.
+        $sent = true;
     } else {
         try {
             $stmt = $pdo->prepare("SELECT id, first_name, email FROM users WHERE email = ? LIMIT 1");

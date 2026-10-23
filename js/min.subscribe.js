@@ -28,7 +28,7 @@
         if(j.ok){
           if(typeof gtag==='function'){gtag('event','newsletter_signup',{method:'modal'});}
           form.reset();
-          setTimeout(close,2200);
+          setTimeout(close,6000);
         }
       })
       .catch(function(){ showMsg('Something went wrong — please try again.',false); })
