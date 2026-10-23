@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/img_dims.php';
 /**
  * Farm events engine for batcaveroadfarm.com.
  * Supports one-off, seasonal-range, weekly, and annual recurring events.
@@ -219,7 +220,7 @@ if (!function_exists('bcrf_events_render')) {
             $h .= '<div class="event-date" aria-hidden="true"><span class="event-date-mon">' . htmlspecialchars($mon) . '</span><span class="event-date-day">' . htmlspecialchars($day) . '</span></div>';
             if ($img !== '') {
                 $src = (strpos($img, 'http') === 0) ? $img : '/' . ltrim($img, '/');
-                $h .= '<div class="event-thumb"><img src="' . htmlspecialchars($src) . '" alt="' . htmlspecialchars($title) . '" loading="lazy" decoding="async"></div>';
+                $h .= '<div class="event-thumb"><img src="' . htmlspecialchars($src) . '"' . bcrf_img_attrs($src) . ' alt="' . htmlspecialchars($title) . '" loading="lazy" decoding="async"></div>';
             }
             $h .= '<div class="event-body">';
             $h .= '<h2 class="event-title">' . htmlspecialchars($title) . '</h2>';

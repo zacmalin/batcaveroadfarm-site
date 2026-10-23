@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/img_dims.php';
 /**
  * Related cross-link modules for batcaveroadfarm.com.
  *
@@ -219,7 +220,7 @@ if (!function_exists('bcrf_related_render')) {
             $meta = (string)($c['meta'] ?? '');
             $h .= '<a class="related-card' . ($img === '' ? ' related-card--noimg' : '') . '" href="' . htmlspecialchars($c['url']) . '">';
             if ($img !== '') {
-                $h .= '<span class="related-thumb"><img src="' . htmlspecialchars($img) . '" alt="' . htmlspecialchars($c['title']) . '" loading="lazy" decoding="async"></span>';
+                $h .= '<span class="related-thumb"><img src="' . htmlspecialchars($img) . '"' . bcrf_img_attrs($img) . ' alt="' . htmlspecialchars($c['title']) . '" loading="lazy" decoding="async"></span>';
             }
             $h .= '<span class="related-body">';
             if ($kind !== '') $h .= '<span class="related-kind">' . htmlspecialchars($kind) . '</span>';

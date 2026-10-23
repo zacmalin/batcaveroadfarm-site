@@ -2,6 +2,7 @@
 // recipes/index.php - Relational Recipes Directory Index Hub
 require_once '../config.php';
 require_once '../includes/ratings.php';
+require_once '../includes/img_dims.php';
 
 $limit = 8;
 $page = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT) ?: 1;
@@ -188,7 +189,7 @@ if ($__li) {
         <div>
           <div class="recipe-card-head">
             <?php if ($cImg !== ''): ?>
-              <img class="recipe-thumb" src="<?= htmlspecialchars($cImg) ?>" alt="<?= htmlspecialchars($rec['title']) ?>" loading="lazy" decoding="async">
+              <img class="recipe-thumb" src="<?= htmlspecialchars($cImg) ?>"<?= bcrf_img_attrs($cImg) ?> alt="<?= htmlspecialchars($rec['title']) ?>" loading="lazy" decoding="async">
             <?php endif; ?>
             <?php $rCuisine = trim((string)($rec['cuisine'] ?? '')); if ($rCuisine !== '' || $badges): ?><div class="recipe-chips"><?php if ($rCuisine !== ''): ?><a class="recipe-chip recipe-chip--cuisine" href="/recipes/?cuisine=<?= urlencode($rCuisine) ?>"><?= htmlspecialchars($rCuisine) ?></a><?php endif; ?><?php foreach ($badges as $b): ?><a class="recipe-chip" href="/recipes/?category=<?= (int)$b['id'] ?>"><?= htmlspecialchars($b['category_name']) ?></a><?php endforeach; ?></div><?php endif; ?>
           </div>

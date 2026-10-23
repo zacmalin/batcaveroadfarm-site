@@ -1,5 +1,6 @@
 <?php
 require_once '../config.php';
+require_once '../includes/img_dims.php';
 
 if (!function_exists('bcrfZooShop')) {
 function bcrfZooShop(PDO $pdo): void {
@@ -31,7 +32,7 @@ function bcrfZooShop(PDO $pdo): void {
     .zoo-shop-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:16px}
     .zoo-card{display:flex;flex-direction:column;flex:0 1 200px;max-width:200px;background:#fffaf0;border:1px solid #e6d8bf;border-radius:12px;overflow:hidden;text-decoration:none;color:inherit;box-shadow:0 2px 6px rgba(0,0,0,.08);transition:transform .12s ease,box-shadow .12s ease}
     .zoo-card:hover{transform:translateY(-3px);box-shadow:0 8px 18px rgba(0,0,0,.14)}
-    .zoo-card-img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block}
+    .zoo-card-img{width:100%;height:auto;aspect-ratio:1/1;object-fit:cover;display:block}
     .zoo-card-body{padding:10px 12px;display:flex;flex-direction:column;gap:4px}
     .zoo-card-body h3{margin:0;font-size:.95rem;line-height:1.2;color:var(--brown-dark,#3b2010)}
     .zoo-card-desc{margin:0;font-size:.78rem;color:#6b5840;line-height:1.3}
@@ -54,7 +55,7 @@ function bcrfZooShop(PDO $pdo): void {
         ?>
         <a class="zoo-card" href="<?= htmlspecialchars($href, ENT_QUOTES) ?>">
           <?php if ($imgU !== ''): ?>
-            <img class="zoo-card-img" src="<?= htmlspecialchars($imgU, ENT_QUOTES) ?>" alt="<?= htmlspecialchars($name, ENT_QUOTES) ?>" loading="lazy" decoding="async">
+            <img class="zoo-card-img" src="<?= htmlspecialchars($imgU, ENT_QUOTES) ?>"<?= bcrf_img_attrs($imgU) ?> alt="<?= htmlspecialchars($name, ENT_QUOTES) ?>" loading="lazy" decoding="async">
           <?php endif; ?>
           <div class="zoo-card-body">
             <h3><?= htmlspecialchars($name) ?></h3>
@@ -112,7 +113,7 @@ function bcrfBreedCards(PDO $pdo): void {
         $href = '/petting-zoo/breeds/' . $id . '/' . $slug . '/';
         echo '<a class="animal-tile reveal" href="' . htmlspecialchars($href, ENT_QUOTES) . '">';
         if ($img !== '') {
-            echo '<img class="boximg1" src="' . htmlspecialchars($img, ENT_QUOTES) . '" alt="' . $name . '" loading="lazy" decoding="async">';
+            echo '<img class="boximg1" src="' . htmlspecialchars($img, ENT_QUOTES) . '"' . bcrf_img_attrs($img) . ' alt="' . $name . '" loading="lazy" decoding="async">';
         }
         echo '<div class="tile-body">'
            . '<span class="tile-emoji" aria-hidden="true">' . htmlspecialchars($icon, ENT_QUOTES) . '</span>'

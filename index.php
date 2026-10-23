@@ -1,5 +1,6 @@
 <?php
 	require_once __DIR__ . '/config.php';
+	require_once __DIR__ . '/includes/img_dims.php';
 	$pageTitle = "Bat Cave Road Farm — Petting Zoo & Farmstand | Old Fort, NC";
 	$preloadImage = "https://batcaveroadfarm.com/img/animals1.webp";
 	
@@ -90,7 +91,7 @@
                   ?>
                   <div class="home-col">
                   <article class="home-blog-card">
-                    <?php if ($bImg !== ''): ?><a class="hbc-imgwrap" href="<?= htmlspecialchars($bUrl) ?>"><img src="<?= htmlspecialchars($bImg) ?>" alt="<?= htmlspecialchars($latestPost['title']) ?>" loading="lazy" decoding="async"></a><?php endif; ?>
+                    <?php if ($bImg !== ''): ?><a class="hbc-imgwrap" href="<?= htmlspecialchars($bUrl) ?>"><img src="<?= htmlspecialchars($bImg) ?>"<?= bcrf_img_attrs($bImg) ?> alt="<?= htmlspecialchars($latestPost['title']) ?>" loading="lazy" decoding="async"></a><?php endif; ?>
                     <div class="hbc-body">
                       <span class="home-eyebrow">From the Journal</span>
                       <h3><a href="<?= htmlspecialchars($bUrl) ?>"><?= htmlspecialchars($latestPost['title']) ?></a></h3>
@@ -116,7 +117,7 @@
                         $mins = (int)($r['prep_time'] ?? 0) + (int)($r['cook_time'] ?? 0);
                     ?>
                       <a class="home-recipe-row" href="<?= htmlspecialchars($rUrl) ?>">
-                        <?php if ($ri !== ''): ?><img src="<?= htmlspecialchars($ri) ?>" alt="<?= htmlspecialchars($r['title']) ?>" loading="lazy" decoding="async"><?php endif; ?>
+                        <?php if ($ri !== ''): ?><img src="<?= htmlspecialchars($ri) ?>"<?= bcrf_img_attrs($ri) ?> alt="<?= htmlspecialchars($r['title']) ?>" loading="lazy" decoding="async"><?php endif; ?>
                         <div class="hrr-body">
                           <span class="home-eyebrow"><?= htmlspecialchars($label) ?></span>
                           <h3><?= htmlspecialchars($r['title']) ?></h3>

@@ -1,6 +1,7 @@
 <?php
 // blog/index.php - Farmstead Journal Archive Directory Index
 require_once '../config.php';
+require_once '../includes/img_dims.php';
 
 $limit = 6; // posts per page
 $page = max(1, (int)(filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT) ?: 1));
@@ -115,7 +116,7 @@ if ($__li) {
       <article class="journal-card reveal">
         <div>
           <?php if ($img !== ''): ?>
-            <img class="thumb" src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($art['title']) ?>" loading="lazy" decoding="async">
+            <img class="thumb" src="<?= htmlspecialchars($img) ?>"<?= bcrf_img_attrs($img) ?> alt="<?= htmlspecialchars($art['title']) ?>" loading="lazy" decoding="async">
           <?php endif; ?>
           <div class="card-inner">
             <span class="journal-date"><?= $when ? date('F j, Y', strtotime($when)) : '' ?></span>

@@ -27,7 +27,7 @@
 .home-recipe-col{display:flex;flex-direction:column;gap:18px}
 a.home-recipe-row{display:flex;gap:0;background:linear-gradient(160deg,#fdf4e3,#f0ddb8);border:2px solid var(--gold);border-radius:14px;overflow:hidden;box-shadow:10px 10px 40px 3px rgba(0,0,0,.55);text-decoration:none;color:var(--brown-dark);transition:transform .2s,box-shadow .2s}
 a.home-recipe-row:hover{transform:translateY(-3px)}
-.home-recipe-row img{width:132px;align-self:stretch;object-fit:cover;flex-shrink:0;display:block}
+.home-recipe-row img{width:132px;height:auto;align-self:stretch;object-fit:cover;flex-shrink:0;display:block}
 .hrr-body{padding:14px 16px;display:flex;flex-direction:column;justify-content:center}
 .hrr-body h3{font-family:'Playfair Display',serif;font-size:1.15rem;line-height:1.2;margin:2px 0 4px;color:var(--brown-dark)}
 .hrr-meta{font-family:'Lora',serif;font-size:.82rem;color:#6a4a24;margin:0}
