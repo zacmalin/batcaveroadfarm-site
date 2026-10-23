@@ -150,3 +150,4 @@ Updated: 2026-10-23 (code review done)
 - health.php (BCRF_NO_SESSION, SELECT from users; 200 BCRF-OK / 503 BCRF-DOWN, no-store, noindex). config.php: DB connect failure -> 503 + Retry-After 300 (was 200 with error text); session skipped when BCRF_NO_SESSION.
 - UptimeRobot (user's own free account): keyword monitors "BCRF homepage" (/, keyword "Bat Cave Road Farm" must exist) + "BCRF database" (/health.php, "BCRF-OK"), 5 min, email. UptimeRobot is a Cloudflare verified bot; if 403, check Security Events service (Bot Fight Mode can't be skipped on free plan; custom rules -> add "and not cf.client.bot").
 - Waiting on: Zac to install + create monitors + confirm both green.
+- CONFIRMED 2026-10-23: Zac installed Pack N; UptimeRobot monitors BCRF homepage + BCRF database both green (Cloudflare did not block). pack-n merged into main.
