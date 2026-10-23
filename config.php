@@ -1,5 +1,7 @@
 <?php
-if (session_status() == PHP_SESSION_NONE) {
+// health.php (uptime monitor) defines BCRF_NO_SESSION so its checks every
+// 5 minutes don't create a session file each time.
+if (session_status() == PHP_SESSION_NONE && !defined('BCRF_NO_SESSION')) {
     images_session_start_secure();
 }
 
@@ -82,6 +84,13 @@ try {
     ]);
 } catch (PDOException $e) {
     error_log($e->getMessage());
+    // Fix pack N: answer "503 temporarily unavailable" (not 200 OK), so uptime
+    // monitors see the outage and Google doesn't index this message as a page.
+    if (!headers_sent()) {
+        http_response_code(503);
+        header('Retry-After: 300');
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    }
     die("A secure system connection interface fault occurred.");
 }
 

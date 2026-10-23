@@ -145,3 +145,8 @@ Updated: 2026-10-23 (code review done)
 - Reminder f4cd8956 (2026-10-24 10:30 ET) now also covers first backup check; renamed "Stock-alert cron + first backup check".
 - Waiting on: Zac to install + test.
 - CONFIRMED 2026-10-23: Zac reports Pack M all good. pack-m merged into main. Remaining: 10-24 reminder (stock-alert + first backup); uptime monitor; Cloudflare JS Detections console error; optional audit_log VARCHAR SQL; delete merged branches; GSC request indexing + poblano nutrition (if not done).
+
+## Fix pack N: uptime alerts (2026-10-23): fix-pack-N-uptime-2-files-2026-10-23.zip
+- health.php (BCRF_NO_SESSION, SELECT from users; 200 BCRF-OK / 503 BCRF-DOWN, no-store, noindex). config.php: DB connect failure -> 503 + Retry-After 300 (was 200 with error text); session skipped when BCRF_NO_SESSION.
+- UptimeRobot (user's own free account): keyword monitors "BCRF homepage" (/, keyword "Bat Cave Road Farm" must exist) + "BCRF database" (/health.php, "BCRF-OK"), 5 min, email. UptimeRobot is a Cloudflare verified bot; if 403, check Security Events service (Bot Fight Mode can't be skipped on free plan; custom rules -> add "and not cf.client.bot").
+- Waiting on: Zac to install + create monitors + confirm both green.
