@@ -144,3 +144,4 @@ Updated: 2026-10-23 (code review done)
 - .github/workflows/checks.yml: PHP 8.5 lint, node --check js/*.js, min.site.js up-to-date. Verified green + negative test fails correctly.
 - Reminder f4cd8956 (2026-10-24 10:30 ET) now also covers first backup check; renamed "Stock-alert cron + first backup check".
 - Waiting on: Zac to install + test.
+- CONFIRMED 2026-10-23: Zac reports Pack M all good. pack-m merged into main. Remaining: 10-24 reminder (stock-alert + first backup); uptime monitor; Cloudflare JS Detections console error; optional audit_log VARCHAR SQL; delete merged branches; GSC request indexing + poblano nutrition (if not done).
