@@ -43,8 +43,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
         $error = 'Your session expired. Please try again.';
-    } elseif (!empty($_POST['website'])) {
-        $error = 'Invalid credentials.';                    // honeypot: bots only
     } elseif ($ipFails >= BCRF_STAFF_IP_MAX) {
         $error = 'Too many failed attempts. Please wait 15 minutes and try again.';
     } elseif ($emailFails >= BCRF_STAFF_EMAIL_MAX) {
@@ -132,16 +130,16 @@ ob_end_clean(); // Done with buffering — render the page
 
         <form method="POST" class="space-y-4">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
-            <div style="position:absolute;left:-9999px;" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
+            <!-- Hotfix K1: no hidden bot-trap field here. Phone password managers autofilled it with the email, which blocked real logins. CSRF + lockouts protect this form. -->
             <div>
                 <label class="block text-xs font-semibold text-stone-600 mb-1">Email</label>
-                <input type="email" name="email" required autofocus
+                <input type="email" name="email" autocomplete="username" required autofocus
                     value="<?= htmlspecialchars($_POST['email'] ?? '', ENT_QUOTES) ?>"
                     class="w-full p-2.5 border border-stone-300 rounded text-sm outline-none bg-stone-50 focus:ring-1 focus:ring-stone-500">
             </div>
             <div>
                 <label class="block text-xs font-semibold text-stone-600 mb-1">Password</label>
-                <input type="password" name="password" required
+                <input type="password" name="password" autocomplete="current-password" required
                     class="w-full p-2.5 border border-stone-300 rounded text-sm outline-none bg-stone-50 focus:ring-1 focus:ring-stone-500">
             </div>
             <button type="submit"

@@ -127,3 +127,4 @@ Updated: 2026-10-23 (code review done)
 - Tested on PHP 8.5.8 + MariaDB 11.8.3 (both backup modes restore identically). All 168 PHP files pass php -l.
 - Waiting on: Zac to install, test contact form + staff login + signup, add backup cron, check first backup on 2026-10-24 (same day as stock-alert check).
 - Not covered yet: booking/submit.php, cancel-booking.php, review/ have no CSRF (honeypot only).
+- HOTFIX K1 (2026-10-23): Zac reported correct staff password -> "Invalid credentials". Cause: hidden honeypot "website" text input placed above the email field got autofilled by the phone password manager, tripping the bot check (which showed "Invalid credentials."). Fix: removed honeypot from admin/login.php only (CSRF + lockouts remain); added autocomplete=username/current-password. File: hotfix-K1-admin-login-1-file-2026-10-23.zip. Lesson: never put a honeypot text input directly before a login's email/password fields.
