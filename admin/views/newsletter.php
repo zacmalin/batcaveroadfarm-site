@@ -360,7 +360,7 @@ async function submitCampaign(isTest) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: new URLSearchParams({
-                    csrf_token: REDACTED
+                    csrf_token: csrfToken,
                     subject, from_name: fromName, reply_to: replyTo,
                     segment, body_html: html,
                     is_test: '1', test_email: testEmail,

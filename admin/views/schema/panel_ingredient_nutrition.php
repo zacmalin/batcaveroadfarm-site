@@ -118,7 +118,7 @@
                             hideMsg();
 
                             var body = new URLSearchParams({
-                                csrf_token: REDACTED
+                                csrf_token: CSRF,
                                 action:     'search',
                                 query:      ingName
                             });

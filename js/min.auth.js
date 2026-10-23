@@ -61,7 +61,7 @@
     post('/account/register_ajax.php', {
       first_name: val(pane, 'first_name'), last_name: val(pane, 'last_name'), email: val(pane, 'email'),
       phone_number: val(pane, 'phone_number'), password: val(pane, 'password'),
-      password_confirm: REDACTED
+      password_confirm: val(pane, 'password_confirm'), website: val(pane, 'website')
     }, pane);
   }
 

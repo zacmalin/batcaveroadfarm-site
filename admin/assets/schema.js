@@ -348,7 +348,7 @@ async function lookupUSDA(ingId) {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
-                csrf_token: REDACTED
+                csrf_token: window.SCHEMA.csrf,
                 action:     'search',
                 query:      ingName
             })
@@ -440,7 +440,7 @@ async function calculateNutrition(recipeId) {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
-                csrf_token: REDACTED
+                csrf_token: window.SCHEMA.csrf,
                 recipe_id:  recipeId
             })
         });

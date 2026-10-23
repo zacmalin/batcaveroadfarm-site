@@ -12,22 +12,9 @@ Never in this repo. `config.php` loads `bcrf-secrets.php` (returns an array) fro
 2. `/home2/ddailnmy/bcrf-secrets.php` (home folder, outside every web folder) <- live
 3. `/home2/ddailnmy/public_html/bcrf-secrets.php` (old location, fallback)
 
-Keys: `DB_HOST DB_USER DB_PASS DB_NAME LIST_SECRET SMTP_* STRIPE_PK STRIPE_SK STRIPE_WH_SEC PAYPAL_*`
+Keys: `DB_HOST DB_USER DB_PASS DB_NAME LIST_SECRET USDA_API_KEY SMTP_* STRIPE_PK STRIPE_SK STRIPE_WH_SEC PAYPAL_*`
 (optional `CRON_KEY`, leave unset so cron runs from the command line only).
 
-## Files with placeholders (do NOT deploy these from the repo as-is)
-The first code export blanked some values. These lines read `REDACTED` here; the live server copy is correct.
-| File | Line(s) | What it really is |
-|---|---|---|
-| admin/includes/nutrition_config.php | 8 | USDA API key (secret, move to bcrf-secrets.php) |
-| admin/assets/schema.js | 351, 443 | CSRF token value in AJAX call |
-| admin/views/schema.php | 650, 2026, 2118 | CSRF token value in AJAX call |
-| admin/views/schema/panel_ingredient_nutrition.php | 121 | CSRF token value |
-| admin/views/newsletter.php | 363 | CSRF token value |
-| passes/index.php | 93-94 | data-pass-id / data-pass-label attributes |
-| js/min.auth.js | 64 | password_confirm field mapping |
-
-Fix: upload the live copy of each file (as .txt) and commit it, then this table can go.
 
 ## Not tracked
 `vendor/` (PHPMailer), uploads/images, logs, zips. See `.gitignore`.

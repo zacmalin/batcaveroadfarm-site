@@ -90,8 +90,8 @@ $csrf   = $_SESSION['csrf_token'] ?? ($_SESSION['csrf_token'] = bin2hex(random_b
 
             <?php if (!$soldOut): ?>
             <a href="#buy-form" class="pass-select-btn"
-               data-pass-id=REDACTED
-               data-pass-label=REDACTED
+               data-pass-id="<?= (int)$pt['id'] ?>"
+               data-pass-label="<?= htmlspecialchars($pt['label'], ENT_QUOTES) ?>">
                 Get this pass →
             </a>
             <?php else: ?>

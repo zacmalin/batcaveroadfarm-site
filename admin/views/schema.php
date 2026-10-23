@@ -647,7 +647,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                             hideMsg();
 
                             var body = new URLSearchParams({
-                                csrf_token: REDACTED
+                                csrf_token: CSRF,
                                 action:     'search',
                                 query:      ingName
                             });
@@ -2023,7 +2023,7 @@ async function lookupUSDA(ingId) {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
-                csrf_token: REDACTED
+                csrf_token: '<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES) ?>',
                 action:     'search',
                 query:      ingName
             })
@@ -2115,7 +2115,7 @@ async function calculateNutrition(recipeId) {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
-                csrf_token: REDACTED
+                csrf_token: '<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES) ?>',
                 recipe_id:  recipeId
             })
         });
