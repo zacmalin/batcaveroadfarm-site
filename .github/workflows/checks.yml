@@ -1,0 +1,61 @@
+# Automatic code check (fix pack M).
+# Runs on every push and pull request. If anything fails, GitHub shows a red X
+# on the commit and emails you, so a broken file is caught BEFORE it's uploaded.
+#
+#  1. PHP syntax check of every .php file on PHP 8.5 (same as the live server)
+#  2. JavaScript syntax check of every file in js/
+#  3. js/min.site.js is up to date with its source files (tools/build-js.mjs)
+name: Code check
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP 8.5
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: none
+
+      - name: PHP syntax check
+        run: |
+          php -v | head -1
+          fail=0; n=0
+          while IFS= read -r -d '' f; do
+            n=$((n+1))
+            out=$(php -l "$f" 2>&1) || { echo "::error file=$f::$out"; fail=1; }
+          done < <(find . -name '*.php' -not -path './vendor/*' -not -path './.git/*' -print0)
+          echo "Checked $n PHP files"
+          exit $fail
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: JavaScript syntax check
+        run: |
+          fail=0
+          for f in js/*.js; do node --check "$f" || { echo "::error file=$f::syntax error"; fail=1; }; done
+          exit $fail
+
+      - name: Combined script is up to date
+        run: |
+          npm i --no-save --no-audit --no-fund terser@5.51.2
+          node tools/build-js.mjs
+          if ! git diff --quiet -- js/min.site.js; then
+            echo "::error file=js/min.site.js::js/min.site.js is out of date. Run: node tools/build-js.mjs, then commit and upload it."
+            git diff --stat -- js/min.site.js
+            exit 1
+          fi

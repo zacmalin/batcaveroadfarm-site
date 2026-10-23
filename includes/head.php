@@ -3,7 +3,7 @@
 // including static pages (gallery, about, faq, legal) that don't open the DB themselves.
 require_once __DIR__ . '/../config.php';
 // Single source of truth for cache-busting. Bump this date on ANY css/js change.
-if (!defined('BCRF_ASSET_V')) define('BCRF_ASSET_V', '20261023k');
+if (!defined('BCRF_ASSET_V')) define('BCRF_ASSET_V', '20261023m');
 // Default canonical to the CURRENT request path (not the homepage) when a
 // page hasn't set one, and let pages that use \$pageDescription still work.
 if (!isset($canonicalUrl)) {
@@ -25,8 +25,8 @@ $bcrfThemeGlyph = $bcrfTheme !== '' ? bcrf_theme_glyph($bcrfTheme) : '';
     <head>
         <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-DLB6LEFWQZ"></script>
-<script defer src="https://batcaveroadfarm.com/js/min.gtag.js?v=<?= BCRF_ASSET_V ?>"></script>
-<script defer src="https://batcaveroadfarm.com/js/min.nav.js?v=<?= BCRF_ASSET_V ?>"></script>
+<!-- Fix pack M: one combined file replaces min.gtag/nav/app/hours/subscribe/analytics/theme.js (built by tools/build-js.mjs) -->
+<script defer src="https://batcaveroadfarm.com/js/min.site.js?v=<?= BCRF_ASSET_V ?>"></script>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <?php if (!empty($preloadImage)): ?><link rel="preload" as="image" href="<?php echo htmlspecialchars($preloadImage); ?>" fetchpriority="high"><?php endif; ?>

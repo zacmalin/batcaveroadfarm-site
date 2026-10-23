@@ -85,11 +85,7 @@
       </div>
     </div>
 
-        <script defer src="https://batcaveroadfarm.com/js/min.app.js?v=<?= BCRF_ASSET_V ?>"></script>
-        <script defer src="https://batcaveroadfarm.com/js/min.hours.js?v=<?= BCRF_ASSET_V ?>"></script>
-        <script defer src="https://batcaveroadfarm.com/js/min.subscribe.js?v=<?= BCRF_ASSET_V ?>"></script>
-        <script defer src="https://batcaveroadfarm.com/js/min.analytics.js?v=<?= BCRF_ASSET_V ?>"></script>
-        <script defer src="https://batcaveroadfarm.com/js/min.theme.js?v=<?= BCRF_ASSET_V ?>"></script>        
+        <!-- Fix pack M: site-wide scripts now load from js/min.site.js (in head.php) -->
 <?php
 	 if (isset($pageJS)):
 	   foreach ((array)$pageJS as $__pjs):

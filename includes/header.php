@@ -35,7 +35,18 @@
     	<header>
             <div class="header-inner">
                 <a class="logo-wrap" href="https://batcaveroadfarm.com/" aria-label="Bat Cave Road Farm — home">
+<?php
+                    // Fix pack M: smaller WebP logo when available (falls back to the PNG).
+                    require_once __DIR__ . '/webp.php';
+                    $__logoWebp = bcrf_webp_src('/img/logo.png');
+                    if ($__logoWebp): ?>
+                    <picture style="display:contents">
+                        <source srcset="https://batcaveroadfarm.com<?= htmlspecialchars($__logoWebp, ENT_QUOTES) ?>?v=<?= defined('BCRF_ASSET_V') ? BCRF_ASSET_V : '1' ?>" type="image/webp">
+                        <img src="https://batcaveroadfarm.com/img/logo.png" alt="Bat Cave Road Farm Logo" width="400" height="299" decoding="async">
+                    </picture>
+<?php else: ?>
                     <img src="https://batcaveroadfarm.com/img/logo.png" alt="Bat Cave Road Farm Logo" width="400" height="299" decoding="async">
+<?php endif; ?>
                 </a>
                 <div class="site-title">
                     <div class="main">Bat Cave Road Farm</div>

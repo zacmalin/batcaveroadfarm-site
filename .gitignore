@@ -1,29 +1,26 @@
-# Secrets: NEVER commit. Live file is /home2/ddailnmy/bcrf-secrets.php
-bcrf-secrets.php
-*.env
-.env*
-
-# Logs and server junk
-error_log
-*.log
-.DS_Store
-Thumbs.db
-.well-known/
 
 # Dependencies (installed on the server, not tracked)
-vendor/
-node_modules/
-
+# Logs and server junk
+# One-time tools / bundles
+# Secrets: NEVER commit. Live file is /home2/ddailnmy/bcrf-secrets.php
 # Uploads, media and generated files
-uploads/
+*.env
+*.log
+*.zip
+.DS_Store
+.env*
+.well-known/
+Thumbs.db
+bcrf-secrets.php
+cache/
+code-review-*.txt
+error_log
 images/
 img/
-media/
-cache/
-tmp/
-*.zip
-
-# One-time tools / bundles
-code-review-*.txt
 make-code-zip.php
+media/
+node_modules/
 secrets-check.php
+tmp/
+uploads/
+vendor/
