@@ -18,7 +18,7 @@ Updated: 2026-10-23 (code review done)
 6. Check Cloudflare bot settings (challenge pages hit some automated requests).
 
 ## Waiting on
-- Code-only zip: upload tools/make-code-zip.php to public_html, visit ?key=<one-time key>, download code-review-*-partN.txt file(s) from home folder (zip uploads not supported in Perplexity).
+- Code-only zip: upload tools/make-code-zip.php to public_html, visit ?key=bcrf-7Qm4xV9pL2, download code-review-*-partN.txt file(s) from home folder (zip uploads not supported in Perplexity).
 
 ## Code review (2026-10-23)
 - Source snapshot (secrets blanked): src-snapshot-2026-10-23/ — 225 files. Secrets live in bcrf-secrets.php ABOVE public_html.
@@ -98,3 +98,32 @@ Updated: 2026-10-23 (code review done)
 - nutrition_config.php reads USDA_API_KEY from bcrf-secrets.php (fallback DEMO_KEY). Repo: all REDACTED placeholders restored from live copies.
 - 2026-10-23: user confirmed cron URL check done (Forbidden).
 - 2026-10-23: user confirmed installed/verified: audit FULL pack, cleanup E, SameSite F, USDA key, newsletter_send.php deleted, old public_html secrets copy removed. Only open item: stock-alert cron check 2026-10-24 (reminder automation f4cd8956).
+
+## SEO / AI / performance review (2026-10-23 PM)
+- GSC (sc-domain, Jul 20–Oct 20): poblano chicken recipe = top page (1,180 impr, pos 16, CTR 1.5%); "pollo poblano" 324 impr pos 6.5 CTR 0.9%. Homepage ~780 impr pos 8.8.
+- Index: 44/59 sitemap URLs indexed. Not indexed: contact-us (crawled-not-indexed, last crawl Jun 18), directions (unknown), 2 blog posts (unknown), pickles item, 7 animal pages, pigs breed. 403 in July (Cloudflare) on private-events, animals 3/10, breeds/9 — request indexing in GSC.
+- Bug: recipe meta description showed escaped "&lt;p&gt;" (DB HTML). Recipe pages had 3 H1s (auth modal). Poblano recipe nutrition 2,334 cal/serving looks wrong -> recalc in admin (check servings + ingredient units).
+- SEO fix pack I (seo-fix-pack-I-6-files-2026-10-23.zip): .htaccess sitemap.xml rule; recipe_detail.php clean desc + title "X Recipe | Bat Cave Road Farm"; head.php one-line <title>; auth_modals h1->h2; min.auth.css + min.style.css selector. GitHub branch seo-pack-i (merge after install).
+- Content to-dos (admin/DB): "souvernir" typo x3 on passes; events page empty (add fall/Halloween events with Event schema); FAQ admission answer should state $8/$5/under 3 free; short titles on shop/gallery/booking/contact/tickets/thrift/farmstand (add "Old Fort, NC"); img width/height missing on petting-zoo (11), recipes (8).
+- GBP account UNVERIFIED in API (accounts/100339490590403771206) — check Business Profile verification.
+- Cloudflare: spoofed bot UAs from datacenter get 403 (fine); real Googlebot was 403'd in July only.
+
+## 2026-10-23 evening
+- User confirmed: SEO pack I installed + all non-speed to-dos done. seo-pack-i merged to main.
+- GBP: user confirms profile IS verified (the API "UNVERIFIED" was the personal account object, not the location) — ignore.
+- Image size fix pack J (image-size-fix-pack-J-9-files-2026-10-23.zip): new includes/img_dims.php (getimagesize, local-only, path-safe); width/height on home, petting-zoo, recipes, blog, events, related images; height:auto on .zoo-card-img and .home-recipe-row img; BCRF_ASSET_V -> 20261023b. GitHub branch seo-pack-j (merge after install).
+- Pack J confirmed working by user; seo-pack-j merged to main.
+
+## Fix pack K: security + backups (2026-10-23): fix-pack-K-security-15-files-2026-10-23.zip
+- Folder: fixes-2026-10-23k-security/ (INSTALL.md inside). GitHub branch pack-k (merge after install). No DB changes.
+- BUG FOUND: contact-us/index.php form had no csrf_token but send-message.php requires it -> every contact message failed. Fixed (csrf_field in form).
+- NEW includes/rate_limit.php: file-based server-side limiter in /home2/ddailnmy/bcrf-ratelimit/ (hashed keys, flock). Unlock = delete that folder.
+- Staff login: CSRF + honeypot; 5 fails/IP/15 min, 10 fails/email/hour; audit rows table_name 'staff_login' (LOGIN OK / LOGIN FAILED / LOCKED OUT). erp_audit_security() in admin/includes/audit.php falls back to action 'update' if action column is ENUM. Optional SQL: ALTER TABLE audit_log MODIFY action VARCHAR(20) NOT NULL.
+- Visitor login: +10 fails/IP/15 min, 20/email/hour. forgot.php: 3 emails/address/hour, 10/IP/hour.
+- Mailing list double opt-in: subscribe.php emails signed link (HMAC with LIST_SECRET, 7 days); subscribe-confirm.php GET shows button, POST subscribes. 5 signups/IP/hour, 3 confirm emails/address/day.
+- Contact: 3/10 min + 10/day per IP; auto-reply no longer echoes message, max 2/address/day.
+- admin/cron/backup_db.php: CLI only; mysqldump (defaults-extra-file) else PHP exporter; /home2/ddailnmy/bcrf-backups/, keep 14 days (min 3), failure email to STOCK_ALERT_TO. Cron: daily 3:15 server time, log to /home2/ddailnmy/backup_db.log.
+- Asset version 20261023k; min.subscribe.js popup stays 6 s.
+- Tested on PHP 8.5.8 + MariaDB 11.8.3 (both backup modes restore identically). All 168 PHP files pass php -l.
+- Waiting on: Zac to install, test contact form + staff login + signup, add backup cron, check first backup on 2026-10-24 (same day as stock-alert check).
+- Not covered yet: booking/submit.php, cancel-booking.php, review/ have no CSRF (honeypot only).
