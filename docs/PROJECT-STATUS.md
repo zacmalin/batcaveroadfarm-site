@@ -97,3 +97,4 @@ Updated: 2026-10-23 (code review done)
 ## USDA key (2026-10-23): usda-key-1-file-2026-10-23.zip
 - nutrition_config.php reads USDA_API_KEY from bcrf-secrets.php (fallback DEMO_KEY). Repo: all REDACTED placeholders restored from live copies.
 - 2026-10-23: user confirmed cron URL check done (Forbidden).
+- 2026-10-23: user confirmed installed/verified: audit FULL pack, cleanup E, SameSite F, USDA key, newsletter_send.php deleted, old public_html secrets copy removed. Only open item: stock-alert cron check 2026-10-24 (reminder automation f4cd8956).
