@@ -30,9 +30,7 @@ $bcrfThemeGlyph = $bcrfTheme !== '' ? bcrf_theme_glyph($bcrfTheme) : '';
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <?php if (!empty($preloadImage)): ?><link rel="preload" as="image" href="<?php echo htmlspecialchars($preloadImage); ?>" fetchpriority="high"><?php endif; ?>
-        <title>
-            <?php echo isset($pageTitle) ? htmlspecialchars($pageTitle) : "Bat Cave Road Farm | Petting Zoo, Farmstand & Thrift Shop — Old Fort, NC"; ?>
-        </title>
+        <title><?php echo isset($pageTitle) ? htmlspecialchars($pageTitle) : "Bat Cave Road Farm | Petting Zoo, Farmstand & Thrift Shop — Old Fort, NC"; ?></title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Lora:ital,wght@0,400;0,600;1,400&family=Playfair+Display:wght@700&family=Rye&display=swap" rel="stylesheet">

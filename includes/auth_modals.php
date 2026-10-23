@@ -4,7 +4,7 @@
     <button type="button" class="auth-modal-close" data-auth-close aria-label="Close">&times;</button>
 
     <div class="auth-pane" data-pane="login">
-      <h1>Welcome Back</h1>
+      <h2>Welcome Back</h2>
       <p class="auth-sub">Log in to rate and comment on recipes.</p>
       <div class="auth-error" role="alert" style="display:none"></div>
       <div class="auth-hp" aria-hidden="true"><label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
@@ -16,7 +16,7 @@
     </div>
 
     <div class="auth-pane" data-pane="register" hidden>
-      <h1>Join the Farm</h1>
+      <h2>Join the Farm</h2>
       <p class="auth-sub">Create an account to rate and comment.</p>
       <div class="auth-error" role="alert" style="display:none"></div>
       <div class="auth-hp" aria-hidden="true"><label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>

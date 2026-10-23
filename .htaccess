@@ -38,6 +38,10 @@ RewriteCond %{REQUEST_URI} !(.*)/$
 RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1/ [L,R=301]
 
 # --- Clean-URL routing (internal rewrites — no redirect) ---------------------
+# /sitemap.xml is the conventional location many tools and AI crawlers try first;
+# serve the dynamic sitemap there too (robots.txt still points at sitemap.php).
+RewriteRule ^sitemap\.xml$ sitemap.php [L]
+
 # The !-f / !-d guards stop these from matching real files/dirs. Without them,
 # the DirectoryIndex request for "recipes/index.php" matches ^recipes/([^/]+)/?$
 # (slug = "index.php") and gets hijacked into recipe_detail.php.

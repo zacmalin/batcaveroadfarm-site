@@ -162,8 +162,18 @@ foreach (['feature_image','image_url','featured_image','image','photo_url'] as $
 $recImgAbs = $recImg;
 if ($recImgAbs && !preg_match('#^https?://#', $recImgAbs)) { $recImgAbs = 'https://batcaveroadfarm.com' . ($recImgAbs[0] === '/' ? '' : '/') . $recImgAbs; }
 
-$pageTitle    = $recipe['title'] . " | Farmhouse Recipes | Bat Cave Road Farm";
-$metaDesc     = !empty($recipe['description']) ? mb_substr(trim($recipe['description']),0,160) : ("Make " . $recipe['title'] . " at home — a farmhouse recipe from Bat Cave Road Farm in Old Fort, NC.");
+// Plain-text description: the DB field holds editor HTML (<p>, &amp; ...). Strip tags,
+// decode entities, collapse whitespace, then cut at a word boundary for the meta tag.
+$__descPlain = trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags((string)($recipe['description'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8')));
+if ($__descPlain !== '' && mb_strlen($__descPlain) > 158) {
+    $__cut = mb_substr($__descPlain, 0, 158);
+    $__sp  = mb_strrpos($__cut, ' ');
+    $__descMeta = rtrim(($__sp > 100 ? mb_substr($__cut, 0, $__sp) : $__cut), " ,;:-—") . '…';
+} else {
+    $__descMeta = $__descPlain;
+}
+$pageTitle    = $recipe['title'] . " Recipe | Bat Cave Road Farm";
+$metaDesc     = $__descMeta !== '' ? $__descMeta : ("Make " . $recipe['title'] . " at home — a farmhouse recipe from Bat Cave Road Farm in Old Fort, NC.");
 $canonicalUrl = "https://batcaveroadfarm.com/recipes/" . $recipe['slug'] . "/";
 $pageCSS      = "https://batcaveroadfarm.com/css/min.recipes.css";
 $pageJS       = ["https://batcaveroadfarm.com/js/min.recipe.js", "https://batcaveroadfarm.com/js/min.share.js", "https://batcaveroadfarm.com/js/min.auth.js", "https://batcaveroadfarm.com/js/min.rating.js", "https://batcaveroadfarm.com/js/min.comments.js"];
@@ -194,7 +204,7 @@ $__recipeSchema = array_filter([
     "name" => $recipe['title'],
     "url" => $canonicalUrl,
     "image" => $recImgAbs,
-    "description" => $recipe['description'] ?? '',
+    "description" => $__descPlain,
     "author" => ["@type" => "Person", "name" => $recipe['author'] ?: "Bat Cave Road Farm"],
     "recipeCategory" => $__catNames,
     "recipeIngredient" => array_map(function ($ri) {
