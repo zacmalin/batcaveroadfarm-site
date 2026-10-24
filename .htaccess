@@ -45,6 +45,17 @@ RewriteRule ^sitemap\.xml$ sitemap.php [L]
 # The !-f / !-d guards stop these from matching real files/dirs. Without them,
 # the DirectoryIndex request for "recipes/index.php" matches ^recipes/([^/]+)/?$
 # (slug = "index.php") and gets hijacked into recipe_detail.php.
+# Jobs (pack P3): /jobs/thanks/, /jobs/{slug}/apply/, /jobs/{slug}/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^jobs/thanks/?$ jobs/thanks.php [L,QSA]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^jobs/([a-z0-9-]+)/apply/?$ jobs/apply.php?slug=$1 [L,QSA]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^jobs/([a-z0-9-]+)/?$ jobs/job.php?slug=$1 [L,QSA]
+
 # Old farm-stand catalog links (item_view.php no longer exists) -> farm stand page
 RewriteRule ^farm-stand/catalog/ /farm-stand/ [R=301,L]
 

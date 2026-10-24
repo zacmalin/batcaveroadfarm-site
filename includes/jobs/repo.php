@@ -73,7 +73,9 @@ if (!function_exists('jobs_now')) {
     {
         if (!in_array($table, ['jobs', 'job_categories'], true)) throw new InvalidArgumentException('bad table');
         $base = jobs_slugify($base) ?: 'job';
-        $base = substr($base, 0, 80);
+        $base = trim(substr($base, 0, 80), '-');
+        // Words used by the public /jobs/ URLs can't be job slugs.
+        if ($table === 'jobs' && in_array($base, jobs_reserved_slugs(), true)) $base .= '-job';
         $slug = $base;
         $n = 2;
         $st = $pdo->prepare("SELECT COUNT(*) FROM `{$table}` WHERE slug = ? AND id <> ?");
@@ -83,6 +85,8 @@ if (!function_exists('jobs_now')) {
             $slug = $base . '-' . $n++;
         }
     }
+
+    function jobs_reserved_slugs(): array { return ['thanks', 'alerts', 'apply', 'submit', 'index', 'file']; }
 
     // ── Categories ──────────────────────────────────────────────────────────
 
@@ -343,5 +347,104 @@ if (!function_exists('jobs_now')) {
             ['How many hours a week would you like to work?', null, 'single_choice', [['Under 10', 0], ['10 to 20', 0], ['20 to 30', 0], ['30 or more', 0]]],
             ['How did you hear about this job?', null, 'single_choice', [['Our website', 0], ['Facebook or Instagram', 0], ['A friend or family member', 0], ['Sign at the farm', 0], ['Other', 0]]],
         ];
+    }
+
+    // ── Public site (pack P3) ───────────────────────────────────────────────
+
+    /**
+     * Jobs taking applications right now, for the public listing / sitemap / nav.
+     * Rules: job active, category active, an open round, closing date not passed,
+     * and not already filled when the round auto-closes on fill.
+     */
+    function jobs_public_open(PDO $pdo): array
+    {
+        $sql = "SELECT j.*, c.name AS category_name, c.slug AS category_slug, c.allows_minors, c.sort_order AS cat_sort,
+                       oc.id AS open_cycle_id, oc.openings, oc.hires_count, oc.closes_at, oc.opened_at, oc.auto_close_when_filled
+                  FROM jobs j
+                  JOIN job_categories c ON c.id = j.category_id AND c.is_active = 1
+                  JOIN job_cycles oc ON oc.job_id = j.id AND oc.closed_at IS NULL
+                 WHERE j.is_active = 1
+                   AND (oc.closes_at IS NULL OR oc.closes_at >= ?)
+                   AND NOT (oc.auto_close_when_filled = 1 AND oc.hires_count >= oc.openings)
+              ORDER BY c.sort_order, c.name, j.title";
+        $st = $pdo->prepare($sql);
+        $st->execute([jobs_today()]);
+        return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /** One job by slug with its open round (open_cycle_id NULL if none). */
+    function jobs_find_by_slug(PDO $pdo, string $slug): ?array
+    {
+        $st = $pdo->prepare("SELECT j.*, c.name AS category_name, c.slug AS category_slug, c.allows_minors, c.is_active AS category_active,
+                                    oc.id AS open_cycle_id, oc.openings, oc.hires_count, oc.closes_at, oc.opened_at, oc.auto_close_when_filled
+                               FROM jobs j
+                               JOIN job_categories c ON c.id = j.category_id
+                          LEFT JOIN job_cycles oc ON oc.job_id = j.id AND oc.closed_at IS NULL
+                              WHERE j.slug = ? LIMIT 1");
+        $st->execute([$slug]);
+        return $st->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    /** Public version of jobs_is_accepting(), for a jobs_find_by_slug() row. */
+    function jobs_public_accepting(array $j): bool
+    {
+        if (!(int)$j['is_active'] || !(int)$j['category_active'] || empty($j['open_cycle_id'])) return false;
+        if (!empty($j['closes_at']) && $j['closes_at'] < jobs_today()) return false;
+        if ((int)$j['auto_close_when_filled'] && (int)$j['hires_count'] >= (int)$j['openings']) return false;
+        return true;
+    }
+
+    /** "$15.00–$18.00 per hour", "Work-trade (valued at $12.00/hr)" etc. */
+    function jobs_pay_summary(array $j): string
+    {
+        $m = fn($v) => '$' . number_format((float)$v, 2);
+        if ($j['engagement_type'] === 'work_trade') {
+            return 'Work-trade' . ($j['work_trade_hourly_value'] !== null ? ' (valued at ' . $m($j['work_trade_hourly_value']) . '/hr)' : '');
+        }
+        if ($j['pay_min'] === null) return '';
+        $unit = jobs_pay_unit_labels()[$j['pay_unit'] ?? 'hour'] ?? '';
+        $range = $m($j['pay_min']);
+        if ($j['pay_max'] !== null && (float)$j['pay_max'] > (float)$j['pay_min']) $range .= '–' . $m($j['pay_max']);
+        return trim($range . ' ' . $unit);
+    }
+
+    /** Plain text → safe HTML: lines starting with -, * or • become a list; other lines become paragraphs. */
+    function jobs_text_html(?string $txt): string
+    {
+        $txt = trim((string)$txt);
+        if ($txt === '') return '';
+        $out = ''; $list = [];
+        $flush = function () use (&$out, &$list) {
+            if ($list) { $out .= '<ul>' . implode('', array_map(fn($l) => '<li>' . htmlspecialchars($l) . '</li>', $list)) . '</ul>'; $list = []; }
+        };
+        foreach (preg_split('/\R/', $txt) as $line) {
+            $line = trim($line);
+            if ($line === '') { $flush(); continue; }
+            if (preg_match('/^(?:[-*•]|\d+[.)])\s+(.+)$/u', $line, $m)) { $list[] = $m[1]; continue; }
+            $flush();
+            $out .= '<p>' . htmlspecialchars($line) . '</p>';
+        }
+        $flush();
+        return $out;
+    }
+
+    /** Age brackets an applicant may pick for a job with $minAge. */
+    function jobs_age_brackets(int $minAge): array
+    {
+        $all = ['18_plus' => '18 or older', '16_17' => '16 or 17', '14_15' => '14 or 15'];
+        if ($minAge >= 18) return ['18_plus' => $all['18_plus']];
+        if ($minAge >= 16) return ['18_plus' => $all['18_plus'], '16_17' => $all['16_17']];
+        return $all;
+    }
+
+    function jobs_availability_labels(): array
+    {
+        return ['weekdays' => 'Weekdays', 'weekends' => 'Weekends', 'mornings' => 'Mornings', 'afternoons' => 'Afternoons', 'evenings' => 'Evenings'];
+    }
+
+    /** True when there's at least one public opening (for the menu). Never throws. */
+    function jobs_any_open(PDO $pdo): bool
+    {
+        try { return (bool)jobs_public_open($pdo); } catch (Throwable $e) { return false; }
     }
 }

@@ -125,6 +125,19 @@ try {
 } catch (Throwable $e) {
     error_log('sitemap.php [Thrift items]: ' . $e->getMessage());
 }
+try {
+    // Jobs (pack P3): listing only when hiring, plus each job taking applications
+    require_once __DIR__ . '/includes/jobs/repo.php';
+    $openJobs = jobs_public_open($pdo);
+    if ($openJobs) {
+        addUrl($urls, $base . '/jobs/', $today, 'weekly', '0.6');
+        foreach ($openJobs as $j) {
+            addUrl($urls, $base . '/jobs/' . rawurlencode($j['slug']) . '/', substr((string)$j['opened_at'], 0, 10), 'weekly', '0.6');
+        }
+    }
+} catch (Throwable $e) {
+    error_log('sitemap.php [Jobs]: ' . $e->getMessage());
+}
 
 // ── XML output ────────────────────────────────────────────────────────────────
 echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
