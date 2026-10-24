@@ -62,3 +62,4 @@
 .jb-note a,.jb-note a:link,.jb-note a:visited{color:var(--gold-bright,#e8b84b)}
 .jb-form .hp{position:absolute!important;left:-9999px!important;width:1px;height:1px;overflow:hidden}
 @media(max-width:560px){.jb-grid{grid-template-columns:1fr}.jb-card{padding:16px 15px}.jb-actions .cta-btn{width:100%}}
+.jb-ok{background:linear-gradient(160deg,#eef6e4,#dcebc8);border-color:#6a9a4a}.jb-ok h2{color:#2f5a1c}.jb-alert-link{text-align:center;margin:0 0 18px;font-family:'Lora',serif}.jb-alert-link a{color:#f0ddb8;text-decoration:underline}

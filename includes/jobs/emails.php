@@ -24,9 +24,9 @@ if (!function_exists('jobs_template_catalog')) {
             'offer'               => ['when' => 'When you move someone to Offer and tick "Send".', 'tags' => array_merge($who, ['offer_details'])],
             'hired'               => ['when' => 'After you confirm the hire screen (and from "Send a new set-password link" on Staff).', 'tags' => array_merge($who, ['start_date', 'set_password_link'])],
             'not_selected'        => ['when' => 'Held in the queue until you approve it.', 'tags' => $who],
-            'alert_confirm'       => ['when' => 'Job alerts signup (coming later): confirm link.', 'tags' => ['confirm_link', 'farm_address', 'farm_phone']],
-            'alert_new_job'       => ['when' => 'Job alerts (coming later): a matching job opens.', 'tags' => ['position', 'category', 'pay_summary', 'closes_date', 'job_link', 'unsubscribe_link', 'farm_address', 'farm_phone']],
-            'talent_pool_reopen'  => ['when' => 'Talent Pool (coming later): a job they fit reopens.', 'tags' => array_merge($who, ['job_link'])],
+            'alert_confirm'       => ['when' => 'Someone signs up on /jobs/alerts/. They must tap the link before alerts start.', 'tags' => ['confirm_link', 'farm_address', 'farm_phone']],
+            'alert_new_job'       => ['when' => 'You tap Let people know on a job that just opened. Goes to alert subscribers whose choices match.', 'tags' => ['position', 'category', 'pay_summary', 'closes_date', 'job_link', 'unsubscribe_link', 'farm_address', 'farm_phone']],
+            'talent_pool_reopen'  => ['when' => 'You tap Let people know on a job that reopened. Goes to people you moved to Talent Pool for that job in an earlier round.', 'tags' => array_merge($who, ['job_link'])],
         ];
     }
 

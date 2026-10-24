@@ -44,10 +44,11 @@ include __DIR__ . '/../includes/header.php';
 <?php if (!$jobs): ?>
     <div class="jb-card jb-empty">
         <h2>No openings right now</h2>
-        <p>We're not hiring at the moment. Jobs usually open before the busy season, so please check back.</p>
+        <p>We're not hiring at the moment. Jobs usually open before the busy season. <a href="/jobs/alerts/">Get an email when we post a job</a>.</p>
         <p>Questions about working here? Email <a href="mailto:jobs@batcaveroadfarm.com">jobs@batcaveroadfarm.com</a>.</p>
     </div>
 <?php else: ?>
+    <p class="jb-alert-link"><a href="/jobs/alerts/">Get job alerts by email</a></p>
     <?php if (count($cats) > 1 || count($types) > 1): ?>
     <div class="jb-chips" role="group" aria-label="Filter jobs">
         <a class="jb-chip<?= $fCat === '' && $fType === '' ? ' on' : '' ?>" href="/jobs/"<?= $fCat === '' && $fType === '' ? ' aria-current="page"' : '' ?>>All jobs</a>

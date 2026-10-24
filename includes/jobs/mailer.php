@@ -81,6 +81,23 @@ if (!function_exists('jobs_mail_send')) {
     }
 
     /**
+     * Plain-text copy of an email body that keeps link addresses
+     * ("See the job: https://..."), so text-only mail apps still get the links.
+     */
+    function jobs_mail_text(string $innerHtml): string
+    {
+        $t = preg_replace_callback('#<a\s[^>]*href\s*=\s*"([^"]+)"[^>]*>(.*?)</a>#is', function ($m) {
+            $url   = html_entity_decode($m[1], ENT_QUOTES, 'UTF-8');
+            $label = trim(html_entity_decode(strip_tags($m[2]), ENT_QUOTES, 'UTF-8'));
+            if (preg_match('#^(mailto:|tel:)#i', $url) || $label === '' || $label === $url) return $label !== '' ? $label : $url;
+            return $label . ': ' . $url;
+        }, $innerHtml) ?? $innerHtml;
+        $t = str_ireplace(['<br>', '<br/>', '<br />', '</p>', '</div>', '</h1>', '</h2>', '</h3>', '</li>'], "\n", $t);
+        $t = html_entity_decode(strip_tags($t), ENT_QUOTES, 'UTF-8');
+        return trim(preg_replace("/\n{3,}/", "\n\n", preg_replace('/[ \t]+\n/', "\n", $t)));
+    }
+
+    /**
      * Send a ready-made email and log it. Never throws.
      * $opts: cc[], attachments[[content,name,mime]], subtitle, reply_to, application_id, template_key
      */
@@ -97,6 +114,10 @@ if (!function_exists('jobs_mail_send')) {
                 'reply_to'    => $opts['reply_to'] ?? JOBS_REPLY_TO,
                 'cc'          => $cc,
                 'attachments' => $opts['attachments'] ?? [],
+                'text'        => jobs_mail_text($innerHtml),
+                // Job alerts (pack P7): signed unsubscribe link in the footer + one-click headers.
+                'unsubscribe'      => !empty($opts['unsubscribe']),
+                'list_unsubscribe' => (string)($opts['list_unsubscribe'] ?? ''),
             ]);
             $err = $ok ? '' : (string)($GLOBALS['bcf_mail_last_error'] ?? 'send failed');
         } catch (Throwable $e) {
