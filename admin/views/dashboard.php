@@ -107,6 +107,39 @@ $cal_today = date('Y-m-d');
     <!-- ── SIDE WIDGETS ── -->
     <div class="space-y-6">
 
+        <!-- NEW APPLICANTS (Jobs pack P4, administrators only) -->
+        <?php
+        $jb_new = null; $jb_list = []; $jb_queue = 0;
+        if (($current_role ?? '') === 'administrator') {
+            try {
+                $jb_new   = (int)$pdo->query("SELECT COUNT(*) FROM applications WHERE status = 'new' AND is_spam = 0 AND archived_at IS NULL")->fetchColumn();
+                $jb_list  = $pdo->query("SELECT a.id, a.first_name, a.last_name, a.submitted_at, a.age_bracket, j.title FROM applications a JOIN jobs j ON j.id = a.job_id
+                                          WHERE a.status = 'new' AND a.is_spam = 0 AND a.archived_at IS NULL ORDER BY a.submitted_at DESC, a.id DESC LIMIT 5")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+                $jb_queue = (int)$pdo->query("SELECT COUNT(*) FROM email_queue WHERE status = 'pending'")->fetchColumn();
+            } catch (Throwable $e) { $jb_new = null; /* Jobs tables not installed */ }
+        }
+        if ($jb_new !== null): ?>
+        <div class="bg-white rounded border <?= $jb_new > 0 ? 'border-amber-300' : 'border-stone-200' ?> p-6 shadow-xs">
+            <h2 class="text-xs font-bold text-stone-500 uppercase mb-2">New Applicants</h2>
+            <div class="text-3xl font-black <?= $jb_new > 0 ? 'text-amber-700' : 'text-stone-400' ?>"><?= $jb_new ?></div>
+            <div class="text-xs text-stone-400 mb-2"><?= $jb_new === 1 ? 'application' : 'applications' ?> waiting for a first look</div>
+            <?php if ($jb_list): ?>
+            <ul class="divide-y divide-stone-100 mb-2">
+                <?php foreach ($jb_list as $ja): ?>
+                <li class="py-1.5">
+                    <a href="/admin/admin.php?view=jobs&app=<?= (int)$ja['id'] ?>" class="block text-sm font-semibold text-stone-800 hover:text-amber-800"><?= htmlspecialchars(trim($ja['first_name'] . ' ' . $ja['last_name'])) ?></a>
+                    <span class="block text-xxs text-stone-400"><?= htmlspecialchars($ja['title']) ?> &bull; <?= htmlspecialchars(date('M j, g:ia', strtotime($ja['submitted_at']))) ?><?= $ja['age_bracket'] !== '18_plus' ? ' &bull; under 18' : '' ?></span>
+                </li>
+                <?php endforeach; ?>
+            </ul>
+            <?php endif; ?>
+            <?php if ($jb_queue > 0): ?>
+            <div class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 mb-2"><?= $jb_queue ?> email<?= $jb_queue === 1 ? '' : 's' ?> waiting for approval</div>
+            <?php endif; ?>
+            <a href="/admin/admin.php?view=jobs" class="text-xs font-bold text-amber-700 underline hover:text-amber-900 mt-1 block">Open applicants &rarr;</a>
+        </div>
+        <?php endif; ?>
+
         <!-- PENDING BOOKING REQUESTS -->
         <div class="bg-white rounded border <?= $bk_pending > 0 ? 'border-amber-300' : 'border-stone-200' ?> p-6 shadow-xs">
             <h2 class="text-xs font-bold text-stone-500 uppercase mb-2">Booking Requests</h2>

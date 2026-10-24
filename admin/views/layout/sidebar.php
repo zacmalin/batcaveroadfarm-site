@@ -39,6 +39,7 @@ $_sections = [
         ['Subscribers',      '👥', '?view=schema&table=mailing_list',  'table', 'mailing_list'],
     ]],
     'hiring' => ['label'=>'Hiring','icon'=>'🧑‍🌾','items'=>[
+        ['Applicants',       '📥', '?view=jobs',                  'view',  'jobs'],
         ['Jobs',             '📌', '?view=jobs_posts',            'view',  'jobs_posts'],
         ['Question Bank',    '❓', '?view=jobs_questions',        'view',  'jobs_questions'],
         ['Categories',       '🏷️', '?view=jobs_categories',       'view',  'jobs_categories'],
@@ -85,6 +86,12 @@ foreach ($_sections as $_sk => $_sec) {
     }
 }
 $_pcc = $pending_comments_count ?? 0;
+// Jobs pack P4: new-applicant count for the Applicants badge (administrators only).
+$_jnc = 0;
+if ($_role === 'administrator' && isset($pdo)) {
+    try { $_jnc = (int)$pdo->query("SELECT COUNT(*) FROM applications WHERE status = 'new' AND is_spam = 0 AND archived_at IS NULL")->fetchColumn(); }
+    catch (Throwable $e) { $_jnc = 0; /* Jobs tables not installed */ }
+}
 ?>
 
 <style>
@@ -162,7 +169,7 @@ $_pcc = $pending_comments_count ?? 0;
                text-[10px] font-black uppercase tracking-widest
                text-stone-400 hover:text-white hover:bg-stone-800 transition mt-1">
         <span class="flex items-center gap-1.5">
-          <span class="shrink-0"><?= $_sec['icon'] ?></span>
+          <span class="shrink-0 relative"><?= $_sec['icon'] ?><?php if ($_sk === 'hiring' && $_jnc > 0): ?><span class="absolute -top-1.5 -right-2 bg-amber-500 text-white text-[8px] font-black leading-none px-1 py-0.5 rounded-full" title="New applicants"><?= $_jnc ?></span><?php endif; ?></span>
           <span class="sb-text"><?= $_sec['label'] ?></span>
         </span>
         <span id="arr-<?= $_sk ?>" class="sb-arrow text-stone-500">▾</span>
@@ -181,6 +188,9 @@ $_pcc = $pending_comments_count ?? 0;
           <span class="sb-text truncate"><?= htmlspecialchars($_label) ?></span>
           <?php if ($_label === 'Comments' && $_pcc > 0): ?>
             <span class="sb-badge ml-auto shrink-0 bg-amber-500 text-white text-[8px] font-black px-1 py-0.5 rounded"><?= $_pcc ?></span>
+          <?php endif; ?>
+          <?php if ($_label === 'Applicants' && $_jnc > 0): ?>
+            <span class="sb-badge ml-auto shrink-0 bg-amber-500 text-white text-[8px] font-black px-1 py-0.5 rounded" title="New applicants"><?= $_jnc ?></span>
           <?php endif; ?>
         </a>
         <?php endforeach; ?>

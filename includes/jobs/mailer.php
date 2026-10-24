@@ -19,7 +19,7 @@ if (!function_exists('jobs_mail_send')) {
     /** Admin link to one application. (Until the pipeline screen ships, opens the job's application list.) */
     function jobs_admin_app_url(array $app): string
     {
-        return 'https://batcaveroadfarm.com/admin/admin.php?view=jobs_posts&edit=' . (int)($app['job_id'] ?? 0) . '#applications';
+        return 'https://batcaveroadfarm.com/admin/admin.php?view=jobs&app=' . (int)($app['id'] ?? 0);
     }
 
     /** Merge tags whose values are already HTML (everything else is escaped). */
