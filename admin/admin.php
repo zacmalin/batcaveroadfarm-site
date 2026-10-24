@@ -7,6 +7,32 @@ ob_start(); // Buffer all output — prevents 'headers already sent' on redirect
 require_once '../config.php';
 check_admin();
 
+// ── LIVE ACCOUNT CHECK (Jobs pack P6) ────────────────────────────────────────
+// The session remembers the role from sign-in. Re-read it on every request so a
+// login that was turned off (or a role that changed) takes effect right away.
+if (!empty($_SESSION['user_id']) && isset($pdo)) {
+    try {
+        $__acct = $pdo->prepare('SELECT role, account_status FROM users WHERE id = ?');
+        $__acct->execute([(int)$_SESSION['user_id']]);
+        $__acct = $__acct->fetch(PDO::FETCH_ASSOC);
+        $__staffRoles = ['administrator', 'moderator', 'Shopkeep', 'Media', 'Staff'];
+        if (!$__acct || ($__acct['account_status'] ?? 'active') === 'disabled' || !in_array($__acct['role'], $__staffRoles, true)) {
+            $_SESSION = [];
+            if (session_status() === PHP_SESSION_ACTIVE) session_destroy();
+            ob_end_clean();
+            header('Location: /admin/login.php');
+            exit;
+        }
+        if ($__acct['role'] !== ($_SESSION['user_role'] ?? '')) {
+            $_SESSION['user_role'] = $__acct['role'];
+            check_admin();   // re-apply the Staff → Time Clock only rule for the new role
+        }
+    } catch (Throwable $e) {
+        // users.account_status missing (Jobs P1 not installed): keep the old behaviour.
+    }
+    unset($__acct, $__staffRoles);
+}
+
 // ── TIMEZONE ─────────────────────────────────────────────────────────────────
 // Set once here so every view, query, and date() call uses Eastern time.
 date_default_timezone_set('America/New_York');
@@ -72,6 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $current_role !== 'administrator') 
         'jobs_setup_action'        => ['admin', ''],
         'jobs_pipeline_action'     => ['admin', ''],
         'jobs_emails_action'       => ['admin', ''],
+        'jobs_hire_action'         => ['admin', ''],
     ];
     foreach ($__post_gate as $__key => [$__type, $__val]) {
         if (!isset($_POST[$__key])) continue;
@@ -218,6 +245,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: /admin/admin.php?view=jobs_emails'); exit;
         }
     }
+    if (isset($_POST['jobs_hire_action'])) {
+        try { require __DIR__ . '/handlers/jobs_hire.php'; }
+        catch (Throwable $e) {
+            error_log('[ERP] Jobs hire handler failed: ' . $e->getMessage());
+            $_SESSION['toast_msg'] = 'Hire change failed — nothing was saved. Please try again.';
+            $_SESSION['toast_type'] = 'error';
+            header('Location: /admin/admin.php?view=jobs_staff'); exit;
+        }
+    }
     if (isset($_POST['pass_action'])) {
         try { require __DIR__ . '/handlers/pass_action.php'; }
         catch (Throwable $e) {
@@ -301,6 +337,8 @@ $view_map = [
     'social' => __DIR__ . '/views/social.php',
     'jobs'             => __DIR__ . '/views/jobs/applicants.php',
     'jobs_emails'      => __DIR__ . '/views/jobs/emails.php',
+    'jobs_hire'        => __DIR__ . '/views/jobs/hire.php',
+    'jobs_staff'       => __DIR__ . '/views/jobs/staff.php',
     'jobs_posts'       => __DIR__ . '/views/jobs/posts.php',
     'jobs_questions'   => __DIR__ . '/views/jobs/questions.php',
     'jobs_categories'  => __DIR__ . '/views/jobs/categories.php',

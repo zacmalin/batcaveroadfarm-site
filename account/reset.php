@@ -1,4 +1,5 @@
 <?php
+// account/reset.php
 ob_start();
 require_once '../config.php';
 require_once '../includes/auth.php';
@@ -44,7 +45,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $error === '') {
     } else {
         try {
             $pdo->beginTransaction();
-            $pdo->prepare("UPDATE users SET password = ? WHERE id = ?")
+            // A new hire who never used their welcome link becomes active here too (Jobs pack P6).
+            $pdo->prepare("UPDATE users SET password = ?, account_status = IF(account_status = 'invited', 'active', account_status) WHERE id = ?")
                 ->execute([password_hash($pw, PASSWORD_DEFAULT), (int)$reset['user_id']]);
             // Single-use: burn this token and any other outstanding ones for the user.
             $pdo->prepare("UPDATE password_resets SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL")

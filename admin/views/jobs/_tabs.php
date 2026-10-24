@@ -4,6 +4,7 @@
 $__jt = [
     'jobs'            => 'Applicants',
     'jobs_emails'     => 'Emails',
+    'jobs_staff'      => 'Staff',
     'jobs_posts'      => 'Jobs',
     'jobs_questions'  => 'Question bank',
     'jobs_categories' => 'Categories',

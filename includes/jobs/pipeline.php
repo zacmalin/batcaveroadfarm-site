@@ -232,8 +232,8 @@ if (!function_exists('jobs_app_find')) {
         $from   = (string)$app['status'];
         $name   = trim($app['first_name'] . ' ' . $app['last_name']);
         if (!isset($labels[$to])) return [false, 'Unknown status.'];
-        if ($to === 'hired')      return [false, 'Hiring has its own screen, coming in the next update. Use Offer for now.'];
-        if ($from === 'hired')    return [false, $name . ' is already hired. Changes to staff go through the hire screen.'];
+        if ($to === 'hired')      return [false, 'To hire ' . $name . ', open their application and tap Hired. It has its own confirm screen.'];
+        if ($from === 'hired')    return [false, $name . ' is already hired. Changes go through Hiring > Staff.'];
         if (!empty($app['is_spam'])) return [false, $name . ' is marked as spam. Tap "Not spam" first.'];
         if ($from === $to && $to !== 'interview') return [false, $name . ' is already ' . $labels[$to] . '.'];
 
