@@ -16,6 +16,22 @@ try {
     $now    = date('Y-m-d H:i:s');
 
     if ($action === 'clock_in') {
+        // Jobs pack P1: a minor can't clock in until their NC youth employment
+        // certificate is marked received (it must be signed before the first day).
+        try {
+            $yec = $pdo->prepare("SELECT id FROM user_employment
+                                  WHERE user_id = ? AND end_date IS NULL AND is_minor = 1 AND youth_cert_received_at IS NULL
+                                  LIMIT 1");
+            $yec->execute([$current_user_id]);
+            if ($yec->fetchColumn()) {
+                $_SESSION['toast_msg']  = 'You can clock in once your youth employment certificate is on file. Please see Zac or Casey.';
+                $_SESSION['toast_type'] = 'error';
+                header('Location: /admin/admin.php?view=timecard');
+                exit;
+            }
+        } catch (PDOException $e) {
+            // user_employment not created yet (Jobs setup not run) — nothing to check.
+        }
         $stmt = $pdo->prepare("INSERT INTO time_cards (user_id, clock_in, ip_address, notes) VALUES (?, ?, ?, ?)");
         $stmt->execute([$current_user_id, $now, $ip, trim($_POST['clock_notes'] ?? '')]);
         erp_audit($pdo, 'create', 'time_cards', (int)$pdo->lastInsertId(), 'Clocked in ' . date('n/j g:i A', strtotime($now)));

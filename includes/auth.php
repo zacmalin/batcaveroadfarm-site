@@ -28,7 +28,7 @@ if (!function_exists('is_logged_in')) {
 
     /** Roles allowed into /admin. Public sign-ups ('user') are deliberately excluded. */
     function is_staff_role(?string $role): bool {
-        return in_array((string)$role, ['administrator', 'moderator', 'Shopkeep', 'Media'], true);
+        return in_array((string)$role, ['administrator', 'moderator', 'Shopkeep', 'Media', 'Staff'], true);
     }
 
     /** Establish a logged-in session for a fetched users row (mirrors admin/login.php). */

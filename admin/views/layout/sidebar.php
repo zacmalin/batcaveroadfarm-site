@@ -57,6 +57,7 @@ $_tt   = $target_table ?? '';
 
 $_can = function(string $type, string $val) use ($_role): bool {
     if ($_role === 'administrator') return true;
+    if ($_role === 'Staff') return $type === 'view' && $val === 'timecard';   // Jobs pack P1: Time Clock only
     if ($type === 'view')  return function_exists('hasViewAccess')  ? hasViewAccess($_role, $val)  : true;
     if ($type === 'table') return function_exists('hasTableAccess') ? hasTableAccess($_role, $val) : true;
     return false;
@@ -135,11 +136,13 @@ $_pcc = $pending_comments_count ?? 0;
   <nav class="flex-1 px-2 py-3 text-xs">
 
     <!-- Dashboard -->
+    <?php if ($_role !== 'Staff'): ?>
     <a href="/admin/admin.php?view=dashboard" title="Dashboard"
        class="sb-row flex items-center gap-2 px-3 py-2 rounded mb-1 font-bold transition
               <?= $_tv === 'dashboard' ? 'bg-stone-700 text-white' : 'text-stone-300 hover:bg-stone-800' ?>">
       <span class="shrink-0">🏠</span> <span class="sb-text">Dashboard</span>
     </a>
+    <?php endif; ?>
 
     <?php foreach ($_sections as $_sk => $_sec):
       // Gate: only show section if at least one item is accessible

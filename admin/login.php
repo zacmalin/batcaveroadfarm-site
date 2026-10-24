@@ -6,8 +6,8 @@ require_once '../config.php';
 // Already logged in? Skip the form — staff to the console, anyone else to the site.
 if (!empty($_SESSION['user_id'])) {
     $r = $_SESSION['user_role'] ?? 'user';
-    $staff = in_array($r, ['administrator', 'moderator', 'Shopkeep', 'Media'], true);
-    header('Location: ' . ($staff ? '/admin/admin.php' : '/'));
+    $staff = in_array($r, ['administrator', 'moderator', 'Shopkeep', 'Media', 'Staff'], true);
+    header('Location: ' . ($staff ? ($r === 'Staff' ? '/admin/admin.php?view=timecard' : '/admin/admin.php') : '/'));
     exit;
 }
 
@@ -58,7 +58,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // trim() kept for compatibility with how passwords were checked before
             $valid = $user && password_verify(trim($password), (string)($user['password'] ?? ''));
 
-            $isStaff = $valid && in_array($user['role'], ['administrator', 'moderator', 'Shopkeep', 'Media'], true);
+            // 'Staff' = hired through Jobs (Time Clock only). A disabled account can't sign in.
+            $isDisabled = $valid && (($user['account_status'] ?? 'active') === 'disabled');
+            $isStaff = $valid && !$isDisabled && in_array($user['role'], ['administrator', 'moderator', 'Shopkeep', 'Media', 'Staff'], true);
 
             if ($isStaff) {
                 // Clean slate for this IP + email
@@ -79,11 +81,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // All staff roles use the console; the permission matrix
                 // governs which modules each role can open inside it.
-                $dest = '/admin/admin.php';
+                $dest = $user['role'] === 'Staff' ? '/admin/admin.php?view=timecard' : '/admin/admin.php';
 
                 header('Location: ' . $dest);
                 exit;
 
+            } elseif ($isDisabled) {
+                $error = 'This staff account is turned off. Please contact Zac or Casey.';
             } elseif ($valid) {
                 // Authenticated, but a public ('user') account — keep them out of the console.
                 $error = 'This console is for staff only. Please use the main site.';
