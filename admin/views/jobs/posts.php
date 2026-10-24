@@ -156,6 +156,33 @@ $lbl   = 'block text-xs font-semibold text-stone-600 mb-1';
         <input type="hidden" name="id" value="<?= (int)$job['id'] ?>">
         <button class="px-4 py-2 rounded text-sm bg-stone-700 hover:bg-stone-800 text-white font-semibold">Close hiring</button>
       </form>
+
+      <?php // ── Let people know (Jobs pack P7) ──
+        $nc = ['alerts' => 0, 'pool' => 0, 'public' => false, 'alerts_sent_at' => null, 'pool_sent_at' => null];
+        if (is_file(__DIR__ . '/../../../includes/jobs/alerts.php')) {
+            require_once __DIR__ . '/../../../includes/jobs/alerts.php';
+            try { $nc = jobs_notify_counts($pdo, (int)$job['id']); } catch (Throwable $e) { error_log('[jobs notify counts] ' . $e->getMessage()); }
+        }
+        $ncLeft = $nc['alerts'] + $nc['pool']; ?>
+      <div id="notify" class="mt-3 pt-3 border-t border-stone-100">
+        <h3 class="font-semibold text-stone-700 text-sm mb-1">Let people know</h3>
+        <?php if (!$nc['public']): ?>
+          <p class="text-sm text-stone-500">The public page isn't taking applications for this job right now, so there's nothing to announce.</p>
+        <?php elseif ($ncLeft === 0): ?>
+          <p class="text-sm text-stone-500">Everyone who matches has been told about this round<?= ($nc['alerts_sent_at'] || $nc['pool_sent_at']) ? ' (last sent ' . $h(date('M j, g:ia', strtotime(max((string)$nc['alerts_sent_at'], (string)$nc['pool_sent_at'])))) . ')' : '' ?>. New alert signups who match will show up here.</p>
+        <?php else: ?>
+          <p class="text-xs text-stone-500 mb-2">Check the public posting first. Each tap sends up to <?= JOBS_NOTIFY_BATCH ?>; nobody gets the same email twice for this round.</p>
+          <form method="POST" action="/admin/admin.php?view=jobs_posts" class="space-y-2">
+            <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+            <input type="hidden" name="jobs_alerts_action" value="notify">
+            <input type="hidden" name="job_id" value="<?= (int)$job['id'] ?>">
+            <label class="flex items-center gap-2 text-sm text-stone-700"><input type="checkbox" name="which[]" value="alerts" <?= $nc['alerts'] ? 'checked' : 'disabled' ?>> Job alert subscribers who match (<?= $nc['alerts'] ?>)</label>
+            <label class="flex items-center gap-2 text-sm text-stone-700"><input type="checkbox" name="which[]" value="pool" <?= $nc['pool'] ? 'checked' : 'disabled' ?>> Talent Pool from earlier rounds of this job (<?= $nc['pool'] ?>)</label>
+            <button class="px-4 py-2 rounded text-sm bg-amber-700 hover:bg-amber-800 text-white font-semibold">Send now</button>
+            <?php if ($nc['alerts_sent_at'] || $nc['pool_sent_at']): ?><p class="text-xs text-stone-400">Started sending <?= $h(date('M j, g:ia', strtotime(min(array_filter([(string)$nc['alerts_sent_at'], (string)$nc['pool_sent_at']]))))) ?>.</p><?php endif; ?>
+          </form>
+        <?php endif; ?>
+      </div>
     <?php else: ?>
       <h2 class="font-semibold text-stone-700 mb-1">Hiring is closed</h2>
       <p class="text-sm text-stone-500 mb-3">Opening hiring posts this job and starts a new round<?= $cycles ? ' (round ' . (count($cycles) + 1) . ')' : '' ?>.</p>

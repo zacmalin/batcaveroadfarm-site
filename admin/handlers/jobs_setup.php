@@ -212,7 +212,16 @@ switch ($act) {
             $__jobs_go('view=jobs_posts&edit=' . $id, $e->getMessage(), 'error');
         }
         erp_audit($pdo, 'update', 'jobs', $id, $job['title'] . ' - hiring opened (' . max(1, $openings) . ' opening' . ($openings > 1 ? 's' : '') . ')');
-        $__jobs_go('view=jobs_posts&edit=' . $id, 'Hiring is open. The job will show on the public Jobs page once that page goes live.');
+        $msg = 'Hiring is open and the job is on the public Jobs page.';
+        if (is_file(__DIR__ . '/../../includes/jobs/alerts.php')) {          // Jobs pack P7
+            require_once __DIR__ . '/../../includes/jobs/alerts.php';
+            try {
+                $nc = jobs_notify_counts($pdo, $id);
+                $n  = $nc['alerts'] + $nc['pool'];
+                if ($n) $msg .= ' ' . $n . ' ' . ($n === 1 ? 'person' : 'people') . ' can be told about it. Check the posting, then tap Let people know.';
+            } catch (Throwable $e) { error_log('[jobs notify counts] ' . $e->getMessage()); }
+        }
+        $__jobs_go('view=jobs_posts&edit=' . $id . '#notify', $msg);
     }
 
     case 'job_close': {
