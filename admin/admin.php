@@ -50,6 +50,48 @@ try {
     die("<div class='p-4 text-red-700 font-mono text-xs'>Permissions system unavailable.</div>");
 }
 
+// ── POST PERMISSION GATE (Jobs pack P1) ──────────────────────────────────────
+// Save actions run before the screen check below, and most handlers don't check
+// the role themselves. So check here: a save is only allowed for a role that
+// may open the screen it belongs to (table edits need "edit" on that table).
+// Administrators are never blocked.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $current_role !== 'administrator') {
+    $__post_gate = [
+        'time_clock_action'        => ['view', 'timecard'],
+        'site_info_action'         => ['view', 'site_info'],
+        'execute_image_processing' => ['view', 'media'],
+        'execute_image_rotate'     => ['view', 'media'],
+        'save_permissions_matrix'  => ['admin', ''],
+        'moderate_comments'        => ['view', 'comment_moderation'],
+        'theme_action'             => ['admin', ''],
+        'save_schema_record'       => ['table', $target_table],
+        'event_action'             => ['view', 'events'],
+        'bookings_action'          => ['view', 'bookings'],
+        'inquiry_action'           => ['view', 'event_inquiries'],
+        'pass_action'              => ['view', 'passes'],
+    ];
+    foreach ($__post_gate as $__key => [$__type, $__val]) {
+        if (!isset($_POST[$__key])) continue;
+        $__allowed = match ($__type) {
+            'view'  => $current_role === 'Staff' ? $__val === 'timecard' : hasViewAccess($current_role, $__val),
+            'table' => $current_role !== 'Staff' && $__val !== '' && hasTableAccess($current_role, $__val, 'edit'),
+            default => false,
+        };
+        if (!$__allowed) {
+            error_log('[ERP] Blocked POST ' . $__key . ' for role ' . $current_role);
+            $_SESSION['toast_msg']  = 'Your role is not allowed to make that change.';
+            $_SESSION['toast_type'] = 'error';
+            header('Location: /admin/admin.php?view=' . ($current_role === 'Staff' ? 'timecard' : 'dashboard'));
+            exit;
+        }
+    }
+    // Staff may only clock in/out — any other POST is refused.
+    if ($current_role === 'Staff' && !isset($_POST['time_clock_action'])) {
+        header('Location: /admin/admin.php?view=timecard');
+        exit;
+    }
+}
+
 // ── POST HANDLERS ─────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['time_clock_action'])) {

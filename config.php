@@ -98,10 +98,20 @@ function check_admin() {
     // Console access is for staff roles; the per-view permission matrix
     // (admin/includes/permissions.php) governs what each role sees inside.
     // Public 'user' accounts are not staff and are bounced to the login page.
-    $staff_roles = ['administrator', 'moderator', 'Shopkeep', 'Media'];
+    // 'Staff' = people hired through Jobs: Time Clock only (Jobs pack P1).
+    $staff_roles = ['administrator', 'moderator', 'Shopkeep', 'Media', 'Staff'];
     if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], $staff_roles, true)) {
         header("Location: /admin/login.php");
         exit;
+    }
+    // Staff can open exactly one screen: admin.php?view=timecard. Every other
+    // admin page or handler that calls check_admin() sends them back to it.
+    if ($_SESSION['user_role'] === 'Staff') {
+        $script = basename((string)($_SERVER['SCRIPT_NAME'] ?? ''));
+        if ($script !== 'admin.php' || ($_GET['view'] ?? 'dashboard') !== 'timecard') {
+            header('Location: /admin/admin.php?view=timecard');
+            exit;
+        }
     }
 }
 
