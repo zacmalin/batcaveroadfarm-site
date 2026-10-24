@@ -22,7 +22,7 @@ if (!function_exists('jobs_template_catalog')) {
             'admin_new_applicant' => ['when' => 'To jobs@ right after someone applies.', 'tags' => array_merge($who, ['applicant_name', 'application_link', 'flags'])],
             'interview'           => ['when' => 'When you move someone to Interview (with a calendar invite).', 'tags' => array_merge($who, ['interview_datetime', 'interview_location'])],
             'offer'               => ['when' => 'When you move someone to Offer and tick "Send".', 'tags' => array_merge($who, ['offer_details'])],
-            'hired'               => ['when' => 'After the hire screen (coming next): welcome + set-password link.', 'tags' => array_merge($who, ['start_date', 'set_password_link'])],
+            'hired'               => ['when' => 'After you confirm the hire screen (and from "Send a new set-password link" on Staff).', 'tags' => array_merge($who, ['start_date', 'set_password_link'])],
             'not_selected'        => ['when' => 'Held in the queue until you approve it.', 'tags' => $who],
             'alert_confirm'       => ['when' => 'Job alerts signup (coming later): confirm link.', 'tags' => ['confirm_link', 'farm_address', 'farm_phone']],
             'alert_new_job'       => ['when' => 'Job alerts (coming later): a matching job opens.', 'tags' => ['position', 'category', 'pay_summary', 'closes_date', 'job_link', 'unsubscribe_link', 'farm_address', 'farm_phone']],

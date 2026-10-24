@@ -101,7 +101,8 @@ if ($appId > 0):
   <?php if ((int)$a['is_spam']): ?>
   <div class="bg-stone-50 border border-stone-300 rounded-lg p-4 mb-4 text-sm text-stone-600">Marked as spam, so it's hidden from the list and can't be moved. Use <strong>Not spam</strong> at the bottom to bring it back.</div>
   <?php elseif ($a['status'] === 'hired'): ?>
-  <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-4 text-sm text-emerald-900">Hired. Staff changes go through the hire screen.</div>
+  <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-4 text-sm text-emerald-900">Hired<?= $a['decided_at'] ? ' ' . $h($fmt($a['decided_at'], 'M j, Y')) : '' ?>.
+    <?php if ((int)$a['user_id']): ?><a class="font-semibold underline" href="/admin/admin.php?view=jobs_staff&user=<?= (int)$a['user_id'] ?>">Open their staff page</a> for their login, paperwork and end date.<?php endif; ?></div>
   <?php else: ?>
   <section id="move" class="bg-white border border-amber-300 rounded-lg p-4 mb-4 shadow-sm">
     <h2 class="font-semibold text-stone-800 mb-2">Move to</h2>
@@ -122,7 +123,7 @@ if ($appId > 0):
           <?= $h($k === 'interview' && $a['status'] === 'interview' ? 'New interview time' : $l) ?>
         </label>
         <?php endforeach; ?>
-        <span class="flex items-center justify-center text-center text-[11px] py-2 px-1 rounded border border-dashed border-stone-300 text-stone-400" title="Coming in the next update">Hired (next update)</span>
+        <a href="/admin/admin.php?view=jobs_hire&app=<?= (int)$a['id'] ?>" class="flex items-center justify-center text-center text-sm py-2.5 px-1 rounded border border-emerald-600 text-emerald-800 font-semibold hover:bg-emerald-50">Hired&hellip;</a>
       </div>
 
       <div data-for="interview" class="jp-extra hidden border-t border-stone-100 pt-3 mb-3 space-y-2">
