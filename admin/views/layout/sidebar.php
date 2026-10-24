@@ -38,6 +38,11 @@ $_sections = [
         ['Comments',         '💬', '?view=comment_moderation',         'view',  'comment_moderation'],
         ['Subscribers',      '👥', '?view=schema&table=mailing_list',  'table', 'mailing_list'],
     ]],
+    'hiring' => ['label'=>'Hiring','icon'=>'🧑‍🌾','items'=>[
+        ['Jobs',             '📌', '?view=jobs_posts',            'view',  'jobs_posts'],
+        ['Question Bank',    '❓', '?view=jobs_questions',        'view',  'jobs_questions'],
+        ['Categories',       '🏷️', '?view=jobs_categories',       'view',  'jobs_categories'],
+    ]],
     'admin' => ['label'=>'Admin','icon'=>'⚙️','items'=>[
         ['Timesheets',       '📋', '?view=timesheet',              'view',  'timesheet'],
         ['Permission Matrix','🔐', '?view=permissions',            'view',  'permissions'],
