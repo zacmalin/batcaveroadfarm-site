@@ -1,4 +1,5 @@
 <?php
+// admin/views/dashboard.php
 // ── Bookings + events dashboard data (self-contained, guarded) ──
 $bk_pending   = 0;
 $cal_bookings = [];
@@ -134,7 +135,7 @@ $cal_today = date('Y-m-d');
             </ul>
             <?php endif; ?>
             <?php if ($jb_queue > 0): ?>
-            <div class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 mb-2"><?= $jb_queue ?> email<?= $jb_queue === 1 ? '' : 's' ?> waiting for approval</div>
+            <a href="/admin/admin.php?view=jobs_emails&tab=queue" class="block text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 mb-2 hover:bg-amber-100"><?= $jb_queue ?> email<?= $jb_queue === 1 ? '' : 's' ?> waiting for approval &rarr;</a>
             <?php endif; ?>
             <a href="/admin/admin.php?view=jobs" class="text-xs font-bold text-amber-700 underline hover:text-amber-900 mt-1 block">Open applicants &rarr;</a>
         </div>

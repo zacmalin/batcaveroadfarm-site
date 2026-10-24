@@ -71,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $current_role !== 'administrator') 
         'pass_action'              => ['view', 'passes'],
         'jobs_setup_action'        => ['admin', ''],
         'jobs_pipeline_action'     => ['admin', ''],
+        'jobs_emails_action'       => ['admin', ''],
     ];
     foreach ($__post_gate as $__key => [$__type, $__val]) {
         if (!isset($_POST[$__key])) continue;
@@ -208,6 +209,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: /admin/admin.php?view=jobs'); exit;
         }
     }
+    if (isset($_POST['jobs_emails_action'])) {
+        try { require __DIR__ . '/handlers/jobs_emails.php'; }
+        catch (Throwable $e) {
+            error_log('[ERP] Jobs emails handler failed: ' . $e->getMessage());
+            $_SESSION['toast_msg'] = 'Email change failed — please try again.';
+            $_SESSION['toast_type'] = 'error';
+            header('Location: /admin/admin.php?view=jobs_emails'); exit;
+        }
+    }
     if (isset($_POST['pass_action'])) {
         try { require __DIR__ . '/handlers/pass_action.php'; }
         catch (Throwable $e) {
@@ -290,6 +300,7 @@ $view_map = [
     'passes'           => __DIR__ . '/views/passes.php',
     'social' => __DIR__ . '/views/social.php',
     'jobs'             => __DIR__ . '/views/jobs/applicants.php',
+    'jobs_emails'      => __DIR__ . '/views/jobs/emails.php',
     'jobs_posts'       => __DIR__ . '/views/jobs/posts.php',
     'jobs_questions'   => __DIR__ . '/views/jobs/questions.php',
     'jobs_categories'  => __DIR__ . '/views/jobs/categories.php',

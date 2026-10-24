@@ -3,6 +3,7 @@
 // Tab strip shared by the Hiring screens (Applicants + setup). Expects $target_view in scope.
 $__jt = [
     'jobs'            => 'Applicants',
+    'jobs_emails'     => 'Emails',
     'jobs_posts'      => 'Jobs',
     'jobs_questions'  => 'Question bank',
     'jobs_categories' => 'Categories',

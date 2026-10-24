@@ -144,7 +144,7 @@ if ($appId > 0):
 
       <div data-for="not_selected" class="jp-extra hidden border-t border-stone-100 pt-3 mb-3">
         <label class="flex items-start gap-2 text-sm text-stone-700"><input type="checkbox" name="queue_email" value="1" class="mt-1" checked>
-          <span>Put the "not selected" email in the queue. Nothing is sent until you approve it.</span></label>
+          <span>Put the "not selected" email in Hiring &gt; Emails &gt; Waiting. Nothing is sent until you tap Send there.</span></label>
       </div>
 
       <label class="block text-xs text-stone-600 mb-3">Note for the history <span class="text-stone-400">(optional, only you two see it)</span>
@@ -235,7 +235,8 @@ if ($appId > 0):
     <?php foreach ($queued as $qe): ?>
       <div class="text-sm rounded p-2 mb-2 <?= $qe['status'] === 'failed' ? 'bg-red-50 border border-red-200 text-red-800' : 'bg-amber-50 border border-amber-200 text-amber-900' ?>">
         <strong><?= $qe['status'] === 'failed' ? 'Failed in queue' : 'Waiting for approval' ?>:</strong> <?= $h($qe['rendered_subject']) ?>
-        <div class="text-[11px] opacity-80">Queued by <?= $h($qe['queued_by'] ?: 'Website') ?> · <?= $h($fmt($qe['created_at'])) ?> · sending from the queue comes in the next email update</div>
+        <div class="text-[11px] opacity-80">Queued by <?= $h($qe['queued_by'] ?: 'Website') ?> · <?= $h($fmt($qe['created_at'])) ?></div>
+        <a href="/admin/admin.php?view=jobs_emails&tab=queue#q<?= (int)$qe['id'] ?>" class="text-[11px] font-semibold underline">Review and send</a>
       </div>
     <?php endforeach; ?>
     <?php if (!$mails && !$queued): ?><p class="text-sm text-stone-400">No emails yet.</p><?php endif; ?>
@@ -350,7 +351,7 @@ $filtersOn = $F['job'] || $F['cat'] || $F['round'] !== 'current' || $F['flag'] !
   <?php require __DIR__ . '/_tabs.php'; ?>
 
   <?php if ($queuePending): ?>
-  <div class="mb-3 text-sm bg-amber-50 border border-amber-200 text-amber-900 rounded p-2"><?= $queuePending ?> email<?= $queuePending === 1 ? ' is' : 's are' ?> waiting for approval in the queue. Sending from the queue comes in the next update.</div>
+  <div class="mb-3 text-sm bg-amber-50 border border-amber-200 text-amber-900 rounded p-2"><?= $queuePending ?> email<?= $queuePending === 1 ? ' is' : 's are' ?> waiting for approval. <a class="font-semibold underline" href="/admin/admin.php?view=jobs_emails&tab=queue">Review and send</a></div>
   <?php endif; ?>
 
   <!-- Status chips -->
