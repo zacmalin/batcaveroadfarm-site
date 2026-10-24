@@ -154,5 +154,24 @@ Updated: 2026-10-23 (code review done)
 - 2026-10-23: Zac confirmed GSC indexing requests, poblano nutrition fix, audit_log VARCHAR SQL all done. Deleted merged branches pack-k/l/m/n, seo-pack-i/j (only main remains). Cloudflare JS Detections: on Free plan it is automatic with Bot Fight Mode and cannot be turned off separately; console error is harmless; decision: leave it (only fixes are turn off Bot Fight Mode or nonce-based CSP).
 - 2026-10-23: Cloudflare JS Detections: Zac chose to leave it.
 
+- CONFIRMED 2026-10-24: Zac checked first nightly backup: bcrf-backups has today's .sql.gz, backup_db.log ends with OK.
+
 ## TO DO
 - [ ] Audit Log coverage: find admin actions not written to audit_log and fill the gaps (fix pack). Also in Zac's Google Tasks "My Tasks" as "BCRF: Audit Log coverage check".
+
+## Jobs & Applicant Tracking spec review (2026-10-23)
+- Spec: "BCRF Jobs & Applicant Tracking — Spec.docx". Reviewed against src snapshot; questions + suggestions sent, waiting on Zac's answers before building.
+- Resolved from code: admin is single router admin.php?view=X + $admin_view_registry/view_permissions (not /admin/jobs/ pages); password_resets table exists (token_hash, expires_at, used_at) -> reuse for invites; users.salary/date_hired/date_terminated/termination_reason already added by schema_safety.php; staff roles = administrator, moderator, Shopkeep, Media, public = 'user' (role VARCHAR assumed); timesheet lists role != 'user' and check_admin blocks 'user' -> hires need a staff role to clock in.
+- Reuse: csrf_field/csrf_verify, bcrf_rl (pack K), bcf_send_mail, HMAC unsubscribe helpers, erp_audit, health/backup.
+- Flags: FLSA - for-profit businesses generally can't use unpaid volunteers; unpaid interns must pass primary-beneficiary test; work-trade = compensation. NC YEC needed before first day for non-farm youth work (farm work exempt); DOB needed post-hire for minors.
+
+## Jobs spec DECISIONS (2026-10-23, Zac) — build starts next session (NOT before)
+1. Farm is FOR-PROFIT -> no unpaid volunteer roles. Proposed default: engagement types paid + work_trade (valued at >= minimum wage, tracked as pay) + paid internship; drop 'volunteer' from ENUM (confirm at build).
+2. Hired users get a new 'Staff' role (Time Clock access only via view_permissions; included in timesheet).
+3. Minors allowed only for Thrift Shop + Farmstand jobs (non-farm -> NC YEC required before first day). Farm + Petting Zoo jobs = 18+. Time clock blocks minors until YEC marked received; store DOB + YEC number on user_employment for minors only.
+4. Knockout answer = auto-reject: status -> Not Selected; Not Selected email still goes to approval queue (default, confirm).
+5. Casey: no new-applicant email. Access scope not specified -> default: jobs pipeline + notes + status changes, no Hire / Email Templates (confirm).
+6. Reply-to: new jobs@batcaveroadfarm.com (Zac to create mailbox/forwarder in cPanel).
+7. Cut to 8 statuses. Proposed: New, Reviewing (incl. phone screen), Interview Scheduled (Interviewed folded in), Offer Extended, Hired, Not Selected, Withdrawn (incl. no response), Talent Pool. Spam = is_spam flag hidden from views (not a status).
+- All suggestions accepted: admin as admin.php?view= views; reuse password_resets for invites; phone-first list pipeline (tap to move); Eastern-time handling (server is Boise); uploads in /home2/ddailnmy/bcrf-uploads/ + early ModSecurity/Cloudflare upload test; erp_audit for hires/queue/templates; .ics on interview email; end-of-employment action; Talent Pool notify on reopen; EEO line on job pages + /privacy/ applicant-data section; replace returning one-time link with "applied/worked here before?" checkbox + admin-side email match.
+- First build step next session: migration SQL.
