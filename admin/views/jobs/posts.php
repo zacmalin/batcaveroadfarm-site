@@ -365,6 +365,53 @@ $lbl   = 'block text-xs font-semibold text-stone-600 mb-1';
     </div>
   </section>
 
+  <!-- ── Applications (temporary list until the pipeline screen ships) ── -->
+  <?php
+    require_once __DIR__ . '/../../../includes/jobs/status.php';
+    $appCycle = $cycle ?: ($cycles[0] ?? null);
+    $apps = [];
+    if ($appCycle) {
+        $st = $pdo->prepare("SELECT a.id, a.first_name, a.last_name, a.email, a.phone, a.age_bracket, a.guardian_name, a.status, a.is_spam,
+                                    a.knockout_flag, a.is_returning, a.prior_match, a.submitted_at,
+                                    (SELECT f.id FROM application_files f WHERE f.application_id = a.id ORDER BY f.id LIMIT 1) AS file_id
+                               FROM applications a WHERE a.job_cycle_id = ? ORDER BY a.submitted_at DESC, a.id DESC LIMIT 200");
+        $st->execute([(int)$appCycle['id']]);
+        $apps = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+    $SL = jobs_status_labels();
+  ?>
+  <section id="applications" class="bg-white border border-stone-200 rounded-lg p-4 mb-6 shadow-sm">
+    <h2 class="font-semibold text-stone-800 mb-1">Applications <?= $cycle ? 'this round' : 'in the last round' ?> <span class="text-stone-400 font-normal">(<?= count($apps) ?>)</span></h2>
+    <p class="text-xs text-stone-500 mb-3">A simple list for now. Moving people through the steps (review, interview, offer, hire) comes in the next update.</p>
+    <?php if (!$apps): ?>
+      <p class="text-sm text-stone-400">No applications yet.<?php if ($cycle): ?> Public page: <a class="text-amber-700 hover:underline" href="/jobs/<?= $h(rawurlencode($job['slug'])) ?>/" target="_blank" rel="noopener">/jobs/<?= $h($job['slug']) ?>/</a><?php endif; ?></p>
+    <?php else: ?>
+      <ul class="divide-y divide-stone-100">
+      <?php foreach ($apps as $a):
+          $flags = [];
+          if ((int)$a['knockout_flag']) $flags[] = ['Knockout', 'bg-red-100 text-red-800'];
+          if ($a['age_bracket'] !== '18_plus') $flags[] = ['Under 18 (' . str_replace('_', '–', $a['age_bracket']) . ')', 'bg-sky-100 text-sky-800'];
+          if ((int)$a['is_returning']) $flags[] = ['Returning', 'bg-stone-100 text-stone-700'];
+          if ((int)$a['prior_match']) $flags[] = ['Seen before', 'bg-stone-100 text-stone-700'];
+          if ((int)$a['is_spam']) $flags[] = ['Spam', 'bg-stone-200 text-stone-600'];
+      ?>
+        <li class="py-2 flex flex-wrap items-start justify-between gap-2">
+          <div class="min-w-0">
+            <div class="text-sm font-semibold text-stone-800"><?= $h($a['first_name'] . ' ' . $a['last_name']) ?></div>
+            <div class="text-xs text-stone-500 break-all"><a class="hover:underline" href="mailto:<?= $h($a['email']) ?>"><?= $h($a['email']) ?></a><?= $a['phone'] ? ' · <a class="hover:underline" href="tel:' . $h(preg_replace('/[^0-9+]/', '', $a['phone'])) . '">' . $h($a['phone']) . '</a>' : '' ?></div>
+            <div class="text-xs text-stone-400"><?= $h(date('M j, g:ia', strtotime($a['submitted_at']))) ?><?= $a['guardian_name'] ? ' · Guardian: ' . $h($a['guardian_name']) : '' ?></div>
+            <?php if ($flags): ?><div class="flex flex-wrap gap-1 mt-1"><?php foreach ($flags as [$t, $c]): ?><span class="text-[11px] px-2 py-0.5 rounded <?= $c ?>"><?= $h($t) ?></span><?php endforeach; ?></div><?php endif; ?>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="text-xs px-2 py-1 rounded bg-amber-50 text-amber-800 border border-amber-200"><?= $h($SL[$a['status']] ?? $a['status']) ?></span>
+            <?php if ($a['file_id']): ?><a class="text-xs px-2 py-1 rounded border border-stone-300 text-stone-700 hover:bg-stone-100" href="/admin/jobs_file.php?id=<?= (int)$a['file_id'] ?>" target="_blank" rel="noopener">Résumé</a><?php endif; ?>
+          </div>
+        </li>
+      <?php endforeach; ?>
+      </ul>
+    <?php endif; ?>
+  </section>
+
   <!-- ── More ─────────────────────────────────────────────────────────── -->
   <section class="flex flex-wrap gap-3 mb-10">
     <form method="POST" action="/admin/admin.php?view=jobs_posts">

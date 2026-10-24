@@ -218,6 +218,11 @@ function bcf_phpmailer_ready(): bool {
  * $opts: subtitle, unsubscribe (bool), from_name, from_email, reply_to, text, list_unsubscribe.
  */
 function bcf_send_mail(string $to, string $subject, string $innerHtml, array $opts = []): bool {
+    // Optional (Jobs pack P3): 'cc' => [emails], 'attachments' => [[content, filename, mime]].
+    // After each call, $GLOBALS['bcf_mail_last_error'] holds '' or the failure reason.
+    $GLOBALS['bcf_mail_last_error'] = '';
+    $cc          = array_values(array_filter((array)($opts['cc'] ?? []), fn($e) => filter_var($e, FILTER_VALIDATE_EMAIL)));
+    $attach      = (array)($opts['attachments'] ?? []);
     $subtitle    = $opts['subtitle']    ?? '';
     $unsubscribe = !empty($opts['unsubscribe']);
     $fromName    = $opts['from_name']   ?? 'Bat Cave Road Farm';
@@ -255,6 +260,8 @@ function bcf_send_mail(string $to, string $subject, string $innerHtml, array $op
             $m->CharSet    = 'UTF-8';
             $m->setFrom($fromEmail, $fromName);
             $m->addAddress($to);
+            foreach ($cc as $ccAddr) { $m->addCC($ccAddr); }
+            foreach ($attach as $att) { $m->addStringAttachment((string)$att[0], (string)$att[1], 'base64', (string)($att[2] ?? 'application/octet-stream')); }
             if ($replyTo !== '') { $m->addReplyTo($replyTo); }
             if ($unsubUrl !== '') {
                 $m->addCustomHeader('List-Unsubscribe', '<' . $unsubUrl . '>, <mailto:support@batcaveroadfarm.com?subject=unsubscribe>');
@@ -268,6 +275,7 @@ function bcf_send_mail(string $to, string $subject, string $innerHtml, array $op
             return true;
         } catch (\Throwable $e) {
             error_log('[bcf_send_mail] SMTP send failed, falling back to mail(): ' . $e->getMessage());
+            $GLOBALS['bcf_mail_last_error'] = 'SMTP: ' . mb_substr($e->getMessage(), 0, 200);
             // fall through to mail()
         }
     }
@@ -276,15 +284,35 @@ function bcf_send_mail(string $to, string $subject, string $innerHtml, array $op
     $boundary = 'bcrf_' . bin2hex(random_bytes(8));
     $body  = "--{$boundary}\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n" . $text . "\r\n";
     $body .= "--{$boundary}\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n" . $html . "\r\n--{$boundary}--";
+    $ctype = 'multipart/alternative; boundary="' . $boundary . '"';
+    if ($attach) {
+        // Wrap the text/html alternative in multipart/mixed and add each attachment.
+        $outer = 'bcrfm_' . bin2hex(random_bytes(8));
+        $mixed = "--{$outer}\r\nContent-Type: {$ctype}\r\n\r\n" . $body . "\r\n";
+        foreach ($attach as $att) {
+            $fn = preg_replace('/[^A-Za-z0-9._-]/', '_', (string)$att[1]);
+            $mixed .= "--{$outer}\r\nContent-Type: " . ($att[2] ?? 'application/octet-stream') . "; name=\"{$fn}\"\r\n"
+                    . "Content-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename=\"{$fn}\"\r\n\r\n"
+                    . chunk_split(base64_encode((string)$att[0])) . "\r\n";
+        }
+        $body  = $mixed . "--{$outer}--";
+        $ctype = 'multipart/mixed; boundary="' . $outer . '"';
+    }
 
     $headers  = 'From: ' . $fromName . ' <' . $fromEmail . ">\r\n";
+    if ($cc) $headers .= 'Cc: ' . implode(', ', $cc) . "\r\n";
     $headers .= 'Reply-To: ' . $replyTo . "\r\n";
     if ($unsubUrl !== '') {
         $headers .= 'List-Unsubscribe: <' . $unsubUrl . ">, <mailto:support@batcaveroadfarm.com?subject=unsubscribe>\r\n";
         if ($oneClick) $headers .= "List-Unsubscribe-Post: List-Unsubscribe=One-Click\r\n";
     }
     $headers .= "MIME-Version: 1.0\r\n";
-    $headers .= 'Content-Type: multipart/alternative; boundary="' . $boundary . '"' . "\r\n";
+    $headers .= 'Content-Type: ' . $ctype . "\r\n";
 
-    return @mail($to, $subject, $body, $headers, '-f' . $fromEmail);
+    // Non-ASCII subjects (names like Zoë) must be MIME-encoded for mail().
+    $mailSubject = preg_match('/[^\x20-\x7E]/', $subject) ? mb_encode_mimeheader($subject, 'UTF-8', 'B', "\r\n") : $subject;
+    $ok = @mail($to, $mailSubject, $body, $headers, '-f' . $fromEmail);
+    if (!$ok) $GLOBALS['bcf_mail_last_error'] = trim(($GLOBALS['bcf_mail_last_error'] ? $GLOBALS['bcf_mail_last_error'] . '; ' : '') . 'mail() refused the message');
+    else $GLOBALS['bcf_mail_last_error'] = '';
+    return $ok;
 }

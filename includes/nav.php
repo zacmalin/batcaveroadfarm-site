@@ -35,6 +35,15 @@ if (isset($pdo) && $pdo instanceof PDO) {
     } catch (Throwable $e) { $navShowShop = false; }
 }
 
+// Show Jobs only when at least one job is taking applications (pack P3).
+$navShowJobs = false;
+if (isset($pdo) && $pdo instanceof PDO) {
+    try {
+        require_once __DIR__ . '/jobs/repo.php';
+        $navShowJobs = jobs_any_open($pdo);
+    } catch (Throwable $e) { $navShowJobs = false; }
+}
+
 // ── Dropdown items ────────────────────────────────────────────────────────────
 $visitDropdown = [
     ['/plan-your-visit/', '📍', 'Plan Your Visit'],
@@ -49,6 +58,7 @@ $aboutDropdown = [
     ['/faq/',        '❓', 'FAQ'],
     ['/contact-us/', '✉️', 'Contact'],
 ];
+if ($navShowJobs) { $aboutDropdown[] = ['/jobs/', '💼', 'Jobs']; }
 
 // ── Flat nav items (Contact moves to About dropdown) ─────────────────────────
 $navItems = [

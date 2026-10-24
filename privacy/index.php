@@ -19,7 +19,7 @@
 
           <div class="content-wrap1">
             <article class="legal-doc reveal">
-              <p class="legal-updated">Last updated: June 9, 2026</p>
+              <p class="legal-updated">Last updated: October 24, 2026</p>
               <p class="legal-intro">Bat Cave Road Farm ("we," "us," or "our") runs the website at
                 <strong>batcaveroadfarm.com</strong>. This policy explains what information the website
                 collects, how we use it, and the choices you have. It applies to this website only — not to
@@ -34,6 +34,7 @@
                   <li><a href="#use">How we use information</a></li>
                   <li><a href="#share">How we share information</a></li>
                   <li><a href="#retention">How long we keep it</a></li>
+                  <li><a href="#jobs">Job applicants</a></li>
                   <li><a href="#choices">Your choices &amp; rights</a></li>
                   <li><a href="#children">Children's privacy</a></li>
                   <li><a href="#security">Security</a></li>
@@ -95,6 +96,24 @@
               <p>We keep contact-form messages for as long as needed to handle your inquiry and our records.
                 Analytics data is retained according to Google's settings, and server logs are kept for a
                 limited time by our host. You can ask us to delete a message you sent us at any time.</p>
+
+              <h2 id="jobs">Job applicants</h2>
+              <p>When you apply for a job on our <a href="/jobs/">Jobs page</a>, we collect what you type into
+                the application: your name, email, phone, age group (not your birthday), when you can work, your
+                answers to the job's questions, an optional note, and an optional résumé (PDF). For applicants
+                under 18 we also collect a parent or guardian's name, phone, email and permission, and we copy
+                them on emails about the application. We also keep a one-way scrambled (hashed) version of your
+                connection's IP address to help stop spam.</p>
+              <p>We don't ask for your date of birth, Social Security number, or health or medical information on
+                the application. Only the people at the farm who make hiring decisions can see applications.
+                Résumé files are stored outside the public part of our website and can only be opened by those people
+                after signing in. We don't sell applicant information or share it with anyone else, except our
+                email provider, which delivers the emails about your application.</p>
+              <p>We keep applications and résumés for at least one year after we make a hiring decision, as
+                federal record-keeping rules require. After that we delete the files and remove your personal
+                details from the application. If you're hired, your application becomes part of your employee
+                record. To ask about or withdraw your application, email
+                <a href="mailto:jobs@batcaveroadfarm.com">jobs@batcaveroadfarm.com</a>.</p>
 
               <h2 id="choices">Your choices &amp; rights</h2>
               <p>You can:</p>
