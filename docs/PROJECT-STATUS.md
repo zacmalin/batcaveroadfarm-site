@@ -157,7 +157,7 @@ Updated: 2026-10-23 (code review done)
 - CONFIRMED 2026-10-24: Zac checked first nightly backup: bcrf-backups has today's .sql.gz, backup_db.log ends with OK.
 
 ## TO DO
-- [~] Audit Log coverage: Pack O built 2026-10-24, waiting on install confirm. Also in Zac's Google Tasks "My Tasks" as "BCRF: Audit Log coverage check".
+- [x] Audit Log coverage: done (Pack O, confirmed 2026-10-24). Also in Zac's Google Tasks "My Tasks" as "BCRF: Audit Log coverage check".
 
 ## Jobs & Applicant Tracking spec review (2026-10-23)
 - Spec: "BCRF Jobs & Applicant Tracking — Spec.docx". Reviewed against src snapshot; questions + suggestions sent, waiting on Zac's answers before building.
@@ -182,3 +182,4 @@ Updated: 2026-10-23 (code review done)
 - PHP 8.5 cleanup: imagedestroy removed; http_get_last_response_headers in lookup_ingredient_nutrition + send_social; session_start guarded in 6 files.
 - Deliberately not logged: reminder/newsletter send crons, auto SKU on print, visitor self-service.
 - Waiting on: Zac install + test (permissions save, rotate, quick upload).
+- CONFIRMED 2026-10-24: Zac installed Pack O, looks good. pack-o merged into main; Google Task marked complete.
