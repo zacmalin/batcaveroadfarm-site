@@ -1,7 +1,18 @@
+<?php
+// includes/header.php — site header (logo, open/closed status, Directions, We're hiring)
+?>
 <?php $bcrfTheme = $bcrfTheme ?? ''; $bcrfThemeGlyph = $bcrfThemeGlyph ?? ''; ?>
 <?php
     require_once __DIR__ . '/site_info.php'; // ensure accessor (idempotent; head.php usually loaded it)
     $bcrfStatus = function_exists('site_open_status') ? site_open_status('general') : ['open' => false, 'label' => '', 'detail' => ''];
+    // "We're hiring" pill: only while a job is taking applications (same rule as the Jobs menu item).
+    $bcrfHiring = false;
+    if (isset($pdo) && $pdo instanceof PDO) {
+        try {
+            require_once __DIR__ . '/jobs/repo.php';
+            $bcrfHiring = jobs_any_open($pdo);
+        } catch (Throwable $e) { $bcrfHiring = false; }
+    }
     $bcrfTz     = function_exists('site_setting') ? site_setting('timezone', 'America/New_York') : 'America/New_York';
     $bcrfHoursJs = [];
     if (function_exists('site_hours')) {
@@ -63,6 +74,11 @@
                     <a class="header-directions" href="https://batcaveroadfarm.com/directions/" aria-label="Map and directions to Bat Cave Road Farm">
                         <span aria-hidden="true">📍</span> Directions
                     </a>
+<?php if ($bcrfHiring): ?>
+                    <a class="header-hiring" href="https://batcaveroadfarm.com/jobs/" aria-label="We're hiring: see open jobs at Bat Cave Road Farm">
+                        <span class="header-hiring-dot" aria-hidden="true"></span> We're hiring
+                    </a>
+<?php endif; ?>
                 </div>
            </div>
     	</header>
