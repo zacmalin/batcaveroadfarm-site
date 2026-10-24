@@ -9,6 +9,7 @@ $__jt = [
     'jobs_alerts'     => 'Alerts',
     'jobs_questions'  => 'Question bank',
     'jobs_categories' => 'Categories',
+    'jobs_records'    => 'Records',
 ];
 ?>
 <nav class="flex gap-1 mb-5 border-b border-stone-300 overflow-x-auto" aria-label="Hiring">

@@ -31,6 +31,7 @@ $id  = (int)($_POST['id'] ?? 0);
 $__jp_app = function (int $id) use ($pdo, $__jp_go): array {
     $a = $id > 0 ? jobs_app_find($pdo, $id) : null;
     if (!$a) $__jp_go('That application was not found.', 'error', 'view=jobs');
+    if (!empty($a['anonymized_at'])) $__jp_go('That application\'s details were cleared, so it can\'t be changed.', 'error', 'view=jobs&app=' . (int)$a['id']);
     return $a;
 };
 
@@ -105,6 +106,7 @@ switch ($act) {
             $app = jobs_app_find($pdo, $aid);
             if (!$app) continue;
             $nm = trim($app['first_name'] . ' ' . $app['last_name']);
+            if (!empty($app['anonymized_at'])) { $skipped[] = $nm; continue; }   // cleared records stay as they are
             if (str_starts_with($do, 'status:')) {
                 $to = substr($do, 7);
                 if (!in_array($to, jobs_bulk_statuses(), true)) $__jp_go('Pick what to do.', 'error');
@@ -129,7 +131,7 @@ switch ($act) {
         if (!str_starts_with($do, 'status:')) $what .= $done === 1 ? ' application' : ' applications';
         $what .= '.';
         if ($do === 'status:not_selected' && !empty($_POST['queue_email'])) $what .= ' Their "not selected" emails are waiting in the queue (nothing sent).';
-        if ($skipped) $what .= ' Skipped: ' . implode(', ', array_slice($skipped, 0, 5)) . (count($skipped) > 5 ? '…' : '') . ' (hired or spam).';
+        if ($skipped) $what .= ' Skipped: ' . implode(', ', array_slice($skipped, 0, 5)) . (count($skipped) > 5 ? '…' : '') . ' (hired, spam or cleared).';
         erp_audit($pdo, 'update', 'applications', null, 'Bulk ' . $do . ': ' . count($ids) . ' applications');
         $__jp_go($what, $skipped && !$done ? 'error' : 'success');
     }

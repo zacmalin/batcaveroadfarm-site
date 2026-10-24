@@ -100,6 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $current_role !== 'administrator') 
         'jobs_emails_action'       => ['admin', ''],
         'jobs_hire_action'         => ['admin', ''],
         'jobs_alerts_action'       => ['admin', ''],
+        'jobs_records_action'      => ['admin', ''],
     ];
     foreach ($__post_gate as $__key => [$__type, $__val]) {
         if (!isset($_POST[$__key])) continue;
@@ -246,6 +247,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: /admin/admin.php?view=jobs_emails'); exit;
         }
     }
+    if (isset($_POST['jobs_records_action'])) {
+        try { require __DIR__ . '/handlers/jobs_records.php'; }
+        catch (Throwable $e) {
+            error_log('[ERP] Jobs records handler failed: ' . $e->getMessage());
+            $_SESSION['toast_msg'] = 'That didn\'t finish. Some records may have been cleared; the page shows what\'s left.';
+            $_SESSION['toast_type'] = 'error';
+            header('Location: /admin/admin.php?view=jobs_records'); exit;
+        }
+    }
     if (isset($_POST['jobs_alerts_action'])) {
         try { require __DIR__ . '/handlers/jobs_alerts.php'; }
         catch (Throwable $e) {
@@ -350,6 +360,7 @@ $view_map = [
     'jobs_hire'        => __DIR__ . '/views/jobs/hire.php',
     'jobs_staff'       => __DIR__ . '/views/jobs/staff.php',
     'jobs_alerts'      => __DIR__ . '/views/jobs/alerts.php',
+    'jobs_records'     => __DIR__ . '/views/jobs/records.php',
     'jobs_posts'       => __DIR__ . '/views/jobs/posts.php',
     'jobs_questions'   => __DIR__ . '/views/jobs/questions.php',
     'jobs_categories'  => __DIR__ . '/views/jobs/categories.php',
