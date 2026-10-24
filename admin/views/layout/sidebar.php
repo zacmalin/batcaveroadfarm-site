@@ -1,5 +1,5 @@
 <?php
-// views/layout/sidebar.php
+// admin/views/layout/sidebar.php
 // Sectioned, collapsible sidebar with permission gating.
 
 // ── SECTION MAP ───────────────────────────────────────────────────────────────

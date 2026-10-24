@@ -1,4 +1,5 @@
 <?php
+// admin/views/dashboard.php
 // ── Bookings + events dashboard data (self-contained, guarded) ──
 $bk_pending   = 0;
 $cal_bookings = [];
