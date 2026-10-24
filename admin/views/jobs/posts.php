@@ -383,6 +383,29 @@ $lbl   = 'block text-xs font-semibold text-stone-600 mb-1';
     <?php else: ?>
       <p class="text-sm text-stone-600 mb-3"><?= $appN['all'] ?> application<?= $appN['all'] === 1 ? '' : 's' ?><?= $appN['new'] ? ', ' . $appN['new'] . ' new' : '' ?>.</p>
       <a href="/admin/admin.php?view=jobs&job=<?= (int)$job['id'] ?>&round=<?= (int)$appCycle['id'] ?>&status=all" class="inline-block bg-amber-700 hover:bg-amber-800 text-white font-semibold px-4 py-2 rounded text-sm">See applicants</a>
+      <?php
+        // Round closed: offer to wrap up everyone still in progress (spec: closing a cycle offers bulk Not Selected).
+        $stillIds = [];
+        if (!$cycle && $appCycle) {
+            $st = $pdo->prepare("SELECT id FROM applications WHERE job_cycle_id = ? AND is_spam = 0 AND status IN ('new','reviewing','interview','offer')");
+            $st->execute([(int)$appCycle['id']]);
+            $stillIds = array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN) ?: []);
+        }
+        if ($stillIds): $nS = count($stillIds); ?>
+      <form method="POST" action="/admin/admin.php?view=jobs" class="mt-4 pt-4 border-t border-stone-100"
+            onsubmit="return confirm(<?= $h(json_encode('Move ' . $nS . ' still-open application' . ($nS === 1 ? '' : 's') . ' to Not Selected? Their emails wait in the queue until you send them.')) ?>);">
+        <input type="hidden" name="csrf_token" value="<?= $h($_SESSION['csrf_token'] ?? '') ?>">
+        <input type="hidden" name="jobs_pipeline_action" value="bulk">
+        <input type="hidden" name="bulk_do" value="status:not_selected">
+        <input type="hidden" name="queue_email" value="1">
+        <input type="hidden" name="bulk_note" value="Hiring round closed">
+        <input type="hidden" name="back" value="view=jobs&job=<?= (int)$job['id'] ?>&round=<?= (int)$appCycle['id'] ?>&status=all">
+        <?php foreach ($stillIds as $sid): ?><input type="hidden" name="ids[]" value="<?= $sid ?>"><?php endforeach; ?>
+        <p class="text-sm text-stone-700 mb-2">This round is closed and <strong><?= $nS ?></strong> <?= $nS === 1 ? 'person is' : 'people are' ?> still in progress (New, Reviewing, Interview or Offer).</p>
+        <button class="px-4 py-2 rounded text-sm border border-stone-300 text-stone-700 hover:bg-stone-100">Wrap up: move <?= $nS ?> to Not Selected</button>
+        <p class="text-[11px] text-stone-400 mt-1">Their "not selected" emails go to Hiring &gt; Emails &gt; Waiting. Nothing is sent until you approve.</p>
+      </form>
+      <?php endif; ?>
     <?php endif; ?>
   </section>
 

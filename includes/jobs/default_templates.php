@@ -1,8 +1,8 @@
 <?php
 // includes/jobs/default_templates.php
 // Default wording for the Jobs email templates. Used once, by the database setup
-// (includes/jobs/schema.php), to seed email_templates. After that, edit the
-// wording in Admin > Jobs > Email Templates — this file is never read again.
+// (includes/jobs/schema.php), to seed email_templates, and by "Reset to default"
+// in Hiring > Emails > Templates. Edit the live wording there, not here.
 //
 // Bodies are the INNER part of the email; the farm header and footer are added
 // when sending (bcf_send_mail). Merge tags look like {first_name}.

@@ -40,6 +40,7 @@ $_sections = [
     ]],
     'hiring' => ['label'=>'Hiring','icon'=>'🧑‍🌾','items'=>[
         ['Applicants',       '📥', '?view=jobs',                  'view',  'jobs'],
+        ['Hiring emails',    '📧', '?view=jobs_emails',           'view',  'jobs_emails'],
         ['Jobs',             '📌', '?view=jobs_posts',            'view',  'jobs_posts'],
         ['Question Bank',    '❓', '?view=jobs_questions',        'view',  'jobs_questions'],
         ['Categories',       '🏷️', '?view=jobs_categories',       'view',  'jobs_categories'],
@@ -87,10 +88,13 @@ foreach ($_sections as $_sk => $_sec) {
 }
 $_pcc = $pending_comments_count ?? 0;
 // Jobs pack P4: new-applicant count for the Applicants badge (administrators only).
-$_jnc = 0;
+$_jnc = 0; $_jqc = 0;
 if ($_role === 'administrator' && isset($pdo)) {
-    try { $_jnc = (int)$pdo->query("SELECT COUNT(*) FROM applications WHERE status = 'new' AND is_spam = 0 AND archived_at IS NULL")->fetchColumn(); }
-    catch (Throwable $e) { $_jnc = 0; /* Jobs tables not installed */ }
+    try {
+        $_jnc = (int)$pdo->query("SELECT COUNT(*) FROM applications WHERE status = 'new' AND is_spam = 0 AND archived_at IS NULL")->fetchColumn();
+        $_jqc = (int)$pdo->query("SELECT COUNT(*) FROM email_queue WHERE status IN ('pending','failed')")->fetchColumn();   // Jobs pack P5
+    }
+    catch (Throwable $e) { $_jnc = 0; $_jqc = 0; /* Jobs tables not installed */ }
 }
 ?>
 
@@ -188,6 +192,9 @@ if ($_role === 'administrator' && isset($pdo)) {
           <span class="sb-text truncate"><?= htmlspecialchars($_label) ?></span>
           <?php if ($_label === 'Comments' && $_pcc > 0): ?>
             <span class="sb-badge ml-auto shrink-0 bg-amber-500 text-white text-[8px] font-black px-1 py-0.5 rounded"><?= $_pcc ?></span>
+          <?php endif; ?>
+          <?php if ($_label === 'Hiring emails' && $_jqc > 0): ?>
+            <span class="sb-badge ml-auto shrink-0 bg-stone-500 text-white text-[8px] font-black px-1 py-0.5 rounded" title="Emails waiting for approval"><?= $_jqc ?></span>
           <?php endif; ?>
           <?php if ($_label === 'Applicants' && $_jnc > 0): ?>
             <span class="sb-badge ml-auto shrink-0 bg-amber-500 text-white text-[8px] font-black px-1 py-0.5 rounded" title="New applicants"><?= $_jnc ?></span>

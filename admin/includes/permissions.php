@@ -26,6 +26,7 @@ $admin_view_registry = [
     'bookings'         => ['label' => 'Bookings',             'icon' => '📋', 'admin_only' => false],
     'site_info'        => ['label' => 'Site Info',            'icon' => '🏠', 'admin_only' => false],
     'jobs'             => ['label' => 'Hiring: Applicants',   'icon' => '📥', 'admin_only' => true],
+    'jobs_emails'      => ['label' => 'Hiring: Emails',       'icon' => '📧', 'admin_only' => true],
     'jobs_posts'       => ['label' => 'Hiring: Jobs',         'icon' => '🧑‍🌾', 'admin_only' => true],
     'jobs_questions'   => ['label' => 'Hiring: Question Bank', 'icon' => '❓', 'admin_only' => true],
     'jobs_categories'  => ['label' => 'Hiring: Categories',   'icon' => '🏷️', 'admin_only' => true],
