@@ -24,7 +24,8 @@ $flagsFor = function (array $a): array {
     if ((int)$a['is_returning'])             $f[] = ['Returning', 'bg-stone-100 text-stone-700'];
     if ((int)$a['prior_match'])              $f[] = ['Seen before', 'bg-stone-100 text-stone-700'];
     if ((int)$a['is_spam'])                  $f[] = ['Spam', 'bg-stone-300 text-stone-700'];
-    if (!empty($a['archived_at']))           $f[] = ['Archived', 'bg-stone-200 text-stone-600'];
+    if (!empty($a['anonymized_at']))         $f[] = ['Details cleared', 'bg-stone-200 text-stone-600'];
+    elseif (!empty($a['archived_at']))       $f[] = ['Archived', 'bg-stone-200 text-stone-600'];
     return $f;
 };
 $chips = function (array $flags) use ($h): string {
@@ -48,6 +49,15 @@ $appId = (int)($_GET['app'] ?? 0);
 if ($appId > 0):
     $a = jobs_app_find($pdo, $appId);
     if (!$a) { echo "<p class='text-sm text-stone-500'>That application wasn't found. <a class='text-amber-700 underline' href='/admin/admin.php?view=jobs'>Back to Applicants</a></p>"; return; }
+    if (!empty($a['anonymized_at'])) {   // Jobs pack P8: cleared under Hiring > Records — read-only stub
+        $SLx = jobs_status_labels();
+        echo '<div class="max-w-3xl pb-16"><a href="/admin/admin.php?view=jobs&show=archived" class="inline-block text-sm text-amber-700 hover:underline mb-3">&larr; Archived applicants</a>'
+           . '<div class="bg-white border border-stone-200 rounded-lg p-4 shadow-sm"><h1 class="text-xl font-bold text-stone-700">Details cleared</h1>'
+           . '<div class="text-sm text-stone-500">' . htmlspecialchars($a['job_title'] . ' · ' . $a['category_name']) . ' · ' . htmlspecialchars($SLx[$a['status']] ?? $a['status']) . '</div>'
+           . '<div class="text-xs text-stone-400 mt-0.5">Applied ' . htmlspecialchars(date('M j, Y', strtotime($a['submitted_at']))) . ($a['decided_at'] ? ' · decided ' . htmlspecialchars(date('M j, Y', strtotime($a['decided_at']))) : '') . '</div>'
+           . '<p class="text-sm text-stone-600 mt-3">The name, contact details, résumé, answers and notes were removed on ' . htmlspecialchars(date('M j, Y', strtotime($a['anonymized_at']))) . ' because the keep period had passed (Hiring &gt; Records). Only the job, status and dates remain.</p></div></div>';
+        return;
+    }
     $q = fn(string $sql) => (function () use ($pdo, $sql, $appId) { $st = $pdo->prepare($sql); $st->execute([$appId]); return $st->fetchAll(PDO::FETCH_ASSOC) ?: []; })();
     $answers = $q('SELECT * FROM application_answers WHERE application_id = ? ORDER BY id');
     $files   = $q('SELECT id, original_name, size_bytes FROM application_files WHERE application_id = ? ORDER BY id');

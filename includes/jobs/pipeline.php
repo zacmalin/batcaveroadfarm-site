@@ -145,7 +145,7 @@ if (!function_exists('jobs_app_find')) {
         };
         $st = $pdo->prepare("SELECT a.id, a.job_id, a.job_cycle_id, a.first_name, a.last_name, a.email, a.phone, a.age_bracket,
                                     a.status, a.is_spam, a.is_returning, a.prior_match, a.knockout_flag, a.submitted_at,
-                                    a.interview_at, a.archived_at, j.title AS job_title, cy.closed_at AS cycle_closed_at,
+                                    a.interview_at, a.archived_at, a.anonymized_at, j.title AS job_title, cy.closed_at AS cycle_closed_at,
                                     (SELECT f.id FROM application_files f WHERE f.application_id = a.id ORDER BY f.id LIMIT 1) AS file_id,
                                     (SELECT COUNT(*) FROM application_notes n WHERE n.application_id = a.id) AS note_count
                                FROM applications a JOIN jobs j ON j.id = a.job_id JOIN job_cycles cy ON cy.id = a.job_cycle_id
@@ -235,6 +235,7 @@ if (!function_exists('jobs_app_find')) {
         if ($to === 'hired')      return [false, 'To hire ' . $name . ', open their application and tap Hired. It has its own confirm screen.'];
         if ($from === 'hired')    return [false, $name . ' is already hired. Changes go through Hiring > Staff.'];
         if (!empty($app['is_spam'])) return [false, $name . ' is marked as spam. Tap "Not spam" first.'];
+        if (!empty($app['anonymized_at'])) return [false, 'This application\'s details were cleared, so it can\'t be moved.'];
         if ($from === $to && $to !== 'interview') return [false, $name . ' is already ' . $labels[$to] . '.'];
 
         $note = trim((string)($opt['note'] ?? ''));
