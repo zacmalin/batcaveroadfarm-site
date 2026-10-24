@@ -1,5 +1,6 @@
 <?php
 // admin/handlers/moderate_comments.php
+require_once __DIR__ . '/../includes/audit.php';   // fix pack O: audit log
 
 try {
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
@@ -32,6 +33,8 @@ try {
         $done = $stmt->rowCount();
 
         $pdo->commit();
+        erp_audit($pdo, 'update', 'recipe_comments', count($comment_ids) === 1 ? $comment_ids[0] : null,
+            "Approved {$done} comment(s): #" . implode(', #', array_slice($comment_ids, 0, 20)));
         $_SESSION['toast_msg']  = "{$done} comment" . ($done !== 1 ? 's' : '') . " approved and published.";
         $_SESSION['toast_type'] = 'success';
 
@@ -52,6 +55,7 @@ try {
         // ── BAN CHECK ─────────────────────────────────────────────────────────
         // If a user has 5+ rejections in the last 30 days, restrict for 60 days
         $banned_count = 0;
+        $restricted   = [];
         foreach ($affected_users as $uid) {
             $count_stmt = $pdo->prepare("
                 SELECT COUNT(*) FROM recipe_comments
@@ -70,10 +74,16 @@ try {
                       AND (comment_restricted_until IS NULL OR comment_restricted_until < CURDATE())
                 ")->execute([$uid]);
                 $banned_count++;
+                $restricted[] = (int)$uid;
             }
         }
 
         $pdo->commit();
+        erp_audit($pdo, 'update', 'recipe_comments', count($comment_ids) === 1 ? $comment_ids[0] : null,
+            "Rejected {$done} comment(s): #" . implode(', #', array_slice($comment_ids, 0, 20)));
+        foreach ($restricted as $ruid) {
+            erp_audit($pdo, 'update', 'users', $ruid, 'Comments restricted 60 days (5+ rejections in 30 days)');
+        }
 
         $msg = "{$done} comment" . ($done !== 1 ? 's' : '') . " rejected.";
         if ($banned_count > 0) {

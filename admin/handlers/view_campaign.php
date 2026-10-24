@@ -4,7 +4,7 @@
 
 require_once '../../config.php';
 
-session_start();
+if (session_status() !== PHP_SESSION_ACTIVE) session_start();   // config.php usually started it already (fix pack O)
 // Staff only — public customer accounts also have user_id, so check the role.
 if (empty($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['administrator', 'moderator', 'Shopkeep', 'Media'], true)) {
     http_response_code(403); exit('Access denied.');

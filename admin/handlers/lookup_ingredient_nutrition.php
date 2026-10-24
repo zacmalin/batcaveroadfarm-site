@@ -5,6 +5,7 @@
 
 ob_start();
 require_once '../../config.php';
+require_once __DIR__ . '/../includes/audit.php';   // fix pack O: audit log
 require_once __DIR__ . '/../includes/nutrition_config.php';
 ob_end_clean();
 
@@ -62,6 +63,10 @@ if ($action === 'save') {
             $fields['weight_per_unit_g'], $fields['usda_fdc_id'],
             $ing_id,
         ]);
+        $nm = $pdo->prepare("SELECT * FROM ingredients WHERE id = ?"); $nm->execute([$ing_id]);
+        erp_audit($pdo, 'update', 'ingredients', (int)$ing_id,
+            'Nutrition data: ' . (erp_audit_label($nm->fetch(PDO::FETCH_ASSOC) ?: []) ?: "#{$ing_id}")
+            . ' (' . (float)$fields['calories_per_100g'] . ' cal/100g)');
         ujson(true, 'Nutrition data saved.');
     } catch (Throwable $e) {
         error_log('[Nutrition] Save failed: ' . $e->getMessage());
@@ -95,8 +100,13 @@ $raw = @file_get_contents($url, false, $context);
 
 // Check HTTP status from response headers
 $status = 200;
-if (isset($http_response_header)) {
-    foreach ($http_response_header as $h) {
+// PHP 8.4+ provides http_get_last_response_headers(); the old $http_response_header
+// variable is deprecated in 8.5 (fix pack O). Works on both.
+$resp_headers = function_exists('http_get_last_response_headers')
+    ? (http_get_last_response_headers() ?? [])
+    : ($http_response_header ?? []);
+if ($resp_headers) {
+    foreach ($resp_headers as $h) {
         if (preg_match('/HTTP\/\d+\.?\d*\s+(\d+)/', $h, $m)) {
             $status = (int)$m[1];
         }

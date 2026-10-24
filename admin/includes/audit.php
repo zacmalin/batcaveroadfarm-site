@@ -30,7 +30,7 @@ if (!function_exists('erp_audit_label')) {
     /** Pick a human-readable label from a record (name, title, etc.). */
     function erp_audit_label(array $row): string
     {
-        foreach (['name', 'title', 'breed_name', 'label', 'customer_name', 'holder_name', 'display_name', 'receipt_number', 'subject', 'email', 'slug', 'sku'] as $k) {
+        foreach (['name', 'title', 'breed_name', 'singular_name', 'label', 'customer_name', 'holder_name', 'display_name', 'receipt_number', 'subject', 'email', 'slug', 'sku'] as $k) {
             if (!empty($row[$k]) && is_scalar($row[$k])) return trim(strip_tags((string)$row[$k]));
         }
         $first = trim((string)($row['first_name'] ?? '') . ' ' . (string)($row['last_name'] ?? ''));

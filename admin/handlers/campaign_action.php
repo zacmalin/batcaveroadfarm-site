@@ -8,7 +8,7 @@ header('Content-Type: text/html; charset=utf-8');
 require_once '../../config.php';
 require_once __DIR__ . '/../includes/audit.php';
 
-session_start();
+if (session_status() !== PHP_SESSION_ACTIVE) session_start();   // config.php usually started it already (fix pack O)
 if (empty($_SESSION['user_id']) || !in_array($_SESSION['user_role'], ['administrator', 'moderator'])) {
     $_SESSION['toast_msg']  = 'Access denied.';
     $_SESSION['toast_type'] = 'error';

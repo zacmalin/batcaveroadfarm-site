@@ -13,8 +13,13 @@ function jx(bool $ok, string $msg, array $extra = []): void {
 }
 
 require_once '../../config.php';
-session_start();
+if (session_status() !== PHP_SESSION_ACTIVE) session_start();   // config.php usually started it already (fix pack O)
 if (empty($_SESSION['user_id'])) jx(false, 'Not authenticated.', [], 401);
+// Fix pack O: staff only. Public customer accounts also have user_id, so check the role.
+if (!in_array($_SESSION['user_role'] ?? '', ['administrator', 'moderator', 'Shopkeep', 'Media'], true)) {
+    jx(false, 'Staff only.', [], 403);
+}
+require_once __DIR__ . '/../includes/audit.php';   // fix pack O: audit log
 
 $csrf = $_POST['csrf_token'] ?? '';
 if (!hash_equals($_SESSION['csrf_token'] ?? '', $csrf)) jx(false, 'Security token expired.');
@@ -55,8 +60,7 @@ try {
         imagealphablending($canvas, false);
         imagesavealpha($canvas, true);
         imagecopyresampled($canvas, $source, 0, 0, 0, 0, $nw, $nh, $ow, $oh);
-        imagedestroy($source);
-        $source = $canvas;
+        $source = $canvas;   // old image is freed automatically (imagedestroy() is deprecated in PHP 8.5)
     }
 
     // Save as WebP
@@ -71,6 +75,7 @@ try {
     }
 
     $url = '/img/' . $subfolder . '/' . $filename;
+    erp_audit($pdo, 'create', 'media', null, 'Image added (quick upload): ' . $url);
     jx(true, 'Uploaded.', ['url' => $url, 'full_url' => 'https://batcaveroadfarm.com' . $url]);
 
 } catch (Throwable $e) {
@@ -78,6 +83,6 @@ try {
     jx(false, 'Upload error: ' . $e->getMessage());
 } finally {
     if (isset($source) && (is_resource($source) || $source instanceof GdImage)) {
-        imagedestroy($source);
+        $source = null;   // frees the image (imagedestroy() is deprecated in PHP 8.5)
     }
 }

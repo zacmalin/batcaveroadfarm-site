@@ -78,6 +78,9 @@ try {
     foreach (array_keys($_SESSION) as $_sk) {
         if (str_starts_with($_sk, 'vault_images_')) unset($_SESSION[$_sk]);
     }
+    require_once __DIR__ . '/../includes/audit.php';   // fix pack O: audit log
+    erp_audit($pdo, 'update', 'media', null, 'Image rotated ' . ($dir === 'left' ? 'left' : ($dir === '180' ? '180' : 'right')) . ': ' . $rel);
+
     $_SESSION['toast_msg']  = 'Rotated: ' . basename($abs);
     $_SESSION['toast_type'] = 'success';
 
@@ -86,8 +89,8 @@ try {
     $_SESSION['toast_msg']  = 'Rotate error: ' . $e->getMessage();
     $_SESSION['toast_type'] = 'error';
 } finally {
-    if ($src instanceof \GdImage) imagedestroy($src);
-    if ($rot instanceof \GdImage) imagedestroy($rot);
+    $src = null;   // frees the image (imagedestroy() is deprecated in PHP 8.5)
+    $rot = null;
 }
 
 $ret = !empty($_POST['rotate_return_folder']) ? '&folder=' . urlencode($_POST['rotate_return_folder']) : '';

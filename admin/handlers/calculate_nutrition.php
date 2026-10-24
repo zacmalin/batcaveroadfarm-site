@@ -16,6 +16,7 @@ register_shutdown_function(function() {
 });
 
 require_once '../../config.php';
+require_once __DIR__ . '/../includes/audit.php';   // fix pack O: audit log
 
 ob_end_clean();
 
@@ -206,6 +207,9 @@ try {
             nutrition_updated_at  = NOW()
         WHERE id = ?
     ")->execute([$calories, $protein, $fat, $carbs, $fiber, $sugar, $sodium, $recipe_id]);
+    $was = isset($rec['calories']) && $rec['calories'] !== null ? (int)$rec['calories'] . ' cal' : 'none';
+    erp_audit($pdo, 'update', 'recipes', (int)$recipe_id,
+        'Nutrition recalculated: ' . erp_audit_label($rec) . " ({$was} -> {$calories} cal per serving)");
 } catch (Throwable $e) {
     error_log('[Nutrition] DB write failed: ' . $e->getMessage());
     njson(false, 'Nutrition calculated but could not save: ' . $e->getMessage());

@@ -77,7 +77,9 @@ function social_http(string $method, string $url, array $fields = []): array {
         ]];
         if ($method === 'POST') { $ctx['http']['content'] = http_build_query($fields); }
         $body = (string)@file_get_contents($url, false, stream_context_create($ctx));
-        if (isset($http_response_header[0]) && preg_match('/\s(\d{3})\s/', $http_response_header[0], $m)) { $code = (int)$m[1]; }
+        // PHP 8.5: $http_response_header is deprecated; use the new function when present (fix pack O).
+        $rh = function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? []);
+        if (isset($rh[0]) && preg_match('/\s(\d{3})\s/', $rh[0], $m)) { $code = (int)$m[1]; }
     }
     $json = json_decode($body, true);
     return ['code' => $code, 'json' => is_array($json) ? $json : [], 'raw' => $body];

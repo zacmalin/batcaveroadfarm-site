@@ -20,6 +20,7 @@ define('CRON_ALLOWED', true);
 
 // Bootstrap — load config without session
 require_once dirname(__DIR__, 2) . '/config.php';
+require_once dirname(__DIR__) . '/includes/audit.php';   // fix pack O: audit log
 
 $now = date('Y-m-d H:i:s');
 $published = 0;
@@ -50,6 +51,7 @@ try {
             $upd->execute([$post['id']]);
             if ($upd->rowCount() > 0) {
                 $published++;
+                erp_audit($pdo, 'update', 'blog_posts', (int)$post['id'], 'Published on schedule: ' . $post['title'], 'Scheduler');
                 echo "[{$now}] Published: #{$post['id']} — {$post['title']}\n";
             }
         } catch (Throwable $e) {

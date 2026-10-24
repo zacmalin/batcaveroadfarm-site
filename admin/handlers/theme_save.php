@@ -2,6 +2,7 @@
 // admin/handlers/theme_save.php — invoked from admin.php when $_POST['theme_action'] is set.
 // Runs in admin.php scope ($pdo, $_SESSION available).
 require_once __DIR__ . '/../../includes/themes.php';
+require_once __DIR__ . '/../includes/audit.php';   // fix pack O: audit log
 
 try {
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
@@ -28,6 +29,7 @@ try {
             $pdo->prepare("INSERT INTO theme_schedules (theme_slug, mode, start_md, end_md, priority, is_active)
                            VALUES (?, 'annual', ?, ?, ?, 1)")
                 ->execute([$slug, $sm, $em, $priority]);
+            erp_audit($pdo, 'create', 'theme_schedules', (int)$pdo->lastInsertId(), "Theme {$slug}: every year {$sm} to {$em}");
         } else {
             $sd = (string)($_POST['start_date'] ?? '');
             $ed = (string)($_POST['end_date'] ?? '');
@@ -38,17 +40,25 @@ try {
             $pdo->prepare("INSERT INTO theme_schedules (theme_slug, mode, start_date, end_date, priority, is_active)
                            VALUES (?, 'range', ?, ?, ?, 1)")
                 ->execute([$slug, $sd, $ed, $priority]);
+            erp_audit($pdo, 'create', 'theme_schedules', (int)$pdo->lastInsertId(), "Theme {$slug}: {$sd} to {$ed}");
         }
         $_SESSION['toast_msg'] = 'Schedule added.'; $_SESSION['toast_type'] = 'success';
 
     } elseif ($action === 'toggle') {
         $id = (int)($_POST['id'] ?? 0);
         $pdo->prepare("UPDATE theme_schedules SET is_active = 1 - is_active WHERE id = ?")->execute([$id]);
+        $t = $pdo->prepare("SELECT theme_slug, is_active FROM theme_schedules WHERE id = ?"); $t->execute([$id]);
+        if ($r = $t->fetch(PDO::FETCH_ASSOC)) {
+            erp_audit($pdo, 'update', 'theme_schedules', $id, "Theme {$r['theme_slug']} schedule " . ($r['is_active'] ? 'turned on' : 'turned off'));
+        }
         $_SESSION['toast_msg'] = 'Schedule updated.'; $_SESSION['toast_type'] = 'success';
 
     } elseif ($action === 'delete') {
         $id = (int)($_POST['id'] ?? 0);
+        $t = $pdo->prepare("SELECT theme_slug FROM theme_schedules WHERE id = ?"); $t->execute([$id]);
+        $gone = (string)($t->fetchColumn() ?: '');
         $pdo->prepare("DELETE FROM theme_schedules WHERE id = ?")->execute([$id]);
+        if ($gone !== '') erp_audit($pdo, 'delete', 'theme_schedules', $id, "Theme {$gone} schedule");
         $_SESSION['toast_msg'] = 'Schedule deleted.'; $_SESSION['toast_type'] = 'success';
 
     } elseif ($action === 'settings') {
@@ -60,6 +70,8 @@ try {
                              ON DUPLICATE KEY UPDATE sval = VALUES(sval)");
         $up->execute(['override', $override]);
         $up->execute(['default',  $default]);
+        erp_audit($pdo, 'update', 'theme_settings', null,
+            'Theme override: ' . ($override !== '' ? $override : 'none') . ', default: ' . ($default !== '' ? $default : 'none'));
         $_SESSION['toast_msg'] = 'Theme settings saved.'; $_SESSION['toast_type'] = 'success';
 
     } else {

@@ -1,5 +1,6 @@
 <?php
 // admin/handlers/permissions_matrix.php
+require_once __DIR__ . '/../includes/audit.php';   // fix pack O: audit log
 // Saves role permission checkboxes — both view and table permissions.
 
 try {
@@ -40,6 +41,16 @@ try {
             $ins_vp->execute([$selected_role, $view_name, $can_access]);
         }
     }
+
+    // Fix pack O: record who changed which role's access, and a short summary.
+    $n_view = 0; $n_edit = 0;
+    foreach (($_POST['perm_node'] ?? []) as $actions) {
+        if (isset($actions['view'])) $n_view++;
+        if (isset($actions['edit'])) $n_edit++;
+    }
+    $n_pages = count(array_filter((array)($_POST['view_permissions_block'] ?? [])));
+    erp_audit($pdo, 'update', 'role_permissions', null,
+        "Permissions for {$selected_role}: {$n_pages} pages, view {$n_view} / edit {$n_edit} tables");
 
     $_SESSION['toast_msg']  = "Permissions updated for: {$selected_role}";
     $_SESSION['toast_type'] = 'success';

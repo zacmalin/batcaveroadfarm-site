@@ -54,6 +54,16 @@ if ($valid) {
             $up = $pdo->prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ? AND status IN ('pending','confirmed')");
             $up->execute([$id]);
             $state = 'done';
+            // Fix pack O: record the guest cancellation in Admin > Audit Log.
+            if ($up->rowCount() > 0) {
+                $aud = __DIR__ . '/admin/includes/audit.php';
+                if (is_file($aud)) {
+                    require_once $aud;
+                    erp_audit($pdo, 'update', 'bookings', (int)$id,
+                        'Cancelled by guest (email link): ' . $b['customer_name'] . (!empty($b['booking_date']) ? ' (' . $b['booking_date'] . ')' : ''),
+                        'Guest');
+                }
+            }
             // let the farm know a (possibly confirmed) slot just freed up
             if (function_exists('booking_send_admin_alert')) {
                 $note = $b;

@@ -1,5 +1,6 @@
 <?php
 require_once '../../config.php';
+require_once __DIR__ . '/../includes/audit.php';   // fix pack O: audit log
 check_admin();
 
 header('Content-Type: application/json');
@@ -28,6 +29,7 @@ try {
 
     $pdo->prepare("INSERT INTO cuisines (name, slug) VALUES (?, ?)")->execute([$name, $slug]);
     $new_id = (int)$pdo->lastInsertId();
+    erp_audit($pdo, 'create', 'cuisines', $new_id, $name);
     json_out(true, 'Cuisine added.', ['id' => $new_id, 'name' => $name]);
 
 } catch (Throwable $e) {

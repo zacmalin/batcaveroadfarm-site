@@ -16,7 +16,11 @@ try {
     $raw_name      = trim($_POST['output_filename_override'] ?? '');
     $clean_name    = preg_replace('/[^a-zA-Z0-9_\-]/', '_', basename($raw_name));
 
-    $target_dir    = $_POST['upload_subdirectory_target'] ?? '/';
+    // Fix pack O: folder names only (letters, numbers, - _ /), no "..", so files
+    // always land inside /img/.
+    $target_dir    = (string)($_POST['upload_subdirectory_target'] ?? '/');
+    $target_dir    = preg_replace('#[^a-zA-Z0-9_/\-]#', '', str_replace('\\', '/', $target_dir));
+    $target_dir    = implode('/', array_filter(explode('/', $target_dir), fn($p) => $p !== '' && $p !== '.' && $p !== '..'));
     $target_format = $_POST['format_conversion_mode']     ?? 'webp';
     $compression_quality = filter_input(INPUT_POST, 'compression_quality_scale', FILTER_VALIDATE_INT) ?: 80;
     $resize_width        = filter_input(INPUT_POST, 'resize_dimension_width',    FILTER_VALIDATE_INT);
@@ -115,14 +119,14 @@ try {
         }
 
         imagecopyresampled($canvas, $source, 0, 0, 0, 0, $new_w, $new_h, $orig_w, $orig_h);
-        imagedestroy($source);
-        $source = $canvas;
+        $source = $canvas;   // old image is freed automatically (imagedestroy() is deprecated in PHP 8.5)
     }
 
     // ── WRITE ─────────────────────────────────────────────────────────────────
     $output_filename = ($clean_name ?: uniqid('farm_asset_')) . '.' . $target_format;
     $absolute_path   = rtrim($base_storage_root, '/') . '/' . $output_filename;
 
+    $replacing = is_file($absolute_path);
     $written = match($target_format) {
         'jpg'  => imagejpeg($source, $absolute_path, $compression_quality),
         'png'  => imagepng($source,  $absolute_path, (int)floor((100 - $compression_quality) / 10)),
@@ -132,6 +136,10 @@ try {
     if (!$written) {
         throw new RuntimeException("GD write failed: {$absolute_path}");
     }
+
+    require_once __DIR__ . '/../includes/audit.php';   // fix pack O: audit log
+    $rel_path = '/img/' . ($target_dir !== '' ? $target_dir . '/' : '') . $output_filename;
+    erp_audit($pdo, $replacing ? 'update' : 'create', 'media', null, ($replacing ? 'Image replaced: ' : 'Image added: ') . $rel_path);
 
     $_SESSION['toast_msg']  = "Image saved: /{$output_filename}";
     // Bust vault image cache
@@ -145,7 +153,7 @@ try {
 } finally {
     // Fix 5: always free the GD resource, even if an exception was thrown
     if (isset($source) && is_resource($source)) {
-        imagedestroy($source);
+        $source = null;   // frees the image (imagedestroy() is deprecated in PHP 8.5)
     }
 }
 

@@ -17,9 +17,10 @@ function json_exit(bool $ok, string $message, array $extra = [], int $status = 2
 }
 
 require_once '../../config.php';
+require_once __DIR__ . '/../includes/audit.php';   // fix pack O: audit log
 
 // Check session manually rather than calling check_admin() which may redirect
-session_start();
+if (session_status() !== PHP_SESSION_ACTIVE) session_start();   // config.php usually started it already (fix pack O)
 if (empty($_SESSION['user_id']) || empty($_SESSION['user_role'])) {
     json_exit(false, 'Not authenticated.', [], 401);
 }
@@ -64,6 +65,7 @@ try {
         $stmt = $pdo->prepare("INSERT INTO blog_categories (name, slug) VALUES (?, ?)");
         $stmt->execute([$category_name, $slug]);
         $new_id = (int)$pdo->lastInsertId();
+        erp_audit($pdo, 'create', 'blog_categories', $new_id, $category_name);
 
     } else {
         // Recipe categories
@@ -76,6 +78,7 @@ try {
         $stmt = $pdo->prepare("INSERT INTO categories (category_name) VALUES (?)");
         $stmt->execute([$category_name]);
         $new_id = (int)$pdo->lastInsertId();
+        erp_audit($pdo, 'create', 'categories', $new_id, $category_name);
     }
 
     json_exit(true, 'Category created.', ['id' => $new_id, 'name' => $category_name]);

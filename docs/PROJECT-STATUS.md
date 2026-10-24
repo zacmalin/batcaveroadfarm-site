@@ -157,7 +157,7 @@ Updated: 2026-10-23 (code review done)
 - CONFIRMED 2026-10-24: Zac checked first nightly backup: bcrf-backups has today's .sql.gz, backup_db.log ends with OK.
 
 ## TO DO
-- [ ] Audit Log coverage: find admin actions not written to audit_log and fill the gaps (fix pack). Also in Zac's Google Tasks "My Tasks" as "BCRF: Audit Log coverage check".
+- [~] Audit Log coverage: Pack O built 2026-10-24, waiting on install confirm. Also in Zac's Google Tasks "My Tasks" as "BCRF: Audit Log coverage check".
 
 ## Jobs & Applicant Tracking spec review (2026-10-23)
 - Spec: "BCRF Jobs & Applicant Tracking — Spec.docx". Reviewed against src snapshot; questions + suggestions sent, waiting on Zac's answers before building.
@@ -175,3 +175,10 @@ Updated: 2026-10-23 (code review done)
 7. Cut to 8 statuses. Proposed: New, Reviewing (incl. phone screen), Interview Scheduled (Interviewed folded in), Offer Extended, Hired, Not Selected, Withdrawn (incl. no response), Talent Pool. Spam = is_spam flag hidden from views (not a status).
 - All suggestions accepted: admin as admin.php?view= views; reuse password_resets for invites; phone-first list pipeline (tap to move); Eastern-time handling (server is Boise); uploads in /home2/ddailnmy/bcrf-uploads/ + early ModSecurity/Cloudflare upload test; erp_audit for hires/queue/templates; .ics on interview email; end-of-employment action; Talent Pool notify on reopen; EEO line on job pages + /privacy/ applicant-data section; replace returning one-time link with "applied/worked here before?" checkbox + admin-side email match.
 - First build step next session: migration SQL.
+
+## Fix pack O: audit log coverage (2026-10-24): fix-pack-O-audit-coverage-18-files-2026-10-24.zip
+- New audit entries: role_permissions, theme_schedules/theme_settings, recipe_comments approve/reject + users comment restriction, categories/blog_categories/cuisines (AJAX add), recipes nutrition recalculated, ingredients nutrition save, media (image_processing add/replace, image_rotate, quick_upload), bookings guest cancel (actor Guest), blog_posts scheduled publish (actor Scheduler). erp_audit_label also knows singular_name.
+- SECURITY: quick_upload.php allowed any logged-in visitor (role user) to upload images to /img/ -> now staff roles only. image_processing folder sanitized (no ..).
+- PHP 8.5 cleanup: imagedestroy removed; http_get_last_response_headers in lookup_ingredient_nutrition + send_social; session_start guarded in 6 files.
+- Deliberately not logged: reminder/newsletter send crons, auto SKU on print, visitor self-service.
+- Waiting on: Zac install + test (permissions save, rotate, quick upload).
