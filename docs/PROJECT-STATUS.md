@@ -183,3 +183,5 @@ Updated: 2026-10-23 (code review done)
 - Deliberately not logged: reminder/newsletter send crons, auto SKU on print, visitor self-service.
 - Waiting on: Zac install + test (permissions save, rotate, quick upload).
 - CONFIRMED 2026-10-24: Zac installed Pack O, looks good. pack-o merged into main; Google Task marked complete.
+
+- CONFIRMED 2026-10-24: stock-alert cron ran with no new error_log in admin/handlers/ (June bug fixed).
