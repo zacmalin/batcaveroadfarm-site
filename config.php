@@ -56,7 +56,10 @@ function images_session_start_secure() {
     session_set_cookie_params([
         'lifetime' => $cookieParams['lifetime'],
         'path' => '/',
-        'domain' => $_SERVER['HTTP_HOST'] ?? 'localhost',
+        // One cookie for batcaveroadfarm.com AND its subdomains (admin.), so signing in on either works
+        // on both. A host-only cookie on admin. would clash with the main one (same name, browser sends
+        // both, PHP reads the wrong one -> endless sign-in page).
+        'domain' => preg_match('/(^|\.)batcaveroadfarm\.com$/i', (string)($_SERVER['HTTP_HOST'] ?? '')) ? 'batcaveroadfarm.com' : ($_SERVER['HTTP_HOST'] ?? 'localhost'),
         // Site is HTTPS-only. Behind Cloudflare the origin may see plain HTTP,
         // so also trust the proxy headers; always secure on the live domain.
         'secure' => (($_SERVER['HTTPS'] ?? '') === 'on')
@@ -69,6 +72,10 @@ function images_session_start_secure() {
         // Cross-site POSTs still get no cookie, and every form also checks a CSRF token.
         'samesite' => 'Lax'
     ]);
+    // Clear a leftover admin-only duplicate cookie from before this fix (harmless if there isn't one).
+    if (!headers_sent() && str_starts_with(strtolower((string)($_SERVER['HTTP_HOST'] ?? '')), 'admin.')) {
+        setcookie(session_name(), '', ['expires' => 1, 'path' => '/', 'domain' => 'admin.batcaveroadfarm.com', 'secure' => true, 'httponly' => true, 'samesite' => 'Lax']);
+    }
     session_start();
 }
 
