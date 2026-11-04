@@ -19,7 +19,7 @@
 
           <div class="content-wrap1">
             <article class="legal-doc reveal">
-              <p class="legal-updated">Last reviewed: June 9, 2026</p>
+              <p class="legal-updated">Last reviewed: November 3, 2026</p>
               <p class="legal-intro">Bat Cave Road Farm is committed to making
                 <strong>batcaveroadfarm.com</strong> usable for as many people as possible, including
                 visitors who use screen readers, keyboard navigation, or other assistive technology. Accessibility

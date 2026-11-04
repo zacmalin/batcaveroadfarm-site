@@ -19,7 +19,7 @@
 
           <div class="content-wrap1">
             <article class="legal-doc reveal">
-              <p class="legal-updated">Last updated: June 9, 2026</p>
+              <p class="legal-updated">Last updated: November 3, 2026</p>
               <p class="legal-intro">Welcome to Bat Cave Road Farm. These Terms of Service ("Terms") govern your
                 use of <strong>batcaveroadfarm.com</strong> (the "Site") and your visit to our farm in Old Fort,
                 North Carolina. By using the Site or visiting the farm, you agree to these Terms. If you don't
@@ -36,6 +36,7 @@
                   <li><a href="#disclaimer">Disclaimers</a></li>
                   <li><a href="#liability">Limitation of liability</a></li>
                   <li><a href="#links">Third-party links</a></li>
+                  <li><a href="#copyright">Copyright complaints</a></li>
                   <li><a href="#changes">Changes to these Terms</a></li>
                   <li><a href="#law">Governing law</a></li>
                   <li><a href="#contact">Contact us</a></li>
@@ -70,11 +71,9 @@
                 <li>Treat the animals gently and only interact with them where and how we permit.</li>
                 <li>Wash your hands at the stations provided after touching animals.</li>
               </ul>
-              <div class="legal-callout">
-                <p><strong>Please note:</strong> North Carolina law limits the liability of agritourism and farm
-                  animal activity operators for injuries that result from the inherent risks of those activities.
-                  Warning signage to that effect is posted at the farm, and your visit is subject to it.</p>
-              </div>
+              <p>North Carolina law requires us to give you the following warnings. They are also posted at the
+                farm, and they apply to every visit, ticket, pass and booking.</p>
+              <?php require_once __DIR__ . '/../includes/nc_warning.php'; echo bcrf_nc_warning_html(); ?>
 
               <h2 id="risk">Assumption of risk</h2>
               <p>You understand that interacting with farm animals and being on farm property involves inherent
@@ -97,6 +96,15 @@
               <h2 id="links">Third-party links</h2>
               <p>The Site may link to or embed third-party services (such as Google Maps and our Instagram feed).
                 We're not responsible for the content, policies, or practices of those third parties.</p>
+
+              <h2 id="copyright">Copyright complaints</h2>
+              <p>If you believe something on the Site (including a visitor comment or photo) infringes your
+                copyright, email <a href="mailto:support@batcaveroadfarm.com">support@batcaveroadfarm.com</a> with:
+                your contact details; the work you believe is infringed; the page address of the material; a
+                statement that you have a good-faith belief the use isn't authorized by the owner, its agent, or the
+                law; a statement, under penalty of perjury, that your notice is accurate and that you are the owner
+                or authorized to act for the owner; and your physical or electronic signature. We'll review the
+                notice and remove or disable material where appropriate.</p>
 
               <h2 id="changes">Changes to these Terms</h2>
               <p>We may update these Terms from time to time. When we do, we'll update the "Last updated" date at

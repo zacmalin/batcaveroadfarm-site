@@ -19,7 +19,7 @@
 
           <div class="content-wrap1">
             <article class="legal-doc reveal">
-              <p class="legal-updated">Last updated: October 24, 2026</p>
+              <p class="legal-updated">Last updated: November 3, 2026</p>
               <p class="legal-intro">Bat Cave Road Farm ("we," "us," or "our") runs the website at
                 <strong>batcaveroadfarm.com</strong>. This policy explains what information the website
                 collects, how we use it, and the choices you have. It applies to this website only — not to
@@ -76,6 +76,11 @@
                 <li><strong>Instagram feed</strong> on our gallery page — displayed through a third-party widget
                   (Behold) that loads images from Instagram. Viewing it is subject to the privacy practices of
                   Behold and of Instagram/Meta.</li>
+                <li><strong>Stripe</strong> — processes payments for online tickets, annual passes and bookings.
+                  You enter your card details on Stripe's secure checkout page; we never see or store your full
+                  card number. We receive your name, email, what you bought and whether the payment succeeded.
+                  See the <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe Privacy
+                  Policy</a>.</li>
               </ul>
               <p>We don't control how these third parties process data once it reaches them.</p>
 
@@ -89,7 +94,7 @@
 
               <h2 id="share">How we share information</h2>
               <p><strong>We do not sell your personal information.</strong> We share information only with the
-                service providers described above (such as our web host and Google) so they can perform their
+                service providers described above (such as our web host, Google and Stripe) so they can perform their
                 functions, or when we are required to by law or to protect our rights and safety.</p>
 
               <h2 id="retention">How long we keep it</h2>

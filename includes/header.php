@@ -45,7 +45,7 @@
 <?php endif; ?>
     	<header>
             <div class="header-inner">
-                <a class="logo-wrap" href="https://batcaveroadfarm.com/" aria-label="Bat Cave Road Farm — home">
+                <a class="logo-wrap" href="https://batcaveroadfarm.com/">
 <?php
                     // Fix pack M: smaller WebP logo when available (falls back to the PNG).
                     require_once __DIR__ . '/webp.php';
@@ -53,10 +53,10 @@
                     if ($__logoWebp): ?>
                     <picture style="display:contents">
                         <source srcset="https://batcaveroadfarm.com<?= htmlspecialchars($__logoWebp, ENT_QUOTES) ?>?v=<?= defined('BCRF_ASSET_V') ? BCRF_ASSET_V : '1' ?>" type="image/webp">
-                        <img src="https://batcaveroadfarm.com/img/logo.png" alt="Bat Cave Road Farm Logo" width="400" height="299" decoding="async">
+                        <img src="https://batcaveroadfarm.com/img/logo.png" alt="Bat Cave Road Farm — home" width="400" height="299" decoding="async">
                     </picture>
 <?php else: ?>
-                    <img src="https://batcaveroadfarm.com/img/logo.png" alt="Bat Cave Road Farm Logo" width="400" height="299" decoding="async">
+                    <img src="https://batcaveroadfarm.com/img/logo.png" alt="Bat Cave Road Farm — home" width="400" height="299" decoding="async">
 <?php endif; ?>
                 </a>
                 <div class="site-title">
@@ -65,13 +65,12 @@
                 </div>
                 <div class="header-status">
                     <span class="bcrf-status <?= $bcrfStatus['open'] ? 'is-open' : 'is-closed' ?>"
-                          data-bcrf-hours='<?= htmlspecialchars(json_encode(["tz" => $bcrfTz, "h" => $bcrfHoursJs]), ENT_QUOTES) ?>'
-                          aria-label="<?= htmlspecialchars($bcrfStatus['label'] . ($bcrfStatus['detail'] ? ' — ' . $bcrfStatus['detail'] : '')) ?>">
+                          data-bcrf-hours='<?= htmlspecialchars(json_encode(["tz" => $bcrfTz, "h" => $bcrfHoursJs]), ENT_QUOTES) ?>'>
                         <span class="bcrf-status-dot" aria-hidden="true"></span>
                         <span class="bcrf-status-label"><?= htmlspecialchars($bcrfStatus['label']) ?></span>
                         <span class="bcrf-status-detail"><?= htmlspecialchars($bcrfStatus['detail']) ?></span>
                     </span>
-                    <a class="header-directions" href="https://batcaveroadfarm.com/directions/" aria-label="Map and directions to Bat Cave Road Farm">
+                    <a class="header-directions" href="https://batcaveroadfarm.com/directions/" aria-label="Directions to Bat Cave Road Farm">
                         <span aria-hidden="true">📍</span> Directions
                     </a>
 <?php if ($bcrfHiring): ?>

@@ -144,6 +144,7 @@ $csrf   = $_SESSION['csrf_token'] ?? ($_SESSION['csrf_token'] = bin2hex(random_b
                 </div>
             </div>
 
+            <?php require_once __DIR__ . '/../includes/nc_warning.php'; echo bcrf_nc_warning_html(true); ?>
             <div class="pass-submit">
                 <button type="submit" class="cta-btn">Continue to secure checkout →</button>
             </div>

@@ -137,6 +137,7 @@
         <label for="message">Anything else? <span class="opt">(event details, questions)</span></label>
         <textarea id="message" name="message" maxlength="2000"></textarea>
 
+        <?php require_once __DIR__ . '/../includes/nc_warning.php'; echo bcrf_nc_warning_html(true); ?>
         <button class="booking-submit" type="submit">Request Booking</button>
     </form>
     <?php endif; ?>

@@ -163,6 +163,7 @@ $errMsg = $errMap[$errKey] ?? '';
             </div>
         </section>
 
+        <?php require_once __DIR__ . '/../includes/nc_warning.php'; echo bcrf_nc_warning_html(true); ?>
         <div class="tickets-actions">
             <button type="submit" id="tickets-submit" class="cta-btn tickets-buy-btn" disabled>
                 Buy Tickets →

@@ -117,7 +117,7 @@
                         $mins = (int)($r['prep_time'] ?? 0) + (int)($r['cook_time'] ?? 0);
                     ?>
                       <a class="home-recipe-row" href="<?= htmlspecialchars($rUrl) ?>">
-                        <?php if ($ri !== ''): ?><img src="<?= htmlspecialchars($ri) ?>"<?= bcrf_img_attrs($ri) ?> alt="<?= htmlspecialchars($r['title']) ?>" loading="lazy" decoding="async"><?php endif; ?>
+                        <?php if ($ri !== ''): ?><img src="<?= htmlspecialchars($ri) ?>"<?= bcrf_img_attrs($ri) ?> alt="" loading="lazy" decoding="async"><?php endif; ?>
                         <div class="hrr-body">
                           <span class="home-eyebrow"><?= htmlspecialchars($label) ?></span>
                           <h3><?= htmlspecialchars($r['title']) ?></h3>
