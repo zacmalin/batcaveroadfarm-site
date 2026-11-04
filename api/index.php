@@ -10,11 +10,14 @@
  *
  * Routes so far:
  *   GET /v1/health   — is the API up and can it reach the database? Public, no data exposed.
+ *   POST /mcp        — farm MCP server for Claude / Perplexity (OAuth; administrators only).
+ *                      OAuth endpoints: /.well-known/*, /oauth/register|token|revoke|authorize.
+ *                      Code: includes/mcp/. Setup: docs/MCP.md.
  * Everything else returns a JSON 404. Real endpoints (products, sales, tickets, MCP) come later,
  * each behind the authorization layer described in the spec.
  */
 
-define('BCRF_NO_SESSION', true);   // no cookies/sessions for the API (staff auth comes later, per endpoint)
+define('BCRF_NO_SESSION', true);   // no cookies/sessions for the API (MCP uses bearer tokens)
 
 $__reqId = bin2hex(random_bytes(8));
 $__t0    = microtime(true);
@@ -55,6 +58,43 @@ if (!str_starts_with($host, 'api.') && preg_match('#^/api(/|$)#', $path)) {
 }
 $path   = rtrim($path, '/') ?: '/';
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+
+// ── MCP server + OAuth (Nov 2026) — includes/mcp/*. Connect at https://api.batcaveroadfarm.com/mcp ──
+$__mcpPaths = ['/mcp', '/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp',
+               '/.well-known/oauth-authorization-server', '/.well-known/openid-configuration',
+               '/oauth/register', '/oauth/token', '/oauth/revoke', '/oauth/authorize'];
+if (in_array($path, $__mcpPaths, true)) {
+    require_once dirname(__DIR__) . '/includes/mcp/oauth.php';
+    if ($method === 'OPTIONS') {
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+        header('Access-Control-Allow-Headers: Authorization, Content-Type, Mcp-Protocol-Version, Mcp-Session-Id');
+        http_response_code(204); exit;
+    }
+    mcp_oauth_schema($pdo);
+    switch ($path) {
+        case '/.well-known/oauth-protected-resource':
+        case '/.well-known/oauth-protected-resource/mcp':
+            mcp_oauth_json(200, mcp_protected_resource_metadata());
+        case '/.well-known/oauth-authorization-server':
+        case '/.well-known/openid-configuration':
+            mcp_oauth_json(200, mcp_authorization_server_metadata());
+        case '/oauth/register':
+            if ($method !== 'POST') mcp_oauth_error(405, 'invalid_request', 'Use POST.');
+            mcp_oauth_register($pdo);
+        case '/oauth/token':
+            if ($method !== 'POST') mcp_oauth_error(405, 'invalid_request', 'Use POST.');
+            mcp_oauth_token($pdo);
+        case '/oauth/revoke':
+            if ($method !== 'POST') mcp_oauth_error(405, 'invalid_request', 'Use POST.');
+            mcp_oauth_revoke($pdo);
+        case '/oauth/authorize':
+            mcp_oauth_authorize($pdo);
+        case '/mcp':
+            require_once dirname(__DIR__) . '/includes/mcp/server.php';
+            mcp_handle_request($pdo, $method);
+    }
+}
 
 // ── Routes ───────────────────────────────────────────────────────────────────
 $routes = [

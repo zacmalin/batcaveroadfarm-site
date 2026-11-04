@@ -56,6 +56,7 @@ $_sections = [
         ['Seasonal Themes',  '🎨', '?view=theme_scheduler',       'view',  'theme_scheduler'],
         ['Site Info',        '🏠', '?view=site_info',             'view',  'site_info'],
         ['Backups',          '💾', '/admin/backups.php',          'view',  'backups'],   // administrators only (no matrix row)
+        ['AI Connections',   '🤖', '/admin/mcp_connections.php',  'view',  'mcp_connections'],   // administrators only (no matrix row)
     ]],
 ];
 

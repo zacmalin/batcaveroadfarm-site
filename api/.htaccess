@@ -21,6 +21,10 @@ RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
     RewriteRule .* - [E=Cache-Control:no-cache]
 </IfModule>
 
+# Pass the Authorization header through to PHP (MCP bearer tokens, OAuth client Basic auth).
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
 # Everything that isn't a real file goes through index.php. (Checking -f rather than the URI
 # avoids a rewrite loop: after the internal rewrite REQUEST_URI still holds the original path.)
 RewriteCond %{REQUEST_FILENAME} !-f
@@ -31,5 +35,7 @@ RewriteRule ^ index.php [L,QSA]
     Header always set X-Robots-Tag "noindex, nofollow"
     Header always set Cache-Control "no-store"
     Header always unset Content-Security-Policy
-    Header always set Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
+    # style-src/form-action are for the MCP sign-in page (/oauth/authorize): it has inline styles and
+    # its Allow button redirects back to the AI app (Chrome applies form-action to that redirect).
+    Header always set Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; form-action 'self' https: http://localhost:* http://127.0.0.1:*; frame-ancestors 'none'"
 </IfModule>
