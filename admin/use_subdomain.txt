@@ -1,0 +1,1 @@
+On: batcaveroadfarm.com/admin/... redirects to admin.batcaveroadfarm.com/... (GET only). Checked by config.php. Delete this file to turn the redirect off.
