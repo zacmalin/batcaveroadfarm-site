@@ -27,6 +27,28 @@ RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 RewriteCond %{HTTP_HOST} ^www\.(.*) [NC]
 RewriteRule ^(.*)$ https://%1%{REQUEST_URI} [L,R=301]
 
+# --- admin.batcaveroadfarm.com (Nov 2026) ------------------------------------
+# The subdomain's document root is this same folder. On that host, short URLs map
+# into /admin/ internally (admin.batcaveroadfarm.com/handlers/x.php -> /admin/handlers/x.php),
+# assets (/img, /css, /js) and /api work as on the main site, old-style /admin/... links
+# are redirected to the short form (GET only: a redirected POST would lose the form data),
+# and public pages go back to the main site. batcaveroadfarm.com/admin/... is sent here
+# by config.php (GET only) once admin/use_subdomain.txt exists.
+RewriteCond %{HTTP_HOST} ^admin\.batcaveroadfarm\.com$ [NC]
+RewriteRule ^$ admin/admin.php [L,QSA]
+RewriteCond %{HTTP_HOST} ^admin\.batcaveroadfarm\.com$ [NC]
+RewriteCond %{THE_REQUEST} ^GET\s/admin/
+RewriteRule ^admin/(.*)$ /$1 [R=301,L]
+RewriteCond %{HTTP_HOST} ^admin\.batcaveroadfarm\.com$ [NC]
+RewriteCond %{REQUEST_URI} !^/admin/
+RewriteCond %{DOCUMENT_ROOT}/admin/$1 -f [OR]
+RewriteCond %{DOCUMENT_ROOT}/admin/$1 -d
+RewriteRule ^(.+)$ admin/$1 [L,QSA]
+RewriteCond %{HTTP_HOST} ^admin\.batcaveroadfarm\.com$ [NC]
+RewriteCond %{REQUEST_URI} !^/(admin|api|img|css|js|fonts|vendor)/
+RewriteCond %{REQUEST_URI} !^/(favicon\.ico|site\.webmanifest|robots\.txt)$
+RewriteRule ^(.*)$ https://batcaveroadfarm.com/$1 [R=302,L]
+
 # Strip a trailing index.php from URLs (/about/index.php -> /about/)
 RewriteCond %{THE_REQUEST} /index\.php[?\s] [NC]
 RewriteRule ^(.*?)index\.php[^/]*$ /$1? [L,R=301,NC]

@@ -16,11 +16,23 @@ function bcrf_session_path(string $path): bool {
 }
 $__bcrfPath   = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $__bcrfMethod = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+$__bcrfHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
 $__bcrfNeedsSession = PHP_SAPI === 'cli'
     || defined('BCRF_NEEDS_SESSION')
+    || str_starts_with($__bcrfHost, 'admin.')            // admin.batcaveroadfarm.com: every page is admin
     || !in_array($__bcrfMethod, ['GET', 'HEAD'], true)
     || isset($_COOKIE[session_name()])
     || bcrf_session_path($__bcrfPath);
+
+// Admin subdomain switch (Nov 2026): once admin/use_subdomain.txt exists, plain page loads of
+// batcaveroadfarm.com/admin/... go to admin.batcaveroadfarm.com/... (GET only, so a form that was
+// already open still saves). The root .htaccess maps the short URLs back into /admin/.
+if (PHP_SAPI !== 'cli' && $__bcrfMethod === 'GET' && !str_starts_with($__bcrfHost, 'admin.')
+    && preg_match('#^/admin/(.*)$#', $__bcrfPath, $__m) && is_file(__DIR__ . '/admin/use_subdomain.txt')) {
+    $__qs = (string)($_SERVER['QUERY_STRING'] ?? '');
+    header('Location: https://admin.batcaveroadfarm.com/' . $__m[1] . ($__qs !== '' ? '?' . $__qs : ''), true, 301);
+    exit;
+}
 
 if (session_status() == PHP_SESSION_NONE && !defined('BCRF_NO_SESSION') && $__bcrfNeedsSession) {
     images_session_start_secure();
