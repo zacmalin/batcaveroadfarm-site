@@ -32,6 +32,8 @@ require_once $bcrf_docroot . '/includes/unsubscribe.php';   // signed unsubscrib
 
 // Drop anything the includes printed (BOM/whitespace) before we send headers.
 if (ob_get_level() > 0) { ob_end_clean(); }
+require_once dirname($bcrf_cfg) . '/includes/cron_health.php';
+bcrf_cron_begin('send_newsletter');   // heartbeat for the admin System Health page
 
 // ── Access guard: CLI is always allowed; web access requires the secret key ──
 $isCli = (PHP_SAPI === 'cli');

@@ -77,7 +77,8 @@ function mcp_resolve(string $path, bool $forWrite = false, bool $allowDir = fals
     if (is_dir($abs) && !$allowDir) throw new McpToolError("$rel is a folder. Use list_files.");
     if (!is_dir($abs)) {
         $ext = strtolower(pathinfo($abs, PATHINFO_EXTENSION));
-        $isHt = basename($abs) === '.htaccess';
+        // Read-only extras: .htaccess and PHP error logs (error_log / *.log), for diagnosing problems.
+        $isHt = basename($abs) === '.htaccess' || basename($abs) === 'error_log' || $ext === 'log';
         if (!in_array($ext, MCP_FILE_EXTS, true) && !($isHt && !$forWrite)) throw new McpToolError("Only text files can be used here (." . implode(', .', MCP_FILE_EXTS) . ').');
     }
     return [$abs, $rel];

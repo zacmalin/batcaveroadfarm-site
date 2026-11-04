@@ -157,7 +157,7 @@ function mcp_tools(): array {
         'List a folder of the website (path relative to the site root, e.g. "recipes" or "css"). Secrets, config and uploads are hidden.',
         ['type' => 'object', 'properties' => ['path' => ['type' => 'string']]], $RO, 'mcp_t_list_files'],
     'read_file' => [
-        'Read a website text file (php, html, css, js, json, md, txt, xml, svg). Large files come back in parts: pass offset_line to continue.',
+        'Read a website text file (php, html, css, js, json, md, txt, xml, svg), .htaccess, or a PHP error log ("error_log" files, read-only). Large files come back in parts: pass offset_line to continue (for error logs, start near the end using total_lines).',
         ['type' => 'object', 'properties' => ['path' => ['type' => 'string'], 'offset_line' => ['type' => 'integer', 'minimum' => 1]],
             'required' => ['path']], $RO, 'mcp_t_read_file'],
     'write_file' => [

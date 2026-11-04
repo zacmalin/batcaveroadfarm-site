@@ -32,6 +32,8 @@ require_once $bcrf_cfg;
 $bcrf_docroot = realpath(dirname($bcrf_cfg)) ?: dirname($bcrf_cfg);   // realpath: resolve the "/../" so folder math is right
 @include_once $bcrf_docroot . '/admin/includes/email_template.php';
 if (ob_get_level() > 0) { ob_end_clean(); }
+require_once dirname($bcrf_cfg) . '/includes/cron_health.php';
+bcrf_cron_begin('backup_db');   // heartbeat for the admin System Health page
 
 @set_time_limit(0);
 date_default_timezone_set('America/New_York');
@@ -53,7 +55,7 @@ function bcrf_backup_fail(string $why): void
             . '<p style="margin:0;font-family:monospace;font-size:13px;">' . htmlspecialchars($why) . '</p>',
             ['subtitle' => 'System Alert']);
     }
-    exit(1);
+    bcrf_cron_exit(1);
 }
 
 if (!is_dir($dir) && !@mkdir($dir, 0700, true)) bcrf_backup_fail("cannot create folder {$dir}");
@@ -214,7 +216,7 @@ if (function_exists('bcrf_backup_offsite')) {
         if ($st === 'failed') {
             bcrf_backup_alert('off-site database backup FAILED', 'Database backup saved, but the Google Drive copy failed',
                 $msg . ' (the backup is still on the server: ' . basename($file) . ')');
-            exit(1);
+            bcrf_cron_exit(1);
         }
     }
 }

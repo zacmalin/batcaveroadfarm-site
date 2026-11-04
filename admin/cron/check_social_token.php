@@ -20,6 +20,8 @@ $bcrf_docroot = realpath(dirname($bcrf_cfg)) ?: dirname($bcrf_cfg);
 @include_once $bcrf_docroot . '/admin/includes/email_template.php';
 require_once $bcrf_docroot . '/includes/social_token.php';
 if (ob_get_level() > 0) { ob_end_clean(); }
+require_once dirname($bcrf_cfg) . '/includes/cron_health.php';
+bcrf_cron_begin('check_social_token');   // heartbeat for the admin System Health page
 date_default_timezone_set('America/New_York');
 
 $s = bcrf_social_token_check();

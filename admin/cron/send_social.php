@@ -27,6 +27,8 @@ if (!$bcrf_cfg) { fwrite(STDERR, "send_social: config.php not found\n"); exit(1)
 require_once $bcrf_cfg;
 
 if (ob_get_level() > 0) { ob_end_clean(); }
+require_once dirname($bcrf_cfg) . '/includes/cron_health.php';
+bcrf_cron_begin('send_social');   // heartbeat for the admin System Health page
 
 // ── Access guard: CLI always allowed; web requires the secret key ──
 $isCli = (PHP_SAPI === 'cli');

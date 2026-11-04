@@ -57,6 +57,7 @@ $_sections = [
         ['Site Info',        '🏠', '?view=site_info',             'view',  'site_info'],
         ['Backups',          '💾', '/admin/backups.php',          'view',  'backups'],   // administrators only (no matrix row)
         ['AI Connections',   '🤖', '/admin/mcp_connections.php',  'view',  'mcp_connections'],   // administrators only (no matrix row)
+        ['System Health',    '🩺', '/admin/system_health.php',    'view',  'system_health'],     // administrators only (no matrix row)
     ]],
 ];
 

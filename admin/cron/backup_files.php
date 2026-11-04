@@ -31,6 +31,8 @@ $bcrf_docroot = realpath(dirname($bcrf_cfg)) ?: dirname($bcrf_cfg);
 @include_once $bcrf_docroot . '/admin/includes/email_template.php';
 require_once $bcrf_docroot . '/includes/backup_offsite.php';
 if (ob_get_level() > 0) { ob_end_clean(); }
+require_once dirname($bcrf_cfg) . '/includes/cron_health.php';
+bcrf_cron_begin('backup_files');   // heartbeat for the admin System Health page
 
 @set_time_limit(0);
 @ini_set('memory_limit', '512M');
@@ -43,7 +45,7 @@ $log  = function (string $m) { echo '[' . date('Y-m-d H:i:s') . '] ' . $m . "\n"
 $fail = function (string $why) use ($log) {
     $log('FAILED: ' . $why);
     bcrf_backup_alert('files backup FAILED', 'Weekly files backup failed', $why);
-    exit(1);
+    bcrf_cron_exit(1);
 };
 
 $dir = bcrf_backup_dir();
@@ -88,6 +90,6 @@ $log('Google Drive: ' . $st . ' — ' . $msg);
 if ($st === 'failed') {
     bcrf_backup_alert('off-site files backup FAILED', 'Files backup saved, but the Google Drive copy failed',
         $msg . ' (the backup is still on the server: ' . basename($out) . ')');
-    exit(1);
+    bcrf_cron_exit(1);
 }
 exit(0);

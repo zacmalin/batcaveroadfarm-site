@@ -21,6 +21,8 @@ define('CRON_ALLOWED', true);
 // Bootstrap — load config without session
 require_once dirname(__DIR__, 2) . '/config.php';
 require_once dirname(__DIR__) . '/includes/audit.php';   // fix pack O: audit log
+require_once dirname(__DIR__, 2) . '/includes/cron_health.php';
+bcrf_cron_begin('publish_scheduled');   // heartbeat for the admin System Health page
 
 $now = date('Y-m-d H:i:s');
 $published = 0;
@@ -66,5 +68,5 @@ try {
 } catch (Throwable $e) {
     error_log('[Cron] publish_scheduled.php fatal: ' . $e->getMessage());
     echo "[{$now}] FATAL: " . $e->getMessage() . "\n";
-    exit(1);
+    bcrf_cron_exit(1);
 }

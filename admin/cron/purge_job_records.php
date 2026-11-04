@@ -25,6 +25,8 @@ $bcrf_docroot = realpath(dirname($bcrf_cfg)) ?: dirname($bcrf_cfg);
 require_once $bcrf_docroot . '/admin/includes/audit.php';
 require_once $bcrf_docroot . '/includes/jobs/retention.php';
 if (ob_get_level() > 0) { ob_end_clean(); }
+require_once dirname($bcrf_cfg) . '/includes/cron_health.php';
+bcrf_cron_begin('purge_job_records');   // heartbeat for the admin System Health page
 date_default_timezone_set('America/New_York');
 @set_time_limit(600);
 
@@ -51,5 +53,5 @@ try {
        . "stopped alert signups deleted: {$alerts}, leftover files deleted: {$orphans}\n";
 } catch (Throwable $e) {
     fwrite(STDERR, $ts . 'purge_job_records failed: ' . $e->getMessage() . "\n");
-    exit(1);
+    bcrf_cron_exit(1);
 }
