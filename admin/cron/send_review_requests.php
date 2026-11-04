@@ -47,12 +47,14 @@ try {
     }
 
     // Confirmed, not yet asked, visit finished between 18 hours and 4 days ago.
+    $__flexSql = booking_ensure_flexible_col($pdo) ? 'AND b.date_flexible = 0' : '';   // skip undated "any day" tickets
     $rows = $pdo->query("
         SELECT b.*, t.label
         FROM bookings b
         JOIN booking_types t ON t.id = b.type_id
         WHERE b.status = 'confirmed'
           AND b.review_request_sent_at IS NULL
+          {$__flexSql}
           AND TIMESTAMP(b.booking_date, b.start_time) <= NOW() - INTERVAL 18 HOUR
           AND TIMESTAMP(b.booking_date, b.start_time) >= NOW() - INTERVAL 4 DAY
         ORDER BY b.booking_date, b.start_time

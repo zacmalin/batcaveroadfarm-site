@@ -122,7 +122,7 @@ $phone     = function_exists('site') ? site('phone.general') : '(828) 216-5488';
     <?php endif; ?>
     <div class="summary">
       <p style="margin:0 0 6px"><span>What:</span> <?php echo htmlspecialchars($type['label'] ?? 'Booking'); ?></p>
-      <p style="margin:0 0 6px"><span>When:</span> <?php echo htmlspecialchars(booking_fmt_date($b['booking_date']) . ' · ' . booking_fmt_time($b['start_time'])); ?></p>
+      <p style="margin:0 0 6px"><span>When:</span> <?php echo htmlspecialchars(booking_fmt_when($b)); ?></p>
       <p style="margin:0"><span>Party:</span> <?php echo (int)$b['party_size']; ?></p>
     </div>
     <div class="btn-row">

@@ -78,8 +78,7 @@ if ($booking && !$paid && !$free && !empty($booking['payment_reference'])) {
   ?></p>
   <div class="summary">
     <strong><?= htmlspecialchars($booking['label']) ?></strong><br>
-    <?= htmlspecialchars(function_exists('booking_fmt_date') ? booking_fmt_date($booking['booking_date']) : $booking['booking_date']) ?>
-    at <?= htmlspecialchars(function_exists('booking_fmt_time') ? booking_fmt_time($booking['start_time']) : $booking['start_time']) ?><br>
+    <?= htmlspecialchars(function_exists('booking_fmt_when') ? str_replace(' · ', ' at ', booking_fmt_when($booking)) : $booking['booking_date']) ?><br>
     <?= (int)$booking['party_size'] ?> guests · <?= htmlspecialchars($booking['customer_name']) ?>
     <?php if (!empty($booking['amount_total']) && (float)$booking['amount_total'] > 0): ?>
     <br><strong>Paid: $<?= number_format((float)$booking['amount_total'], 2) ?></strong>

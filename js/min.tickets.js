@@ -51,7 +51,7 @@
     if (warningEl) warningEl.style.display = isGroup ? '' : 'none';
 
     if (submitBtn) {
-      var dateOk = dateInput && dateInput.value !== '' && dateInput.validity.valid;
+      var dateOk = !dateInput || dateInput.value === '' || dateInput.validity.valid;   // date is optional
       submitBtn.disabled = (people < 1 || isGroup || !dateOk);
       submitBtn.textContent = isGroup ? 'Use group booking form →' : 'Buy Tickets →';
       if (isGroup && submitBtn.tagName === 'BUTTON') {
@@ -70,7 +70,7 @@
     var d   = new Date(val + 'T12:00:00');
     var day = d.getDay(); // 0=Sun, 1=Mon ... 6=Sat
     if (closedDays.indexOf(day) !== -1) return 'We\'re closed that day — please choose another date.';
-    if (blackouts.indexOf(val) !== -1)  return 'That date isn\'t available — please choose another.';
+    // No blackout check: tickets are good on private-event days too (policy, Nov 2026).
     return '';
   }
 

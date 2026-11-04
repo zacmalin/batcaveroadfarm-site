@@ -172,6 +172,38 @@ function booking_capacity_ok(PDO $pdo, array $cand): array {
 function booking_fmt_time(string $t): string { $ts = strtotime($t); return $ts ? date('g:i A', $ts) : $t; }
 function booking_fmt_date(string $d): string { $ts = strtotime($d); return $ts ? date('l, F j, Y', $ts) : $d; }
 
+/*
+ * "Any day" admission tickets (Nov 2026). The visit date on /tickets/ is optional:
+ * tickets are good any open day. An undated ticket is stored with booking_date =
+ * purchase date (so sales reports still group it) and date_flexible = 1, which
+ * reminder/review-request crons skip and every "When" line shows as "Any day".
+ * The column is added on first use, like admin/includes/schema_safety.php does.
+ */
+function booking_ensure_flexible_col(PDO $pdo): bool {
+    static $ok = null;
+    if ($ok !== null) return $ok;
+    try {
+        if (!$pdo->query("SHOW COLUMNS FROM bookings LIKE 'date_flexible'")->fetch()) {
+            $pdo->exec("ALTER TABLE bookings ADD COLUMN date_flexible TINYINT(1) NOT NULL DEFAULT 0");
+        }
+        $ok = true;
+    } catch (Throwable $e) {
+        error_log('[BCRF booking] date_flexible column: ' . $e->getMessage());
+        $ok = false;
+    }
+    return $ok;
+}
+/** Visit date for display: "Any day we're open" for undated tickets, else the formatted date. */
+function booking_fmt_visit_date(array $b): string {
+    return !empty($b['date_flexible']) ? "Any day we're open" : booking_fmt_date((string)($b['booking_date'] ?? ''));
+}
+/** Date + start time for display; undated tickets show no time. */
+function booking_fmt_when(array $b): string {
+    return !empty($b['date_flexible'])
+        ? "Any day we're open"
+        : booking_fmt_date((string)$b['booking_date']) . ' · ' . booking_fmt_time((string)$b['start_time']);
+}
+
 /* ---------- email ---------- */
 function _booking_from(): array {
     $email = function_exists('site') ? (site('email.booking') ?: 'support@batcaveroadfarm.com') : 'support@batcaveroadfarm.com';
@@ -203,7 +235,7 @@ function _booking_summary_html(array $b, ?array $type = null): string {
     $label = $type['label'] ?? ($b['type_label'] ?? 'Booking');
     $rows = [
         'What'  => htmlspecialchars($label),
-        'When'  => htmlspecialchars(booking_fmt_date($b['booking_date']) . ' · ' . booking_fmt_time($b['start_time'])),
+        'When'  => htmlspecialchars(booking_fmt_when($b)),
         'Party' => (int)$b['party_size'] . ' ' . ((int)$b['party_size'] === 1 ? 'person' : 'people'),
         'Name'  => htmlspecialchars($b['customer_name']),
     ];

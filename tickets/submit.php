@@ -55,7 +55,15 @@ if ($totalPeople < 1)  _tix_bail('no_tickets');
 if ($totalPeople >= 6) _tix_bail('too_many');   // 6+ → booking form
 
 // ── Validate date ────────────────────────────────────────────────────────────
-$visitDate = trim((string)($_POST['visit_date'] ?? ''));
+// Optional (Nov 2026): tickets are good any open day. No date = "any day" ticket,
+// stored under today's date with date_flexible = 1 (see includes/booking.php).
+$visitDate    = trim((string)($_POST['visit_date'] ?? ''));
+$dateFlexible = ($visitDate === '');
+$flexColOk    = booking_ensure_flexible_col($pdo);
+if ($dateFlexible) {
+    if (!$flexColOk) _tix_bail('invalid_date');   // can't flag it as any-day: ask for a date instead
+    $visitDate = date('Y-m-d');
+} else {
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $visitDate)) _tix_bail('invalid_date');
 if (strtotime($visitDate) < strtotime('today'))         _tix_bail('invalid_date');
 
@@ -75,12 +83,9 @@ if (in_array((int)date('w', strtotime($visitDate)), $closedDays)) {
     _tix_bail('closed_monday');
 }
 
-// Blackout check
-try {
-    $bq = $pdo->prepare("SELECT COUNT(*) FROM booking_blackouts WHERE d_date = ?");
-    $bq->execute([$visitDate]);
-    if ((int)$bq->fetchColumn() > 0) _tix_bail('blackout');
-} catch (Throwable $e) { /* non-fatal — continue */ }
+}   // end: date was picked
+// No blackout check: admission tickets are not blacked out for private events
+// (policy, Nov 2026). Blackouts still apply to group/party bookings.
 
 // ── Visitor details ──────────────────────────────────────────────────────────
 $name  = trim(strip_tags((string)($_POST['customer_name'] ?? '')));
@@ -109,16 +114,16 @@ try {
         INSERT INTO bookings
             (type_id, customer_name, email, phone, party_size,
              amount_total, payment_status, booking_date, start_time, end_time,
-             is_exclusive, status, ticket_breakdown, token)
-        VALUES (?,?,?,?,?, ?,?,?,?,?, 0,'pending',?,?)
-    ")->execute([
+             is_exclusive, status, ticket_breakdown, token" . ($flexColOk ? ", date_flexible" : "") . ")
+        VALUES (?,?,?,?,?, ?,?,?,?,?, 0,'pending',?,?" . ($flexColOk ? ",?" : "") . ")
+    ")->execute(array_merge([
         (int)$type['id'], $name, $email, $phone, $totalPeople,
         round($amountTotal, 2),
         $amountTotal > 0 ? 'pending' : 'waived',
         $visitDate, $start, $end,
         json_encode($breakdown, JSON_UNESCAPED_UNICODE),
         $token,
-    ]);
+    ], $flexColOk ? [$dateFlexible ? 1 : 0] : []));
 } catch (Throwable $e) {
     error_log('[BCRF tickets/submit] INSERT failed: ' . $e->getMessage());
     _tix_bail('db');
@@ -127,7 +132,7 @@ try {
 // Free tickets only (e.g. all under-3) — skip payment, go straight to success.
 if ($amountTotal <= 0) {
     $row = ['customer_name' => $name, 'email' => $email, 'phone' => $phone,
-            'party_size' => $totalPeople, 'booking_date' => $visitDate,
+            'party_size' => $totalPeople, 'booking_date' => $visitDate, 'date_flexible' => $dateFlexible ? 1 : 0,
             'start_time' => $start, 'amount_total' => 0, 'token' => $token];
     if (function_exists('booking_send_ack')) @booking_send_ack($row, $type);
     header('Location: /booking/success.php?token=' . rawurlencode($token)); exit;

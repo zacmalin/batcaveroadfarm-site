@@ -131,14 +131,14 @@ $errMsg = $errMap[$errKey] ?? '';
 
         <!-- ── Date ── -->
         <section class="tickets-section">
-            <h2>Pick your visit date</h2>
+            <h2>Pick your visit date <span class="opt">(optional)</span></h2>
             <div class="tickets-date-wrap">
                 <input type="date" id="visit_date" name="visit_date"
                        min="<?= $minDate ?>" max="<?= $maxDate ?>"
-                       class="tickets-date-input" required aria-required="true">
+                       class="tickets-date-input" aria-describedby="visit-date-note">
                 <div id="date-feedback" class="tickets-date-feedback" aria-live="polite"></div>
             </div>
-            <p class="tickets-date-note">Open <?= htmlspecialchars($openDay) ?> · Last entry 30 min before closing · Closed Mondays and select holidays.<br>Your ticket is good for <strong>any day we're open</strong> — this is just the day you plan to come.</p>
+            <p class="tickets-date-note" id="visit-date-note">Open <?= htmlspecialchars($openDay) ?> · Last entry 30 min before closing · Closed Mondays and select holidays.<br>Your ticket is good for <strong>any day we're open</strong>. Pick a date if you know when you're coming, or leave it blank.</p>
         </section>
 
         <!-- ── Your details ── -->

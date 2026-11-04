@@ -87,8 +87,8 @@ $csrf = $_SESSION['csrf_token'];
   <div class="card">
     <h1>Your booking summary</h1>
     <div class="summary-row"><span class="summary-label">Booking type</span><span class="summary-value"><?= htmlspecialchars($booking['label']) ?></span></div>
-    <div class="summary-row"><span class="summary-label">Date</span><span class="summary-value"><?= htmlspecialchars(function_exists('booking_fmt_date') ? booking_fmt_date($booking['booking_date']) : $booking['booking_date']) ?></span></div>
-    <div class="summary-row"><span class="summary-label">Time</span><span class="summary-value"><?= htmlspecialchars(function_exists('booking_fmt_time') ? booking_fmt_time($booking['start_time']) : $booking['start_time']) ?></span></div>
+    <div class="summary-row"><span class="summary-label">Date</span><span class="summary-value"><?= htmlspecialchars(booking_fmt_visit_date($booking)) ?></span></div>
+    <?php if (empty($booking['date_flexible'])): ?><div class="summary-row"><span class="summary-label">Time</span><span class="summary-value"><?= htmlspecialchars(booking_fmt_time($booking['start_time'])) ?></span></div><?php endif; ?>
     <div class="summary-row"><span class="summary-label">Party size</span><span class="summary-value"><?= (int)$booking['party_size'] ?> guests</span></div>
     <div class="summary-row"><span class="summary-label">Name</span><span class="summary-value"><?= htmlspecialchars($booking['customer_name']) ?></span></div>
     <div class="total-row">

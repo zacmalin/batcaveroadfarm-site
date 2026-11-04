@@ -160,7 +160,7 @@ $allPendingPay = count(array_filter($pending,    fn($r) => ($r['payment_status']
               <?php if ((int)$p['is_exclusive'] === 1): ?><span class="ml-1 text-[10px] font-bold text-red-600 uppercase">Private</span><?php endif; ?>
             </div>
             <div class="text-stone-500"><?= htmlspecialchars($p['label']) ?> · <?= (int)$p['party_size'] ?> ppl</div>
-            <div class="text-stone-500"><?= htmlspecialchars(booking_fmt_date($p['booking_date'])) ?> · <?= htmlspecialchars(booking_fmt_time($p['start_time'])) ?>–<?= htmlspecialchars(booking_fmt_time($p['end_time'])) ?></div>
+            <div class="text-stone-500"><?php if (!empty($p['date_flexible'])): ?>Any-day ticket · bought <?= htmlspecialchars(booking_fmt_date($p['booking_date'])) ?><?php else: ?><?= htmlspecialchars(booking_fmt_date($p['booking_date'])) ?> · <?= htmlspecialchars(booking_fmt_time($p['start_time'])) ?>–<?= htmlspecialchars(booking_fmt_time($p['end_time'])) ?><?php endif; ?></div>
             <div class="text-stone-400 text-xs mt-1"><?= htmlspecialchars($p['phone'] ?: '—') ?> · <?= htmlspecialchars($p['email'] ?: '—') ?></div>
             <?php if (!empty($p['notes'])): ?><div class="text-stone-600 text-xs mt-1 italic">“<?= htmlspecialchars($p['notes']) ?>”</div><?php endif; ?>
             <div class="mt-1.5"><?= $payBadge($p) ?><?= $tixBreakdown($p) ?></div>

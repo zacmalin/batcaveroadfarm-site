@@ -47,12 +47,14 @@ try {
     }
 
     // Confirmed, not yet reminded, starting within the next 24 hours.
+    $__flexSql = booking_ensure_flexible_col($pdo) ? 'AND b.date_flexible = 0' : '';   // skip undated "any day" tickets
     $rows = $pdo->query("
         SELECT b.*, t.label
         FROM bookings b
         JOIN booking_types t ON t.id = b.type_id
         WHERE b.status = 'confirmed'
           AND b.reminder_sent_at IS NULL
+          {$__flexSql}
           AND TIMESTAMP(b.booking_date, b.start_time) > NOW()
           AND TIMESTAMP(b.booking_date, b.start_time) <= NOW() + INTERVAL 24 HOUR
         ORDER BY b.booking_date, b.start_time
