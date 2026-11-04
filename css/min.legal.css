@@ -20,7 +20,11 @@
 }
 .legal-intro{font-size:1.04rem;margin:0 0 26px}
 
+/* The index is a <nav>; undo the sitewide nav{position:sticky;top:0;z-index:1000} */
 .legal-toc{
+  position:static;
+  top:auto;
+  z-index:auto;
   background:linear-gradient(160deg,#fdf4e3,#f0ddb8);
   border:1px solid var(--cream-dark,#e8d5b0);
   border-radius:10px;

@@ -55,6 +55,7 @@ $visitDropdown = [
 ];
 $aboutDropdown = [
     ['/about/',      '🏡', 'About Us'],
+    ['/gallery/',    '📷', 'Gallery'],
     ['/faq/',        '❓', 'FAQ'],
     ['/contact-us/', '✉️', 'Contact'],
 ];
@@ -105,7 +106,7 @@ function renderNavDropdown(string $dropId, string $emoji, string $label, array $
     echo '<div class="nav-dropdown-menu" role="menu" aria-labelledby="' . $id . '">';
     foreach ($items as [$href, $iEmoji, $iLabel]) {
         $ia = $navIsActive($href);
-        echo '<a href="' . $base . $href . '" class="nav-dropdown-item' . ($ia ? ' active' : '') . '" role="menuitem">'
+        echo '<a href="' . $base . $href . '" class="nav-dropdown-item' . ($ia ? ' active' : '') . '" role="menuitem"' . ($ia ? ' aria-current="page"' : '') . '>'
            . '<span class="nav-dd-emoji">' . $iEmoji . '</span>' . htmlspecialchars($iLabel)
            . '</a>';
     }

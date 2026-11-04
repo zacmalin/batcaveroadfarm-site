@@ -56,6 +56,7 @@
             	<a href="https://batcaveroadfarm.com/about/"> About</a> <span aria-hidden="true">✦</span>
             	<a href="https://batcaveroadfarm.com/contact-us/"> Contact Us</a> <span aria-hidden="true">✦</span>
             	<a href="https://batcaveroadfarm.com/faq/"> FAQ</a> <span aria-hidden="true">✦</span>
+            	<a href="https://batcaveroadfarm.com/jobs/"> Jobs</a> <span aria-hidden="true">✦</span>
             	<a href="https://batcaveroadfarm.com/gallery/"> Gallery</a>
             </p>
             </nav>

@@ -189,6 +189,12 @@ $__instrPlain = preg_replace('#<br\s*/?>#i', "\n", (string)($recipe['instruction
 $__instrPlain = preg_replace('#</(p|li|ol|ul|div|h[1-6])>#i', "\n", $__instrPlain);
 $__instrPlain = strip_tags($__instrPlain);
 $__steps = array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $__instrPlain)), fn($l) => $l !== ''));
+// Quill 2 stores bullets under a numbered step as flat <li data-list="bullet">; rebuild them as nested lists.
+require_once __DIR__ . '/../includes/recipe_steps.php';
+$__nested = recipe_nested_steps((string)($recipe['instructions'] ?? ''));
+if ($__nested !== null) {
+    $__steps = array_map(fn($st) => htmlspecialchars(recipe_step_plain($st), ENT_QUOTES, 'UTF-8'), $__nested);
+}
 $__prep  = (int)($recipe['prep_time'] ?? 0);
 $__cook  = (int)($recipe['cook_time'] ?? 0);
 $__total = $__prep + $__cook;
@@ -423,9 +429,15 @@ $renderShare = function ($variant) use ($canonicalUrl, $recipe, $svg) {
         <h2>Preparation</h2>
         <?php if (count($__steps) > 1): ?>
         <ol class="instructions instructions-steps">
+          <?php if ($__nested !== null): ?>
+          <?php foreach ($__nested as $__i => $__st): ?>
+            <li id="step-<?= $__i + 1 ?>"><?= htmlspecialchars($__st['text'], ENT_QUOTES, 'UTF-8') ?><?= recipe_render_subs($__st['subs']) ?></li>
+          <?php endforeach; ?>
+          <?php else: ?>
           <?php foreach ($__steps as $__i => $__s): ?>
             <li id="step-<?= $__i + 1 ?>"><?= $__s ?></li>
           <?php endforeach; ?>
+          <?php endif; ?>
         </ol>
         <?php else: ?>
         <div class="instructions"><?= $recipe['instructions'] ?></div>

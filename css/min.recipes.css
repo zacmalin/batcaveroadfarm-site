@@ -295,3 +295,35 @@ a.recipe-chip--cuisine,a.recipe-chip--cuisine:link,a.recipe-chip--cuisine:visite
 .ingredient-group-head{list-style:none;font-family:'Rye',Georgia,serif;font-size:.82rem;color:var(--gold,#c9923a);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 6px;padding:0 0 4px;border-bottom:1px solid rgba(201,146,58,.35)}
 .ingredient-group-head:first-child{margin-top:0}
 @media print{.ingredient-group-head{color:#000;border-bottom:1pt solid #000}}
+
+/* ---- Recipe header on phones: single column, nothing squeezed beside the image ---- */
+@media screen and (max-width:560px){
+  .recipe-head{padding:18px 16px;gap:14px}
+  .recipe-head-main{flex-direction:column;gap:12px;flex-basis:100%}
+  .recipe-img-btn{display:block;width:100%;padding:0;border:0;background:none}
+  .recipe-head-img{width:100%;height:auto;aspect-ratio:4/3;max-height:240px}
+  .recipe-head-titles{width:100%}
+  .recipe-chips{margin-bottom:6px}
+  .recipe-head h1{margin:4px 0 2px}
+  .recipe-byline{font-size:1.2rem;margin:0 0 6px}
+  .recipe-head .rate--interactive{flex-wrap:wrap;gap:4px 10px}
+  .recipe-head .rate--interactive .rate-label{white-space:nowrap}
+  .recipe-meta{gap:6px;margin-bottom:8px}
+  .recipe-meta li{padding:3px 10px;font-size:.76rem}
+  .share-bar--compact{margin-top:10px}
+  .recipe-head-tools{width:100%;align-items:stretch}
+  .recipe-tool-row{width:100%}
+  .recipe-tool-row > div{flex:1 1 0;min-width:0;padding:10px 12px}
+  .recipe-tool-row select{width:100%}
+  .recipe-print-btn{width:100%}
+}
+
+/* Nested lists inside a numbered step (Quill 2 bullets rebuilt by includes/recipe_steps.php) */
+.recipe-steps .instructions-steps li ul,.recipe-steps .instructions-steps li ol{margin:.3em 0 .2em;padding-left:1.3em}
+.recipe-steps .instructions-steps li ul{list-style:disc}
+.recipe-steps .instructions-steps li ul ul{list-style:circle}
+.recipe-steps .instructions-steps li li{margin:.15em 0}
+/* Raw Quill 2 HTML (single-block recipes): show bullets as bullets */
+.recipe-steps .instructions li[data-list="bullet"]{list-style-type:disc}
+.recipe-steps .instructions li.ql-indent-1{margin-left:1.5em}
+.recipe-steps .instructions li.ql-indent-2{margin-left:3em}
