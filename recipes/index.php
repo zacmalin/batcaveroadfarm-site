@@ -118,6 +118,7 @@ $pageTitle = "Farmhouse Cookbook — Country Recipes | Bat Cave Road Farm";
 $pageDescription = "Discover home-grown kitchen preparation methods, baking guides, and seasonal canning recipes designed around fresh local ingredients.";
 $canonicalUrl = "https://batcaveroadfarm.com/recipes/";
 $pageCSS      = "https://batcaveroadfarm.com/css/min.recipes.css";
+$preloadImage = "https://batcaveroadfarm.com/img/recipehero.webp"; // hero photo = mobile LCP (Nov 3 perf fix)
 require_once '../includes/head.php';
 require_once '../includes/header.php';
 

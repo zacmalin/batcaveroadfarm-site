@@ -61,6 +61,7 @@ function bcrfStandBoxes(PDO $pdo, array $keys, string $label = '', int $limit = 
 	$ogImage = "https://batcaveroadfarm.com/img/og-farmstand.jpg";
 	$pageCSS= "https://batcaveroadfarm.com/css/min.farmstand.css";
 	$pageJS = "https://batcaveroadfarm.com/js/min.comingsoon.js";
+	$preloadImage = "https://batcaveroadfarm.com/img/harvest1.png"; // hero photo = mobile LCP (Nov 3 perf fix)
 	include('../includes/head.php');
 ?>
 <script type="application/ld+json">

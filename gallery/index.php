@@ -5,7 +5,7 @@
 	$ogImage = "https://batcaveroadfarm.com/img/og-gallery.jpg";
 	$pageJS = "https://batcaveroadfarm.com/js/min.gallery.js";
 	$pageCSS = "https://batcaveroadfarm.com/css/min.gallery.css";	
-	$preloadImage = "https://batcaveroadfarm.com/img/tomato1.png";
+	$preloadImage = "https://batcaveroadfarm.com/img/animals2.webp"; // hero photo = mobile LCP (Nov 3 perf fix)
 	require('../includes/head.php');
 	include('../includes/header.php');
 ?>
@@ -31,7 +31,7 @@
                             <div class="frame-outer">
                                 <div class="frame-mat">
                                     <div class="frame-photo">
-                                        <img src="https://batcaveroadfarm.com/img/tomato1.png" alt="Tomatoes growing on the vine" width="768" height="768" decoding="async" fetchpriority="high">
+                                        <img src="https://batcaveroadfarm.com/img/tomato1.png" alt="Tomatoes growing on the vine" width="768" height="768" decoding="async">
                                     </div>
                                 </div>
                             </div>

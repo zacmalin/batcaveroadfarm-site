@@ -5,6 +5,7 @@
 	$pageJS = "https://batcaveroadfarm.com/js/min.contact-us.js";
 	$ogImage = "https://batcaveroadfarm.com/img/og-contact.jpg";
 	$pageCSS = "https://batcaveroadfarm.com/css/min.contactus.css";
+	$preloadImage = "https://batcaveroadfarm.com/img/Mailhero.webp"; // hero photo = mobile LCP (Nov 3 perf fix)
 	require('../includes/head.php');
 	include('../includes/header.php');
 ?>

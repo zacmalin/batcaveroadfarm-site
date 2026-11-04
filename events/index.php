@@ -9,6 +9,7 @@
 
     $events = bcrf_events_fetch_upcoming($pdo, 50);
 
+    $preloadImage = "https://batcaveroadfarm.com/img/Eventshero.webp"; // hero photo = mobile LCP (Nov 3 perf fix)
     require('../includes/head.php');
     include('../includes/header.php');
 

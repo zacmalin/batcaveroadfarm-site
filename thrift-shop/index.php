@@ -6,6 +6,7 @@
 	$ogImage = "https://batcaveroadfarm.com/img/og-thriftshop.jpg";
 	$pageCSS = "https://batcaveroadfarm.com/css/min.farmstand.css";
 	$pageJS = "https://batcaveroadfarm.com/js/min.comingsoon.js";
+	$preloadImage = "https://batcaveroadfarm.com/img/thrift1.webp"; // hero photo = mobile LCP (Nov 3 perf fix)
 	require('../includes/head.php');
 ?>
 

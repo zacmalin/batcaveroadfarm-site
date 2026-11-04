@@ -2,7 +2,7 @@
 	require_once __DIR__ . '/config.php';
 	require_once __DIR__ . '/includes/img_dims.php';
 	$pageTitle = "Bat Cave Road Farm — Petting Zoo & Farmstand | Old Fort, NC";
-	$preloadImage = "https://batcaveroadfarm.com/img/animals1.webp";
+	$preloadImage = "https://batcaveroadfarm.com/img/homehero.webp"; // hero photo = mobile LCP (Nov 3 perf fix)
 	
 	include __DIR__ . '/includes/head.php';
 ?>
@@ -30,7 +30,7 @@
                 <div class="card-grid">
                     <a class="card cardLink reveal" href="https://batcaveroadfarm.com/petting-zoo/">
                         <div class="card-img-placeholder">
-                            <img class="boximg" src="https://batcaveroadfarm.com/img/animals1.webp" alt="White peacock displaying full tail feathers surrounded by goats, a pig, donkey, and wild turkeys at the Bat Cave Road Farm petting zoo in Old Fort, NC — family-friendly farm animal experience near Asheville, Western North Carolina" width="500" height="281" decoding="async" fetchpriority="high">
+                            <img class="boximg" src="https://batcaveroadfarm.com/img/animals1.webp" alt="White peacock displaying full tail feathers surrounded by goats, a pig, donkey, and wild turkeys at the Bat Cave Road Farm petting zoo in Old Fort, NC — family-friendly farm animal experience near Asheville, Western North Carolina" width="500" height="281" decoding="async">
                         </div>
                         <div class="card-body">
                             <h3 class="card-title">Petting Zoo</h3>

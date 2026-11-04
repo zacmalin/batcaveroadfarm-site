@@ -127,7 +127,7 @@ function bcrfBreedCards(PDO $pdo): void {
 }
 
 	$pageTitle    = "Petting Zoo | Bat Cave Road Farm — Old Fort, NC";
-	$preloadImage = "https://batcaveroadfarm.com/img/animals2.webp";
+	$preloadImage = "https://batcaveroadfarm.com/img/animals1.webp"; // hero photo = mobile LCP (Nov 3 perf fix)
 	$metaDesc = "Meet goats, pigs, donkeys, chickens, ducks, turkeys, and a rare white peacock at Bat Cave Road Farm petting zoo in Old Fort, NC near Asheville.";
 	$canonicalUrl = "https://batcaveroadfarm.com/petting-zoo/";
 	$ogImage = "https://batcaveroadfarm.com/img/og-pettingzoo.jpg";

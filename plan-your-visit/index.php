@@ -3,6 +3,7 @@
     $metaDesc        = "Plan your visit to Bat Cave Road Farm in Old Fort, NC. Hours, directions, parking, and what to expect at our petting zoo, farmstand, and thrift shop near Asheville. Open Tue–Sun, 10AM–4PM.";
     $canonicalUrl    = "https://batcaveroadfarm.com/plan-your-visit/";
     $ogImage         = "https://batcaveroadfarm.com/img/og-home.jpg";
+    $preloadImage = "https://batcaveroadfarm.com/img/planhero.webp"; // hero photo = mobile LCP (Nov 3 perf fix)
     require('../includes/head.php');
     include('../includes/header.php');
 

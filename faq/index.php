@@ -5,6 +5,7 @@
 	$ogImage = "https://batcaveroadfarm.com/img/og-faq.jpg";
 	$pageJS = "https://batcaveroadfarm.com/js/min.faq.js";
 	$pageCSS = "https://batcaveroadfarm.com/css/min.faq.css";
+	$preloadImage = "https://batcaveroadfarm.com/img/Faqhero.webp"; // hero photo = mobile LCP (Nov 3 perf fix)
 	include('../includes/head.php');
 ?>
 

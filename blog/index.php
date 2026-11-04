@@ -56,6 +56,7 @@ $pageTitle = "The Farmstead Journal Blog | Bat Cave Road Farm";
 $pageDescription = "Read updates directly from Bat Cave Road Farm. Farmstead logs covering sustainable agricultural habits, animal care, and life in Old Fort, NC.";
 $canonicalUrl = "https://batcaveroadfarm.com/blog/";
 $pageCSS      = "https://batcaveroadfarm.com/css/min.blog.css";
+$preloadImage = "https://batcaveroadfarm.com/img/Bloghero.webp"; // hero photo = mobile LCP (Nov 3 perf fix)
 require_once '../includes/head.php';
 require_once '../includes/header.php';
 
