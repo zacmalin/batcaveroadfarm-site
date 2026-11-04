@@ -19,7 +19,7 @@
 
           <div class="content-wrap1">
             <article class="legal-doc reveal">
-              <p class="legal-updated">Last updated: November 3, 2026</p>
+              <p class="legal-updated">Last updated: November 4, 2026</p>
               <p class="legal-intro">Bat Cave Road Farm ("we," "us," or "our") runs the website at
                 <strong>batcaveroadfarm.com</strong>. This policy explains what information the website
                 collects, how we use it, and the choices you have. It applies to this website only — not to
@@ -114,10 +114,13 @@
                 Résumé files are stored outside the public part of our website and can only be opened by those people
                 after signing in. We don't sell applicant information or share it with anyone else, except our
                 email provider, which delivers the emails about your application.</p>
-              <p>We keep applications and résumés for at least one year after we make a hiring decision, as
-                federal record-keeping rules require. After that we delete the files and remove your personal
-                details from the application. If you're hired, your application becomes part of your employee
-                record. To ask about or withdraw your application, email
+              <p>We keep applications and résumés for one year after we make a hiring decision (or, if a hiring
+                round closes without a decision on your application, one year after it closes), as federal
+                record-keeping rules require. After that, our system automatically deletes your résumé and removes
+                your name, contact details and answers from the application; only the job, dates and outcome remain,
+                with nothing that identifies you. If you're hired, the year starts when your job with us ends. If we
+                ask to keep your application on file for future openings, we keep it until you ask us to remove it.
+                To ask about, withdraw or delete your application, email
                 <a href="mailto:jobs@batcaveroadfarm.com">jobs@batcaveroadfarm.com</a>.</p>
 
               <h2 id="choices">Your choices &amp; rights</h2>

@@ -11,7 +11,8 @@
 //   - the sent-email log keeps the date and template but loses the address,
 //   - what stays: job, round, status, age group and dates (for your own counts).
 // Spam is deleted outright after 30 days. Stopped job-alert signups are
-// deleted after 90 days. Nothing here runs by itself; an administrator taps it.
+// deleted after 90 days. admin/cron/purge_job_records.php runs all of this daily
+// (1-year keep period, Talent Pool kept); the Hiring > Records buttons still work.
 
 require_once __DIR__ . '/repo.php';
 require_once __DIR__ . '/emails.php';   // pipeline (jobs_actor, history), mailer, template catalog
