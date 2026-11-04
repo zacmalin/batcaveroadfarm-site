@@ -17,16 +17,18 @@ if (!function_exists('bcrf_cron_jobs')) {
 
 /** name => [label, allowed gap in minutes, schedule note]. Adjust the gaps to match cPanel. */
 function bcrf_cron_jobs(): array {
+    // Schedules match cPanel → Cron Jobs as of Nov 4, 2026.
     return [
-        'publish_scheduled'      => ['Scheduled blog posts',     60,        'every 5 minutes'],
-        'send_social'            => ['Facebook & Instagram posts', 180,     'every few minutes'],
-        'send_newsletter'        => ['Newsletter sending',       180,       'every 10 minutes'],
-        'send_booking_reminders' => ['Booking reminder emails',  26 * 60,   'daily'],
-        'send_review_requests'   => ['Review request emails',    26 * 60,   'daily'],
-        'check_social_token'     => ['Facebook token check',     26 * 60,   'daily, 8:05 AM'],
-        'backup_db'              => ['Database backup',          26 * 60,   'daily, 3:15 AM'],
-        'purge_job_records'      => ['Hiring records cleanup',   26 * 60,   'daily, 3:20 AM'],
-        'backup_files'           => ['Website files backup',     8 * 24 * 60, 'weekly, Sunday 3:40 AM'],
+        'publish_scheduled'      => ['Scheduled blog posts',       60,          'every 15 minutes'],
+        'send_social'            => ['Facebook & Instagram posts', 60,          'every 17 minutes'],
+        'send_newsletter'        => ['Newsletter sending',         90,          'every 20 minutes'],
+        'send_booking_reminders' => ['Booking reminder emails',    3 * 60,      'hourly'],
+        'send_review_requests'   => ['Review request emails',      3 * 60,      'hourly'],
+        'check_stock_alerts'     => ['Low-stock email',            26 * 60,     'daily, 8:00 AM'],
+        'check_social_token'     => ['Facebook token check',       26 * 60,     'daily, 8:05 AM'],
+        'backup_db'              => ['Database backup',            26 * 60,     'daily, 3:15 AM'],
+        'purge_job_records'      => ['Hiring records cleanup',     26 * 60,     'daily, 3:20 AM'],
+        'backup_files'           => ['Website files backup',       8 * 24 * 60, 'weekly, Sunday 3:40 AM'],
     ];
 }
 

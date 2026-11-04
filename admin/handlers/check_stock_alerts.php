@@ -6,6 +6,8 @@ chdir(__DIR__);
 require_once '../../config.php';
 require_once '../../vendor/autoload.php';
 require_once __DIR__ . '/../includes/email_template.php';
+require_once __DIR__ . '/../../includes/cron_health.php';
+bcrf_cron_begin('check_stock_alerts');   // heartbeat for the admin System Health page
 
 use PHPMailer\PHPMailer\PHPMailer;
 
@@ -21,7 +23,7 @@ if (!empty($low_stock_items)) {
     // SMTP credentials come from bcrf-secrets.php via config.php — never hardcoded here.
     if (BCRF_SMTP_PASS === '') {
         error_log('[stock_alerts] BCRF_SMTP_PASS not set — add SMTP_PASS to bcrf-secrets.php. Skipping alert.');
-        return;
+        bcrf_cron_exit(1, 'Low-stock email not sent: SMTP_PASS is missing from bcrf-secrets.php.');
     }
     $mail = new PHPMailer(true);
     $mail->isSMTP();
@@ -60,5 +62,6 @@ if (!empty($low_stock_items)) {
         $mail->send();
     } catch (Throwable $e) {
         error_log('[stock_alerts] PHPMailer failed: ' . $e->getMessage());
+        bcrf_cron_exit(1, 'Low-stock email failed to send: ' . mb_substr($e->getMessage(), 0, 200));
     }
 }
