@@ -78,6 +78,17 @@ $tagline    = trim((string)($animal['tagline'] ?? ''));
 $bio        = trim((string)($animal['bio'] ?? ''));
 $funFact    = trim((string)($animal['fun_fact'] ?? ''));
 $displayTag = $tagline !== '' ? $tagline : $breedTag;
+// "About the breed" facts from Wikipedia/Wikidata (cached; section hidden if nothing found).
+$wiki = null;
+try {
+    require_once __DIR__ . '/../../includes/wiki_facts.php';
+    $__wt = '';
+    if (!empty($animal['breed_id'])) {
+        try { $__w = $pdo->prepare("SELECT wiki_title FROM breeds WHERE id = ?"); $__w->execute([(int)$animal['breed_id']]); $__wt = (string)$__w->fetchColumn(); }
+        catch (Throwable $e) { $__wt = ''; }   // column added on first visit to admin → Breeds
+    }
+    $wiki = bcrf_wiki_facts($pdo, $__wt, $breedName, (string)($animal['classification'] ?? ''));
+} catch (Throwable $e) { error_log('[wiki] ' . $e->getMessage()); $wiki = null; }
 $breadcrumbs = [['label' => 'Petting Zoo', 'url' => '/petting-zoo/']];
 if ($breedName !== '') { $breadcrumbs[] = ['label' => $breedName, 'url' => $breedHref]; }
 $breadcrumbs[] = ['label' => $name];
@@ -149,6 +160,18 @@ require_once '../../includes/header.php';
     </div>
     <div class="ad-footer">
       <?php if ($funFact !== ''): ?><p class="ad-funfact"><strong>Fun fact:</strong> <?= htmlspecialchars($funFact) ?></p><?php endif; ?>
+      <?php if ($wiki): ?>
+      <section class="ad-wiki" aria-labelledby="adWikiH">
+        <h2 id="adWikiH">About <?= htmlspecialchars($wiki['title']) ?></h2>
+        <p><?= htmlspecialchars(bcrf_wiki_short($wiki['extract'])) ?></p>
+        <?php if (!empty($wiki['facts'])): ?>
+        <dl class="ad-wiki-facts">
+          <?php foreach ($wiki['facts'] as $k => $v): ?><div><dt><?= htmlspecialchars($k) ?></dt><dd><?= htmlspecialchars($v) ?></dd></div><?php endforeach; ?>
+        </dl>
+        <?php endif; ?>
+        <p class="ad-wiki-src">Source: <a href="<?= htmlspecialchars($wiki['url']) ?>" target="_blank" rel="noopener">Wikipedia</a> &amp; Wikidata, <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener license">CC BY-SA 4.0</a></p>
+      </section>
+      <?php endif; ?>
       <p class="ad-hello">Come say hello to <?= htmlspecialchars($name) ?> on your next visit to the farm!</p>
       <div class="ad-actions">
         <a class="cta-btn" href="<?= htmlspecialchars($breedHref) ?>">← Meet more <?= htmlspecialchars($breedName !== '' ? $breedName : 'animals') ?></a>

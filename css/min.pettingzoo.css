@@ -171,3 +171,13 @@ a.animal-tile:hover .tile-cta{text-decoration:underline}
 .ad-footer{padding:20px 30px 26px;border-top:1px solid rgba(201,146,58,.25)}
 .ad-hello{font-family:'Lora',serif;color:var(--brown-mid);text-align:center;font-size:1.05rem;margin:0 0 20px}
 .ad-actions{display:flex;flex-wrap:wrap;gap:16px;justify-content:center}
+
+/* "About the breed" from Wikipedia/Wikidata (includes/wiki_facts.php) */
+.ad-wiki{margin:4px 0 16px;padding:14px 16px;background:#fffaf0;border:1px solid var(--cream-dark,#e8d5b0);border-left:4px solid var(--gold,#c9923a);border-radius:8px;font-family:'Lora',serif;color:#3f2a14}
+.ad-wiki h2{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--brown-dark);margin:0 0 6px}
+.ad-wiki p{margin:0 0 10px;line-height:1.6}
+.ad-wiki-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 16px;margin:0 0 10px}
+.ad-wiki-facts dt{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--brown-mid)}
+.ad-wiki-facts dd{margin:2px 0 0;font-weight:600}
+.ad-wiki-src{font-size:.78rem;color:var(--brown-light,#8b5c2a);margin:0!important}
+.ad-wiki-src a{color:var(--green,#4a6741)}
