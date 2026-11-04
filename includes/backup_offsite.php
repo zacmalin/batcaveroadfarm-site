@@ -8,16 +8,16 @@
  * Secrets (bcrf-secrets.php, outside the web root):
  *   'BACKUP_PASSWORD'      => password for the AES-256 zips. ALSO keep it in your password
  *                             manager — if Bluehost is lost, the backups are useless without it.
- *   'GDRIVE_CLIENT_ID'     => Google Cloud OAuth client (Web application)
+ *   'GDRIVE_CLIENT_ID'     => Google Cloud OAuth client (type: TVs and Limited Input devices)
  *   'GDRIVE_CLIENT_SECRET' => ...its secret
  * The Drive refresh token is saved by admin/backups.php to /home2/<user>/bcrf-gdrive.json (0600).
+ * OAuth client type: "TVs and Limited Input devices" (see bcrf_gdrive_device_start()).
  *
  * Drive scope is drive.file: the app can only see files it created itself, never the rest of your Drive.
  */
 
 if (!defined('BCRF_GDRIVE_FOLDER'))   define('BCRF_GDRIVE_FOLDER', 'BCRF Backups');
 if (!defined('BCRF_GDRIVE_SCOPE'))    define('BCRF_GDRIVE_SCOPE', 'https://www.googleapis.com/auth/drive.file');
-if (!defined('BCRF_GDRIVE_REDIRECT')) define('BCRF_GDRIVE_REDIRECT', 'https://batcaveroadfarm.com/admin/backups.php');
 if (!defined('BCRF_GDRIVE_CHUNK'))    define('BCRF_GDRIVE_CHUNK', 8 * 1024 * 1024);   // must be a multiple of 256 KB
 
 /** Folder above the web root (/home2/<user>), where the backups folder and Drive token live. */
@@ -144,21 +144,54 @@ function bcrf_gdrive_http(string $method, string $url, array $headers = [], ?str
     return [$code, $respHeaders, (string)$resp];
 }
 
-/** Trade the authorization code from the consent screen for a refresh token (admin/backups.php). */
-function bcrf_gdrive_exchange_code(string $code): void {
+/*
+ * Connecting uses Google's "TVs and Limited Input devices" (device code) flow:
+ * the Backups page shows a short code, you enter it at google.com/device on your
+ * phone, and the server polls Google until you approve. Google never redirects
+ * back to this site — Bluehost's ModSecurity blocks the normal OAuth return URL
+ * (it contains scope=https://… which trips the remote-file-inclusion rule).
+ * The OAuth client must be type "TVs and Limited Input devices".
+ */
+function bcrf_gdrive_device_start(): array {
+    [$st, , $body] = bcrf_gdrive_http('POST', 'https://oauth2.googleapis.com/device/code',
+        ['Content-Type: application/x-www-form-urlencoded'],
+        http_build_query(['client_id' => BCRF_GDRIVE_CLIENT_ID, 'scope' => BCRF_GDRIVE_SCOPE]));
+    $j = json_decode($body, true) ?: [];
+    if ($st !== 200 || empty($j['device_code']) || empty($j['user_code'])) {
+        $why = $j['error_description'] ?? $j['error'] ?? $j['error_code'] ?? "HTTP {$st}";
+        if (($j['error'] ?? '') === 'invalid_client') $why .= ' — the OAuth client must be type "TVs and Limited Input devices"';
+        throw new RuntimeException('Google would not start the sign-in: ' . $why);
+    }
+    return [
+        'device_code' => $j['device_code'], 'user_code' => $j['user_code'],
+        'url'         => $j['verification_url'] ?? $j['verification_uri'] ?? 'https://www.google.com/device',
+        'interval'    => max(5, (int)($j['interval'] ?? 5)),
+        'expires_at'  => time() + (int)($j['expires_in'] ?? 1800),
+    ];
+}
+
+/** One poll. Returns 'ok' (refresh token saved), 'pending', 'slow_down', 'denied' or 'expired'. Throws on other errors. */
+function bcrf_gdrive_device_poll(string $deviceCode): string {
     [$st, , $body] = bcrf_gdrive_http('POST', 'https://oauth2.googleapis.com/token',
         ['Content-Type: application/x-www-form-urlencoded'],
-        http_build_query(['code' => $code, 'client_id' => BCRF_GDRIVE_CLIENT_ID, 'client_secret' => BCRF_GDRIVE_CLIENT_SECRET,
-                          'redirect_uri' => BCRF_GDRIVE_REDIRECT, 'grant_type' => 'authorization_code']));
+        http_build_query(['client_id' => BCRF_GDRIVE_CLIENT_ID, 'client_secret' => BCRF_GDRIVE_CLIENT_SECRET,
+                          'device_code' => $deviceCode, 'grant_type' => 'urn:ietf:params:oauth:grant-type:device_code']));
     $j = json_decode($body, true) ?: [];
-    if ($st !== 200 || empty($j['refresh_token'])) {
-        throw new RuntimeException('Google did not return a refresh token (' . ($j['error_description'] ?? $j['error'] ?? "HTTP {$st}") . ')');
+    if ($st === 200 && !empty($j['refresh_token'])) {
+        $s = bcrf_gdrive_state();
+        $s['refresh_token'] = $j['refresh_token'];
+        $s['connected_at']  = date('c');
+        unset($s['folder_id']);
+        bcrf_gdrive_save_state($s);
+        return 'ok';
     }
-    $s = bcrf_gdrive_state();
-    $s['refresh_token'] = $j['refresh_token'];
-    $s['connected_at']  = date('c');
-    unset($s['folder_id']);
-    bcrf_gdrive_save_state($s);
+    return match ($j['error'] ?? '') {
+        'authorization_pending' => 'pending',
+        'slow_down'             => 'slow_down',
+        'access_denied'         => 'denied',
+        'expired_token'         => 'expired',
+        default => throw new RuntimeException('Google sign-in error: ' . ($j['error_description'] ?? $j['error'] ?? "HTTP {$st}")),
+    };
 }
 
 function bcrf_gdrive_access_token(): string {

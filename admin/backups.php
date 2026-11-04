@@ -1,8 +1,8 @@
 <?php // admin/backups.php
 /*
  * Backups status + "Connect Google Drive" (Nov 2026). Administrators only.
- * Google sends people back here after the consent screen (?code=…&state=…), so this
- * exact URL must be listed as an Authorized redirect URI on the Google OAuth client.
+ * Connecting uses Google's device-code flow (enter a code at google.com/device), because
+ * Bluehost's ModSecurity blocks the normal OAuth redirect back to this site.
  */
 require_once '../config.php';
 check_admin();
@@ -16,41 +16,47 @@ $csrf = $_SESSION['csrf_token'];
 $flash = $_SESSION['backups_flash'] ?? null; unset($_SESSION['backups_flash']);
 $go = function (string $type, string $msg) { $_SESSION['backups_flash'] = [$type, $msg]; header('Location: /admin/backups.php'); exit; };
 
-// ── 1. Coming back from Google's consent screen ──────────────────────────────
-if (isset($_GET['code']) || isset($_GET['error'])) {
-    $state = (string)($_GET['state'] ?? '');
-    $want  = (string)($_SESSION['gdrive_oauth_state'] ?? '');
-    unset($_SESSION['gdrive_oauth_state']);
-    if ($want === '' || !hash_equals($want, $state)) $go('err', 'That sign-in link expired. Tap Connect again.');
-    if (isset($_GET['error'])) $go('err', 'Google sign-in was cancelled (' . (string)$_GET['error'] . ').');
-    try {
-        bcrf_gdrive_exchange_code((string)$_GET['code']);
-        $tok = bcrf_gdrive_access_token();
-        bcrf_gdrive_folder($tok);
+// ── 1. Sign-in polling (device code flow — see includes/backup_offsite.php) ───
+// The page asks this URL every few seconds while you approve on your phone.
+$dev = $_SESSION['gdrive_device'] ?? null;
+$pollOnce = function () use (&$dev, $pdo): array {
+    if (!$dev) return ['none', 'No sign-in in progress.'];
+    if (time() > $dev['expires_at']) { unset($_SESSION['gdrive_device']); $dev = null; return ['expired', 'The code expired. Tap Connect again.']; }
+    try { $r = bcrf_gdrive_device_poll($dev['device_code']); }
+    catch (Throwable $e) { unset($_SESSION['gdrive_device']); $dev = null; return ['error', $e->getMessage()]; }
+    if ($r === 'ok') {
+        unset($_SESSION['gdrive_device']); $dev = null;
+        try { bcrf_gdrive_folder(bcrf_gdrive_access_token()); } catch (Throwable $e) { return ['error', 'Connected, but the folder check failed: ' . $e->getMessage()]; }
         if (function_exists('erp_audit')) erp_audit($pdo, 'update', 'backups', null, 'Connected Google Drive for off-site backups');
-        $go('ok', 'Google Drive connected. The "' . BCRF_GDRIVE_FOLDER . '" folder is ready; the next backup will copy there.');
-    } catch (Throwable $e) {
-        $go('err', 'Could not finish connecting: ' . $e->getMessage());
+        return ['ok', 'Google Drive connected. The "' . BCRF_GDRIVE_FOLDER . '" folder is ready; the next backup will copy there.'];
     }
+    if ($r === 'slow_down') { $_SESSION['gdrive_device']['interval'] = ($dev['interval'] ?? 5) + 5; return ['pending', 'Waiting…']; }
+    if ($r === 'denied')  { unset($_SESSION['gdrive_device']); $dev = null; return ['denied', 'Access was declined on the Google screen.']; }
+    if ($r === 'expired') { unset($_SESSION['gdrive_device']); $dev = null; return ['expired', 'The code expired. Tap Connect again.']; }
+    return ['pending', 'Waiting for you to approve on Google…'];
+};
+if (isset($_GET['poll'])) {
+    [$st, $msg] = $pollOnce();
+    if (in_array($st, ['ok', 'denied', 'expired', 'error'], true)) $_SESSION['backups_flash'] = [$st === 'ok' ? 'ok' : 'err', $msg];
+    header('Content-Type: application/json'); header('Cache-Control: no-store');
+    echo json_encode(['status' => $st, 'message' => $msg]); exit;
 }
 
-// ── 2. Connect: a plain link (GET), because the admin CSP's form-action 'self' makes
-//    browsers block a form POST that redirects to accounts.google.com.
-if (isset($_GET['connect'])) {
-    if (!bcrf_gdrive_configured()) $go('err', 'Add GDRIVE_CLIENT_ID and GDRIVE_CLIENT_SECRET to bcrf-secrets.php first.');
-    $_SESSION['gdrive_oauth_state'] = bin2hex(random_bytes(16));
-    header('Location: https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query([
-        'client_id' => BCRF_GDRIVE_CLIENT_ID, 'redirect_uri' => BCRF_GDRIVE_REDIRECT, 'response_type' => 'code',
-        'scope' => BCRF_GDRIVE_SCOPE, 'access_type' => 'offline', 'prompt' => 'consent',
-        'state' => $_SESSION['gdrive_oauth_state'], 'include_granted_scopes' => 'true',
-    ]));
-    exit;
-}
-
-// ── 3. Buttons ───────────────────────────────────────────────────────────────
+// ── 2. Buttons ───────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!hash_equals($csrf, (string)($_POST['csrf_token'] ?? ''))) $go('err', 'Security token expired — reload and try again.');
     $act = (string)($_POST['action'] ?? '');
+    if ($act === 'connect') {
+        if (!bcrf_gdrive_configured()) $go('err', 'Add GDRIVE_CLIENT_ID and GDRIVE_CLIENT_SECRET to bcrf-secrets.php first.');
+        try { $_SESSION['gdrive_device'] = bcrf_gdrive_device_start(); }
+        catch (Throwable $e) { $go('err', $e->getMessage()); }
+        header('Location: /admin/backups.php'); exit;
+    }
+    if ($act === 'check') {
+        [$st, $msg] = $pollOnce();
+        $go(in_array($st, ['ok'], true) ? 'ok' : ($st === 'pending' ? 'ok' : 'err'), $st === 'pending' ? 'Not approved yet — finish on the Google page, then check again.' : $msg);
+    }
+    if ($act === 'cancel_connect') { unset($_SESSION['gdrive_device']); $go('ok', 'Sign-in cancelled.'); }
     if ($act === 'test') {
         try { $tok = bcrf_gdrive_access_token(); bcrf_gdrive_folder($tok); $go('ok', 'Connection works — Drive accepted the sign-in and the backup folder is there.'); }
         catch (Throwable $e) { $go('err', $e->getMessage()); }
@@ -64,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $go('err', 'Unknown action.');
 }
 
-// ── 4. Status ────────────────────────────────────────────────────────────────
+// ── 3. Status ────────────────────────────────────────────────────────────────
 $dir = bcrf_backup_dir();
 $latest = function (string $pattern) use ($dir) {
     $f = glob($dir . '/' . $pattern) ?: []; rsort($f);
@@ -115,28 +121,60 @@ ol{padding-left:20px}li{margin:6px 0}code{background:#f5f5f4;padding:1px 5px;bor
 <?php endforeach; ?>
 </div>
 
-<div class="card">
-  <?php if (bcrf_gdrive_configured()): ?><a class="btn primary" href="/admin/backups.php?connect=1"><?= bcrf_gdrive_connected() ? 'Reconnect Google Drive' : 'Connect Google Drive' ?></a><?php else: ?><span class="btn plain" style="opacity:.6">Connect Google Drive (finish setup below first)</span><?php endif; ?>
+<?php if ($dev): ?>
+<div class="card" style="border:2px solid #3b2010">
+  <strong>Connect Google Drive</strong>
+  <ol>
+    <li>Open <a href="<?= $h($dev['url']) ?>" target="_blank" rel="noopener"><?= $h(preg_replace('#^https?://(www\.)?#', '', $dev['url'])) ?></a> (signed in as the Google account that should hold the backups).</li>
+    <li>Enter this code: <span style="font:700 1.6rem/1.2 ui-monospace,monospace;letter-spacing:.08em;background:#f5f5f4;padding:4px 10px;border-radius:6px;display:inline-block;margin-top:4px"><?= $h($dev['user_code']) ?></span></li>
+    <li>Choose your account and tap <b>Allow</b> (if Google says the app isn't verified: Advanced → Go to BCRF Backups — it's your own app).</li>
+  </ol>
+  <p id="dev-status" style="color:#57534e;margin:6px 0">Waiting for you to approve… this page will update by itself.</p>
   <form method="POST" style="display:inline"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
+    <button class="plain" name="action" value="check">I've approved it — check now</button>
+    <button class="danger" name="action" value="cancel_connect">Cancel</button>
+  </form>
+  <script>
+  (function () {
+    var wait = <?= (int)$dev['interval'] ?> * 1000, el = document.getElementById('dev-status');
+    function tick() {
+      fetch('/admin/backups.php?poll=1', {credentials: 'same-origin', cache: 'no-store'})
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j.status === 'pending') { el.textContent = j.message; setTimeout(tick, wait); }
+          else { location.href = '/admin/backups.php'; }
+        })
+        .catch(function () { setTimeout(tick, wait * 2); });
+    }
+    setTimeout(tick, wait);
+  })();
+  </script>
+</div>
+<?php else: ?>
+<div class="card">
+  <form method="POST" style="display:inline"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
+    <button class="primary" name="action" value="connect" <?= bcrf_gdrive_configured() ? '' : 'disabled' ?>><?= bcrf_gdrive_connected() ? 'Reconnect Google Drive' : 'Connect Google Drive' ?></button>
     <?php if (bcrf_gdrive_connected()): ?>
       <button class="plain" name="action" value="test">Test connection</button>
       <button class="danger" name="action" value="disconnect" onclick="return confirm('Stop copying backups to Google Drive?')">Disconnect</button>
     <?php endif; ?>
   </form>
+  <?php if (!bcrf_gdrive_configured()): ?><p style="color:#57534e;margin:6px 0 0">Finish the one-time setup below first.</p><?php endif; ?>
 </div>
+<?php endif; ?>
 
 <?php if (!bcrf_gdrive_configured() || BCRF_BACKUP_PASSWORD === ''): ?>
 <div class="card"><strong>One-time setup</strong> (about 10 minutes, works from a phone)
 <ol>
   <li>Open <a href="https://console.cloud.google.com/projectcreate" target="_blank" rel="noopener">console.cloud.google.com</a> signed in as the Google account whose Drive should hold the backups. Create a project named <code>BCRF Backups</code>.</li>
   <li>APIs &amp; Services → Library → search <b>Google Drive API</b> → Enable.</li>
-  <li>APIs &amp; Services → OAuth consent screen → External. App name <code>BCRF Backups</code>, your email for support and developer contact. Add scope <code>.../auth/drive.file</code>. Then <b>Publish app</b> (In production) — in Testing mode Google ends the connection every 7 days.</li>
-  <li>Credentials → Create credentials → OAuth client ID → <b>Web application</b>. Authorized redirect URI: <code><?= $h(BCRF_GDRIVE_REDIRECT) ?></code>. Copy the client ID and secret.</li>
+  <li>APIs &amp; Services → OAuth consent screen (Google Auth Platform). <b>Branding:</b> app name <code>BCRF Backups</code> and your email; leave the app domain and logo fields empty. <b>Audience:</b> External, then <b>Publish app</b> (In production) — in Testing mode Google ends the connection every 7 days. Scopes don't need adding.</li>
+  <li><b>Clients</b> → Create client → type <b>TVs and Limited Input devices</b> → name <code>BCRF Backups</code> → Create. Copy the client ID and secret. (No redirect URI needed.)</li>
   <li>In File Manager, edit <code>/home2/ddailnmy/bcrf-secrets.php</code> and add inside the array:<br>
     <code>'GDRIVE_CLIENT_ID' =&gt; '…',</code><br><code>'GDRIVE_CLIENT_SECRET' =&gt; '…',</code><br>
     <code>'BACKUP_PASSWORD' =&gt; '…a long passphrase…',</code><br>
     and save the same passphrase in your password manager.</li>
-  <li>Reload this page and tap <b>Connect Google Drive</b>. Google will warn the app is unverified — tap Advanced → Go to BCRF Backups (it's your own app).</li>
+  <li>Reload this page and tap <b>Connect Google Drive</b>, then enter the code it shows at google.com/device.</li>
 </ol></div>
 <?php endif; ?>
 
