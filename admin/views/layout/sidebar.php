@@ -55,6 +55,7 @@ $_sections = [
         ['Sales Analytics',  '📈', '?view=sales_analytics',       'view',  'sales_analytics'],
         ['Seasonal Themes',  '🎨', '?view=theme_scheduler',       'view',  'theme_scheduler'],
         ['Site Info',        '🏠', '?view=site_info',             'view',  'site_info'],
+        ['Backups',          '💾', '/admin/backups.php',          'view',  'backups'],   // administrators only (no matrix row)
     ]],
 ];
 

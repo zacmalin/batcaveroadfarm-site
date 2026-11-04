@@ -191,4 +191,31 @@ foreach (array_slice($all, BCRF_BACKUP_KEEP_MIN) as $old) {
 
 $log(sprintf('OK %s via %s, %s KB in %.1fs. %d backup(s) kept, %d old removed.',
     basename($file), $how, number_format($size / 1024, 1), microtime(true) - $t0, count($all) - $removed, $removed));
+
+// ── Off-site copy to Google Drive (Nov 2026) ─────────────────────────────────
+// The local .sql.gz stays as-is (phpMyAdmin can import it). Drive gets an AES-256
+// zip of it (password = BACKUP_PASSWORD), keeping the newest 30 there.
+@include_once $bcrf_docroot . '/includes/backup_offsite.php';
+if (function_exists('bcrf_backup_offsite')) {
+    if (!bcrf_gdrive_connected()) {
+        [, $msg] = bcrf_backup_offsite($file, 'bcrf-db-', 30);   // returns 'skipped' + why
+        $log('Google Drive: skipped — ' . $msg);
+    } else {
+        $zip = $file . '.zip';
+        try {
+            bcrf_backup_make_zip($zip, [basename($file) => $file], (string)BCRF_BACKUP_PASSWORD);
+            bcrf_backup_verify_zip($zip, (string)BCRF_BACKUP_PASSWORD);
+            [$st, $msg] = bcrf_backup_offsite($zip, 'bcrf-db-', 30);
+        } catch (Throwable $e) {
+            [$st, $msg] = ['failed', $e->getMessage()];
+        }
+        @unlink($zip);
+        $log('Google Drive: ' . $st . ' — ' . $msg);
+        if ($st === 'failed') {
+            bcrf_backup_alert('off-site database backup FAILED', 'Database backup saved, but the Google Drive copy failed',
+                $msg . ' (the backup is still on the server: ' . basename($file) . ')');
+            exit(1);
+        }
+    }
+}
 exit(0);

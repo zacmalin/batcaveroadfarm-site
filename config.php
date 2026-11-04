@@ -110,6 +110,12 @@ define('BCRF_PAYPAL_CLIENT_ID',  getenv('PAYPAL_CLIENT_ID')  ?: ($bcrf['PAYPAL_C
 define('BCRF_PAYPAL_SECRET',     getenv('PAYPAL_SECRET')     ?: ($bcrf['PAYPAL_SECRET']     ?? ''));
 define('BCRF_PAYPAL_MODE',       getenv('PAYPAL_MODE')       ?: ($bcrf['PAYPAL_MODE']       ?? 'sandbox'));
 
+// Backups (Nov 2026): password for the encrypted backup zips + Google Drive OAuth client for off-site copies.
+// See includes/backup_offsite.php and admin/backups.php. Keep BACKUP_PASSWORD in your password manager too.
+define('BCRF_BACKUP_PASSWORD',      getenv('BACKUP_PASSWORD')      ?: ($bcrf['BACKUP_PASSWORD']      ?? ''));
+define('BCRF_GDRIVE_CLIENT_ID',     getenv('GDRIVE_CLIENT_ID')     ?: ($bcrf['GDRIVE_CLIENT_ID']     ?? ''));
+define('BCRF_GDRIVE_CLIENT_SECRET', getenv('GDRIVE_CLIENT_SECRET') ?: ($bcrf['GDRIVE_CLIENT_SECRET'] ?? ''));
+
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,

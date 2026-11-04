@@ -120,7 +120,7 @@ deny from all
 
 # Block sensitive file types
 # Block sensitive file types. agent-instructions.md is exempt (public AI guidance file).
-<FilesMatch "^(?!agent-instructions\.md$).*\.(htaccess|htpasswd|ini|log|sh|inc|bak|env|md)$">
+<FilesMatch "^(?!agent-instructions\.md$).*\.(htaccess|htpasswd|ini|log|sh|inc|bak|env|md|sql|gz|tgz|tar|zip|7z|bz2)$">
 Order Allow,Deny
 Deny from all
 </FilesMatch>
