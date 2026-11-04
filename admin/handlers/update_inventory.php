@@ -6,8 +6,7 @@
 require_once '../../config.php';
 check_admin();
 require_once __DIR__ . '/../includes/permission_checks.php';   // audit #8: same Permissions Matrix rules as the console
-// Quick Inventory Update screen is where these edits come from; Media is never allowed to change stock.
-if (($_SESSION['user_role'] ?? '') === 'Media') { http_response_code(403); header('Content-Type: application/json'); echo json_encode(['ok' => false, 'message' => 'Your role cannot change stock.']); exit; }
+// Edits come from the Quick Inventory Update screen; the Permissions Matrix decides who may use it.
 require_permission([['view', 'inventory_update'], ['table', 'inventory', 'edit']], true);
 require_once __DIR__ . '/../includes/audit.php';
 date_default_timezone_set('America/New_York');
