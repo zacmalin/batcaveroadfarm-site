@@ -21,10 +21,10 @@
 
                             <p class="chalk chalk-body">
                                 <a href="https://www.facebook.com/batcaveroadfarm" target="_blank" rel="noopener">
-                                    <img class="socialicon" src="https://batcaveroadfarm.com/img/facebook.png" alt="Bat Cave Road Farm on Facebook" width="64" height="64" decoding="async" loading="lazy"> Facebook
+                                    <img class="socialicon" src="https://batcaveroadfarm.com/img/facebook.png" alt="" width="64" height="64" decoding="async" loading="lazy"> Facebook
                                 </a>
                                 <a href="https://www.instagram.com/batcaveroadfarm" target="_blank" rel="noopener">
-                                    <img class="socialicon" src="https://batcaveroadfarm.com/img/instagram.png" alt="Bat Cave Road Farm on Instagram" width="64" height="64" decoding="async" loading="lazy"> Instagram
+                                    <img class="socialicon" src="https://batcaveroadfarm.com/img/instagram.png" alt="" width="64" height="64" decoding="async" loading="lazy"> Instagram
                                 </a>    
                             </p>
 
