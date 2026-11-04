@@ -27,6 +27,11 @@ $admin_view_registry = [
     'events'           => ['label' => 'Farm Events',          'icon' => '📅', 'admin_only' => false],
     'bookings'         => ['label' => 'Bookings',             'icon' => '📋', 'admin_only' => false],
     'site_info'        => ['label' => 'Site Info',            'icon' => '🏠', 'admin_only' => false],
+    // Added Nov 2026 (audit #7): these screens were routed but missing here, so the matrix
+    // couldn't grant them. Non-admins need a tick in the Permissions Matrix to use them.
+    'passes'           => ['label' => 'Annual Passes',        'icon' => '🎟️', 'admin_only' => false],
+    'event_inquiries'  => ['label' => 'Event Inquiries',      'icon' => '🎉', 'admin_only' => false],
+    'social'           => ['label' => 'Social Posting',       'icon' => '📣', 'admin_only' => false],
     'jobs'             => ['label' => 'Hiring: Applicants',   'icon' => '📥', 'admin_only' => true],
     'jobs_emails'      => ['label' => 'Hiring: Emails',       'icon' => '📧', 'admin_only' => true],
     'jobs_staff'       => ['label' => 'Hiring: Staff',        'icon' => '🪪', 'admin_only' => true],
