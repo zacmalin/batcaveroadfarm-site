@@ -78,17 +78,15 @@ $tagline    = trim((string)($animal['tagline'] ?? ''));
 $bio        = trim((string)($animal['bio'] ?? ''));
 $funFact    = trim((string)($animal['fun_fact'] ?? ''));
 $displayTag = $tagline !== '' ? $tagline : $breedTag;
-// "About the breed" facts from Wikipedia/Wikidata (cached; section hidden if nothing found).
+// "About" facts from Wikipedia/Wikidata live on the BREED page. Only an animal with no breed
+// (so no breed page) shows its species facts here, e.g. "About Peafowl".
 $wiki = null;
-try {
-    require_once __DIR__ . '/../../includes/wiki_facts.php';
-    $__wt = '';
-    if (!empty($animal['breed_id'])) {
-        try { $__w = $pdo->prepare("SELECT wiki_title FROM breeds WHERE id = ?"); $__w->execute([(int)$animal['breed_id']]); $__wt = (string)$__w->fetchColumn(); }
-        catch (Throwable $e) { $__wt = ''; }   // column added on first visit to admin → Breeds
-    }
-    $wiki = bcrf_wiki_facts($pdo, $__wt, $breedName, (string)($animal['classification'] ?? ''));
-} catch (Throwable $e) { error_log('[wiki] ' . $e->getMessage()); $wiki = null; }
+if (empty($animal['breed_id']) && trim((string)($animal['classification'] ?? '')) !== '') {
+    try {
+        require_once __DIR__ . '/../../includes/wiki_facts.php';
+        $wiki = bcrf_wiki_facts($pdo, '', '', (string)$animal['classification']);
+    } catch (Throwable $e) { error_log('[wiki] ' . $e->getMessage()); $wiki = null; }
+}
 $breadcrumbs = [['label' => 'Petting Zoo', 'url' => '/petting-zoo/']];
 if ($breedName !== '') { $breadcrumbs[] = ['label' => $breedName, 'url' => $breedHref]; }
 $breadcrumbs[] = ['label' => $name];

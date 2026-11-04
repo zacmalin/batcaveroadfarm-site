@@ -62,6 +62,19 @@ try {
 } catch (Throwable $e) { $animals = []; }
 
 $breedName = (string)$breed['breed_name'];
+// "About <breed>" facts from Wikipedia/Wikidata (includes/wiki_facts.php; cached, hidden if nothing found).
+$wiki = null;
+try {
+    require_once __DIR__ . '/../../includes/wiki_facts.php';
+    $__kind = '';
+    try {
+        $__k = $pdo->prepare("SELECT c.class_name FROM breed_classifications bc JOIN classifications c ON c.id = bc.classification_id WHERE bc.breed_id = ? LIMIT 1");
+        $__k->execute([(int)$breed['id']]);
+        $__kind = (string)$__k->fetchColumn();
+    } catch (Throwable $e) { $__kind = ''; }
+    if ($__kind === '' && !empty($animals[0]['classification'])) $__kind = (string)$animals[0]['classification'];
+    $wiki = bcrf_wiki_facts($pdo, (string)($breed['wiki_title'] ?? ''), $breedName, $__kind);
+} catch (Throwable $e) { error_log('[wiki] ' . $e->getMessage()); $wiki = null; }
 $breedSlug = trim((string)($breed['slug'] ?? '')) !== '' ? $breed['slug'] : createSlug($breedName);
 $breadcrumbs = [
     ['label' => 'Petting Zoo', 'url' => '/petting-zoo/'],
@@ -116,6 +129,19 @@ require_once '../../includes/header.php';
     <div class="breed-history reveal">
       <?= $descHtml ?>
     </div>
+  <?php endif; ?>
+
+  <?php if ($wiki): ?>
+    <section class="ad-wiki breed-wiki reveal" aria-labelledby="brWikiH">
+      <h2 id="brWikiH">About <?= htmlspecialchars($wiki['title']) ?></h2>
+      <p><?= htmlspecialchars(bcrf_wiki_short($wiki['extract'])) ?></p>
+      <?php if (!empty($wiki['facts'])): ?>
+      <dl class="ad-wiki-facts">
+        <?php foreach ($wiki['facts'] as $k => $v): ?><div><dt><?= htmlspecialchars($k) ?></dt><dd><?= htmlspecialchars($v) ?></dd></div><?php endforeach; ?>
+      </dl>
+      <?php endif; ?>
+      <p class="ad-wiki-src">Source: <a href="<?= htmlspecialchars($wiki['url']) ?>" target="_blank" rel="noopener">Wikipedia</a> &amp; Wikidata, <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener license">CC BY-SA 4.0</a></p>
+    </section>
   <?php endif; ?>
 
   <div class="ctaDiv" style="text-align:center;padding-top:8px">
