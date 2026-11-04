@@ -27,6 +27,9 @@ try {
     $items = [];
 }
 
+// Nothing listed yet: keep the empty catalog out of search results (it's also left out of the
+// sitemap, and the Thrift Shop page only links here when items exist). Links are still followed.
+if (!$items && $search === '' && !headers_sent()) { header('X-Robots-Tag: noindex, follow'); }
 require_once '../../includes/head.php';
 require_once '../../includes/header.php';
 

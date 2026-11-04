@@ -24,8 +24,6 @@ $static = [
     ['/petting-zoo/', 'monthly', '0.9', [sitemapImg($base, '/img/og-pettingzoo.jpg', 'Petting Zoo at Bat Cave Road Farm — Goats, Donkeys, Pigs &amp; More in Old Fort, NC')]],
     ['/farm-stand/', 'weekly', '0.9', []],
     ['/thrift-shop/', 'weekly', '0.8', []],
-    ['/thrift-shop/items/', 'weekly', '0.6', []],
-    ['/shop/', 'weekly', '0.7', []],
     ['/recipes/', 'weekly', '0.8', []],
     ['/blog/', 'weekly', '0.7', []],
     ['/gallery/', 'monthly', '0.7', []],
@@ -46,6 +44,15 @@ $static = [
 foreach ($static as $sp) {
     addUrl($urls, $base . $sp[0], $today, $sp[1], $sp[2], $sp[3]);
 }
+// Catalog pages only when they have something in them (empty ones are noindex).
+$__catHas = function (string $where) use ($pdo): bool {
+    try {
+        return (bool)$pdo->query("SELECT 1 FROM inventory i JOIN inventory_categories ic ON i.category_id = ic.id
+                                   WHERE i.is_active = 1 AND i.stock_quantity > 0 AND ($where) LIMIT 1")->fetchColumn();
+    } catch (Throwable $e) { return false; }
+};
+if ($__catHas("ic.slug = 'thrift' OR LOWER(ic.name) = 'thrift'"))   addUrl($urls, $base . '/thrift-shop/items/', $today, 'weekly', '0.6');
+if ($__catHas("LOWER(ic.slug) IN ('merchandise','merch') OR LOWER(ic.name) IN ('merchandise','merch')")) addUrl($urls, $base . '/shop/', $today, 'weekly', '0.7');
 
 // ── Dynamic pages ─────────────────────────────────────────────────────────────
 // Each section has its own try/catch so one failing query can't drop the rest.

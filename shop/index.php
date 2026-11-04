@@ -72,11 +72,14 @@ function bcrf_shop_grid(array $rows): void {
 $merchRows = bcrf_inventory_by_cat($pdo, ['merchandise', 'merch']);
 
 /* ---------- page meta ---------- */
-$pageTitle    = "Shop — Bat Cave Road Farm";
+$pageTitle    = "Shop — Bat Cave Road Farm - Old Fort, NC";
 $metaDesc     = "Bat Cave Road Farm merch — hats, shirts, stickers, and farm-branded goods. Take a little piece of the farm home with you. Old Fort, NC, near Asheville.";
 $canonicalUrl = "https://batcaveroadfarm.com/shop/";
 $ogImage      = "https://batcaveroadfarm.com/img/og-shop.jpg";
 $pageCSS      = "https://batcaveroadfarm.com/css/min.farmstand.css";
+// No merch in stock: the menu hides Shop, so keep the empty page out of search results too
+// (and out of the sitemap). Links are still followed.
+if (!$merchRows && !headers_sent()) { header('X-Robots-Tag: noindex, follow'); }
 include('../includes/head.php');
 
 /* ---------- JSON-LD (Store + dynamic Products from inventory) ---------- */
