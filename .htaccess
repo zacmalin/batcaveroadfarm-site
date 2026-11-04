@@ -100,6 +100,16 @@ RewriteRule ^farm-stand/items/([0-9]+)(?:/[^/]+)?/?$ farm-stand/items/item.php?i
   RewriteRule ^cancel-booking\.php$ - [E=Cache-Control:no-cache]
 </IfModule>
 
+# --- Page cache (perf fix, Nov 2026) ------------------------------------------
+# config.php marks anonymous public pages cacheable for 5 min
+# (X-LiteSpeed-Cache-Control). Anyone with a session cookie (logged in, staff,
+# mid-checkout) always gets a fresh page, never the shared cached copy.
+<IfModule LiteSpeed>
+  CacheLookup on
+  RewriteCond %{HTTP_COOKIE} PHPSESSID [NC]
+  RewriteRule .* - [E=Cache-Control:no-cache]
+</IfModule>
+
 # --- Hardening ---------------------------------------------------------------
 Options -Indexes
 

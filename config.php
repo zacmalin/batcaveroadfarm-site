@@ -1,8 +1,42 @@
 <?php
 // health.php (uptime monitor) defines BCRF_NO_SESSION so its checks every
 // 5 minutes don't create a session file each time.
-if (session_status() == PHP_SESSION_NONE && !defined('BCRF_NO_SESSION')) {
+// Perf fix (Nov 2026): only start a session when this request needs one.
+// Starting one on every page sent no-cache headers + a cookie, so NO page could
+// ever be cached and every visit ran PHP + MySQL. Anonymous visitors browsing
+// public pages now get no session, and those pages can be cached briefly.
+// A session still starts when:
+//   - the visitor already has a session cookie (logged in, mid-checkout, ...)
+//   - the request is not GET/HEAD (every form post, AJAX save, login)
+//   - the path is one that keeps state (bcrf_session_path() below)
+//   - a page defines BCRF_NEEDS_SESSION before requiring config.php
+//   - CLI (cron scripts), same as before
+function bcrf_session_path(string $path): bool {
+    return (bool)preg_match('#^/(admin|account|booking|cancel-booking\.php|passes|tickets|private-events|contact-us|send-message\.php|jobs/(apply|thanks|alerts|[a-z0-9-]+/apply))(/|\.php|$)#i', $path);
+}
+$__bcrfPath   = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+$__bcrfMethod = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+$__bcrfNeedsSession = PHP_SAPI === 'cli'
+    || defined('BCRF_NEEDS_SESSION')
+    || !in_array($__bcrfMethod, ['GET', 'HEAD'], true)
+    || isset($_COOKIE[session_name()])
+    || bcrf_session_path($__bcrfPath);
+
+if (session_status() == PHP_SESSION_NONE && !defined('BCRF_NO_SESSION') && $__bcrfNeedsSession) {
     images_session_start_secure();
+}
+if (session_status() !== PHP_SESSION_ACTIVE && !isset($_SESSION)) {
+    $_SESSION = [];   // reads like $_SESSION['user_id'] stay warning-free; visitor is simply logged out
+}
+
+// Anonymous public page with no session: let LiteSpeed cache it for 5 minutes.
+// (.htaccess skips the cache for anyone sending a session cookie.)
+// Site Info saves already purge the cache, so hours/contacts update right away.
+if (PHP_SAPI !== 'cli' && session_status() !== PHP_SESSION_ACTIVE && !defined('BCRF_NO_SESSION')
+    && in_array($__bcrfMethod, ['GET', 'HEAD'], true)
+    && !preg_match('#^/(subscribe|unsubscribe|subscribe-confirm|review|health|ping)(/|\.php|$)#i', $__bcrfPath)
+    && !headers_sent()) {
+    header('X-LiteSpeed-Cache-Control: public,max-age=300');
 }
 
 function images_session_start_secure() {
