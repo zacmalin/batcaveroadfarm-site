@@ -172,8 +172,8 @@ $nlPct = ($nlActive && $nlTotalActive > 0) ? (int)round($nlSent / $nlTotalActive
             <!-- Fix 13: Quill rich text editor -->
             <div>
                 <label class="block font-bold text-stone-600 mb-1">Email Body</label>
-                <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
-                <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.min.js"></script>
+                <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
+                <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>
 
                 <div id="emailBodyEditor" class="bg-white border rounded" style="min-height:260px;"></div>
             </div>

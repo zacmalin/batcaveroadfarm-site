@@ -1090,8 +1090,8 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                             <?= htmlspecialchars(str_replace('_', ' ', $name)) ?>
                         </label>
                         <?php if (!$quill_inited): ?>
-                        <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
-                        <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.min.js"></script>
+                        <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
+                        <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>
 
 
 <!-- ── BLOG POST PREVIEW MODAL ── -->
