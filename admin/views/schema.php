@@ -151,6 +151,10 @@ if ($target_table === 'blog_posts' && !empty($columns_schema)) {
 if ($target_table === 'recipes' && !empty($columns_schema)) {
     $columns_schema = array_values(array_filter($columns_schema, fn($c) => !in_array($c['Field'], ['status', 'social_shared_at'], true)));
 }
+// Animals: social_shared_at is the internal "announced on Facebook/Instagram" marker
+if ($target_table === 'animals' && !empty($columns_schema)) {
+    $columns_schema = array_values(array_filter($columns_schema, fn($c) => $c['Field'] !== 'social_shared_at'));
+}
 
 if ($target_table === 'inventory' && !empty($columns_schema)) {
     $pin_first       = ['category_id'];
@@ -1140,6 +1144,11 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4" id="schemaFieldGrid">
 
+                <?php elseif ($target_table === 'animals' && $name === 'is_active'): ?>
+                    <?php // Animals: shown on the site or not is set by the Save Draft / Publish buttons at the bottom
+                          // (same as Recipes and Blog). Keep the current value if the form is submitted another way. ?>
+                    <?php if (!empty($raw_val)): ?><input type="hidden" name="fields[is_active]" value="1"><?php endif; ?>
+
                 <?php // Fix 5: anchor is_ check to start of field name to avoid false matches on e.g. artist_id
                 elseif (strpos($type, 'tinyint(1)') !== false || $type === 'boolean' || str_starts_with($name, 'is_')): ?>
                     <div class="space-y-1">
@@ -1551,11 +1560,11 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
             <?php endif; ?>
 
             <?php
-            // ── SOCIAL COMPOSER (recipes + blog) — approve caption at publish time ──────
-            if (in_array($target_table, ['blog_posts', 'recipes'], true)):
+            // ── SOCIAL COMPOSER (recipes + blog + animals) — approve caption at publish time ──
+            if (in_array($target_table, ['blog_posts', 'recipes', 'animals'], true)):
                 $__social_file = dirname(__DIR__, 2) . '/includes/social.php';
                 if (file_exists($__social_file)) require_once $__social_file;
-                $__social_type   = $target_table === 'recipes' ? 'recipe' : 'blog';
+                $__social_type   = ['recipes' => 'recipe', 'animals' => 'animal'][$target_table] ?? 'blog';
                 $__already_shared = !empty($edit_data['social_shared_at']);
                 $__can_compose    = !empty($edit_data) && function_exists('social_compose');
             ?>
@@ -1601,15 +1610,25 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
             <?php endif; ?>
 
             <div class="pt-4 border-t flex justify-between items-center print:hidden">
-                <?php if (in_array($target_table, ['blog_posts', 'recipes'], true)): ?>
+                <?php if (in_array($target_table, ['blog_posts', 'recipes', 'animals'], true)): ?>
                     <?php
-                    $current_status = $edit_data['status'] ?? 'draft';
+                    // Animals have no status column: "published" = is_active (shown on the petting zoo pages).
+                    $current_status = $target_table === 'animals'
+                        ? (!empty($edit_data['is_active']) ? 'published' : 'draft')
+                        : ($edit_data['status'] ?? 'draft');
                     $status_label   = $current_status === 'published' ? '🟢 Published' : '🟡 Draft';
                     ?>
                     <span class="text-xxs font-mono text-stone-400 font-bold uppercase tracking-wider">
                         Current: <?= $status_label ?>
                     </span>
                     <div class="flex gap-2">
+                        <?php if ($target_table === 'animals' && !empty($edit_data['id'])): ?>
+                        <a href="/petting-zoo/animals/<?= (int)$edit_data['id'] ?>/<?= htmlspecialchars(createSlug((string)($edit_data['name'] ?? 'animal')), ENT_QUOTES) ?>/?preview=1"
+                            target="_blank" rel="noopener" title="Opens the saved version, even while it's a draft"
+                            class="border font-mono font-bold uppercase tracking-wider py-2 px-4 rounded text-stone-600 hover:bg-stone-100 transition text-xs">
+                            👁 Preview
+                        </a>
+                        <?php endif; ?>
                         <?php if ($target_table === 'blog_posts'): ?>
                         <button type="button" onclick="openBlogPreview()"
                             class="border font-mono font-bold uppercase tracking-wider py-2 px-4 rounded text-stone-600 hover:bg-stone-100 transition text-xs">

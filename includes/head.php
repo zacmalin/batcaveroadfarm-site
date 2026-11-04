@@ -65,7 +65,7 @@ $bcrfThemeGlyph = $bcrfTheme !== '' ? bcrf_theme_glyph($bcrfTheme) : '';
         <meta property="og:image:width"  content="<?php echo !empty($ogImageWidth) ? (int)$ogImageWidth : 1200; ?>">
         <meta property="og:image:height" content="<?php echo !empty($ogImageHeight) ? (int)$ogImageHeight : 630; ?>">
         <?php endif; ?>
-        <meta property="og:image:alt"   content="Bat Cave Road Farm — Petting Zoo, Farmstand, and Thrift Shop in Old Fort, NC">
+        <meta property="og:image:alt"   content="<?php echo isset($ogImageAlt) && $ogImageAlt !== '' ? htmlspecialchars($ogImageAlt) : 'Bat Cave Road Farm — Petting Zoo, Farmstand, and Thrift Shop in Old Fort, NC'; ?>">
         <meta property="og:locale"      content="en_US">
         
         <!-- Twitter / X Card -->

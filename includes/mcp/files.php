@@ -202,6 +202,40 @@ function mcp_t_write_file(PDO $pdo, array $a): array {
     ];
 }
 
+/**
+ * Targeted edit: replace exact text (each old_text must match exactly once, or every match
+ * when replace_all). Same backup / lint / audit as write_file, without resending the file.
+ */
+function mcp_t_edit_file(PDO $pdo, array $a): array {
+    [$abs, $rel] = mcp_resolve((string)($a['path'] ?? ''));
+    if (mcp_path_locked($rel)) throw new McpToolError("$rel is protected and can't be edited through the AI. Change it through GitHub instead.");
+    $edits = $a['edits'] ?? null;
+    if (!is_array($edits) || !$edits) throw new McpToolError('Give edits: [{old_text, new_text}].');
+    $before = (string)file_get_contents($abs);
+    if (!empty($a['expected_sha256']) && !hash_equals(hash('sha256', $before), strtolower((string)$a['expected_sha256']))) {
+        throw new McpToolError('Not saved: the file changed since you read it. Read it again first.');
+    }
+    $after = $before;
+    foreach (array_values($edits) as $i => $e) {
+        $old = isset($e['old_text_base64']) ? base64_decode((string)$e['old_text_base64'], true) : (string)($e['old_text'] ?? '');
+        $new = isset($e['new_text_base64']) ? base64_decode((string)$e['new_text_base64'], true) : (string)($e['new_text'] ?? '');
+        if ($old === false || $new === false) throw new McpToolError('Edit ' . ($i + 1) . ': bad base64.');
+        if ($old === '') throw new McpToolError('Edit ' . ($i + 1) . ': old_text is empty.');
+        $n = substr_count($after, $old);
+        if ($n === 0) throw new McpToolError('Not saved: edit ' . ($i + 1) . ' text was not found (nothing changed).');
+        if ($n > 1 && empty($e['replace_all'])) throw new McpToolError('Not saved: edit ' . ($i + 1) . " text appears $n times; add more context or set replace_all.");
+        $after = str_replace($old, $new, $after);
+    }
+    if ($after === $before) return ['path' => $rel, 'changed' => false];
+    if (strlen($after) > MCP_WRITE_MAX) throw new McpToolError('The result would be over 1 MB.');
+    mcp_validate_content($rel, $after);
+    $bid = mcp_backup_file($abs, $rel, 'before edit_file');
+    mcp_write_atomic($abs, $after);
+    mcp_audit($pdo, 'update', 'site_files', null, 'Edited ' . $rel . ' (' . count($edits) . ' change' . (count($edits) === 1 ? '' : 's') . ', backup ' . $bid . ')');
+    return ['path' => $rel, 'changed' => true, 'backup_id' => $bid, 'size' => strlen($after), 'sha256' => hash('sha256', $after),
+            'reminder' => 'Live server only. Copy this change into GitHub too.'];
+}
+
 function mcp_backup_meta(string $id): array {
     if (!preg_match('/^\d{8}-\d{6}-[a-f0-9]{6}$/', $id)) throw new McpToolError('Bad backup id.');
     $dir = mcp_backup_dir();

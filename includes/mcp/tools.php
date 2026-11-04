@@ -166,6 +166,15 @@ function mcp_tools(): array {
             'path' => ['type' => 'string'], 'content' => ['type' => 'string'], 'content_base64' => ['type' => 'string'],
             'expected_sha256' => ['type' => 'string', 'description' => 'Optional: sha256 from read_file; refuses to save if the file changed since'],
             'create' => ['type' => 'boolean', 'description' => 'Allow creating a new file']], 'required' => ['path']], $WD, 'mcp_t_write_file'],
+    'edit_file' => [
+        'Change part of a website file on the LIVE server without resending it: each edit replaces old_text (must match exactly once, unless replace_all) with new_text. All edits apply together or not at all. Backed up first; PHP syntax-checked. Use *_base64 variants if a firewall might block the text. Pass expected_sha256 (from read_file or a previous write) to refuse if the file changed. Live only, not GitHub.',
+        ['type' => 'object', 'properties' => [
+            'path' => ['type' => 'string'],
+            'edits' => ['type' => 'array', 'items' => ['type' => 'object', 'properties' => [
+                'old_text' => ['type' => 'string'], 'new_text' => ['type' => 'string'],
+                'old_text_base64' => ['type' => 'string'], 'new_text_base64' => ['type' => 'string'],
+                'replace_all' => ['type' => 'boolean']]]],
+            'expected_sha256' => ['type' => 'string']], 'required' => ['path', 'edits']], $WD, 'mcp_t_edit_file'],
     'read_error_log' => [
         'The newest lines of the PHP error log (~/logs/php_errors.log, outside the website). Read-only. Use to diagnose problems; Admin → System Health shows the same errors grouped.',
         ['type' => 'object', 'properties' => ['lines' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 1000, 'description' => 'How many lines from the end (default 200)'],

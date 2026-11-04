@@ -22,16 +22,25 @@ function bcrfNormImg(string $v): string {
 }
 
 $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+// ?preview=1 — staff signed in to the admin can see an animal before it's published (is_active = 0),
+// from the Preview button in the animal editor. Never indexed or cached.
+$isPreview = isset($_GET['preview'])
+    && in_array($_SESSION['user_role'] ?? '', ['administrator', 'moderator', 'Media', 'Shopkeep'], true);
+if ($isPreview && !headers_sent()) {
+    header('X-Robots-Tag: noindex, nofollow');
+    header('Cache-Control: no-store');
+    header('X-LiteSpeed-Cache-Control: no-cache');
+}
 $animal = false;
 if ($id) {
     $st = $pdo->prepare(
-        "SELECT a.id, a.name, a.tagline, a.bio, a.fun_fact, a.photo_url, a.photo_alt_text, a.date_of_birth,
+        "SELECT a.id, a.name, a.tagline, a.bio, a.fun_fact, a.photo_url, a.photo_alt_text, a.date_of_birth, a.is_active,
                 b.id AS breed_id, b.breed_name AS breed, b.slug AS breed_slug, b.tag_line AS breed_tagline,
                 c.class_name AS classification
          FROM animals a
          LEFT JOIN breeds b          ON a.breed_id = b.id
          LEFT JOIN classifications c ON a.classification_id = c.id
-         WHERE a.id = ? AND a.is_active = 1"
+         WHERE a.id = ?" . ($isPreview ? "" : " AND a.is_active = 1")
     );
     $st->execute([$id]);
     $animal = $st->fetch(PDO::FETCH_ASSOC);
@@ -78,7 +87,11 @@ $metaDesc     = $tagline !== ''
     ? "Meet " . $name . " — " . $tagline . " — at the Bat Cave Road Farm petting zoo in Old Fort, NC."
     : "Meet " . $name . ($breedName !== '' ? ", one of our " . $breedName : "") . " at the Bat Cave Road Farm petting zoo in Old Fort, NC.";
 $canonicalUrl = "https://batcaveroadfarm.com/petting-zoo/animals/" . (int)$animal['id'] . "/" . createSlug($name) . "/";
-$ogImage      = !empty($animal['photo_url']) ? $animal['photo_url'] : "https://batcaveroadfarm.com/img/og-pettingzoo.jpg";
+// Social card image must be an absolute URL; the photo's real size isn't 1200x630, so don't claim it.
+$ogImage      = $img !== '' ? (preg_match('#^https?://#i', $img) ? $img : 'https://batcaveroadfarm.com' . $img)
+                            : "https://batcaveroadfarm.com/img/og-pettingzoo.jpg";
+if ($img !== '') { $ogImageNoSize = true; }
+$ogImageAlt   = $imgAlt;
 $pageCSS      = "https://batcaveroadfarm.com/css/min.pettingzoo.css";
 if ($img !== '') { $preloadImage = $img; }
 $pageJS       = ["https://batcaveroadfarm.com/js/min.lightbox.js", "https://batcaveroadfarm.com/js/min.share.js"];
@@ -110,6 +123,11 @@ $renderAnimalShare = function () use ($canonicalUrl, $name, $svgShare) {
 require_once '../../includes/head.php';
 require_once '../../includes/header.php';
 ?>
+<?php if ($isPreview): ?>
+<div style="background:<?= !empty($animal['is_active']) ? '#2f5a22' : '#8a5a00' ?>;color:#fff;font:600 14px/1.4 system-ui,sans-serif;padding:10px 16px;text-align:center">
+  👁 Preview — <?= !empty($animal['is_active']) ? 'this animal is published and visible to everyone.' : 'this is a DRAFT. Visitors can\'t see it until you click Publish in the admin.' ?>
+</div>
+<?php endif; ?>
 <div class="content-wrap">
   <p class="breed-back"><a href="<?= htmlspecialchars($breedHref) ?>">← Back to <?= htmlspecialchars($breedName !== '' ? $breedName : 'the animals') ?></a></p>
 

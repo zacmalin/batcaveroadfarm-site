@@ -290,8 +290,18 @@ try {
         $pdo->prepare("UPDATE {$target_table} SET status = ? WHERE id = ?")->execute([$status, $record_id]);
     }
 
-    // ── FIRST-PUBLISH SOCIAL SHARE (recipes + blog) — queue the admin-approved post ─
-    if (in_array($target_table, ['blog_posts', 'recipes'], true)
+    // ── ANIMALS: Save Draft / Publish = hidden from / shown on the petting zoo pages ──
+    if ($target_table === 'animals' && isset($_POST['post_status'])) {
+        $pdo->prepare("UPDATE animals SET is_active = ? WHERE id = ?")->execute([$_POST['post_status'] === 'published' ? 1 : 0, $record_id]);
+        // Marker so an animal is only announced on Facebook/Instagram once (added on first use).
+        try {
+            $__has = $pdo->query("SHOW COLUMNS FROM animals LIKE 'social_shared_at'")->fetch();
+            if (!$__has) $pdo->exec("ALTER TABLE animals ADD COLUMN social_shared_at DATETIME NULL");
+        } catch (Throwable $e) { error_log('[ERP] animals.social_shared_at: ' . $e->getMessage()); }
+    }
+
+    // ── FIRST-PUBLISH SOCIAL SHARE (recipes + blog + animals) — queue the admin-approved post ─
+    if (in_array($target_table, ['blog_posts', 'recipes', 'animals'], true)
         && ($_POST['post_status'] ?? '') === 'published'
         && !empty($_POST['social_share'])) {
         $__sf = dirname(__DIR__, 2) . '/includes/social.php';
@@ -304,7 +314,7 @@ try {
                 $__shared = (bool)$__c->fetchColumn();
             } catch (Throwable $e) { /* marker column missing -> treat as not yet shared */ }
             if (!$__shared) {
-                social_enqueue($pdo, ($target_table === 'recipes' ? 'recipe' : 'blog'), (int)$record_id, [
+                social_enqueue($pdo, (['recipes' => 'recipe', 'animals' => 'animal'][$target_table] ?? 'blog'), (int)$record_id, [
                     'fb'       => trim((string)($_POST['social_fb']   ?? '')),
                     'ig'       => trim((string)($_POST['social_ig']   ?? '')),
                     'hashtags' => trim((string)($_POST['social_tags'] ?? '')),
