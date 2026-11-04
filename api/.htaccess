@@ -1,0 +1,35 @@
+# api/.htaccess — JSON API front controller (Nov 2026)
+# Serves both https://api.batcaveroadfarm.com/v1/...  (subdomain; document root = this folder)
+#        and  https://batcaveroadfarm.com/api/v1/...  (same code on the main domain, for the admin)
+# This folder has its own RewriteEngine, so the main site's rewrite rules (HTTPS, trailing slash)
+# do NOT apply here — HTTPS is forced below, and URLs never get a trailing slash added.
+
+Options -Indexes
+DirectoryIndex index.php
+
+RewriteEngine On
+
+# Force HTTPS (Cloudflare-aware, same logic as the main site)
+RewriteCond %{HTTP:X-Forwarded-Proto} =http
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+RewriteCond %{HTTP:X-Forwarded-Proto} ^$
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Never cache API responses in LiteSpeed
+<IfModule LiteSpeed>
+    RewriteRule .* - [E=Cache-Control:no-cache]
+</IfModule>
+
+# Everything that isn't a real file goes through index.php. (Checking -f rather than the URI
+# avoids a rewrite loop: after the internal rewrite REQUEST_URI still holds the original path.)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [L,QSA]
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Robots-Tag "noindex, nofollow"
+    Header always set Cache-Control "no-store"
+    Header always unset Content-Security-Policy
+    Header always set Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
+</IfModule>
