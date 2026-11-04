@@ -1443,13 +1443,17 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
 
                         <!-- Subfolder selector (shown during upload) -->
                         <div id="imgSubfolderRow_<?= htmlspecialchars($name, ENT_QUOTES) ?>" class="hidden">
+                            <?php
+                            // Default folder follows the table being edited. Recipe photos live in /img/recipies/
+                            // (folder name kept as-is: existing recipes already point at it).
+                            $__subDefault = ['recipes' => 'recipies', 'blog_posts' => 'blog', 'animals' => 'zoo'][$target_table ?? ''] ?? 'inventory';
+                            $__subLabels  = ['recipies' => 'recipes'];
+                            ?>
                             <select id="imgSubfolder_<?= htmlspecialchars($name, ENT_QUOTES) ?>"
                                 class="text-xs border rounded p-1.5 bg-stone-50 font-mono">
-                                <option value="inventory">inventory</option>
-                                <option value="zoo">zoo</option>
-                                <option value="stand">stand</option>
-                                <option value="blog">blog</option>
-                                <option value="thrift">thrift</option>
+                                <?php foreach (['inventory', 'recipies', 'zoo', 'stand', 'blog', 'thrift'] as $__sf): ?>
+                                <option value="<?= $__sf ?>"<?= $__sf === $__subDefault ? ' selected' : '' ?>><?= $__subLabels[$__sf] ?? $__sf ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
 

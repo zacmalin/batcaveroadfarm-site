@@ -4,7 +4,7 @@
     require_once __DIR__ . '/../config.php';
     require_once __DIR__ . '/../includes/booking.php';
     $pageTitle    = "Book a Visit - Bat Cave Road Farm";
-    $metaDesc     = "Request a farm visit, group tour, or private event at Bat Cave Road Farm in Old Fort, NC. Walk-ins welcome for groups under 6; reserve ahead for larger groups and events.";
+    $metaDesc     = "Request a farm visit, group tour, or private event at Bat Cave Road Farm in Old Fort, NC. Groups under 6 can walk in; larger groups book ahead.";
     $canonicalUrl = "https://batcaveroadfarm.com/booking/";
     $ogImage      = "https://batcaveroadfarm.com/img/og-pettingzoo.jpg";
     $pageCSS      = 'https://batcaveroadfarm.com/css/min.booking.css';

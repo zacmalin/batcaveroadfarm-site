@@ -1,6 +1,6 @@
 <?php
 	$pageTitle = "About Us | Bat Cave Road Farm — Family Farm in Old Fort, NC";
-	$metaDesc = "Casey has called Old Fort home since 1996. Zac arrived in 2024. The goats came shortly after, and seven baby goats born in three days is what turned a hobby into a farm.";
+	$metaDesc = "Meet the family behind Bat Cave Road Farm in Old Fort, NC, and the seven baby goats born in three days that turned a hobby into a farm.";
 	$canonicalUrl = "https://batcaveroadfarm.com/about/";
 	$ogImage = "https://batcaveroadfarm.com/img/og-about.jpg";
 	$pageCSS = "https://batcaveroadfarm.com/css/min.aboutus.css";

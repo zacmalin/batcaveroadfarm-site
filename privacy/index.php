@@ -1,6 +1,6 @@
 <?php
 	$pageTitle    = "Privacy Policy - Bat Cave Road Farm";
-	$metaDesc     = "How Bat Cave Road Farm collects, uses, and protects information on batcaveroadfarm.com, including our contact form, analytics, and embedded maps and social feeds.";
+	$metaDesc     = "How Bat Cave Road Farm collects, uses, and protects information on our website: contact forms, analytics, job applications, maps, and social feeds.";
 	$canonicalUrl = "https://batcaveroadfarm.com/privacy/";
 	$pageCSS      = "https://batcaveroadfarm.com/css/min.legal.css";
 	$breadcrumbs  = [['label' => 'Privacy Policy']];

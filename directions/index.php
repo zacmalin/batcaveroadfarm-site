@@ -1,7 +1,7 @@
 <?php
 // directions/index.php — Map & Directions with drive times from surrounding towns.
     $pageTitle    = "Map & Directions | Bat Cave Road Farm — Old Fort, NC";
-    $metaDesc     = "Directions to Bat Cave Road Farm at 4132 Bat Cave Road, Old Fort, NC 28762 — an easy drive from Asheville, Black Mountain, Marion, and across Western North Carolina, right off I-40.";
+    $metaDesc     = "Directions to Bat Cave Road Farm, 4132 Bat Cave Road, Old Fort, NC, an easy drive off I-40 from Asheville, Black Mountain, and Marion.";
     $canonicalUrl = "https://batcaveroadfarm.com/directions/";
     $ogImage      = "https://batcaveroadfarm.com/img/og-home.jpg";
     require('../includes/head.php');

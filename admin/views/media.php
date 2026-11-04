@@ -40,7 +40,7 @@ $displayed_images = ($active_folder === '_all')
                     <option value="/stand/">/img/stand/ (Farm Stand)</option>
                     <option value="/blog/">/img/blog/ (Journal)</option>
                     <option value="/zoo/">/img/zoo/ (Petting Zoo)</option>
-                    <option value="/recipies/">/img/recipies/ (Recipies)</option>
+                    <option value="/recipies/">/img/recipies/ (Recipes)</option>
                     <option value="/social/">/img/social/ (Social)</option>
                     <option value="/thrift/">/img/thrift/ (Thrift Shop)</option>
                 </select>
@@ -119,7 +119,7 @@ $displayed_images = ($active_folder === '_all')
         <div class="flex flex-wrap gap-1.5 font-mono text-[10px] font-bold uppercase tracking-wider">
             <?php
             $all_folders   = array_merge(['_all'], $vault_folders);
-            $folder_labels = ['_all' => 'All', '_root' => 'Root'];
+            $folder_labels = ['_all' => 'All', '_root' => 'Root', 'recipies' => 'Recipes'];
             foreach ($all_folders as $f):
                 $label    = $folder_labels[$f] ?? ucfirst($f);
                 $is_active = $active_folder === $f;

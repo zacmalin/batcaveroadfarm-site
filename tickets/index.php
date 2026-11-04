@@ -8,7 +8,7 @@ require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/booking.php';
 
 $pageTitle    = 'Buy Tickets — Bat Cave Road Farm';
-$metaDesc     = 'Buy day-admission tickets online for the Bat Cave Road Farm petting zoo in Old Fort, NC. Walk-in tickets for groups of 5 or fewer — pick your date and pay securely online.';
+$metaDesc     = 'Buy petting zoo day tickets online for Bat Cave Road Farm in Old Fort, NC. For groups of 5 or fewer: pick your date and pay securely.';
 $canonicalUrl = 'https://batcaveroadfarm.com/tickets/';
 $ogImage      = 'https://batcaveroadfarm.com/img/og-pettingzoo.jpg';
 $pageCSS      = 'https://batcaveroadfarm.com/css/min.tickets.css';

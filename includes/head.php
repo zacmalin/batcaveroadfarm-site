@@ -43,7 +43,7 @@ $bcrfThemeGlyph = $bcrfTheme !== '' ? bcrf_theme_glyph($bcrfTheme) : '';
         <?php if (isset($pageCSS)): foreach ((array)$pageCSS as $__pcss): ?>
     		<link rel="stylesheet" href="<?php echo $__pcss; ?>?v=<?= bcrf_asset_v((string)$__pcss) ?>">
 	<?php endforeach; endif; ?>
-        <meta name="description" content="<?php echo isset($metaDesc) ? htmlspecialchars($metaDesc) : 'Bat Cave Road Farm in Old Fort, NC — family-owned petting zoo with goats, donkeys & more. Seasonal farmstand, and on-farm thrift shop. Open Tue–Sun 10AM–4PM.'; ?>">
+        <meta name="description" content="<?php echo isset($metaDesc) ? htmlspecialchars($metaDesc) : 'Family-owned petting zoo in Old Fort, NC with goats, donkeys and more, plus a seasonal farmstand and thrift shop. Open Tue–Sun, 10 AM–4 PM.'; ?>">
         <meta name="author" content="Bat Cave Road Farm">
         <link rel="icon" href="https://batcaveroadfarm.com/img/favicon.ico" sizes="any">
         <link rel="icon" href="https://batcaveroadfarm.com/img/icon.svg" type="image/svg+xml">
@@ -58,7 +58,7 @@ $bcrfThemeGlyph = $bcrfTheme !== '' ? bcrf_theme_glyph($bcrfTheme) : '';
         <meta property="og:type"        content="website">
         <meta property="og:site_name"   content="Bat Cave Road Farm">
         <meta property="og:title"       content="<?php echo isset($pageTitle) ? htmlspecialchars($pageTitle) : "Bat Cave Road Farm | Petting Zoo, Farmstand & Thrift Shop — Old Fort, NC"; ?>">
-        <meta property="og:description" content="<?php echo isset($metaDesc) ? htmlspecialchars($metaDesc) : 'Bat Cave Road Farm in Old Fort, NC — family-owned petting zoo with goats, donkeys & more. Seasonal farmstand, and on-farm thrift shop. Open Tue–Sun 10AM–4PM.'; ?>">
+        <meta property="og:description" content="<?php echo isset($metaDesc) ? htmlspecialchars($metaDesc) : 'Family-owned petting zoo in Old Fort, NC with goats, donkeys and more, plus a seasonal farmstand and thrift shop. Open Tue–Sun, 10 AM–4 PM.'; ?>">
         <meta property="og:url"         content="<?php echo isset($canonicalUrl) ? htmlspecialchars($canonicalUrl) : 'https://batcaveroadfarm.com/'; ?>">
         <meta property="og:image"       content="<?php echo isset($ogImage) ? htmlspecialchars($ogImage) : "https://batcaveroadfarm.com/img/og-home.jpg"; ?>">
         <?php if (empty($ogImageNoSize)): ?>
@@ -71,7 +71,7 @@ $bcrfThemeGlyph = $bcrfTheme !== '' ? bcrf_theme_glyph($bcrfTheme) : '';
         <!-- Twitter / X Card -->
         <meta name="twitter:card"        content="summary_large_image">
         <meta name="twitter:title"       content="<?php echo isset($pageTitle) ? htmlspecialchars($pageTitle) : "Bat Cave Road Farm | Petting Zoo, Farmstand & Thrift Shop — Old Fort, NC"; ?>">
-        <meta name="twitter:description" content="<?php echo isset($metaDesc) ? htmlspecialchars($metaDesc) : 'Bat Cave Road Farm in Old Fort, NC — family-owned petting zoo with goats, donkeys & more. Seasonal farmstand, and on-farm thrift shop. Open Tue–Sun 10AM–4PM.'; ?>">
+        <meta name="twitter:description" content="<?php echo isset($metaDesc) ? htmlspecialchars($metaDesc) : 'Family-owned petting zoo in Old Fort, NC with goats, donkeys and more, plus a seasonal farmstand and thrift shop. Open Tue–Sun, 10 AM–4 PM.'; ?>">
         <meta name="twitter:image"       content="<?php echo isset($ogImage) ? htmlspecialchars($ogImage) : "https://batcaveroadfarm.com/img/og-home.jpg"; ?>">
         <meta name="twitter:image:alt"   content="Bat Cave Road Farm in Old Fort, NC">  
         

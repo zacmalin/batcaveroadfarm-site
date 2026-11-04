@@ -94,7 +94,8 @@ function mcp_t_list_files(PDO $pdo, array $a): array {
         $p = $abs . '/' . $f;
         $isDir = is_dir($p);
         $out[] = ['name' => $f . ($isDir ? '/' : ''), 'size' => $isDir ? null : filesize($p),
-                  'modified' => date('Y-m-d H:i', (int)filemtime($p)), 'editable' => !$isDir && !mcp_path_locked($r)];
+                  'modified' => date('Y-m-d H:i', (int)filemtime($p)),
+                  'editable' => !$isDir && !mcp_path_locked($r) && in_array(strtolower(pathinfo($f, PATHINFO_EXTENSION)), MCP_FILE_EXTS, true)];
         if (count($out) >= 500) break;
     }
     return ['path' => $rel === '' ? '/' : $rel, 'entries' => $out];

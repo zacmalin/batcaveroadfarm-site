@@ -1,7 +1,7 @@
 <?php
 // private-events/index.php — Private event & birthday party inquiry form.
 $pageTitle    = 'Private Events & Birthday Parties | Bat Cave Road Farm';
-$metaDesc     = 'Plan a private birthday party, school field trip, or farm buyout at Bat Cave Road Farm in Old Fort, NC. Tell us about your event and we\'ll put together a custom package.';
+$metaDesc     = 'Plan a birthday party, field trip, or farm buyout at Bat Cave Road Farm in Old Fort, NC. Tell us about your event and we\'ll build a custom package.';
 $canonicalUrl = 'https://batcaveroadfarm.com/private-events/';
 $ogImage      = 'https://batcaveroadfarm.com/img/og-home.jpg';
 $pageCSS      = 'https://batcaveroadfarm.com/css/min.booking.css';

@@ -111,7 +111,7 @@ async function loadVaultImages(folder) {
         if (tabs && data.folders && data.folders.length > 1) {
             tabs.innerHTML = '';
             [''].concat(data.folders).forEach(function (f) {
-                var label = !f ? 'All' : (f === '_root' ? 'Root' : f);
+                var label = !f ? 'All' : (f === '_root' ? 'Root' : (f === 'recipies' ? 'Recipes' : f));
                 var btn = document.createElement('button');
                 btn.type = 'button';
                 btn.textContent = label;
