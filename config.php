@@ -161,47 +161,12 @@ function createSlug($string) {
     return empty($string) ? 'n-a' : $string;
 }
 
-// 1. Dynamic Age Calculation Engine Rule
-function calculateAge($dob_string) {
-    $birthDate = new DateTime($dob_string);
-    $currentDate = new DateTime();
-    $difference = $currentDate->diff($birthDate);
-    return $difference->y; // Outputs integer rounded down to whole completed years
-}
-
 // 2. Grammatical Quantity Evaluation Filter
 function formatIngredientName($quantity, $singular, $plural) {
     if ((float)$quantity <= 1.00) {
         return htmlspecialchars($singular);
     }
     return htmlspecialchars($plural);
-}
-
-// Dynamic RBAC Verification Handler for your admin panel sheets
-function verifyTableAccess($tableName, $requireEdit = false) {
-    global $pdo;
-    
-    if (empty($_SESSION['user_id']) || empty($_SESSION['user_role'])) {
-        header("Location: /admin/login.php"); exit;
-    }
-    
-    $role = $_SESSION['user_role'];
-    
-    // Administrators bypass security checks automatically
-    if ($role === 'administrator') { return true; }
-    
-    // Look up the role's permissions for the requested table
-    $stmt = $pdo->prepare("SELECT can_view, can_edit FROM role_permissions WHERE role = ? AND table_name = ?");
-    $stmt->execute([$role, $tableName]);
-    $perms = $stmt->fetch();
-    
-    if (!$perms) { return false; }
-    
-    if ($requireEdit) {
-        return (int)$perms['can_edit'] === 1;
-    }
-    
-    return (int)$perms['can_view'] === 1;
 }
 
 ?>

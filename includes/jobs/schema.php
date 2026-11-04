@@ -1,6 +1,6 @@
 <?php
 // includes/jobs/schema.php
-// Database setup for Jobs & Applicant Tracking. Called by admin/jobs_install.php.
+// Database setup for Jobs & Applicant Tracking. Called by admin/jobs_install.php (removed after setup, Nov 2026 — restore from git history to rerun).
 //
 // Safe to run more than once: every step checks first and skips work that's
 // already done. Nothing is dropped or deleted. Returns a list of report lines

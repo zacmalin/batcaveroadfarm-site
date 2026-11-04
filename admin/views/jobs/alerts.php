@@ -11,7 +11,7 @@ $d    = fn($v) => $v ? date('M j, Y', strtotime($v)) : '';
 
 try { $counts = jobs_alert_counts($pdo); }
 catch (Throwable $e) {
-    echo "<div class='p-4 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800'>The Jobs tables aren't set up yet. Run /admin/jobs_install.php first.</div>";
+    echo "<div class='p-4 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800'>The Jobs tables aren't set up yet. Restore admin/jobs_install.php from the GitHub history and run it (it was removed after setup).</div>";
     return;
 }
 

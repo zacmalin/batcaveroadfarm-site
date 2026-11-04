@@ -246,7 +246,7 @@ if (!function_exists('jobs_retention_months_options')) {
             if (!isset($have[$k])) $missing[] = $k; elseif (!$have[$k]) $off[] = $k;
         }
         $c[] = ['Email templates', !$missing ? (!$off ? true : null) : false,
-                $missing ? 'Missing: ' . implode(', ', $missing) . '. Run /admin/jobs_install.php again.' : ($off ? 'Turned off: ' . implode(', ', $off) : 'All ' . count($have) . ' on')];
+                $missing ? 'Missing: ' . implode(', ', $missing) . '. Restore admin/jobs_install.php from the GitHub history and run it again.' : ($off ? 'Turned off: ' . implode(', ', $off) : 'All ' . count($have) . ' on')];
 
         $st = $pdo->prepare("SELECT COUNT(*) FROM email_queue WHERE status = 'pending' AND created_at < ?");
         $st->execute([jobs_ago(0, 3)]);

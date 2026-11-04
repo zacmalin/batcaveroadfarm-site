@@ -39,50 +39,51 @@ if ($target_view === 'schema' && !empty($target_table)) {
 }
 
 // ── REFERENCE LOOKUPS ─────────────────────────────────────────────────────────
+// Audit #4 (Nov 2026): only the Schema editor (schema.php + its panels) reads these,
+// so other screens (dashboard, time clock, ...) no longer pay for 8 extra queries.
 $all_breeds = [];
-try {
-    $all_breeds = $pdo->query("SELECT * FROM breeds ORDER BY breed_name ASC")->fetchAll();
-} catch (Throwable $e) { error_log('[ERP] Data loader: breeds failed: ' . $e->getMessage()); }
-
 $all_classes = [];
-try {
-    $all_classes = $pdo->query("SELECT * FROM classifications ORDER BY class_name ASC")->fetchAll();
-} catch (Throwable $e) { error_log('[ERP] Data loader: classifications failed: ' . $e->getMessage()); }
-
 $all_ingredients = [];
-try {
-    $all_ingredients = $pdo->query("SELECT * FROM ingredients ORDER BY singular_name ASC")->fetchAll();
-} catch (Throwable $e) { error_log('[ERP] Data loader: ingredients failed: ' . $e->getMessage()); }
-
 $all_units = [];
-try {
-    $all_units = $pdo->query("SELECT * FROM measurement_units ORDER BY name ASC")->fetchAll();
-} catch (Throwable $e) { error_log('[ERP] Data loader: measurement_units failed: ' . $e->getMessage()); }
-
 $all_categories = [];
-try {
-    $all_categories = $pdo->query("SELECT * FROM categories ORDER BY category_name ASC")->fetchAll();
-} catch (Throwable $e) { error_log('[ERP] Data loader: categories failed: ' . $e->getMessage()); }
-
 $all_blog_categories = [];
-try {
-    $all_blog_categories = $pdo->query("SELECT * FROM blog_categories ORDER BY name ASC")->fetchAll();
-} catch (Throwable $e) { error_log('[ERP] Data loader: blog_categories failed: ' . $e->getMessage()); }
-
 $all_inventory_categories = [];
-try {
-    $all_inventory_categories = $pdo->query("SELECT * FROM inventory_categories ORDER BY sort_order ASC, name ASC")->fetchAll();
-} catch (Throwable $e) { error_log('[ERP] Data loader: inventory_categories failed: ' . $e->getMessage()); }
-
 $all_cuisines = [];
-try {
-    $all_cuisines = $pdo->query("SELECT * FROM cuisines ORDER BY name ASC")->fetchAll();
-} catch (Throwable $e) { error_log('[ERP] Data loader: cuisines failed: ' . $e->getMessage()); }
+$all_staff_members = [];   // was loaded on every page but read nowhere — query removed
 
-$all_staff_members = [];
-try {
-    $all_staff_members = $pdo->query("SELECT id, first_name, last_name, role FROM users ORDER BY last_name ASC")->fetchAll();
-} catch (Throwable $e) { error_log('[ERP] Data loader: staff members failed: ' . $e->getMessage()); }
+if ($target_view === 'schema') {
+    try {
+        $all_breeds = $pdo->query("SELECT * FROM breeds ORDER BY breed_name ASC")->fetchAll();
+    } catch (Throwable $e) { error_log('[ERP] Data loader: breeds failed: ' . $e->getMessage()); }
+
+    try {
+        $all_classes = $pdo->query("SELECT * FROM classifications ORDER BY class_name ASC")->fetchAll();
+    } catch (Throwable $e) { error_log('[ERP] Data loader: classifications failed: ' . $e->getMessage()); }
+
+    try {
+        $all_ingredients = $pdo->query("SELECT * FROM ingredients ORDER BY singular_name ASC")->fetchAll();
+    } catch (Throwable $e) { error_log('[ERP] Data loader: ingredients failed: ' . $e->getMessage()); }
+
+    try {
+        $all_units = $pdo->query("SELECT * FROM measurement_units ORDER BY name ASC")->fetchAll();
+    } catch (Throwable $e) { error_log('[ERP] Data loader: measurement_units failed: ' . $e->getMessage()); }
+
+    try {
+        $all_categories = $pdo->query("SELECT * FROM categories ORDER BY category_name ASC")->fetchAll();
+    } catch (Throwable $e) { error_log('[ERP] Data loader: categories failed: ' . $e->getMessage()); }
+
+    try {
+        $all_blog_categories = $pdo->query("SELECT * FROM blog_categories ORDER BY name ASC")->fetchAll();
+    } catch (Throwable $e) { error_log('[ERP] Data loader: blog_categories failed: ' . $e->getMessage()); }
+
+    try {
+        $all_inventory_categories = $pdo->query("SELECT * FROM inventory_categories ORDER BY sort_order ASC, name ASC")->fetchAll();
+    } catch (Throwable $e) { error_log('[ERP] Data loader: inventory_categories failed: ' . $e->getMessage()); }
+
+    try {
+        $all_cuisines = $pdo->query("SELECT * FROM cuisines ORDER BY name ASC")->fetchAll();
+    } catch (Throwable $e) { error_log('[ERP] Data loader: cuisines failed: ' . $e->getMessage()); }
+}
 
 // ── DASHBOARD DATA ────────────────────────────────────────────────────────────
 // Every query isolated in its own try/catch — one broken table never

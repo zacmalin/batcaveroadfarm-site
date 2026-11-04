@@ -16,7 +16,7 @@ $HELP = jobs_tag_help();
 
 try { $pdo->query('SELECT 1 FROM email_queue LIMIT 1'); }
 catch (Throwable $e) {
-    echo "<div class='p-4 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800'>The Jobs tables aren't set up yet. Run /admin/jobs_install.php first.</div>";
+    echo "<div class='p-4 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800'>The Jobs tables aren't set up yet. Restore admin/jobs_install.php from the GitHub history and run it (it was removed after setup).</div>";
     return;
 }
 $tplNames = $pdo->query('SELECT tpl_key, name FROM email_templates')->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];

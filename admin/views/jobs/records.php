@@ -15,7 +15,7 @@ try {
     $checks = jobs_health_checks($pdo);
 } catch (Throwable $e) {
     error_log('[jobs records view] ' . $e->getMessage());
-    echo "<div class='p-4 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800'>The Jobs tables aren't set up yet. Run /admin/jobs_install.php first.</div>";
+    echo "<div class='p-4 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800'>The Jobs tables aren't set up yet. Restore admin/jobs_install.php from the GitHub history and run it (it was removed after setup).</div>";
     return;
 }
 $SL  = jobs_status_labels();
