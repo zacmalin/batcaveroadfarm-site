@@ -82,7 +82,7 @@
                 <p>To report an accessibility barrier or request help:</p>
                 <p>Bat Cave Road Farm<br>
                    4132 Bat Cave Road, Old Fort, NC 28762<br>
-                   <a href="mailto:accessibility@batcaveroadfarm.com">accessibility@batcaveroadfarm.com</a><br>
+                   <a href="mailto:support@batcaveroadfarm.com">support@batcaveroadfarm.com</a><br>
                    <a href="tel:+18282165488">(828) 216-5488</a></p>
               </div>
             </article>

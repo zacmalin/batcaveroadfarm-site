@@ -125,7 +125,7 @@
               <ul>
                 <li>Adjust or block cookies in your browser, or use the Google Analytics opt-out linked above.</li>
                 <li>Ask us what information we have from a message you sent, or ask us to delete it, by emailing
-                  <a href="mailto:privacy@batcaveroadfarm.com">privacy@batcaveroadfarm.com</a>.</li>
+                  <a href="mailto:support@batcaveroadfarm.com">support@batcaveroadfarm.com</a>.</li>
               </ul>
               <p>Depending on where you live, your state may give you additional rights to access or delete
                 personal information. Contact us at the address above and we'll do our best to honor applicable
@@ -150,7 +150,7 @@
                 <p>Questions about this policy or your information?</p>
                 <p>Bat Cave Road Farm<br>
                    4132 Bat Cave Road, Old Fort, NC 28762<br>
-                   <a href="mailto:privacy@batcaveroadfarm.com">privacy@batcaveroadfarm.com</a></p>
+                   <a href="mailto:support@batcaveroadfarm.com">support@batcaveroadfarm.com</a></p>
               </div>
             </article>
           </div>

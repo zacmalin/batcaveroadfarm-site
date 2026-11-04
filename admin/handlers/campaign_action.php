@@ -167,7 +167,7 @@ if (!$phpmailer_loaded) {
 
 // ── SEND EMAILS ───────────────────────────────────────────────────────────────
 function sendEmail(string $to, string $toName, string $subject, string $htmlBody, string $fromName, string $replyTo, string $unsubUrl = ''): bool {
-    $from_email = 'noreply@batcaveroadfarm.com';
+    $from_email = 'no-reply@batcaveroadfarm.com';
 
     // Personalise any {{first_name}} tokens in the body
     $personalised = str_replace(
