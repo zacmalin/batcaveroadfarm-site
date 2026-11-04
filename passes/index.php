@@ -144,6 +144,7 @@ $csrf   = $_SESSION['csrf_token'] ?? ($_SESSION['csrf_token'] = bin2hex(random_b
                 </div>
             </div>
 
+            <p class="purchase-policy">Annual passes are <strong>non-refundable</strong>. <a href="https://batcaveroadfarm.com/terms/#purchases">Full policy</a></p>
             <?php require_once __DIR__ . '/../includes/nc_warning.php'; echo bcrf_nc_warning_html(true); ?>
             <div class="pass-submit">
                 <button type="submit" class="cta-btn">Continue to secure checkout →</button>

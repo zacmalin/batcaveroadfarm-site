@@ -138,7 +138,7 @@ $errMsg = $errMap[$errKey] ?? '';
                        class="tickets-date-input" required aria-required="true">
                 <div id="date-feedback" class="tickets-date-feedback" aria-live="polite"></div>
             </div>
-            <p class="tickets-date-note">Open <?= htmlspecialchars($openDay) ?> · Last entry 30 min before closing · Closed Mondays and select holidays.</p>
+            <p class="tickets-date-note">Open <?= htmlspecialchars($openDay) ?> · Last entry 30 min before closing · Closed Mondays and select holidays.<br>Your ticket is good for <strong>any day we're open</strong> — this is just the day you plan to come.</p>
         </section>
 
         <!-- ── Your details ── -->
@@ -163,6 +163,7 @@ $errMsg = $errMap[$errKey] ?? '';
             </div>
         </section>
 
+        <p class="purchase-policy">Tickets are <strong>non-refundable</strong> and good for any day we're open, including days when a private event is booked. <a href="https://batcaveroadfarm.com/terms/#purchases">Full policy</a></p>
         <?php require_once __DIR__ . '/../includes/nc_warning.php'; echo bcrf_nc_warning_html(true); ?>
         <div class="tickets-actions">
             <button type="submit" id="tickets-submit" class="cta-btn tickets-buy-btn" disabled>

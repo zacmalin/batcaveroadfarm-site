@@ -31,6 +31,7 @@
                   <li><a href="#use">Using the website</a></li>
                   <li><a href="#ip">Our content</a></li>
                   <li><a href="#products">Products &amp; pricing</a></li>
+                  <li><a href="#purchases">Tickets, passes &amp; bookings</a></li>
                   <li><a href="#visits">Farm visits &amp; the petting zoo</a></li>
                   <li><a href="#risk">Assumption of risk</a></li>
                   <li><a href="#disclaimer">Disclaimers</a></li>
@@ -60,6 +61,18 @@
                 Descriptions, prices, and availability shown on the Site may change at any time and may not
                 always reflect current in-person stock. Thrift and second-hand goods are sold <strong>as is</strong>.
                 Nothing on the Site is a guarantee that a particular item is in stock.</p>
+
+              <h2 id="purchases">Tickets, passes &amp; bookings</h2>
+              <p>Online payments are processed securely by Stripe.</p>
+              <ul>
+                <li><strong>Online admission tickets</strong> are non-refundable. A ticket is good for any day we're
+                  open — not only the date you pick — including days when a private event is booked.</li>
+                <li><strong>Annual passes</strong> are non-refundable.</li>
+                <li><strong>Group and party bookings</strong> get a full refund if you cancel at least 30 days before
+                  your booked date. Cancellations made less than 30 days before the date are not refunded.</li>
+                <li><strong>Weather:</strong> we're open rain or shine. If the weather looks bad on the day of your
+                  booking, you may reschedule to a day within two weeks after your booked date.</li>
+              </ul>
 
               <h2 id="visits">Farm visits &amp; the petting zoo</h2>
               <p>A working farm is a hands-on environment with live animals, uneven ground, equipment, and the

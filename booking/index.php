@@ -137,6 +137,7 @@
         <label for="message">Anything else? <span class="opt">(event details, questions)</span></label>
         <textarea id="message" name="message" maxlength="2000"></textarea>
 
+        <p class="purchase-policy"><strong>Refunds:</strong> full refund if you cancel at least 30 days before your date. <strong>Weather:</strong> we're open rain or shine; if the weather looks bad, you can reschedule to a day within two weeks after your booked date. <a href="https://batcaveroadfarm.com/terms/#purchases">Full policy</a></p>
         <?php require_once __DIR__ . '/../includes/nc_warning.php'; echo bcrf_nc_warning_html(true); ?>
         <button class="booking-submit" type="submit">Request Booking</button>
     </form>
