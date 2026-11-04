@@ -3,7 +3,8 @@
 // Ensure a DB handle (and session) exist so the seasonal theme resolves on EVERY page,
 // including static pages (gallery, about, faq, legal) that don't open the DB themselves.
 require_once __DIR__ . '/../config.php';
-// Single source of truth for cache-busting. Bump this date on ANY css/js change.
+// Asset ?v= values are now automatic (bcrf_asset_v() in config.php, file modified time).
+// BCRF_ASSET_V is only the fallback for a file that can't be found — no need to bump it.
 if (!defined('BCRF_ASSET_V')) define('BCRF_ASSET_V', '20261103c');
 // Default canonical to the CURRENT request path (not the homepage) when a
 // page hasn't set one, and let pages that use \$pageDescription still work.
@@ -27,7 +28,7 @@ $bcrfThemeGlyph = $bcrfTheme !== '' ? bcrf_theme_glyph($bcrfTheme) : '';
         <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-DLB6LEFWQZ"></script>
 <!-- Fix pack M: one combined file replaces min.gtag/nav/app/hours/subscribe/analytics/theme.js (built by tools/build-js.mjs) -->
-<script defer src="https://batcaveroadfarm.com/js/min.site.js?v=<?= BCRF_ASSET_V ?>"></script>
+<script defer src="https://batcaveroadfarm.com/js/min.site.js?v=<?= bcrf_asset_v('/js/min.site.js') ?>"></script>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <?php if (!empty($preloadImage)): ?><link rel="preload" as="image" href="<?php echo htmlspecialchars($preloadImage); ?>" fetchpriority="high"><?php endif; ?>
@@ -36,11 +37,11 @@ $bcrfThemeGlyph = $bcrfTheme !== '' ? bcrf_theme_glyph($bcrfTheme) : '';
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Lora:ital,wght@0,400;0,600;1,400&family=Playfair+Display:wght@700&family=Rye&display=swap" rel="stylesheet">
 
-        <link rel="stylesheet" href="https://batcaveroadfarm.com/css/min.style.css?v=<?= BCRF_ASSET_V ?>">
-        <link rel="stylesheet" href="https://batcaveroadfarm.com/css/min.print.css?v=<?= BCRF_ASSET_V ?>" media="print">
+        <link rel="stylesheet" href="https://batcaveroadfarm.com/css/min.style.css?v=<?= bcrf_asset_v('/css/min.style.css') ?>">
+        <link rel="stylesheet" href="https://batcaveroadfarm.com/css/min.print.css?v=<?= bcrf_asset_v('/css/min.print.css') ?>" media="print">
       
         <?php if (isset($pageCSS)): foreach ((array)$pageCSS as $__pcss): ?>
-    		<link rel="stylesheet" href="<?php echo $__pcss; ?>?v=<?= BCRF_ASSET_V ?>">
+    		<link rel="stylesheet" href="<?php echo $__pcss; ?>?v=<?= bcrf_asset_v((string)$__pcss) ?>">
 	<?php endforeach; endif; ?>
         <meta name="description" content="<?php echo isset($metaDesc) ? htmlspecialchars($metaDesc) : 'Bat Cave Road Farm in Old Fort, NC — family-owned petting zoo with goats, donkeys & more. Seasonal farmstand, and on-farm thrift shop. Open Tue–Sun 10AM–4PM.'; ?>">
         <meta name="author" content="Bat Cave Road Farm">

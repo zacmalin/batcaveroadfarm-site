@@ -39,6 +39,17 @@ jobs:
           echo "Checked $n PHP files"
           exit $fail
 
+      - name: SQL misuse guard (audit Nov 2026)
+        run: |
+          fail=0
+          # execute() returns bool: "(int)$pdo->prepare(...)->execute(...)" is always 1 (caused the pass-type key bug)
+          if grep -rnE --include='*.php' -e '\(int\)[[:space:]]*\$[A-Za-z_]+->prepare\(.*\)->execute\(' . ; then
+            echo "::error::Use \$st = \$pdo->prepare(...); \$st->execute([...]); \$st->fetchColumn() — execute() returns true/false, not the result."; fail=1; fi
+          # Request data must never be pasted into SQL text
+          if grep -rnE --include='*.php' -e '->(query|exec|prepare)\("[^"]*\$_(GET|POST|REQUEST|COOKIE)' . ; then
+            echo "::error::Request data is interpolated into SQL — use a prepared statement with ? placeholders."; fail=1; fi
+          exit $fail
+
       - name: Set up Node
         uses: actions/setup-node@v5
         with:

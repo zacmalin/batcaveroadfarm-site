@@ -52,7 +52,7 @@
                     $__logoWebp = bcrf_webp_src('/img/logo.png');
                     if ($__logoWebp): ?>
                     <picture style="display:contents">
-                        <source srcset="https://batcaveroadfarm.com<?= htmlspecialchars($__logoWebp, ENT_QUOTES) ?>?v=<?= defined('BCRF_ASSET_V') ? BCRF_ASSET_V : '1' ?>" type="image/webp">
+                        <source srcset="https://batcaveroadfarm.com<?= htmlspecialchars($__logoWebp, ENT_QUOTES) ?>?v=<?= bcrf_asset_v((string)$__logoWebp) ?>" type="image/webp">
                         <img src="https://batcaveroadfarm.com/img/logo.png" alt="Bat Cave Road Farm — home" width="400" height="299" decoding="async">
                     </picture>
 <?php else: ?>

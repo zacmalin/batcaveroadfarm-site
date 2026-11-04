@@ -90,7 +90,7 @@
 	 if (isset($pageJS)):
 	   foreach ((array)$pageJS as $__pjs):
 ?>
-    <script defer src="<?php echo $__pjs; ?>?v=<?= BCRF_ASSET_V ?>"></script>
+    <script defer src="<?php echo $__pjs; ?>?v=<?= bcrf_asset_v((string)$__pjs) ?>"></script>
 <?php
 	   endforeach;
 	endif; 

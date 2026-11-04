@@ -161,6 +161,20 @@ function createSlug($string) {
     return empty($string) ? 'n-a' : $string;
 }
 
+// Automatic asset versions (audit housekeeping, Nov 2026).
+// Returns the file's last-modified time for a site CSS/JS/image URL, so uploading a
+// changed file changes its ?v= and browsers/Cloudflare fetch the new copy — no manual
+// BCRF_ASSET_V bump. Falls back to BCRF_ASSET_V (or '1') if the file isn't found.
+function bcrf_asset_v(string $url): string {
+    static $cache = [];
+    if (isset($cache[$url])) return $cache[$url];
+    $path = (string)parse_url($url, PHP_URL_PATH);
+    $file = __DIR__ . '/' . ltrim($path, '/');
+    $v = ($path !== '' && strpos($path, '..') === false && is_file($file)) ? (string)filemtime($file) : '';
+    if ($v === '') $v = defined('BCRF_ASSET_V') ? (string)BCRF_ASSET_V : '1';
+    return $cache[$url] = $v;
+}
+
 // 2. Grammatical Quantity Evaluation Filter
 function formatIngredientName($quantity, $singular, $plural) {
     if ((float)$quantity <= 1.00) {

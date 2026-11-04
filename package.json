@@ -1,15 +1,13 @@
 {
-  "name": " ",
+  "name": "batcaveroadfarm-site",
   "version": "0.0.1",
-  "description": "",
+  "description": "Bat Cave Road Farm website (PHP/MySQL) \u2014 build tools only",
   "private": true,
-  "keywords": [
-    ""
-  ],
-  "license": "",
+  "keywords": [],
+  "license": "UNLICENSED",
   "author": "",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node tools/build-js.mjs && node --check js/min.site.js && git diff --exit-code -- js/min.site.js",
     "start": "webpack serve --open --config webpack.config.dev.js",
     "build": "webpack --config webpack.config.prod.js"
   },

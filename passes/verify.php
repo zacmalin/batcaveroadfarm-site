@@ -46,7 +46,7 @@ $logCsrf = $_SESSION['pass_log_csrf'] ?? ($_SESSION['pass_log_csrf'] = bin2hex(r
 <meta name="robots" content="noindex">
 <title>Pass Verification — Bat Cave Road Farm</title>
 <link href="https://fonts.googleapis.com/css2?family=Rye&family=Lora:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://batcaveroadfarm.com/css/min.passes.css?v=<?= defined('BCRF_ASSET_V') ? BCRF_ASSET_V : '1' ?>">
+<link rel="stylesheet" href="https://batcaveroadfarm.com/css/min.passes.css?v=<?= bcrf_asset_v('/css/min.passes.css') ?>">
 </head><body style="background:#f5ead6;margin:0;padding:16px">
 
 <div class="verify-wrap">
