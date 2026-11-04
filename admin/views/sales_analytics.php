@@ -1,7 +1,10 @@
 <?php
 // views/sales_analytics.php — POS Sales Analytics Dashboard
 
-if (!in_array($current_role, ['administrator', 'manager'])) {
+// Audit #3 (Nov 2026): the old hard-coded ['administrator','manager'] list named a role that doesn't
+// exist, so a Shopkeep granted Sales Analytics in the Permissions Matrix was still refused.
+// admin.php's view gate already applies the matrix; this is a second, matrix-based check.
+if (!hasViewAccess($current_role, 'sales_analytics')) {
     echo "<p class='p-6 text-red-700 font-mono text-xs'>Access denied.</p>"; return;
 }
 

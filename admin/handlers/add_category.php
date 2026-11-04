@@ -28,6 +28,8 @@ $allowed_roles = ['administrator', 'moderator', 'Shopkeep'];
 if (!in_array($_SESSION['user_role'], $allowed_roles)) {
     json_exit(false, 'Insufficient permissions.', [], 403);
 }
+require_once __DIR__ . '/../includes/permission_checks.php';   // audit #8: same Permissions Matrix rules as the console
+require_permission([['table', 'categories', 'edit'], ['table', 'blog_categories', 'edit']], true);
 
 date_default_timezone_set('America/New_York');
 

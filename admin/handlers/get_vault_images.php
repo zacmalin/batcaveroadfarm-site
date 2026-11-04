@@ -14,6 +14,8 @@ function jx(bool $ok, string $msg, array $extra = []): void {
 require_once '../../config.php';
 // Staff only — public customer accounts also have user_id, so check the role.
 if (empty($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['administrator', 'moderator', 'Shopkeep', 'Media'], true)) jx(false, 'Not authenticated.');
+require_once __DIR__ . '/../includes/permission_checks.php';   // audit #8: same Permissions Matrix rules as the console
+require_permission([['view', 'media'], ['view', 'site_info']], true);   // vault picker: Image Library + Site Info
 
 $folder_filter = trim($_GET['folder'] ?? '');
 $site_base     = 'https://batcaveroadfarm.com';

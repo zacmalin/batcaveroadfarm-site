@@ -2,6 +2,9 @@
 // admin/pos.php - Resilient Dedicated Touchscreen Register Interface Console
 require_once '../config.php';
 check_admin();
+require_once __DIR__ . '/includes/permission_checks.php';   // audit #8: same Permissions Matrix rules as the console
+if (($_SESSION['user_role'] ?? '') === 'Media') { http_response_code(403); exit('Media accounts cannot use the register.'); }
+require_permission([['view', 'pos']]);
 require_once __DIR__ . '/includes/audit.php';
 date_default_timezone_set('America/New_York');
 

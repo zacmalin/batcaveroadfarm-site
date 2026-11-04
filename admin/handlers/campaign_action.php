@@ -26,6 +26,8 @@ if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', 
 
 // ── RESPONSE MODE ────────────────────────────────────────────────────────────
 $is_ajax = !empty($_POST['ajax']);
+require_once __DIR__ . '/../includes/permission_checks.php';   // audit #8: same Permissions Matrix rules as the console
+require_permission([['view', 'newsletter']], $is_ajax);
 
 function ajax_exit(bool $ok, string $message): never {
     ob_end_clean();

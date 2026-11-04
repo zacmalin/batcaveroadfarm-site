@@ -56,6 +56,10 @@ $system_tables = [
     'recipe_ratings', 'recipe_comments',
     'inventory_categories', 'blog_categories', 'cuisines',
 ];
+// Audit (Nov 2026): ?table= goes into SQL in data/loader.php, so only allow-listed names get through.
+if ($target_table !== '' && !in_array($target_table, $system_tables, true)) {
+    $target_table = '';
+}
 
 // ── SAFE INCLUDE HELPER ───────────────────────────────────────────────────────
 // NOTE: This is NOT a function on purpose. Using a function would create a new
@@ -74,6 +78,22 @@ try {
 } catch (Throwable $e) {
     error_log('[ERP] Permissions include failed: ' . $e->getMessage());
     die("<div class='p-4 text-red-700 font-mono text-xs'>Permissions system unavailable.</div>");
+}
+
+// ── GLOBAL CSRF GATE (audit #6, Nov 2026) ────────────────────────────────────
+// Every console form already carries csrf_token; check it once here for every POST
+// instead of relying on each handler (several had no check).
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $__tok = (string)($_POST['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''));
+    if ($__tok === '' || empty($_SESSION['csrf_token']) || !hash_equals((string)$_SESSION['csrf_token'], $__tok)) {
+        error_log('[ERP] Blocked POST with missing/invalid CSRF token (role ' . $current_role . ', view ' . $target_view . ')');
+        $_SESSION['toast_msg']  = 'Security token expired — please reload the page and try again.';
+        $_SESSION['toast_type'] = 'error';
+        header('Location: /admin/admin.php?view=' . urlencode($current_role === 'Staff' ? 'timecard' : $target_view)
+             . ($target_table !== '' ? '&table=' . urlencode($target_table) : ''));
+        exit;
+    }
+    unset($__tok);
 }
 
 // ── POST PERMISSION GATE (Jobs pack P1) ──────────────────────────────────────

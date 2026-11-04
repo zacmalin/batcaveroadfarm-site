@@ -7,6 +7,8 @@ require_once '../config.php';
 if (session_status() !== PHP_SESSION_ACTIVE) session_start();   // config.php usually started it already (fix pack O)
 // Staff only — public customer accounts also have user_id, so check the role.
 if (empty($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['administrator', 'moderator', 'Shopkeep', 'Media'], true)) { http_response_code(403); exit('Access denied.'); }
+require_once __DIR__ . '/includes/permission_checks.php';   // audit #8: same Permissions Matrix rules as the console
+require_permission([['view', 'inventory_update'], ['view', 'pos']]);
 date_default_timezone_set('America/New_York');
 
 $item_id   = filter_input(INPUT_GET, 'item_id',   FILTER_VALIDATE_INT);

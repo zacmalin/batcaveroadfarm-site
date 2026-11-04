@@ -9,6 +9,8 @@ if (session_status() !== PHP_SESSION_ACTIVE) session_start();   // config.php us
 if (empty($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['administrator', 'moderator', 'Shopkeep', 'Media'], true)) {
     http_response_code(403); exit('Access denied.');
 }
+require_once __DIR__ . '/../includes/permission_checks.php';   // audit #8: same Permissions Matrix rules as the console
+require_permission([['view', 'newsletter']]);
 
 date_default_timezone_set('America/New_York');
 

@@ -19,6 +19,8 @@ if (empty($_SESSION['user_id'])) jx(false, 'Not authenticated.', [], 401);
 if (!in_array($_SESSION['user_role'] ?? '', ['administrator', 'moderator', 'Shopkeep', 'Media'], true)) {
     jx(false, 'Staff only.', [], 403);
 }
+require_once __DIR__ . '/../includes/permission_checks.php';   // audit #8: same Permissions Matrix rules as the console
+require_permission([['view', 'media'], ['view', 'site_info']], true);   // vault picker: Image Library + Site Info
 require_once __DIR__ . '/../includes/audit.php';   // fix pack O: audit log
 
 $csrf = $_POST['csrf_token'] ?? '';

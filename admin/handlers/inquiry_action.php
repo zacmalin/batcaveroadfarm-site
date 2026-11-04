@@ -1,4 +1,6 @@
 <?php
+// Included by admin/admin.php only (which checks login, CSRF and permissions first).
+if (!isset($pdo, $current_role)) { http_response_code(404); exit; }
 require_once __DIR__ . '/../includes/audit.php';
 // admin/handlers/inquiry_action.php — handles private event inquiry admin actions.
 $action  = trim((string)($_POST['inquiry_action'] ?? ''));

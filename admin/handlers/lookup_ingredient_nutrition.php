@@ -11,6 +11,8 @@ ob_end_clean();
 
 check_admin();
 header('Content-Type: application/json');
+require_once __DIR__ . '/../includes/permission_checks.php';   // audit #8: same Permissions Matrix rules as the console
+require_permission([['table', 'ingredients', 'edit']], true);
 
 function ujson(bool $ok, string $msg, array $extra = []): void {
     echo json_encode(array_merge(['success' => $ok, 'message' => $msg], $extra));

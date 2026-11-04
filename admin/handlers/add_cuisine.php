@@ -2,6 +2,8 @@
 require_once '../../config.php';
 require_once __DIR__ . '/../includes/audit.php';   // fix pack O: audit log
 check_admin();
+require_once __DIR__ . '/../includes/permission_checks.php';   // audit #8: same Permissions Matrix rules as the console
+require_permission([['table', 'cuisines', 'edit']], true);
 
 header('Content-Type: application/json');
 
