@@ -32,6 +32,7 @@ $badge = function (string $s): string {
     <h1 class="text-lg font-serif font-black text-stone-800">📣 Social Share Queue</h1>
     <span class="text-[10px] font-mono text-stone-400 uppercase tracking-widest">Facebook &amp; Instagram</span>
   </div>
+  <?php $sh_always = true; include __DIR__ . '/layout/social_health_banner.php'; ?>
 
   <?php if (!$social_ready): ?>
     <div class="bg-amber-50 border border-amber-200 rounded p-4 text-sm text-amber-800">

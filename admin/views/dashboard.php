@@ -37,6 +37,7 @@ $cal_next  = (clone $cal_first)->modify('+1 month')->format('Y-m');
 $cal_today = date('Y-m-d');
 ?>
 <h1 class="text-3xl font-serif font-bold mb-6">Operational Summary</h1>
+<?php if (($current_role ?? '') === 'administrator' || (function_exists('hasViewAccess') && hasViewAccess($current_role ?? '', 'social'))) { $sh_always = false; include __DIR__ . '/layout/social_health_banner.php'; } ?>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
