@@ -67,6 +67,7 @@ $bcrfThemeGlyph = $bcrfTheme !== '' ? bcrf_theme_glyph($bcrfTheme) : '';
         <?php endif; ?>
         <meta property="og:image:alt"   content="<?php echo isset($ogImageAlt) && $ogImageAlt !== '' ? htmlspecialchars($ogImageAlt) : 'Bat Cave Road Farm — Petting Zoo, Farmstand, and Thrift Shop in Old Fort, NC'; ?>">
         <meta property="og:locale"      content="en_US">
+        <meta property="fb:app_id"      content="4401281856803313"><!-- BCRF Meta app (same ID as the auto-share pipeline); public, not a secret -->
         
         <!-- Twitter / X Card -->
         <meta name="twitter:card"        content="summary_large_image">
