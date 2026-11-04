@@ -60,6 +60,22 @@ function images_session_start_secure() {
     session_start();
 }
 
+// PHP error log (Nov 2026): Bluehost didn't give the site a readable error log, so errors and
+// error_log() messages vanished into the web server's own log. Write them to a file in the home
+// folder (outside the website) instead; Admin → System Health reads it. Rotated at 5 MB by cron
+// runs (one old copy kept as .1).
+if (!defined('BCRF_PHP_ERROR_LOG')) {
+    define('BCRF_PHP_ERROR_LOG', getenv('BCRF_PHP_ERROR_LOG') ?: (dirname(__DIR__, 2) . '/logs/php_errors.log'));
+}
+if (is_dir(dirname(BCRF_PHP_ERROR_LOG)) && is_writable(dirname(BCRF_PHP_ERROR_LOG))) {
+    @ini_set('log_errors', '1');
+    @ini_set('display_errors', '0');
+    @ini_set('error_log', BCRF_PHP_ERROR_LOG);
+    if (PHP_SAPI === 'cli' && @filesize(BCRF_PHP_ERROR_LOG) > 5 * 1048576) {
+        @rename(BCRF_PHP_ERROR_LOG, BCRF_PHP_ERROR_LOG . '.1');
+    }
+}
+
 // Credentials are loaded from the environment first, then from a secrets file
 // kept OUTSIDE the web root (see bcrf-secrets.php). No live secret is committed
 // to a file inside public_html anymore. If neither source is present the PDO

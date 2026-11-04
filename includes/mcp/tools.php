@@ -166,6 +166,10 @@ function mcp_tools(): array {
             'path' => ['type' => 'string'], 'content' => ['type' => 'string'], 'content_base64' => ['type' => 'string'],
             'expected_sha256' => ['type' => 'string', 'description' => 'Optional: sha256 from read_file; refuses to save if the file changed since'],
             'create' => ['type' => 'boolean', 'description' => 'Allow creating a new file']], 'required' => ['path']], $WD, 'mcp_t_write_file'],
+    'read_error_log' => [
+        'The newest lines of the PHP error log (~/logs/php_errors.log, outside the website). Read-only. Use to diagnose problems; Admin → System Health shows the same errors grouped.',
+        ['type' => 'object', 'properties' => ['lines' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 1000, 'description' => 'How many lines from the end (default 200)'],
+            'contains' => ['type' => 'string', 'description' => 'Only lines containing this text']]], $RO, 'mcp_t_error_log'],
     'list_file_backups' => [
         'Backups made by write_file (newest first), optionally for one path.',
         ['type' => 'object', 'properties' => ['path' => ['type' => 'string'], 'limit' => $lim]], $RO, 'mcp_t_list_backups'],
@@ -469,6 +473,25 @@ function mcp_t_inquiry_status(PDO $pdo, array $a): array {
     $lbl = function_exists('erp_row_label') ? erp_row_label($pdo, 'event_inquiries', $id) : 'Inquiry #' . $id;
     mcp_audit($pdo, 'update', 'event_inquiries', $id, $lbl . ' - status ' . $to);
     return ['id' => $id, 'old_status' => $old, 'new_status' => $to];
+}
+
+function mcp_t_error_log(PDO $pdo, array $a): array {
+    $f = (string)ini_get('error_log');
+    if ($f === '' || !is_file($f)) return ['file' => $f ?: null, 'lines' => [], 'note' => 'No error log file yet (nothing logged since it was set up).'];
+    $n = max(1, min(1000, (int)($a['lines'] ?? 200)));
+    $size = (int)filesize($f);
+    $fh = fopen($f, 'r');
+    if ($size > 3000000) fseek($fh, $size - 3000000);
+    $buf = [];
+    $needle = (string)($a['contains'] ?? '');
+    while (($line = fgets($fh)) !== false) {
+        if ($needle !== '' && stripos($line, $needle) === false) continue;
+        $buf[] = rtrim($line);
+        if (count($buf) > $n) array_shift($buf);
+    }
+    fclose($fh);
+    $root = dirname(__DIR__, 2) . '/';
+    return ['file' => '~/logs/' . basename($f), 'size' => $size, 'lines' => array_map(fn($l) => str_replace($root, '', $l), $buf)];
 }
 
 // ── Dispatch ─────────────────────────────────────────────────────────────────

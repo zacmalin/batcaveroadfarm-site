@@ -24,8 +24,10 @@ $it = new RecursiveIteratorIterator(
     RecursiveIteratorIterator::SELF_FIRST);
 $it->setMaxDepth(4);
 foreach ($it as $f) if ($f->isFile() && $f->getFilename() === 'error_log') $logFiles[] = $f->getPathname();
-$ini = (string)ini_get('error_log');
-if ($ini !== '' && is_file($ini) && !in_array(realpath($ini), array_map('realpath', $logFiles), true)) $logFiles[] = $ini;
+$ini = (string)ini_get('error_log');   // config.php points this at ~/logs/php_errors.log
+foreach ([$ini . '.1', $ini] as $lf) {
+    if ($ini !== '' && is_file($lf) && !in_array(realpath($lf), array_map('realpath', $logFiles), true)) $logFiles[] = $lf;
+}
 
 $cut = time() - $days * 86400;
 $groups = []; $total = 0;
@@ -39,11 +41,12 @@ foreach ($logFiles as $lf) {
         $ts = strtotime(preg_replace('/\s+[A-Za-z_]+\/[A-Za-z_\/]+$/', '', $m[1])) ?: 0;
         if ($ts < $cut) continue;
         $msg = str_replace($root . '/', '', $m[2]);
+        $msg = preg_replace('/^PHP\s+/', '', $msg);
         // group on the message with ids/numbers/quoted values blanked out
         $key = preg_replace(['/\b\d+\b/', "/'[^']{0,80}'/", '/"[^"]{0,80}"/'], ['#', "'…'", '"…"'], $msg);
         $key = preg_replace('/ on line #$/', '', $key);
         $g = &$groups[md5($key)];
-        if (!$g) $g = ['msg' => $msg, 'count' => 0, 'first' => $ts, 'last' => $ts, 'file' => str_replace($root . '/', '', $lf)];
+        if (!$g) $g = ['msg' => $msg, 'count' => 0, 'first' => $ts, 'last' => $ts, 'file' => str_replace([$root . '/', dirname($root, 2) . '/'], ['', '~/'], $lf)];
         $g['count']++; $g['last'] = max($g['last'], $ts); $g['first'] = min($g['first'], $ts); $g['msg'] = $msg;
         unset($g);
         $total++;
