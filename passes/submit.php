@@ -40,7 +40,9 @@ if (!$pt) _pass_bail('type');
 // Check founding member availability
 if ($pt['is_founding'] && $pt['founding_qty_limit']) {
     try {
-        $sold = (int)$pdo->query("SELECT COUNT(*) FROM passes WHERE pass_type_id={$typeId} AND status != 'cancelled'")->fetchColumn();
+        $st = $pdo->prepare("SELECT COUNT(*) FROM passes WHERE pass_type_id = ? AND status != 'cancelled'");   // audit #2
+        $st->execute([(int)$typeId]);
+        $sold = (int)$st->fetchColumn();
         if ($sold >= (int)$pt['founding_qty_limit']) _pass_bail('sold_out');
     } catch (Throwable $e) { /* allow through if can't check */ }
 }

@@ -23,8 +23,10 @@ $foundingLeft = null;
 foreach ($passTypes as $pt) {
     if ($pt['is_founding'] && $pt['founding_qty_limit']) {
         try {
-            $sold = (int)$pdo->prepare("SELECT COUNT(*) FROM passes WHERE pass_type_id=? AND status != 'cancelled'")
-                             ->execute([$pt['id']]) ? $pdo->query("SELECT COUNT(*) FROM passes WHERE pass_type_id={$pt['id']} AND status != 'cancelled'")->fetchColumn() : 0;
+            // Audit #2: one prepared count (was a discarded prepare + an interpolated duplicate query)
+            $st = $pdo->prepare("SELECT COUNT(*) FROM passes WHERE pass_type_id = ? AND status != 'cancelled'");
+            $st->execute([(int)$pt['id']]);
+            $sold = (int)$st->fetchColumn();
             $foundingLeft = max(0, (int)$pt['founding_qty_limit'] - $sold);
         } catch (Throwable $e) { $foundingLeft = null; }
     }

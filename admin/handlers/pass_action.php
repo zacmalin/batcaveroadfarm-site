@@ -1,4 +1,6 @@
 <?php
+// Included by admin/admin.php only (which checks login, CSRF and permissions first).
+if (!isset($pdo, $current_role)) { http_response_code(404); exit; }
 // admin/handlers/pass_action.php — admin pass management actions.
 require_once dirname(__DIR__, 2) . '/admin/includes/email_template.php';
 require_once __DIR__ . '/../includes/audit.php';
@@ -43,8 +45,12 @@ if ($action === 'save_type') {
         $key = strtolower(preg_replace('/[^a-z0-9]+/i', '_', $label));
         $key = trim($key, '_');
         // Deduplicate if needed
-        $existing = (int)$pdo->prepare("SELECT COUNT(*) FROM pass_types WHERE type_key=?")->execute([$key]) ? (int)$pdo->query("SELECT COUNT(*) FROM pass_types WHERE type_key='$key'")->fetchColumn() : 0;
-        if ($existing) $key .= '_' . time();
+        if ($key === '') $key = 'pass';
+        // Audit #1 (Nov 2026): execute() returns bool, so the old (int)…->execute() was always 1 and every
+        // new key got _<time> appended; the follow-up query also interpolated $key into SQL. One prepared count.
+        $st = $pdo->prepare("SELECT COUNT(*) FROM pass_types WHERE type_key = ?");
+        $st->execute([$key]);
+        if ((int)$st->fetchColumn() > 0) $key .= '_' . time();
         $pdo->prepare("INSERT INTO pass_types (type_key,label,tagline,price,duration_months,max_guests,perks,is_founding,founding_qty_limit,sort_order,is_active)
                        VALUES (?,?,?,?,?,?,?,?,?,?,?)")
             ->execute([$key,$label,$tagline,$price,$months,$guests,$perksJson,$founding,$limit,$sort,$active]);
