@@ -3,11 +3,11 @@ ob_start(); // Buffer any accidental output — prevents "headers already sent" 
 
 require_once '../config.php';
 
-// Already logged in? Skip the form — staff to the console, anyone else to the site.
-if (!empty($_SESSION['user_id'])) {
-    $r = $_SESSION['user_role'] ?? 'user';
-    $staff = in_array($r, ['administrator', 'moderator', 'Shopkeep', 'Media', 'Staff'], true);
-    header('Location: ' . ($staff ? ($r === 'Staff' ? '/admin/admin.php?view=timecard' : '/admin/admin.php') : '/'));
+// Already signed in as staff? Skip the form. (A customer session, including staff who signed in on the
+// public site, sees the form: the console needs a staff sign-in, with two-step when it's on.)
+require_once __DIR__ . '/../includes/staff_auth.php';   // two-step sign-in (Farm OS Phase 0)
+if (!empty($_SESSION['user_id']) && in_array($_SESSION['user_role'] ?? '', ['administrator', 'moderator', 'Shopkeep', 'Media', 'Staff'], true)) {
+    header('Location: ' . (($_SESSION['user_role'] ?? '') === 'Staff' ? '/admin/admin.php?view=timecard' : '/admin/admin.php'));
     exit;
 }
 
@@ -67,22 +67,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 bcrf_rl_clear('staff_ip', $ip);
                 bcrf_rl_clear('staff_email', $emailKey);
 
-                // Regenerate session ID to prevent session fixation
-                session_regenerate_id(true);
-
-                $_SESSION['user_id']    = $user['id'];
-                $_SESSION['user_role']  = $user['role'];
-                $_SESSION['user_name']  = $user['first_name'];
-                $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-
-                erp_audit_security($pdo, 'login', $email, (int)$user['id'], (string)$user['first_name']);
-
-                ob_end_clean(); // Discard buffer before redirect
-
                 // All staff roles use the console; the permission matrix
                 // governs which modules each role can open inside it.
                 $dest = $user['role'] === 'Staff' ? '/admin/admin.php?view=timecard' : '/admin/admin.php';
 
+                // Two-step sign-in (includes/staff_auth.php): hold the sign-in until the code is entered,
+                // or until it's set up when it's required. Nothing in the session counts as signed in yet.
+                $mfa = bcrf_mfa_needed($pdo, $user);
+                if ($mfa !== '') {
+                    bcrf_staff_session_pend($user, $mfa, $dest);
+                    ob_end_clean();
+                    header('Location: /admin/two_step.php');
+                    exit;
+                }
+
+                // Regenerate session ID to prevent session fixation (and mark two-step as not needed)
+                bcrf_staff_session_start($user);
+
+                erp_audit_security($pdo, 'login', $email, (int)$user['id'], (string)$user['first_name']);
+
+                ob_end_clean(); // Discard buffer before redirect
                 header('Location: ' . $dest);
                 exit;
 

@@ -36,6 +36,17 @@ if (!function_exists('is_logged_in')) {
         session_regenerate_id(true);
         $_SESSION['user_id']    = (int)$user['id'];
         $_SESSION['user_role']  = $user['role'] ?? 'user';
+        // Staff who need two-step sign-in get a customer session here; the console asks them to sign in
+        // at /admin/login.php with their code (includes/staff_auth.php, Farm OS Phase 0).
+        unset($_SESSION['mfa_ok'], $_SESSION['mfa_pending']);
+        if (is_staff_role($_SESSION['user_role'])) {
+            global $pdo;
+            $sa = dirname(__DIR__) . '/includes/staff_auth.php';
+            if (is_file($sa)) require_once $sa;
+            try {
+                if ($pdo instanceof PDO && function_exists('bcrf_mfa_needed') && bcrf_mfa_needed($pdo, $user) !== '') $_SESSION['user_role'] = 'user';
+            } catch (Throwable $e) { $_SESSION['user_role'] = 'user'; }   // can't check: no console access from here
+        }
         $_SESSION['user_name']  = trim((string)($user['first_name'] ?? '') . ' ' . (string)($user['last_name'] ?? ''));
         $_SESSION['email_verified'] = !empty($user['email_verified_at'] ?? null);
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));

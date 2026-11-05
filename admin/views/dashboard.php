@@ -50,6 +50,35 @@ if ($isAdmin) {
                   'actions' => [['Open System Health', '/admin/system_health.php', true]]]);
         }
     } catch (Throwable $e) { /* cron health not installed */ }
+    // Background jobs that gave up after their retries (includes/queue.php, Farm OS Phase 0)
+    try {
+        require_once dirname(__DIR__, 2) . '/includes/queue.php';
+        $qd = bcrf_queue_ready($pdo) ? (int)$pdo->query("SELECT COUNT(*) FROM queue_jobs WHERE status = 'dead'")->fetchColumn() : 0;
+        if ($qd) {
+            $add(['id' => 'queue', 'priority' => 'today', 'icon' => '🔁',
+                  'title' => $qd . ' background job' . ($qd === 1 ? '' : 's') . ' gave up after retrying',
+                  'items' => ['Retry or discard on System Health (the error is shown there).'], 'count' => $qd,
+                  'actions' => [['Open System Health', '/admin/system_health.php#runner', true]]]);
+        }
+    } catch (Throwable $e) {}
+    // Two-step sign-in not set up (includes/staff_auth.php, Farm OS Phase 0)
+    try {
+        require_once dirname(__DIR__, 2) . '/includes/staff_auth.php';
+        if (bcrf_mfa_ready($pdo)) {
+            $mine = bcrf_mfa_row($pdo, (int)($_SESSION['user_id'] ?? 0));
+            $adminsOff = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'administrator' AND account_status <> 'disabled' AND totp_enabled_at IS NULL")->fetchColumn();
+            if ($mine && empty($mine['totp_enabled_at'])) {
+                $add(['id' => 'mfa', 'priority' => 'today', 'icon' => '🔐', 'title' => 'Turn on two-step sign-in',
+                      'items' => ['A code from an authenticator app on your phone, after your password. Takes about a minute.'],
+                      'actions' => [['Set it up', '/admin/two_step.php', true]]]);
+            } elseif (!bcrf_mfa_required_admin($pdo)) {
+                $add(['id' => 'mfa', 'priority' => 'fyi', 'icon' => '🔐',
+                      'title' => $adminsOff ? $adminsOff . ' administrator' . ($adminsOff === 1 ? ' hasn\'t' : 's haven\'t') . ' set up two-step sign-in' : 'Every administrator has two-step sign-in: you can make it required',
+                      'items' => [$adminsOff ? 'Once everyone has, turn on "Require for administrators".' : 'Two-step sign-in › Require for administrators.'], 'count' => $adminsOff,
+                      'actions' => [['Two-step sign-in', '/admin/two_step.php', true]]]);
+            }
+        }
+    } catch (Throwable $e) {}
 }
 
 // Facebook & Instagram posting (was social_health_banner)
