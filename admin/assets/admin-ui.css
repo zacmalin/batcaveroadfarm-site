@@ -1,0 +1,61 @@
+/* admin/assets/admin-ui.css
+   Shared UI kit — 02 Navigation & UX (Nov 5, 2026). Plain CSS for the bits Tailwind classes can't express. */
+
+/* Status chip (colors come from ui_chip() in admin/views/layout/ui.php) */
+.ui-chip{display:inline-flex;align-items:center;gap:.25rem;padding:.1rem .5rem;border-radius:999px;font-size:10px;font-weight:700;line-height:1.5;white-space:nowrap;vertical-align:middle}
+
+/* ── Tables that become cards on phones ────────────────────────────────────
+   <table class="ui-cards">  — each row turns into a card under 768px.
+   Cells get their header text as a small label (admin-ui.js fills data-label from <thead>).
+   Optional per-cell roles (data-cell):
+     media  — image/icon, stays small on the left
+     title  — main line, takes the rest of the first row, no label
+     wide   — wider cell (e.g. an input)
+     full   — full width
+     actions— buttons, full width, right-aligned
+     hide   — hidden on phones                                                         */
+@media (max-width:767.98px){
+    table.ui-cards, table.ui-cards > tbody{display:block;width:100%}
+    table.ui-cards > thead{display:none}
+    table.ui-cards > tbody > tr{display:flex;flex-wrap:wrap;align-items:flex-start;gap:.5rem .75rem;padding:.85rem .75rem}
+    table.ui-cards > tbody > tr + tr{border-top:1px solid #e7e5e4}
+    table.ui-cards > tbody > tr > td{display:block;flex:1 1 20%;min-width:0;padding:0 !important;text-align:left !important;border:0 !important}
+    table.ui-cards > tbody > tr > td[data-label]:not([data-label=""])::before{
+        content:attr(data-label);display:block;margin-bottom:.15rem;
+        font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#a8a29e}
+    table.ui-cards > tbody > tr > td[data-cell="media"]{flex:0 0 auto}
+    table.ui-cards > tbody > tr > td[data-cell="media"]::before,
+    table.ui-cards > tbody > tr > td[data-cell="title"]::before,
+    table.ui-cards > tbody > tr > td[data-cell="actions"]::before{display:none !important}
+    table.ui-cards > tbody > tr > td[data-cell="title"]{flex:1 1 60%;font-size:14px;align-self:center}
+    table.ui-cards > tbody > tr > td[data-cell="wide"]{flex:1 1 55%}
+    table.ui-cards > tbody > tr > td[data-cell="full"]{flex:1 1 100%}
+    table.ui-cards > tbody > tr > td[data-cell="actions"]{flex:1 1 100%;display:flex;justify-content:flex-end;gap:.5rem;flex-wrap:wrap}
+    table.ui-cards > tbody > tr > td[data-cell="hide"]{display:none}
+    /* Group header rows and empty-state rows stay single blocks */
+    table.ui-cards > tbody > tr[data-list-section],
+    table.ui-cards > tbody > tr:has(> td[colspan]){display:block;padding:.5rem .75rem}
+    table.ui-cards > tbody > tr[data-list-section] > td::before,
+    table.ui-cards > tbody > tr > td[colspan]::before{display:none !important}
+}
+
+/* Horizontal strips (filters, status tabs) scroll sideways on phones instead of wrapping into piles */
+@media (max-width:767.98px){
+    .ui-strip{flex-wrap:nowrap !important;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin-left:-.75rem;margin-right:-.75rem;padding-left:.75rem;padding-right:.75rem}
+    .ui-strip::-webkit-scrollbar{display:none}
+    .ui-strip > *{flex:0 0 auto}
+}
+
+/* Record editor (schema.php): one full-width field per row on phones, whatever span a field asks for */
+@media (max-width:767.98px){
+    #schemaFieldGrid{grid-template-columns:minmax(0,1fr) !important}
+    #schemaFieldGrid > *{grid-column:1 / -1 !important;min-width:0}
+    #schemaFieldGrid input:not([type=checkbox]):not([type=radio]):not([type=file]),
+    #schemaFieldGrid select, #schemaFieldGrid textarea{width:100%;max-width:100%}
+}
+
+/* <details> used as an expandable row: hide the default marker */
+details.ui-expand > summary{list-style:none;cursor:pointer}
+details.ui-expand > summary::-webkit-details-marker{display:none}
+details.ui-expand[open] .ui-expand-hint{display:none}
+details.ui-expand:not([open]) .ui-expand-open{display:none}

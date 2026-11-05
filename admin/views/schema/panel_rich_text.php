@@ -37,7 +37,7 @@
                         <div id="quill_<?= $name ?>" class="bg-white w-full border border-stone-300 rounded"
                             style="height:400px;"><?= htmlspecialchars($raw_val) ?></div>
                         <input type="hidden" name="fields[<?= $name ?>]" id="hidden_<?= $name ?>"
-                            value="<?= $val ?>">
+                            data-quill="<?= $name ?>" value="<?= $val ?>">
                         <script>
                             (function() {
                                 const q = new Quill('#quill_<?= $name ?>', {
@@ -52,9 +52,13 @@
                                 });
                                 // Seed with existing HTML (Quill expects raw HTML, not escaped)
                                 q.root.innerHTML = <?= json_encode($raw_val) ?>;
+                                // Registered so device drafts (admin-ui.js) can restore rich text
+                                (window.bcfQuill = window.bcfQuill || {})[<?= json_encode($name) ?>] = q;
                                 q.on('text-change', () => {
                                     document.getElementById('hidden_<?= $name ?>').value = q.root.innerHTML;
-                                    document.getElementById('schemaEditForm').dataset.dirty = 'true';
+                                    const f = document.getElementById('schemaEditForm');
+                                    f.dataset.dirty = 'true';
+                                    f.dispatchEvent(new Event('input', { bubbles: true }));
                                 });
                             })();
                         </script>

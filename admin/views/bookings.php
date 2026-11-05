@@ -1,6 +1,7 @@
 <?php
 // admin/views/bookings.php — booking management: day occupancy, pending queue, schedule, blackouts.
 require_once __DIR__ . '/../../includes/booking.php';
+require_once __DIR__ . '/layout/ui.php';   // shared chips, money, buttons (02 Navigation & UX)
 
 $csrf   = $_SESSION['csrf_token'] ?? '';
 $day    = (isset($_GET['day']) && strtotime((string)$_GET['day'])) ? date('Y-m-d', strtotime((string)$_GET['day'])) : date('Y-m-d');
@@ -53,17 +54,7 @@ if (function_exists('site_hours')) {
 $hourLabel = function (int $h): string { $ap = $h < 12 ? 'a' : 'p'; $x = $h % 12; if ($x === 0) $x = 12; return $x . $ap; };
 $overlaps  = fn($as, $ae, $bs, $be) => ($as < $be) && ($ae > $bs);
 
-$statusBadge = function (string $s): string {
-    $map = [
-        'pending'   => 'bg-amber-100 text-amber-800',
-        'confirmed' => 'bg-green-100 text-green-800',
-        'completed' => 'bg-stone-200 text-stone-600',
-        'no_show'   => 'bg-red-100 text-red-700',
-        'cancelled' => 'bg-stone-100 text-stone-400 line-through',
-    ];
-    $cls = $map[$s] ?? 'bg-stone-100 text-stone-600';
-    return '<span class="px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ' . $cls . '">' . str_replace('_', '-', $s) . '</span>';
-};
+$statusBadge = fn(string $s): string => ui_chip($s);
 
 
 // Ticket breakdown display helper
@@ -78,18 +69,24 @@ $tixBreakdown = function (array $row): string {
     return '<div class="text-[10px] font-mono text-stone-400 mt-1 tracking-tight">ðï¸ ' . implode(' &bull; ', $parts) . '</div>';
 };
 
+// Ticket breakdown — replaces the helper above, which printed garbled characters (× and the ticket icon).
+$tixBreakdown = function (array $row): string {
+    if (empty($row['ticket_breakdown'])) return '';
+    $tb = json_decode($row['ticket_breakdown'], true);
+    if (!is_array($tb) || empty($tb)) return '';
+    $parts = [];
+    foreach ($tb as $name => $data) {
+        $parts[] = htmlspecialchars((string)$name) . ' × ' . (int)($data['qty'] ?? 0);
+    }
+    return '<div class="text-[10px] font-mono text-stone-400 mt-1 tracking-tight">🎟️ ' . implode(' &bull; ', $parts) . '</div>';
+};
+
 $payBadge = function (array $row): string {
     $ps  = $row['payment_status'] ?? 'waived';
-    $map = [
-        'paid'     => ['bg-emerald-100 text-emerald-800', '💳 paid'],
-        'pending'  => ['bg-amber-100 text-amber-700',    '⏳ unpaid'],
-        'refunded' => ['bg-red-100 text-red-700',        '↩ refunded'],
-        'waived'   => ['bg-stone-100 text-stone-400',    'cash/walk-in'],
-    ];
-    [$cls, $label] = $map[$ps] ?? ['bg-stone-100 text-stone-400', $ps];
+    $key = $ps === 'pending' ? 'unpaid' : $ps;
     $amt = !empty($row['amount_total']) && (float)$row['amount_total'] > 0
-        ? ' · $' . number_format((float)$row['amount_total'], 2) : '';
-    return '<span class="px-2 py-0.5 rounded text-[10px] font-medium ' . $cls . '">' . $label . $amt . '</span>';
+        ? ' <span class="text-[10px] font-mono text-stone-500">' . ui_money($row['amount_total']) . '</span>' : '';
+    return ui_chip($key) . $amt;
 };
 
 // emits a one-button POST form
@@ -105,7 +102,7 @@ $act = function (string $action, int $id, string $label, string $cls, ?string $c
 
 $prev = date('Y-m-d', strtotime($day . ' -1 day'));
 $next = date('Y-m-d', strtotime($day . ' +1 day'));
-$btn  = 'px-3 py-1.5 rounded text-xs font-semibold';
+$btn  = 'inline-flex items-center justify-center min-h-10 md:min-h-8 px-3 rounded-lg text-xs font-semibold';
 ?>
 
 <div class="max-w-6xl">
@@ -187,7 +184,7 @@ $allPendingPay = count(array_filter($pending,    fn($r) => ($r['payment_status']
   <div class="bg-white border border-stone-200 rounded-lg p-5 mb-8 shadow-sm">
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
       <h2 class="font-semibold text-stone-700"><?= htmlspecialchars(date('l, F j, Y', strtotime($day))) ?></h2>
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <a href="/admin/admin.php?view=bookings&day=<?= $prev ?>" class="<?= $btn ?> bg-stone-100 text-stone-600 hover:bg-stone-200">← Prev</a>
         <a href="/admin/admin.php?view=bookings&day=<?= date('Y-m-d') ?>" class="<?= $btn ?> bg-stone-100 text-stone-600 hover:bg-stone-200">Today</a>
         <a href="/admin/admin.php?view=bookings&day=<?= $next ?>" class="<?= $btn ?> bg-stone-100 text-stone-600 hover:bg-stone-200">Next →</a>
@@ -310,10 +307,9 @@ $allPendingPay = count(array_filter($pending,    fn($r) => ($r['payment_status']
         ? ('$' . number_format($price, 2) . ($model === 'per_person' ? '/person' : ' flat'))
         : 'Free / quote';
     ?>
-    <div class="border border-stone-200 rounded-lg mb-3 overflow-hidden">
-      <!-- Summary row -->
-      <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-stone-50 cursor-pointer"
-           onclick="var p=this.nextElementSibling;p.classList.toggle('hidden')">
+    <details class="ui-expand border border-stone-200 rounded-lg mb-3 overflow-hidden">
+      <!-- Summary row (tap to open the edit form) -->
+      <summary class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-stone-50">
         <div>
           <span class="font-semibold text-stone-800"><?= htmlspecialchars($bt['label']) ?></span>
           <span class="ml-2 font-mono text-stone-400 text-xs"><?= htmlspecialchars($bt['type_key']) ?></span>
@@ -324,12 +320,12 @@ $allPendingPay = count(array_filter($pending,    fn($r) => ($r['payment_status']
           <span><?= htmlspecialchars($priceLabel) ?></span>
           <span><?= (int)$bt['min_party'] ?>–<?= (int)$bt['max_party'] ?> ppl</span>
           <span><?= (int)$bt['duration_min'] ?> min</span>
-          <span class="text-stone-300">▼ edit</span>
+          <span class="text-stone-400 ui-expand-hint">▼ edit</span><span class="text-stone-400 ui-expand-open">▲ close</span>
         </div>
-      </div>
+      </summary>
 
-      <!-- Inline edit form (hidden by default) -->
-      <div class="hidden">
+      <!-- Inline edit form -->
+      <div>
         <form method="POST" action="/admin/admin.php?view=bookings" class="p-4 grid grid-cols-2 gap-4 md:grid-cols-4">
           <input type="hidden" name="csrf_token"       value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
           <input type="hidden" name="bookings_action"  value="booking_type_save">
@@ -407,12 +403,12 @@ $allPendingPay = count(array_filter($pending,    fn($r) => ($r['payment_status']
 
           <div class="col-span-2 md:col-span-4 flex gap-3">
             <button type="submit" class="<?= $btn ?> bg-amber-600 text-white hover:bg-amber-700">Save type</button>
-            <button type="button" onclick="this.closest('.hidden').classList.add('hidden')"
+            <button type="button" data-close-details
                     class="<?= $btn ?> bg-stone-100 text-stone-600 hover:bg-stone-200">Cancel</button>
           </div>
         </form>
       </div>
-    </div>
+    </details>
     <?php endforeach; ?>
 
     <!-- Add new type -->

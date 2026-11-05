@@ -1,8 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- admin/views/layout/head.php -->
     <meta charset="UTF-8">
-    <title>Bat Cave Road Farm Unified ERP Engine Deck</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#1c1917">
+    <title>Bat Cave Road Farm — Farm OS</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
         @media print {
@@ -166,4 +169,7 @@ document.addEventListener('click', async function(e) {
 </script>
 <!-- Admin list search + sort (external, CSP-safe) -->
 <script defer src="/admin/assets/admin-list.js?v=20260615b"></script>
+<!-- Shared UI kit (02 Navigation & UX): chips, phone card tables, common behaviours -->
+<link rel="stylesheet" href="/admin/assets/admin-ui.css?v=20261105b">
+<script defer src="/admin/assets/admin-ui.js?v=20261105b"></script>
 

@@ -1,5 +1,7 @@
 <?php
 // admin/views/event_inquiries.php — private event inquiry management.
+require_once __DIR__ . '/layout/ui.php';   // shared chips, buttons, empty states (02 Navigation & UX)
+$csrf = $_SESSION['csrf_token'] ?? '';      // was never set here, so status/note saves posted an empty token and were refused
 $statusFilter = trim((string)($_GET['status'] ?? 'new'));
 $allowedStatuses = ['new','contacted','quoted','confirmed','declined','archived','all'];
 if (!in_array($statusFilter, $allowedStatuses, true)) $statusFilter = 'new';
@@ -17,18 +19,7 @@ try {
     return;
 }
 
-$statusBadge = function(string $s): string {
-    $map = [
-        'new'       => ['bg-blue-100 text-blue-800',    '🆕 New'],
-        'contacted' => ['bg-amber-100 text-amber-800',  '📞 Contacted'],
-        'quoted'    => ['bg-purple-100 text-purple-800','💰 Quoted'],
-        'confirmed' => ['bg-green-100 text-green-800',  '✅ Confirmed'],
-        'declined'  => ['bg-red-100 text-red-700',      '❌ Declined'],
-        'archived'  => ['bg-stone-100 text-stone-400',  '📁 Archived'],
-    ];
-    [$cls, $label] = $map[$s] ?? ['bg-stone-100 text-stone-500', $s];
-    return "<span class='px-2 py-0.5 rounded text-[10px] font-bold $cls'>$label</span>";
-};
+$statusBadge = fn(string $s): string => ui_chip($s);
 
 $eventLabels = [
     'birthday'   => '🎂 Birthday Party',
@@ -43,7 +34,7 @@ $eventLabels = [
     <p class="text-sm text-stone-500 mb-6">Manage birthday parties, field trips, and private event leads.</p>
 
     <!-- Status filter tabs -->
-    <div class="flex flex-wrap gap-2 mb-6">
+    <div class="ui-strip flex flex-wrap gap-2 mb-6">
         <?php
         $tabs = ['new' => 'New', 'contacted' => 'Contacted', 'quoted' => 'Quoted',
                  'confirmed' => 'Confirmed', 'declined' => 'Declined', 'archived' => 'Archived', 'all' => 'All'];
@@ -52,16 +43,16 @@ $eventLabels = [
             $active = $statusFilter === $val;
         ?>
         <a href="?view=event_inquiries&status=<?= $val ?>"
-           class="px-3 py-1.5 rounded text-xs font-semibold border <?= $active ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50' ?>">
+           class="inline-flex items-center min-h-10 md:min-h-8 px-3 rounded-lg text-xs font-semibold border whitespace-nowrap <?= $active ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50' ?>">
             <?= $label ?> <?php if ($cnt > 0): ?><span class="ml-1 opacity-70">(<?= $cnt ?>)</span><?php endif; ?>
         </a>
         <?php endforeach; ?>
     </div>
 
     <?php if (!$inquiries): ?>
-    <div class="bg-white border border-stone-200 rounded-lg p-8 text-center text-stone-400 text-sm">
-        No <?= $statusFilter !== 'all' ? $statusFilter : '' ?> inquiries yet.
-    </div>
+    <?= $statusFilter === 'new'
+        ? ui_empty('🎉', 'No new inquiries', 'Birthday parties, field trips and other private event requests from the website land here. You\'re caught up.')
+        : ui_empty('📂', 'Nothing here', 'No ' . ($statusFilter !== 'all' ? $statusFilter . ' ' : '') . 'inquiries.', ['See new inquiries', '?view=event_inquiries&status=new']) ?>
     <?php else: foreach ($inquiries as $inq):
         $addons = $inq['addons'] ? json_decode($inq['addons'], true) : [];
         $typeLabel = $eventLabels[$inq['event_type']] ?? $inq['event_type'];
@@ -75,7 +66,7 @@ $eventLabels = [
                 <span class="ml-2 text-stone-400 text-xs font-mono"><?= date('M j, Y', strtotime($inq['created_at'])) ?></span>
                 <span class="ml-2"><?= $statusBadge($inq['status']) ?></span>
             </div>
-            <div class="text-xs text-stone-500 flex gap-4">
+            <div class="text-xs text-stone-500 flex flex-wrap gap-x-4 gap-y-1">
                 <span><?= htmlspecialchars($typeLabel) ?></span>
                 <span>👥 <?= $guests ?> guests</span>
                 <?php if ($inq['preferred_date']): ?>
@@ -92,6 +83,10 @@ $eventLabels = [
                 <?php if ($inq['birthday_age']): ?><div class="text-stone-600 mt-1">🎂 Birthday child age: <?= (int)$inq['birthday_age'] ?></div><?php endif; ?>
                 <?php if (!empty($addons)): ?><div class="text-stone-600 mt-1">✨ <?= htmlspecialchars(implode(', ', $addons)) ?></div><?php endif; ?>
                 <?php if ($inq['heard_from']): ?><div class="text-stone-400 text-xs mt-1">Heard from: <?= htmlspecialchars($inq['heard_from']) ?></div><?php endif; ?>
+                <div class="flex flex-wrap gap-2 mt-3">
+                    <?php if ($inq['phone']): ?><a href="tel:<?= htmlspecialchars($inq['phone'], ENT_QUOTES) ?>" class="<?= ui_btn('secondary') ?>">📞 Call</a><?php endif; ?>
+                    <a href="mailto:<?= htmlspecialchars($inq['email'], ENT_QUOTES) ?>" class="<?= ui_btn('secondary') ?>">✉️ Email</a>
+                </div>
             </div>
             <div>
                 <?php if ($inq['special_requests']): ?>
@@ -110,12 +105,12 @@ $eventLabels = [
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
                 <input type="hidden" name="inquiry_action" value="status">
                 <input type="hidden" name="id" value="<?= (int)$inq['id'] ?>">
-                <select name="new_status" class="p-1.5 text-xs border border-stone-300 rounded bg-stone-50">
+                <select name="new_status" class="min-h-10 md:min-h-8 px-2 text-xs border border-stone-300 rounded-lg bg-stone-50">
                     <?php foreach (['new','contacted','quoted','confirmed','declined','archived'] as $s): ?>
                     <option value="<?= $s ?>" <?= $inq['status'] === $s ? 'selected' : '' ?>><?= ucfirst($s) ?></option>
                     <?php endforeach; ?>
                 </select>
-                <button type="submit" class="px-3 py-1.5 rounded text-xs font-semibold bg-stone-800 text-white hover:bg-stone-700">Update status</button>
+                <button type="submit" class="<?= ui_btn('primary') ?>">Update status</button>
             </form>
 
             <!-- Add / edit note -->
@@ -125,8 +120,8 @@ $eventLabels = [
                 <input type="hidden" name="id" value="<?= (int)$inq['id'] ?>">
                 <input type="text" name="admin_notes" placeholder="Add a note…"
                        value="<?= htmlspecialchars($inq['admin_notes'] ?? '', ENT_QUOTES) ?>"
-                       class="flex-1 p-1.5 text-xs border border-stone-300 rounded bg-stone-50">
-                <button type="submit" class="px-3 py-1.5 rounded text-xs font-semibold bg-stone-100 text-stone-600 hover:bg-stone-200">Save note</button>
+                       class="flex-1 min-w-0 min-h-10 md:min-h-8 px-2 text-xs border border-stone-300 rounded-lg bg-stone-50">
+                <button type="submit" class="<?= ui_btn('secondary') ?>">Save note</button>
             </form>
         </div>
     </div>
