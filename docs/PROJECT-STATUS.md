@@ -199,3 +199,14 @@ Updated: 2026-10-23 (code review done)
 - Label prints "Name (sub, ingredients)" and a bold "Contains: Milk, Pecans, Wheat" line (FALCPA), via bcrf_label_statement(); the window's JS labelStatement() gives identical output (checked with the same rows).
 - print_label.php: red on-screen warnings (not printed) for unchecked allergens or unnamed nut/fish/shellfish; fit check shrinks the info text 5pt → 4.25pt and warns if it still won't fit the 1in panel.
 - Open question: FDA minimum type size (21 CFR 101.2/101.105) is 1/16 in lowercase height on most packages (1/32 in if the labelable surface is under 12 sq in); the current label uses ~5pt. Confirm with NCDA&CS.
+
+## GA4 + Search Console (2026-11-04)
+- Full notes and Zac's setup steps: docs/GOOGLE-REPORTS.md. Live via connector except admin/admin.php and admin/includes/permission_checks.php (connector-protected: upload from GitHub). Until those two are uploaded the Search & Analytics sidebar link shows "Unknown view".
+- Privacy: js/min.gtag.js strips e/email/t/token/ts/sig/key/code/session_id from page_location and same-site page_referrer. Staff visits: <html data-ga-internal="1"> → traffic_type=internal (activate GA's Internal Traffic filter).
+- Events: generate_lead (booking request, private_event), job_application, sign_up via bcrf_ga_flash(); begin_checkout on booking/checkout.php; recipe_to_subrecipe wired. GA tags added to standalone booking/checkout, submit, success pages.
+- Purchases: Measurement Protocol from admin/webhooks/stripe.php + success-page fallback, once per record (ga_purchase_sent), GA client/session IDs saved at checkout (bookings/passes ga_client_id, ga_session_id). Needs GA4_API_SECRET in bcrf-secrets.php.
+- UTMs: newsletter campaigns + new-post emails (utm_source=newsletter), job alerts (job_alerts), Facebook auto-posts (facebook/social). GBP link: Zac.
+- sitemap.php lastmod = file mtime / updated column; omitted when unknown.
+- Admin Search & Analytics: includes/google_reports.php (service account JWT; GSC + GA4 Data API), cache table google_report_cache, cron admin/cron/fetch_google_reports.php daily 6:10 AM, Refresh button (10-min limit).
+- New GitHub workflow "Build JS" (manual) builds js/min.site.js with terser. Temp branch build-js-tmp could not be deleted from the session (403): delete it in GitHub.
+- Noted, not changed: passes/success.php fallback activates passes for a fixed 1 year (webhook uses pass type duration_months).
