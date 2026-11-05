@@ -1,7 +1,7 @@
 <?php
 /**
  * admin/cron/run.php — the Farm OS runner (Phase 0, Nov 2026). One cPanel cron entry, every 5 minutes:
- *   *\/5 * * * *  /usr/local/bin/php /home2/ddailnmy/public_html/batcaveroadfarm/admin/cron/run.php
+ *   *\/5 * * * *  /usr/bin/php /home2/ddailnmy/public_html/batcaveroadfarm/admin/cron/run.php
  *
  * Each run:
  *   1. Turns new domain events into jobs (includes/queue.php → bcrf_event_subscribers()).
@@ -14,7 +14,9 @@
  * Quiet by default (cPanel emails any cron output); add -v to see what it did.
  */
 
-if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
+// Block web requests only. (A non-CLI PHP binary such as /usr/local/bin/php used to make this exit silently,
+// so the runner never recorded a run — Nov 5, 2026. Use /usr/bin/php in cPanel.)
+if (PHP_SAPI !== 'cli' && isset($_SERVER['REQUEST_METHOD'])) { http_response_code(404); exit; }
 define('CRON_ALLOWED', true);
 
 require_once dirname(__DIR__, 2) . '/config.php';
@@ -24,7 +26,7 @@ bcrf_cron_begin('run');
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 $verbose = in_array('-v', $argv ?? [], true);
-$out = function (string $s) use ($verbose): void { if ($verbose) fwrite(STDOUT, '[' . date('Y-m-d H:i:s') . '] ' . $s . "\n"); };
+$out = function (string $s) use ($verbose): void { if ($verbose) echo '[' . date('Y-m-d H:i:s') . '] ' . $s . "\n"; };
 
 // One runner at a time. A second copy (the last run is still busy) exits quietly as a good run.
 if ((int)$pdo->query("SELECT GET_LOCK('bcrf_runner', 0)")->fetchColumn() !== 1) {
