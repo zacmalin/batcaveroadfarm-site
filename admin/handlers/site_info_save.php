@@ -30,6 +30,17 @@ if (!function_exists('_si_done')) {
     }
     function _si_audit(PDO $pdo, string $area, string $key, $old, $new): void {
         if ((string)$old === (string)$new) return;
+        // Farm OS Phase 0 (C-06): Site Info changes go to audit_events with before/after values;
+        // the old site_audit table is only used until migration 0003 has run.
+        require_once __DIR__ . '/../includes/audit.php';
+        if (function_exists('bcrf_audit_event')) {   // older audit.php on the server: use the old table
+            [$type, $uid, $name, $ip] = bcrf_audit_actor();
+            if (bcrf_audit_event($pdo, [
+                'actor_type' => $type, 'actor_id' => $uid, 'actor_label' => $name, 'ip' => $ip,
+                'action' => 'update', 'object_type' => 'site_info', 'object_label' => $area . ': ' . $key,
+                'before' => [$key => $old === null ? null : (string)$old], 'after' => [$key => $new === null ? null : (string)$new],
+            ])) return;
+        }
         try {
             $pdo->prepare("INSERT INTO site_audit (admin_user_id, admin_label, area, change_key, old_value, new_value) VALUES (?,?,?,?,?,?)")
                 ->execute([
@@ -109,6 +120,11 @@ try {
                 if (!array_key_exists($k, $_POST['settings'] ?? [])) continue;
                 $new = _si_clean($_POST['settings'][$k]);
                 $old = (string)($cur[$k] ?? '');
+                // The farm time zone drives every date in the system (Farm OS Phase 0, C-03): only real zone names.
+                if ($k === 'timezone' && $new !== '' && !in_array($new, timezone_identifiers_list(), true)) {
+                    $si_warn = '"' . $new . '" is not a time zone name. Use one like America/New_York. The time zone was not changed.';
+                    continue;
+                }
                 if ($old !== $new) { _si_set($pdo, $k, $new); _si_audit($pdo, 'address', $k, $old, $new); $changed = true; }
             }
             break;
@@ -192,6 +208,10 @@ try {
             _si_done('Unknown Site Info action.', 'error');
     }
 
+    if (!empty($si_warn)) {
+        if ($changed) _si_cf_purge();
+        _si_done(($changed ? 'Other changes saved. ' : '') . $si_warn, 'error');
+    }
     if ($changed) {
         _si_cf_purge(); // best-effort; no-op without CF creds
         // NOTE: static-file regen (llms.txt / agents.json) wired in step 3.

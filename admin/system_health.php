@@ -9,7 +9,7 @@ require_once '../config.php';
 check_admin();
 if (($_SESSION['user_role'] ?? '') !== 'administrator') { http_response_code(403); exit('Administrators only.'); }
 require_once __DIR__ . '/../includes/cron_health.php';
-date_default_timezone_set('America/New_York');
+date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');   // farm time zone setting (Phase 0, C-03)
 
 $jobs = bcrf_cron_status($pdo);
 

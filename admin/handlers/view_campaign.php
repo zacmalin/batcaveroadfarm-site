@@ -12,7 +12,7 @@ if (empty($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['adm
 require_once __DIR__ . '/../includes/permission_checks.php';   // audit #8: same Permissions Matrix rules as the console
 require_permission([['view', 'newsletter']]);
 
-date_default_timezone_set('America/New_York');
+date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');   // farm time zone setting (Phase 0, C-03)
 
 $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 if (!$id) { http_response_code(400); exit('Invalid campaign ID.'); }

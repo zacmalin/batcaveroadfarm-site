@@ -39,7 +39,7 @@ if (!$isCli) {
     header('Content-Type: text/plain; charset=utf-8');
 }
 
-date_default_timezone_set('America/New_York');
+date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');   // farm time zone setting (Phase 0, C-03)
 
 function rr_log($m) { echo $m . "\n"; }
 

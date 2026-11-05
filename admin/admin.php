@@ -35,7 +35,7 @@ if (!empty($_SESSION['user_id']) && isset($pdo)) {
 
 // ── TIMEZONE ─────────────────────────────────────────────────────────────────
 // Set once here so every view, query, and date() call uses Eastern time.
-date_default_timezone_set('America/New_York');
+date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');   // farm time zone setting (Phase 0, C-03)
 
 // ── CSRF ──────────────────────────────────────────────────────────────────────
 if (empty($_SESSION['csrf_token'])) {

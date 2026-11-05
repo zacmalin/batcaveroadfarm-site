@@ -27,7 +27,7 @@ require_once $bcrf_docroot . '/includes/jobs/retention.php';
 if (ob_get_level() > 0) { ob_end_clean(); }
 require_once dirname($bcrf_cfg) . '/includes/cron_health.php';
 bcrf_cron_begin('purge_job_records');   // heartbeat for the admin System Health page
-date_default_timezone_set('America/New_York');
+date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');   // farm time zone setting (Phase 0, C-03)
 @set_time_limit(600);
 
 if (!defined('JOBS_CRON_RETAIN_MONTHS')) define('JOBS_CRON_RETAIN_MONTHS', 12);   // 1 year (stated in the Privacy Policy)

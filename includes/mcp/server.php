@@ -41,7 +41,7 @@ function mcp_handle_request(PDO $pdo, string $method): void {
     // Audit-log identity for everything this request changes.
     $_SESSION['user_id']   = $ctx['user_id'];
     $_SESSION['user_name'] = mb_substr($ctx['user_name'] . ' (AI: ' . $ctx['client_name'] . ')', 0, 100);
-    date_default_timezone_set('America/New_York');
+    date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');   // farm time zone setting (Phase 0, C-03)
 
     $raw = (string)file_get_contents('php://input');
     $msg = json_decode($raw, true);

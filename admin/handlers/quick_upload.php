@@ -26,7 +26,7 @@ require_once __DIR__ . '/../includes/audit.php';   // fix pack O: audit log
 $csrf = $_POST['csrf_token'] ?? '';
 if (!hash_equals($_SESSION['csrf_token'] ?? '', $csrf)) jx(false, 'Security token expired.');
 
-date_default_timezone_set('America/New_York');
+date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');   // farm time zone setting (Phase 0, C-03)
 
 $subfolder = trim($_POST['subfolder'] ?? 'inventory');
 $subfolder = preg_replace('/[^a-zA-Z0-9_\-]/', '', $subfolder) ?: 'inventory';

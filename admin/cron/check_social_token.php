@@ -22,7 +22,7 @@ require_once $bcrf_docroot . '/includes/social_token.php';
 if (ob_get_level() > 0) { ob_end_clean(); }
 require_once dirname($bcrf_cfg) . '/includes/cron_health.php';
 bcrf_cron_begin('check_social_token');   // heartbeat for the admin System Health page
-date_default_timezone_set('America/New_York');
+date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');   // farm time zone setting (Phase 0, C-03)
 
 $s = bcrf_social_token_check();
 [, $summary] = bcrf_social_token_summary($s);

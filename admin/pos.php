@@ -6,7 +6,7 @@ require_once __DIR__ . '/includes/permission_checks.php';   // audit #8: same Pe
 if (($_SESSION['user_role'] ?? '') === 'Media') { http_response_code(403); exit('Media accounts cannot use the register.'); }
 require_permission([['view', 'pos']]);
 require_once __DIR__ . '/includes/audit.php';
-date_default_timezone_set('America/New_York');
+date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');   // farm time zone setting (Phase 0, C-03)
 
 // ── AJAX: Stock quantity refresh ──────────────────────────────────────────────
 if (isset($_GET['ajax_stock'])) {
