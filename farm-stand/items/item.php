@@ -1,4 +1,5 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 require_once '../../config.php';
 require_once '../../includes/ingredient_match.php';
 
@@ -20,8 +21,8 @@ if (!$item) {
     http_response_code(404);
     $pageTitle    = "Item Not Found - Bat Cave Road Farm";
     $metaDesc     = "This farm stand item is no longer available.";
-    $canonicalUrl = "https://batcaveroadfarm.com/farm-stand/";
-    $pageCSS      = "https://batcaveroadfarm.com/css/min.farmstand.css";
+    $canonicalUrl = (bcrf_farm_url() . "/farm-stand/");
+    $pageCSS      = (bcrf_farm_url() . "/css/min.farmstand.css");
     require_once '../../includes/head.php';
     require_once '../../includes/header.php';
     ?>
@@ -74,7 +75,7 @@ $recipeMatch = bcrf_item_recipe_match((string)($item['name'] ?? ''), $recipeIngr
 $pageTitle    = $name . " - Farm Stand - Bat Cave Road Farm";
 $metaDesc     = mb_strimwidth(trim(strip_tags($descRaw)) !== '' ? strip_tags($descRaw) : $name, 0, 155, '…');
 $itemSlug     = createSlug($name) ?: 'item';
-$canonicalUrl = "https://batcaveroadfarm.com/farm-stand/items/" . (int)$itemId . "/" . $itemSlug . "/";
+$canonicalUrl = (bcrf_farm_url() . "/farm-stand/items/") . (int)$itemId . "/" . $itemSlug . "/";
 $breadcrumbs = [['label' => 'Farm Stand', 'url' => '/farm-stand/']];
 if (!empty($catName)) { $breadcrumbs[] = ['label' => $catName, 'url' => $fromZoo ? '/petting-zoo/' : '/farm-stand/inventory.php#cat-' . $catSlug]; }
 $breadcrumbs[] = ['label' => $name];
@@ -93,10 +94,10 @@ if (($_GET['from'] ?? '') === 'recipe' && !empty($_GET['r'])) {
 } elseif (($_GET['from'] ?? '') === 'zoo') {
     $backCtx = '<a class="context-back" href="/petting-zoo/"><span class="cb-arrow" aria-hidden="true">&larr;</span> Back to the Petting Zoo</a>';
 }
-$ogImage      = !empty($item['image_url']) ? $item['image_url'] : "https://batcaveroadfarm.com/img/og-farmstand.jpg";
-$pageCSS      = "https://batcaveroadfarm.com/css/min.farmstand.css";
+$ogImage      = !empty($item['image_url']) ? $item['image_url'] : (bcrf_farm_url() . "/img/og-farmstand.jpg");
+$pageCSS      = (bcrf_farm_url() . "/css/min.farmstand.css");
 if ($img !== '') { $preloadImage = $img; }
-$pageJS       = "https://batcaveroadfarm.com/js/min.lightbox.js";
+$pageJS       = (bcrf_farm_url() . "/js/min.lightbox.js");
 
 require_once '../../includes/head.php';
 require_once '../../includes/header.php';
@@ -106,7 +107,7 @@ require_once '../../includes/header.php';
 // Only output when there's a real price: Google rejects Product offers without one.
 if ($price !== null && $price !== '' && is_numeric($price) && (float)$price > 0) {
     $ldImg = $img !== '' ? $img : '/img/og-farmstand.jpg';
-    if (!preg_match('#^https?://#i', $ldImg)) { $ldImg = 'https://batcaveroadfarm.com' . $ldImg; }
+    if (!preg_match('#^https?://#i', $ldImg)) { $ldImg = (bcrf_farm_url()) . $ldImg; }
     $ldProduct = [
         '@context'    => 'https://schema.org',
         '@type'       => 'Product',
@@ -124,7 +125,7 @@ if ($price !== null && $price !== '' && is_numeric($price) && (float)$price > 0)
             'priceCurrency' => 'USD',
             'availability'  => $inStock ? 'https://schema.org/InStoreOnly' : 'https://schema.org/OutOfStock',
             'itemCondition' => 'https://schema.org/NewCondition',
-            'seller'        => ['@id' => 'https://batcaveroadfarm.com/#business'],
+            'seller'        => ['@id' => (bcrf_farm_url() . '/#business')],
         ],
     ];
     if (!empty($item['sku'])) { $ldProduct['sku'] = (string)$item['sku']; }

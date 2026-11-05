@@ -1,9 +1,11 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 require_once '../config.php';
 
 /* ---------- helpers (guarded) ---------- */
 if (!function_exists('bcrf_abs_url')) {
-function bcrf_abs_url(string $path, string $base = 'https://batcaveroadfarm.com'): string {
+function bcrf_abs_url(string $path, string $base = ''): string {
+    if ($base === '') $base = bcrf_farm_url();   // farm website from Settings (Farm OS Phase 0)
     $path = trim($path);
     if ($path === '') { return ''; }
     if (preg_match('#^https?://#i', $path)) { return $path; }
@@ -74,9 +76,9 @@ $merchRows = bcrf_inventory_by_cat($pdo, ['merchandise', 'merch']);
 /* ---------- page meta ---------- */
 $pageTitle    = "Shop — Bat Cave Road Farm - Old Fort, NC";
 $metaDesc     = "Bat Cave Road Farm merch — hats, shirts, stickers, and farm-branded goods. Take a little piece of the farm home with you. Old Fort, NC, near Asheville.";
-$canonicalUrl = "https://batcaveroadfarm.com/shop/";
-$ogImage      = "https://batcaveroadfarm.com/img/og-shop.jpg";
-$pageCSS      = "https://batcaveroadfarm.com/css/min.farmstand.css";
+$canonicalUrl = (bcrf_farm_url() . "/shop/");
+$ogImage      = (bcrf_farm_url() . "/img/og-shop.jpg");
+$pageCSS      = (bcrf_farm_url() . "/css/min.farmstand.css");
 // No merch in stock: the menu hides Shop, so keep the empty page out of search results too
 // (and out of the sitemap). Links are still followed.
 if (!$merchRows && !headers_sent()) { header('X-Robots-Tag: noindex, follow'); }
@@ -86,7 +88,7 @@ include('../includes/head.php');
 $ldProducts = [];
 $ldOffers   = [];
 foreach ($merchRows as $it) {
-    $pid     = 'https://batcaveroadfarm.com/shop/#merch-' . (int)$it['id'];
+    $pid     = (bcrf_farm_url() . '/shop/#merch-') . (int)$it['id'];
     $img     = bcrf_abs_url((string)($it['image_url'] ?? ''));
     $inStock = ((int)($it['stock_quantity'] ?? 0)) > 0;
     $prod = [
@@ -97,7 +99,7 @@ foreach ($merchRows as $it) {
         'category' => 'Merchandise',
         'offers'   => [
             '@type'         => 'Offer',
-            'seller'        => ['@id' => 'https://batcaveroadfarm.com/#business'],
+            'seller'        => ['@id' => (bcrf_farm_url() . '/#business')],
             'availability'  => $inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
             'itemCondition' => 'https://schema.org/NewCondition',
             'priceCurrency' => 'USD',
@@ -110,11 +112,11 @@ foreach ($merchRows as $it) {
 
 $storeNode = [
     '@type'       => 'Store',
-    '@id'         => 'https://batcaveroadfarm.com/shop/#shop',
+    '@id'         => (bcrf_farm_url() . '/shop/#shop'),
     'name'        => 'Bat Cave Road Farm — Farm Store',
-    'url'         => 'https://batcaveroadfarm.com/shop/',
+    'url'         => (bcrf_farm_url() . '/shop/'),
     'description' => 'Farm-branded merchandise from Bat Cave Road Farm in Old Fort, NC — hats, shirts, stickers, and more. Available at the farm near Asheville, Western North Carolina.',
-    'image'       => 'https://batcaveroadfarm.com/img/og-shop.jpg',
+    'image'       => (bcrf_farm_url() . '/img/og-shop.jpg'),
     'telephone'   => function_exists('site_phone_e164') ? site_phone_e164('general') : '+18282165488',
     'address'     => [
         '@type'           => 'PostalAddress',
@@ -129,7 +131,7 @@ $storeNode = [
         'latitude'  => function_exists('site_setting') ? (float)site_setting('geo_lat') : 35.5785104,
         'longitude' => function_exists('site_setting') ? (float)site_setting('geo_lng') : -82.1821418,
     ],
-    'parentOrganization' => ['@id' => 'https://batcaveroadfarm.com/#business'],
+    'parentOrganization' => ['@id' => (bcrf_farm_url() . '/#business')],
     'currenciesAccepted' => 'USD',
     'paymentAccepted'    => 'Cash, Credit Card, Venmo, PayPal, CashApp',
 ];
@@ -170,8 +172,8 @@ include('../includes/header.php');
             </div>
 
             <div class="ctaDiv">
-              <a href="https://batcaveroadfarm.com/farm-stand/" class="cta-btn">Visit the Farmstand</a>
-              <a href="https://batcaveroadfarm.com/petting-zoo/" class="cta-btn">Meet the animals</a>
+              <a href="<?= bcrf_farm_url() ?>/farm-stand/" class="cta-btn">Visit the Farmstand</a>
+              <a href="<?= bcrf_farm_url() ?>/petting-zoo/" class="cta-btn">Meet the animals</a>
             </div>
 
             <div class="info-box reveal" style="margin-top:40px">
@@ -188,10 +190,10 @@ include('../includes/header.php');
                     </a>
                     <?php endforeach; else: ?>
                     <a href="https://www.facebook.com/batcaveroadfarm" target="_blank" rel="noopener">
-                        <img class="socialicon" src="https://batcaveroadfarm.com/img/facebook.png" alt="Bat Cave Road Farm on Facebook" width="64" height="64" decoding="async" loading="lazy"> Facebook
+                        <img class="socialicon" src="<?= bcrf_farm_url() ?>/img/facebook.png" alt="Bat Cave Road Farm on Facebook" width="64" height="64" decoding="async" loading="lazy"> Facebook
                     </a>
                     <a href="https://www.instagram.com/batcaveroadfarm" target="_blank" rel="noopener">
-                        <img class="socialicon" src="https://batcaveroadfarm.com/img/instagram.png" alt="Bat Cave Road Farm on Instagram" width="64" height="64" decoding="async" loading="lazy"> Instagram
+                        <img class="socialicon" src="<?= bcrf_farm_url() ?>/img/instagram.png" alt="Bat Cave Road Farm on Instagram" width="64" height="64" decoding="async" loading="lazy"> Instagram
                     </a>
                     <?php endif; ?>
                 </li>

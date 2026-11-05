@@ -1,5 +1,6 @@
 <?php
 // includes/mcp/tools.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 //
 // The farm MCP server's tools (Nov 2026). Each tool = [description, inputSchema,
 // annotations, handler]. Handlers get ($pdo, $args, $ctx) and return an array that is
@@ -404,7 +405,7 @@ function mcp_t_blog_draft(PDO $pdo, array $a): array {
     $id = (int)$pdo->lastInsertId();
     mcp_audit($pdo, 'create', 'blog_posts', $id, $title . ' (draft)');
     return ['id' => $id, 'status' => 'draft', 'slug' => $row['slug'] ?? null,
-            'edit_in_admin' => 'https://batcaveroadfarm.com/admin/admin.php?view=schema&table=blog_posts&edit_id=' . $id];
+            'edit_in_admin' => (bcrf_farm_url() . '/admin/admin.php?view=schema&table=blog_posts&edit_id=') . $id];
 }
 
 function mcp_t_event_draft(PDO $pdo, array $a): array {
@@ -431,7 +432,7 @@ function mcp_t_event_draft(PDO $pdo, array $a): array {
                    $price === null ? 1 : 0, $price, trim((string)($a['location_note'] ?? '')) ?: null]);
     $id = (int)$pdo->lastInsertId();
     mcp_audit($pdo, 'create', 'events', $id, $title . ' (draft)');
-    return ['id' => $id, 'status' => 'draft', 'slug' => $slug, 'edit_in_admin' => 'https://batcaveroadfarm.com/admin/admin.php?view=events&edit=' . $id];
+    return ['id' => $id, 'status' => 'draft', 'slug' => $slug, 'edit_in_admin' => (bcrf_farm_url() . '/admin/admin.php?view=events&edit=') . $id];
 }
 
 function mcp_t_booking_status(PDO $pdo, array $a): array {

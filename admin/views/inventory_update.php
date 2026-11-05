@@ -1,5 +1,6 @@
 <?php
 // admin/views/inventory_update.php — Storefront › Products & Inventory › Counts
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Phone: each product is a card with −/+ steppers; desktop keeps the table. Counts save on blur (or on each −/+ tap).
 // Behaviour lives in /admin/assets/inventory-counts.js (no inline handlers — 02 Navigation & UX, Nov 5 2026).
 require_once __DIR__ . '/layout/ui.php';
@@ -156,7 +157,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
                     class="border border-stone-200 shadow-sm overflow-hidden bg-white font-sans">
 
                     <div style="position:absolute;left:0;top:0;width:2in;height:2in;overflow:hidden;background:#f5f5f5;">
-                        <img src="https://batcaveroadfarm.com/img/logos/print_square_logo.png" alt=""
+                        <img src="<?= bcrf_farm_url() ?>/img/logos/print_square_logo.png" alt=""
                             style="width:100%;height:100%;object-fit:contain;background:#fff;">
                     </div>
 
@@ -167,7 +168,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
                     <div style="position:absolute;right:0;top:0;width:1in;height:3in;border-left:0.5pt solid #bbb;">
                         <div style="position:absolute;top:0;left:0;width:1in;height:2in;overflow:hidden;">
                             <div style="position:absolute;left:1in;top:0;width:2in;transform:rotate(90deg);transform-origin:top left;padding:5pt 4pt;font-family:Arial,sans-serif;font-size:5.5pt;line-height:1.4;color:#111;">
-                                <div style="font-size:6.5pt;font-weight:bold;color:#322016;margin-bottom:2pt;">batcaveroadfarm.com</div>
+                                <div style="font-size:6.5pt;font-weight:bold;color:#322016;margin-bottom:2pt;"><?= bcrf_farm_domain() ?></div>
                                 <div style="font-size:5pt;"><strong style="font-size:5.5pt;display:block;margin-bottom:1pt;">Ingredients:</strong><span id="labelPreviewIngredients">—</span></div>
                                 <div id="labelPreviewContains" style="font-size:5pt;font-weight:bold;margin-top:1.5pt;line-height:1.3;"></div>
                                 <div id="labelPreviewMadeBy" style="font-size:4.5pt;line-height:1.3;margin-top:2pt;color:#222;"></div>

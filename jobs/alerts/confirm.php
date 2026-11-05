@@ -1,5 +1,6 @@
 <?php
 // jobs/alerts/confirm.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Step 2 of the job alert double opt-in (Jobs pack P7).
 // GET  (link from the email) -> shows a "Yes, turn on alerts" button. Email
 //                               security scanners open links on their own, so
@@ -42,8 +43,8 @@ header('Referrer-Policy: no-referrer');
 
 $pageTitle    = 'Confirm Job Alerts | Bat Cave Road Farm';
 $metaDesc     = 'Confirm your Bat Cave Road Farm job alerts.';
-$canonicalUrl = 'https://batcaveroadfarm.com/jobs/alerts/';
-$pageCSS      = 'https://batcaveroadfarm.com/css/min.jobs.css';
+$canonicalUrl = (bcrf_farm_url() . '/jobs/alerts/');
+$pageCSS      = (bcrf_farm_url() . '/css/min.jobs.css');
 $breadcrumbs  = [['label' => 'Jobs', 'url' => '/jobs/'], ['label' => 'Job alerts', 'url' => '/jobs/alerts/'], ['label' => 'Confirm']];
 require __DIR__ . '/../../includes/head.php';
 include __DIR__ . '/../../includes/header.php';
@@ -60,7 +61,7 @@ $choices = $state === 'ok' ? jobs_alert_choice_text($pdo, $cats, $types) : '';
         <div class="jb-actions"><a class="cta-btn" href="/jobs/">See current jobs</a></div>
     </div>
 <?php elseif ($fail): ?>
-    <div class="jb-error" role="alert">Something went wrong on our end. Please tap the link in your email again in a moment, or email jobs@batcaveroadfarm.com.</div>
+    <div class="jb-error" role="alert">Something went wrong on our end. Please tap the link in your email again in a moment, or email <?= htmlspecialchars(bcrf_farm_email('jobs'), ENT_QUOTES) ?>.</div>
 <?php elseif ($state === 'ok'): ?>
     <div class="jb-card">
         <h2>One more tap</h2>

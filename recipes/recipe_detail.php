@@ -1,5 +1,6 @@
 <?php
 // farm-stand/recipe_detail.php - Overhauled Multiplier Matrix Card
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 require_once '../config.php';
 require_once '../includes/units.php';
 require_once '../includes/ingredient_match.php';
@@ -23,7 +24,7 @@ if (!$recipe) {
         $__m = $pdo->prepare("SELECT slug FROM recipes WHERE id = ? AND status = 'published'");
         $__m->execute([$__moved[$slug]]);
         if ($__new = $__m->fetchColumn()) {
-            header('Location: https://batcaveroadfarm.com/recipes/' . rawurlencode($__new) . '/', true, 301);
+            header(('Location: ' . bcrf_farm_url() . '/recipes/') . rawurlencode($__new) . '/', true, 301);
             exit;
         }
     }
@@ -178,7 +179,7 @@ try {
 $recImg = '';
 foreach (['feature_image','image_url','featured_image','image','photo_url'] as $ik) { if (!empty($recipe[$ik])) { $recImg = $recipe[$ik]; break; } }
 $recImgAbs = $recImg;
-if ($recImgAbs && !preg_match('#^https?://#', $recImgAbs)) { $recImgAbs = 'https://batcaveroadfarm.com' . ($recImgAbs[0] === '/' ? '' : '/') . $recImgAbs; }
+if ($recImgAbs && !preg_match('#^https?://#', $recImgAbs)) { $recImgAbs = (bcrf_farm_url()) . ($recImgAbs[0] === '/' ? '' : '/') . $recImgAbs; }
 
 // Plain-text description: the DB field holds editor HTML (<p>, &amp; ...). Strip tags,
 // decode entities, collapse whitespace, then cut at a word boundary for the meta tag.
@@ -211,9 +212,9 @@ if ($__lead !== '' && $__descPlain !== '') {
     $__descMeta = $__lead . '. ' . $__body;
 }
 $metaDesc     = $__descMeta !== '' ? $__descMeta : ("Make " . $__t . " at home — a farmhouse recipe from Bat Cave Road Farm in Old Fort, NC.");
-$canonicalUrl = "https://batcaveroadfarm.com/recipes/" . $recipe['slug'] . "/";
-$pageCSS      = "https://batcaveroadfarm.com/css/min.recipes.css";
-$pageJS       = ["https://batcaveroadfarm.com/js/min.recipe.js", "https://batcaveroadfarm.com/js/min.share.js", "https://batcaveroadfarm.com/js/min.auth.js", "https://batcaveroadfarm.com/js/min.rating.js", "https://batcaveroadfarm.com/js/min.comments.js"];
+$canonicalUrl = (bcrf_farm_url() . "/recipes/") . $recipe['slug'] . "/";
+$pageCSS      = (bcrf_farm_url() . "/css/min.recipes.css");
+$pageJS       = [(bcrf_farm_url() . "/js/min.recipe.js"), (bcrf_farm_url() . "/js/min.share.js"), (bcrf_farm_url() . "/js/min.auth.js"), (bcrf_farm_url() . "/js/min.rating.js"), (bcrf_farm_url() . "/js/min.comments.js")];
 $breadcrumbs = [
     ['label' => 'Recipes', 'url' => '/recipes/'],
     ['label' => $recipe['title']],
@@ -264,7 +265,7 @@ $__recipeSchema = array_filter([
     "recipeYield" => $__yield !== '' ? $__yield : null,
     "keywords"    => $__kw ? implode(', ', $__kw) : null,
     "recipeCuisine" => $__cuisine !== '' ? $__cuisine : null,
-    "publisher" => ["@id" => "https://batcaveroadfarm.com/#business"],
+    "publisher" => ["@id" => (bcrf_farm_url() . "/#business")],
 ], fn($v) => $v !== null && $v !== '' && $v !== []);
 if (!empty($recipe['date_published']) && $recipe['date_published'] !== '0000-00-00') { $__recipeSchema['datePublished'] = $recipe['date_published']; }
 if ($__ratingCount > 0 && $__avgRating > 0) {
@@ -569,7 +570,7 @@ $renderShare = function ($variant) use ($canonicalUrl, $recipe, $svg) {
       </ul>
     </section>
     <a class="recipe-back cta-btn" href="/recipes/">← Back to all recipes</a>
-    <div class="recipe-print-footer" aria-hidden="true">Recipe from Bat Cave Road Farm - batcaveroadfarm.com</div>
+    <div class="recipe-print-footer" aria-hidden="true">Recipe from Bat Cave Road Farm - <?= bcrf_farm_domain() ?></div>
   </div>
 </div>
 

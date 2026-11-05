@@ -1,5 +1,6 @@
 <?php
 // includes/unsubscribe.php — signed, per-recipient unsubscribe links.
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // One place builds and checks them, so every newsletter sender stays in sync.
 // Needs BCRF_LIST_SECRET (set 'LIST_SECRET' in bcrf-secrets.php, loaded by config.php).
 
@@ -14,7 +15,7 @@ if (!function_exists('bcrf_unsub_token')) {
     /** Full unsubscribe URL for one recipient (falls back to the plain form). */
     function bcrf_unsub_url(string $email): string
     {
-        $base = 'https://batcaveroadfarm.com/unsubscribe.php';
+        $base = (bcrf_farm_url() . '/unsubscribe.php');
         $t = bcrf_unsub_token($email);
         return $t === '' ? $base : $base . '?e=' . rawurlencode(trim($email)) . '&t=' . $t;
     }

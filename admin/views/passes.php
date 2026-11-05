@@ -1,4 +1,5 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 $csrf = $_SESSION['csrf_token'] ?? '';   // used by the hidden csrf_token fields below
 // admin/views/passes.php — annual pass management.
 $statusFilter = trim((string)($_GET['pstatus'] ?? 'active'));
@@ -137,7 +138,7 @@ $sBadge = fn(string $s) => match($s) {
 <?php if (!$passes): ?>
 <div class="bg-white border rounded-lg p-8 text-center text-stone-400 text-sm">No passes found.</div>
 <?php else: foreach ($passes as $p):
-    $verifyUrl = 'https://batcaveroadfarm.com/passes/verify.php?token=' . rawurlencode($p['token']);
+    $verifyUrl = (bcrf_farm_url() . '/passes/verify.php?token=') . rawurlencode($p['token']);
     $isExpiring = $p['status'] === 'active' && $p['valid_until'] && $p['valid_until'] <= date('Y-m-d', strtotime('+30 days'));
 ?>
 <div class="bg-white border <?= $isExpiring ? 'border-amber-300' : 'border-stone-200' ?> rounded-lg mb-3 shadow-xs">

@@ -1,11 +1,12 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 	$pageTitle = "Gallery - Bat Cave Road Farm";
 	$metaDesc = "Browse photos of Bat Cave Road Farm — our petting zoo animals, fresh farmstand, thrift shop finds, and life on the farm in Old Fort, NC.";
-	$canonicalUrl = "https://batcaveroadfarm.com/gallery/";
-	$ogImage = "https://batcaveroadfarm.com/img/og-gallery.jpg";
-	$pageJS = "https://batcaveroadfarm.com/js/min.gallery.js";
-	$pageCSS = "https://batcaveroadfarm.com/css/min.gallery.css";	
-	$preloadImage = "https://batcaveroadfarm.com/img/animals2.webp"; // hero photo = mobile LCP (Nov 3 perf fix)
+	$canonicalUrl = (bcrf_farm_url() . "/gallery/");
+	$ogImage = (bcrf_farm_url() . "/img/og-gallery.jpg");
+	$pageJS = (bcrf_farm_url() . "/js/min.gallery.js");
+	$pageCSS = (bcrf_farm_url() . "/css/min.gallery.css");	
+	$preloadImage = (bcrf_farm_url() . "/img/animals2.webp"); // hero photo = mobile LCP (Nov 3 perf fix)
 	require('../includes/head.php');
 	include('../includes/header.php');
 ?>
@@ -31,7 +32,7 @@
                             <div class="frame-outer">
                                 <div class="frame-mat">
                                     <div class="frame-photo">
-                                        <img src="https://batcaveroadfarm.com/img/tomato1.png" alt="Tomatoes growing on the vine" width="768" height="768" decoding="async">
+                                        <img src="<?= bcrf_farm_url() ?>/img/tomato1.png" alt="Tomatoes growing on the vine" width="768" height="768" decoding="async">
                                     </div>
                                 </div>
                             </div>
@@ -46,7 +47,7 @@
                             <div class="frame-outer">
                                 <div class="frame-mat">
                                     <div class="frame-photo frame-photo-tall">
-                                        <img src="https://batcaveroadfarm.com/img/nursery1.jpg" alt="Nursery Time" width="800" height="600" decoding="async" loading="lazy">
+                                        <img src="<?= bcrf_farm_url() ?>/img/nursery1.jpg" alt="Nursery Time" width="800" height="600" decoding="async" loading="lazy">
                                     </div>
                                 </div>
                             </div>
@@ -61,7 +62,7 @@
                             <div class="frame-outer">
                                 <div class="frame-mat">
                                     <div class="frame-photo frame-photo-wide">
-                                        <img src="https://batcaveroadfarm.com/img/bread1.png" alt="Bread about to come out of the oven" width="963" height="537" decoding="async" loading="lazy">
+                                        <img src="<?= bcrf_farm_url() ?>/img/bread1.png" alt="Bread about to come out of the oven" width="963" height="537" decoding="async" loading="lazy">
                                     </div>
                                 </div>
                             </div>
@@ -76,7 +77,7 @@
         		            <div class="frame-outer">
         			            <div class="frame-mat">
         				            <div class="frame-photo frame-photo-sm">
-        				                <img src="https://batcaveroadfarm.com/img/pig2.jpg" alt="Pigs talking" width="800" height="600" decoding="async" loading="lazy">
+        				                <img src="<?= bcrf_farm_url() ?>/img/pig2.jpg" alt="Pigs talking" width="800" height="600" decoding="async" loading="lazy">
         				            </div>
         				        </div>
         				    </div>
@@ -91,7 +92,7 @@
                             <div class="frame-outer">
                                 <div class="frame-mat">
                                     <div class="frame-photo">
-                                        <img src="https://batcaveroadfarm.com/img/jam1.png" alt="Making strawberry jam" width="500" height="273" decoding="async" loading="lazy">
+                                        <img src="<?= bcrf_farm_url() ?>/img/jam1.png" alt="Making strawberry jam" width="500" height="273" decoding="async" loading="lazy">
                                     </div>
                                 </div>
                             </div>
@@ -106,7 +107,7 @@
                             <div class="frame-outer">
                                 <div class="frame-mat">
                                     <div class="frame-photo frame-photo-wide">
-                                        <img src="https://batcaveroadfarm.com/img/turkey1.jpg" alt="Turkeys hanging out" width="800" height="600" decoding="async" loading="lazy">
+                                        <img src="<?= bcrf_farm_url() ?>/img/turkey1.jpg" alt="Turkeys hanging out" width="800" height="600" decoding="async" loading="lazy">
                                     </div>
                                 </div>
                             </div>
@@ -121,7 +122,7 @@
                             <div class="frame-outer">
                             	<div class="frame-mat">
                             	    <div class="frame-photo">
-                            			<img src="https://batcaveroadfarm.com/img/pickles1.png" alt="Let's make pickles" width="704" height="384" decoding="async" loading="lazy">
+                            			<img src="<?= bcrf_farm_url() ?>/img/pickles1.png" alt="Let's make pickles" width="704" height="384" decoding="async" loading="lazy">
                             		</div>
                             	</div>
                             </div>
@@ -136,7 +137,7 @@
                             <div class="frame-outer">
                                 <div class="frame-mat">
                                     <div class="frame-photo frame-photo-tall">
-                                        <img src="https://batcaveroadfarm.com/img/flowers1.png" alt="Arranging flowers" width="500" height="273" decoding="async" loading="lazy">
+                                        <img src="<?= bcrf_farm_url() ?>/img/flowers1.png" alt="Arranging flowers" width="500" height="273" decoding="async" loading="lazy">
                                     </div>
                                 </div>
                             </div>
@@ -151,7 +152,7 @@
                             <div class="frame-outer">
                                 <div class="frame-mat">
                                     <div class="frame-photo frame-photo-sm">
-                                        <img src="https://batcaveroadfarm.com/img/peacock2.jpg" alt="Peacock strutting her stuff" width="600" height="800" decoding="async" loading="lazy">
+                                        <img src="<?= bcrf_farm_url() ?>/img/peacock2.jpg" alt="Peacock strutting her stuff" width="600" height="800" decoding="async" loading="lazy">
                                     </div>
                                 </div>
                             </div>
@@ -166,7 +167,7 @@
                             <div class="frame-outer">
                                 <div class="frame-mat">
                                     <div class="frame-photo frame-photo-wide">
-                                        <img src="https://batcaveroadfarm.com/img/harvest1.png" alt="Harvest time" width="500" height="273" decoding="async" loading="lazy">
+                                        <img src="<?= bcrf_farm_url() ?>/img/harvest1.png" alt="Harvest time" width="500" height="273" decoding="async" loading="lazy">
                                     </div>
                                 </div>
                             </div>
@@ -181,7 +182,7 @@
                             <div class="frame-outer">
                                 <div class="frame-mat">
                                     <div class="frame-photo">
-                                        <img src="https://batcaveroadfarm.com/img/animals3.jpg" alt="The animals all hanging out" width="816" height="377" decoding="async" loading="lazy">
+                                        <img src="<?= bcrf_farm_url() ?>/img/animals3.jpg" alt="The animals all hanging out" width="816" height="377" decoding="async" loading="lazy">
                                     </div>
                                 </div>
                             </div>

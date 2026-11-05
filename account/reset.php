@@ -1,5 +1,6 @@
 <?php
 // account/reset.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 ob_start();
 require_once '../config.php';
 require_once '../includes/auth.php';
@@ -65,7 +66,7 @@ ob_end_clean();
 
 $pageTitle       = 'Reset Password | Bat Cave Road Farm';
 $metaDesc        = 'Choose a new password for your Bat Cave Road Farm account.';
-$canonicalUrl    = 'https://batcaveroadfarm.com/account/reset.php';
+$canonicalUrl    = (bcrf_farm_url() . '/account/reset.php');
 $hideBreadcrumbs = true;
 require_once '../includes/head.php';
 require_once '../includes/header.php';

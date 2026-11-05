@@ -1,4 +1,5 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 require_once '../config.php';
 
 if (!function_exists('bcrfStandBoxes')) {
@@ -57,11 +58,11 @@ function bcrfStandBoxes(PDO $pdo, array $keys, string $label = '', int $limit = 
 
 	$pageTitle = "Farmstand - Bat Cave Road Farm";
 	$metaDesc = "Fresh seasonal vegetables, sourdough bread, farm eggs, local honey, homemade jams, and cut flowers — straight from our farm in Old Fort, NC.";
-	$canonicalUrl = "https://batcaveroadfarm.com/farm-stand/";
-	$ogImage = "https://batcaveroadfarm.com/img/og-farmstand.jpg";
-	$pageCSS= "https://batcaveroadfarm.com/css/min.farmstand.css";
-	$pageJS = "https://batcaveroadfarm.com/js/min.comingsoon.js";
-	$preloadImage = "https://batcaveroadfarm.com/img/harvest1.png"; // hero photo = mobile LCP (Nov 3 perf fix)
+	$canonicalUrl = (bcrf_farm_url() . "/farm-stand/");
+	$ogImage = (bcrf_farm_url() . "/img/og-farmstand.jpg");
+	$pageCSS= (bcrf_farm_url() . "/css/min.farmstand.css");
+	$pageJS = (bcrf_farm_url() . "/js/min.comingsoon.js");
+	$preloadImage = (bcrf_farm_url() . "/img/harvest1.png"); // hero photo = mobile LCP (Nov 3 perf fix)
 	include('../includes/head.php');
 ?>
 <script type="application/ld+json">
@@ -70,11 +71,11 @@ function bcrfStandBoxes(PDO $pdo, array $keys, string $label = '', int $limit = 
   "@graph": [
     {
       "@type": "GroceryStore",
-      "@id": "https://batcaveroadfarm.com/farm-stand/#farmstand",
+      "@id": "<?= bcrf_farm_url() ?>/farm-stand/#farmstand",
       "name": "Bat Cave Road Farm — Farmstand",
-      "url": "https://batcaveroadfarm.com/farm-stand/",
+      "url": "<?= bcrf_farm_url() ?>/farm-stand/",
       "description": "On-farm seasonal farmstand in Old Fort, NC selling fresh-baked sourdough bread, pastries, farm-fresh eggs, seasonal vegetables and fruit, local honey, homemade jams, pickles, and cut flowers. Near Asheville, Western North Carolina.",
-      "image": "https://batcaveroadfarm.com/img/og-farmstand.jpg",
+      "image": "<?= bcrf_farm_url() ?>/img/og-farmstand.jpg",
       "telephone": <?= json_encode(function_exists('site_phone_e164') ? site_phone_e164('general') : '+18282165488') ?>,
       "address": {
         "@type": "PostalAddress",
@@ -94,7 +95,7 @@ function bcrfStandBoxes(PDO $pdo, array $keys, string $label = '', int $limit = 
       "paymentAccepted": "Cash, Credit Card, Venmo, PayPal, CashApp",
       "isAccessibleForFree": true,
       "parentOrganization": {
-        "@id": "https://batcaveroadfarm.com/#business"
+        "@id": "<?= bcrf_farm_url() ?>/#business"
       },
       "hasOfferCatalog": {
         "@type": "OfferCatalog",
@@ -142,7 +143,7 @@ function bcrfStandBoxes(PDO $pdo, array $keys, string $label = '', int $limit = 
 ?>
         <div id="comingsoon">
         <img id="floating-img"
-             src="https://batcaveroadfarm.com/img/comingsoon.png"
+             src="<?= bcrf_farm_url() ?>/img/comingsoon.png"
              alt="Coming soon"
              width="428" height="323" decoding="async" loading="lazy">
         </div>
@@ -179,19 +180,19 @@ function bcrfStandBoxes(PDO $pdo, array $keys, string $label = '', int $limit = 
               <div class="two-col-text">
                 <h3>CSA Shares & Weekly Boxes</h3>
                 <p>Join our Community Supported Agriculture program and receive a curated weekly box of seasonal produce, baked goods, and pantry staples picked up fresh at the farm. Subscriptions open each spring.</p>
-                <a href="https://batcaveroadfarm.com/contact-us/#contactform" class="cta-btn">Ask About CSA</a>
+                <a href="<?= bcrf_farm_url() ?>/contact-us/#contactform" class="cta-btn">Ask About CSA</a>
               </div>
               <div class="two-col-img">
-                  <img src="https://batcaveroadfarm.com/img/farmstandtable.webp" alt="Fresh-baked goods and homemade preserves at Bat Cave Road Farm farmstand in Old Fort, NC — sourdough bread, blueberry muffins, croissants, and jars of strawberry rhubarb jam, raspberry jam, peach ginger, blackberry jelly, and honey alongside a fresh-cut flower bouquet" width="500" height="285" decoding="async" loading="lazy">
+                  <img src="<?= bcrf_farm_url() ?>/img/farmstandtable.webp" alt="Fresh-baked goods and homemade preserves at Bat Cave Road Farm farmstand in Old Fort, NC — sourdough bread, blueberry muffins, croissants, and jars of strawberry rhubarb jam, raspberry jam, peach ginger, blackberry jelly, and honey alongside a fresh-cut flower bouquet" width="500" height="285" decoding="async" loading="lazy">
               </div>
             </div>
                  <div class="ctaDiv">
                                     
-                    <a href="https://batcaveroadfarm.com/petting-zoo/" class="cta-btn">
+                    <a href="<?= bcrf_farm_url() ?>/petting-zoo/" class="cta-btn">
                             While you're here, meet the animals
                     </a>
                     <button type="button" class="cta-btn" data-subscribe-open><span aria-hidden="true">🌾</span> Get fresh harvest alerts</button>
-                    <a href="https://batcaveroadfarm.com/shop/" class="cta-btn"><span aria-hidden="true">🧢</span> Shop farm merch</a>
+                    <a href="<?= bcrf_farm_url() ?>/shop/" class="cta-btn"><span aria-hidden="true">🧢</span> Shop farm merch</a>
 
                 </div>
             <div class="info-box reveal" style="margin-top:40px">
@@ -210,16 +211,16 @@ function bcrfStandBoxes(PDO $pdo, array $keys, string $label = '', int $limit = 
                     </a>
                     <?php endforeach; else: ?>
                     <a href="https://www.facebook.com/batcaveroadfarm" target="_blank" rel="noopener">
-                        <img class="socialicon" src="https://batcaveroadfarm.com/img/facebook.png" alt="Bat Cave Road Farm on Facebook" width="64" height="64" decoding="async" loading="lazy"> Facebook
+                        <img class="socialicon" src="<?= bcrf_farm_url() ?>/img/facebook.png" alt="Bat Cave Road Farm on Facebook" width="64" height="64" decoding="async" loading="lazy"> Facebook
                     </a>
                     <a href="https://www.instagram.com/batcaveroadfarm" target="_blank" rel="noopener">
-                        <img class="socialicon" src="https://batcaveroadfarm.com/img/instagram.png" alt="Bat Cave Road Farm on Instagram" width="64" height="64" decoding="async" loading="lazy"> Instagram
+                        <img class="socialicon" src="<?= bcrf_farm_url() ?>/img/instagram.png" alt="Bat Cave Road Farm on Instagram" width="64" height="64" decoding="async" loading="lazy"> Instagram
                     </a>
                     <?php endif; ?> 
 
                 </li>
                 <li>
-                                    <a href="https://batcaveroadfarm.com/faq/#farmstand" class="ulLink">
+                                    <a href="<?= bcrf_farm_url() ?>/faq/#farmstand" class="ulLink">
                         Check our FAQ for frequently asked questions.
                     </a>
                 </li>

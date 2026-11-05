@@ -1,14 +1,15 @@
 <?php
 // passes/success.php — shown after successful Stripe payment for a pass.
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('X-Robots-Tag: noindex, nofollow');   // private pass link (the token is the gate QR)
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/stripe.php';
 
 $pageTitle = 'Your Pass is Ready — Bat Cave Road Farm';
-$pageCSS   = 'https://batcaveroadfarm.com/css/min.passes.css';
-$pageJS    = ['https://batcaveroadfarm.com/js/qrcode.min.js',
-              'https://batcaveroadfarm.com/js/min.passes.js'];
+$pageCSS   = (bcrf_farm_url() . '/css/min.passes.css');
+$pageJS    = [(bcrf_farm_url() . '/js/qrcode.min.js'),
+              (bcrf_farm_url() . '/js/min.passes.js')];
 
 require '../includes/head.php';
 include '../includes/header.php';
@@ -46,7 +47,7 @@ if ($pass && $pass['status'] === 'pending_payment' && !empty($pass['payment_refe
 // GA purchase, if the webhook hasn't already sent it (sends at most once)
 if ($pass && $pass['status'] === 'active') { require_once __DIR__ . '/../includes/ga.php'; bcrf_ga_purchase($pdo, 'passes', (int)$pass['id']); }
 
-$verifyUrl = 'https://batcaveroadfarm.com/passes/verify.php?token=' . rawurlencode($token);
+$verifyUrl = (bcrf_farm_url() . '/passes/verify.php?token=') . rawurlencode($token);
 $active = $pass && $pass['status'] === 'active';
 ?>
 

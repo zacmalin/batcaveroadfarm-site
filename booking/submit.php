@@ -1,5 +1,6 @@
 <?php
 // Self-contained booking request handler for batcaveroadfarm.com.
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Renders its OWN result page (no header() redirect) so a stray BOM / broken
 // target page can't turn this into a white screen. Mirrors send-message.php.
 
@@ -13,7 +14,7 @@ $method = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET'
 if ($method !== 'POST') {
     echo '<!doctype html><meta charset="utf-8">';
     echo '<body style="font-family:Georgia,serif;padding:40px;background:#f5ead6;color:#3b2010">';
-    echo '<p>✅ Booking endpoint is running. Use the <a href="https://batcaveroadfarm.com/booking/">booking form</a> to request a visit.</p>';
+    echo ('<p>✅ Booking endpoint is running. Use the <a href="' . bcrf_farm_url() . '/booking/">booking form</a> to request a visit.</p>');
     exit;
 }
 
@@ -171,6 +172,6 @@ if (!empty($_POST['website'])) {
             echo "Thanks! We've received your request and will confirm by email shortly. Nothing is reserved until we confirm.";
         }
     ?></p>
-    <a class="btn" href="https://batcaveroadfarm.com/booking/">Back to Booking</a>
+    <a class="btn" href="<?= bcrf_farm_url() ?>/booking/">Back to Booking</a>
   </div>
 </body></html>

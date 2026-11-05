@@ -1,5 +1,6 @@
 <?php
 // Cron/command-line only — block web visitors from triggering alert emails
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 chdir(__DIR__);
 // admin/handlers/check_stock_alerts.php
@@ -34,7 +35,7 @@ if (!empty($low_stock_items)) {
     $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
     $mail->Port       = BCRF_SMTP_PORT;
 
-    $mail->setFrom('support@batcaveroadfarm.com', 'Bat Cave Road Farm');
+    $mail->setFrom((bcrf_farm_email('support')), 'Bat Cave Road Farm');
     $mail->addAddress(BCRF_STOCK_ALERT_TO);
     $mail->Subject = 'Low Stock Alert: ' . count($low_stock_items) . ' items';
 

@@ -1,5 +1,6 @@
 <?php
 // Self-contained tokenized booking cancellation for batcaveroadfarm.com.
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // GET ?id=&t=  -> verify token, show a confirm button (prevents mail-scanner
 //                prefetch from auto-cancelling via a bare link).
 // POST id,t    -> verify token again, cancel, notify the farm.
@@ -126,34 +127,34 @@ $phone     = function_exists('site') ? site('phone.general') : '(828) 216-5488';
       <p style="margin:0"><span>Party:</span> <?php echo (int)$b['party_size']; ?></p>
     </div>
     <div class="btn-row">
-      <form method="POST" action="https://batcaveroadfarm.com/cancel-booking.php" style="margin:0">
+      <form method="POST" action="<?= bcrf_farm_url() ?>/cancel-booking.php" style="margin:0">
         <input type="hidden" name="id" value="<?php echo (int)$id; ?>">
         <input type="hidden" name="t" value="<?php echo htmlspecialchars($tok, ENT_QUOTES); ?>">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES); ?>">
         <button class="btn danger" type="submit">Yes, cancel it</button>
       </form>
-      <a class="btn" href="https://batcaveroadfarm.com/">Keep my booking</a>
+      <a class="btn" href="<?= bcrf_farm_url() ?>/">Keep my booking</a>
     </div>
   <?php elseif ($state === 'done'): ?>
     <div class="emoji">🌾</div>
     <h1>Booking cancelled</h1>
     <p>Your booking has been cancelled and the spot is freed up. We hope to see you another time! Questions? Call us at <?php echo htmlspecialchars($phone); ?>.</p>
-    <a class="btn" href="https://batcaveroadfarm.com/booking/">Book another visit</a>
+    <a class="btn" href="<?= bcrf_farm_url() ?>/booking/">Book another visit</a>
   <?php elseif ($state === 'already'): ?>
     <div class="emoji">🌿</div>
     <h1>Already cancelled</h1>
     <p>This booking was already cancelled — nothing more to do. Want to come another day? We'd love to have you.</p>
-    <a class="btn" href="https://batcaveroadfarm.com/booking/">Book a visit</a>
+    <a class="btn" href="<?= bcrf_farm_url() ?>/booking/">Book a visit</a>
   <?php elseif ($state === 'locked'): ?>
     <div class="emoji">🌿</div>
     <h1>Can't cancel online</h1>
     <p>This booking can no longer be cancelled through this link. Please give us a call at <?php echo htmlspecialchars($phone); ?> and we'll help.</p>
-    <a class="btn" href="https://batcaveroadfarm.com/">Back to the farm</a>
+    <a class="btn" href="<?= bcrf_farm_url() ?>/">Back to the farm</a>
   <?php else: ?>
     <div class="emoji">🌾</div>
     <h1>Link not found</h1>
     <p>We couldn't match this cancellation link to a booking. It may have expired or been mistyped. Call us at <?php echo htmlspecialchars($phone); ?> and we'll sort it out.</p>
-    <a class="btn" href="https://batcaveroadfarm.com/">Back to the farm</a>
+    <a class="btn" href="<?= bcrf_farm_url() ?>/">Back to the farm</a>
   <?php endif; ?>
   </div>
 </body></html>

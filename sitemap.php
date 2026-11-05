@@ -1,12 +1,13 @@
 <?php
 // Dynamic XML sitemap with image extensions — batcaveroadfarm.com.
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Merges image data into standard sitemap entries so Google discovers
 // farm photos without needing a separate sitemap file.
 require_once __DIR__ . '/config.php';
 header('Content-Type: application/xml; charset=utf-8');
 header('Cache-Control: public, max-age=3600');
 
-$base  = 'https://batcaveroadfarm.com';
+$base  = (bcrf_farm_url());
 $today = date('Y-m-d');
 $urls  = [];
 

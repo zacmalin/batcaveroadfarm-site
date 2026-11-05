@@ -1,4 +1,5 @@
 <?php // admin/system_health.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 /*
  * System Health (Nov 2026). Administrators only.
  *   1. Scheduled jobs: last good run / failure for every cron (includes/cron_health.php)
@@ -110,8 +111,8 @@ h1{font-size:1.35rem;margin:10px 0 4px}h2{font-size:1.05rem;margin:26px 0 8px}.s
 <h2>Uptime checks (UptimeRobot)</h2>
 <div class="card meta" style="font-size:.88rem">
   Add these as <strong>Keyword</strong> monitors (keyword <code>BCRF-OK</code>, alert when missing), every 5 minutes, with email alerts:<br>
-  1. <code>https://batcaveroadfarm.com/health.php</code>: site, PHP and database<br>
-  2. <code>https://batcaveroadfarm.com/health.php?jobs=1</code>: also fails when a job above is Late or Failing<br>
-  Plus <strong>HTTP</strong> monitors for <code>https://batcaveroadfarm.com/</code> and <code>https://batcaveroadfarm.com/booking/</code>.
+  1. <code><?= bcrf_farm_url() ?>/health.php</code>: site, PHP and database<br>
+  2. <code><?= bcrf_farm_url() ?>/health.php?jobs=1</code>: also fails when a job above is Late or Failing<br>
+  Plus <strong>HTTP</strong> monitors for <code><?= bcrf_farm_url() ?>/</code> and <code><?= bcrf_farm_url() ?>/booking/</code>.
 </div>
 </div></body></html>

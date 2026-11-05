@@ -1,5 +1,6 @@
 <?php
 // account/forgot.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 ob_start();
 require_once '../config.php';
 require_once '../includes/auth.php';
@@ -45,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pdo->prepare("INSERT INTO password_resets (user_id, token_hash, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))")
                     ->execute([(int)$user['id'], $hash]);
 
-                $link = 'https://batcaveroadfarm.com/account/reset.php?token=' . $token;
+                $link = (bcrf_farm_url() . '/account/reset.php?token=') . $token;
                 $name = trim((string)($user['first_name'] ?? '')) ?: 'there';
                 $subject = 'Reset your Bat Cave Road Farm password';
                 $inner = '<h1 style="font-family:Rye,Georgia,serif;color:#e8b84b;font-size:24px;margin:0 0 14px;">Reset your password</h1>'
@@ -54,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     . '<p style="margin:0;font-size:14px;color:rgba(245,234,214,0.8);">This link expires in 1 hour. If you didn\'t request this, you can safely ignore this email — your password won\'t change.</p>';
                 $sentOk = function_exists('bcf_send_mail')
                     ? bcf_send_mail((string)$user['email'], $subject, $inner, ['subtitle' => 'Password Reset'])
-                    : @mail((string)$user['email'], $subject, "Hi {$name},\r\n\r\nReset your password (expires in 1 hour):\r\n{$link}\r\n\r\nIf you didn't request this, ignore this email.\r\n— Bat Cave Road Farm\r\n", "From: Bat Cave Road Farm <no-reply@batcaveroadfarm.com>\r\nContent-Type: text/plain; charset=UTF-8\r\n", '-fno-reply@batcaveroadfarm.com');
+                    : @mail((string)$user['email'], $subject, "Hi {$name},\r\n\r\nReset your password (expires in 1 hour):\r\n{$link}\r\n\r\nIf you didn't request this, ignore this email.\r\n— Bat Cave Road Farm\r\n", ("From: Bat Cave Road Farm <" . bcrf_farm_email('noreply') . ">\r\nContent-Type: text/plain; charset=UTF-8\r\n"), '-f' . bcrf_farm_email('noreply'));
                 if (!$sentOk) {
                     error_log('[forgot] reset email failed to send (mail() returned false)');
                 }
@@ -72,7 +73,7 @@ ob_end_clean();
 
 $pageTitle       = 'Forgot Password | Bat Cave Road Farm';
 $metaDesc        = 'Reset your Bat Cave Road Farm account password.';
-$canonicalUrl    = 'https://batcaveroadfarm.com/account/forgot.php';
+$canonicalUrl    = (bcrf_farm_url() . '/account/forgot.php');
 $hideBreadcrumbs = true;
 require_once '../includes/head.php';
 require_once '../includes/header.php';

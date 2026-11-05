@@ -1,5 +1,6 @@
 <?php
 // admin/views/events.php — manage farm events (list + add/edit).
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 require_once __DIR__ . '/../../includes/events.php';
 bcrf_events_ensure_schema($pdo);
 
@@ -87,7 +88,7 @@ $curRec = (string)($edit['recurrence'] ?? 'none');
       </div>
       <div class="md:col-span-2">
         <label class="block text-xs font-semibold text-stone-600 mb-1">Image URL (optional)</label>
-        <input type="text" name="image_url" value="<?= $v('image_url') ?>" class="w-full p-2 border border-stone-300 rounded bg-stone-50" placeholder="https://batcaveroadfarm.com/img/...">
+        <input type="text" name="image_url" value="<?= $v('image_url') ?>" class="w-full p-2 border border-stone-300 rounded bg-stone-50" placeholder="<?= bcrf_farm_url() ?>/img/...">
       </div>
       <div class="md:col-span-2">
         <label class="block text-xs font-semibold text-stone-600 mb-1">Description</label>

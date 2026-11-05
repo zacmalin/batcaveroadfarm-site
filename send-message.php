@@ -1,5 +1,6 @@
 <?php
 // send-message.php — Self-contained contact handler for batcaveroadfarm.com
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Renders its OWN page (no header() redirects), so a stray BOM / leading whitespace
 // or a broken target page cannot turn this into a blank white screen.
 
@@ -9,7 +10,7 @@ $method = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET'
 if ($method !== 'POST') {
     echo '<!doctype html><meta charset="utf-8">';
     echo '<body style="font-family:Georgia,serif;padding:40px;background:#f5ead6;color:#3b2010">';
-    echo '<p>✅ contact.php is running. Use the <a href="https://batcaveroadfarm.com/contact-us/">contact form</a> to send a message.</p>';
+    echo ('<p>✅ contact.php is running. Use the <a href="' . bcrf_farm_url() . '/contact-us/">contact form</a> to send a message.</p>');
     exit;
 }
 
@@ -57,7 +58,7 @@ if (!empty($_POST['website'])) {
     if ($name === '' || $validEmail === false || $message === '') {
         $isError = true;
     } else {
-        $to      = 'support@batcaveroadfarm.com';
+        $to      = (bcrf_farm_email('support'));
         $subject = $noCrlf('New Contact Form Submission from ' . $name);
 
         // Pure, dependency-free template functions — load defensively so this
@@ -76,7 +77,7 @@ if (!empty($_POST['website'])) {
                 . '<p style="margin:0;white-space:pre-wrap;">' . nl2br(htmlspecialchars($message)) . '</p>';
             $sent = bcf_send_mail($to, $subject, $notifInner, [
                 'subtitle'   => 'New Message',
-                'from_email' => 'support@batcaveroadfarm.com',
+                'from_email' => (bcrf_farm_email('support')),
                 'reply_to'   => $validEmail,
             ]);
 
@@ -90,7 +91,7 @@ if (!empty($_POST['website'])) {
             if (!function_exists('bcrf_rl_hit') || !bcrf_rl_hit('contact_ack', $validEmail, 2, 86400)) {
                 @bcf_send_mail($validEmail, 'Thanks for contacting Bat Cave Road Farm', $ackInner, [
                     'subtitle'   => 'Message Received',
-                    'from_email' => 'support@batcaveroadfarm.com',
+                    'from_email' => (bcrf_farm_email('support')),
                 ]);
             }
         } else {
@@ -100,10 +101,10 @@ if (!empty($_POST['website'])) {
                      . "Phone:    $phone\n"
                      . "Catagory: $catagory\n"
                      . "Message:\n$message\n";
-            $headers = "From: Bat Cave Road Farm <support@batcaveroadfarm.com>\r\n"
+            $headers = ("From: Bat Cave Road Farm <" . bcrf_farm_email('support') . ">\r\n")
                      . "Reply-To: $name <$validEmail>\r\n"
                      . "Content-Type: text/plain; charset=UTF-8\r\n";
-            $sent    = @mail($to, $subject, $body, $headers, '-fsupport@batcaveroadfarm.com');
+            $sent    = @mail($to, $subject, $body, $headers, '-f' . bcrf_farm_email('support'));
         }
         $isError = ($sent === false);
     }
@@ -128,8 +129,8 @@ if (!empty($_POST['website'])) {
 </style>
 <!-- GA4: confirmation-page conversion (CSP-safe; event fires from min.analytics.js reading the body data-attr) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-DLB6LEFWQZ"></script>
-<script defer src="https://batcaveroadfarm.com/js/min.gtag.js?v=20260624b"></script>
-<script defer src="https://batcaveroadfarm.com/js/min.analytics.js?v=20260624b"></script>
+<script defer src="<?= bcrf_farm_url() ?>/js/min.gtag.js?v=20260624b"></script>
+<script defer src="<?= bcrf_farm_url() ?>/js/min.analytics.js?v=20260624b"></script>
 </head>
 <body<?php echo $isError ? '' : ' data-ga-event="generate_lead" data-ga-form="contact"'; ?>>
   <div class="card">
@@ -139,8 +140,8 @@ if (!empty($_POST['website'])) {
         ? ($errMsg !== '' ? $errMsg : "Sorry &mdash; something went wrong and we couldn't send your message. Please try again, or call us at (828)&nbsp;216-5488.")
         : "Thank you for reaching out! We've received your message and will get back to you within 24 hours."; ?></p>
 <?php if (!$isError): ?>
-    <p style="margin-top:14px;">Enjoyed a visit to the farm? <a href="https://batcaveroadfarm.com/review" target="_blank" rel="noopener">Leave us a Google review</a> ⭐ — it really helps a small family farm.</p>
+    <p style="margin-top:14px;">Enjoyed a visit to the farm? <a href="<?= bcrf_farm_url() ?>/review" target="_blank" rel="noopener">Leave us a Google review</a> ⭐ — it really helps a small family farm.</p>
 <?php endif; ?>
-    <a class="btn" href="https://batcaveroadfarm.com/contact-us/">Back to Contact</a>
+    <a class="btn" href="<?= bcrf_farm_url() ?>/contact-us/">Back to Contact</a>
   </div>
 </body></html>

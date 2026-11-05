@@ -1,5 +1,6 @@
 <?php
 // passes/submit.php — creates pass record and initiates Stripe checkout.
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/stripe.php';
@@ -65,7 +66,7 @@ try {
 }
 
 // Create Stripe Checkout Session
-$base    = rtrim(defined('BCRF_SOCIAL_BASE_URL') ? BCRF_SOCIAL_BASE_URL : 'https://batcaveroadfarm.com', '/');
+$base    = rtrim(defined('BCRF_SOCIAL_BASE_URL') ? BCRF_SOCIAL_BASE_URL : (bcrf_farm_url()), '/');
 $tok     = rawurlencode($token);
 $perYear = '/ year';
 

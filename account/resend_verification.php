@@ -1,5 +1,6 @@
 <?php
 // account/resend_verification.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 ob_start();
 require_once '../config.php';
 require_once '../includes/auth.php';
@@ -42,7 +43,7 @@ ob_end_clean();
 
 $pageTitle       = 'Resend Verification | Bat Cave Road Farm';
 $metaDesc        = 'Resend your Bat Cave Road Farm verification email.';
-$canonicalUrl    = 'https://batcaveroadfarm.com/account/resend_verification.php';
+$canonicalUrl    = (bcrf_farm_url() . '/account/resend_verification.php');
 $hideBreadcrumbs = true;
 require_once '../includes/head.php';
 require_once '../includes/header.php';

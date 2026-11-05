@@ -1,5 +1,6 @@
 <?php
 // jobs/job.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // One job posting: /jobs/{slug}/  (rewritten from .htaccess to job.php?slug=).
 // Unknown slug → 404. A job that's closed, inactive or filled → 410 with a link back to /jobs/.
 // Open jobs print JobPosting JSON-LD for Google's job search.
@@ -16,7 +17,7 @@ if (preg_match('/^[a-z0-9-]{1,160}$/', $slug)) {
 if (!$job) { http_response_code(404); ob_clean(); require __DIR__ . '/../404.php'; exit; }
 
 $open = jobs_public_accepting($job);
-$url  = 'https://batcaveroadfarm.com/jobs/' . rawurlencode($job['slug']) . '/';
+$url  = (bcrf_farm_url() . '/jobs/') . rawurlencode($job['slug']) . '/';
 $engLabels = jobs_engagement_labels();
 $schLabels = jobs_schedule_labels();
 $pay = jobs_pay_summary($job);
@@ -24,8 +25,8 @@ $pay = jobs_pay_summary($job);
 $pageTitle    = $job['title'] . ' | Jobs at Bat Cave Road Farm';
 $metaDesc     = mb_substr($job['summary'] ?: ($job['title'] . ' at Bat Cave Road Farm in Old Fort, NC. ' . $pay), 0, 160);
 $canonicalUrl = $url;
-$ogImage      = 'https://batcaveroadfarm.com/img/og-home.jpg';
-$pageCSS      = 'https://batcaveroadfarm.com/css/min.jobs.css';
+$ogImage      = (bcrf_farm_url() . '/img/og-home.jpg');
+$pageCSS      = (bcrf_farm_url() . '/css/min.jobs.css');
 $breadcrumbs  = [['label' => 'Jobs', 'url' => '/jobs/'], ['label' => $job['title']]];
 
 if (!$open) {
@@ -70,7 +71,7 @@ $ld = [
     'identifier' => ['@type' => 'PropertyValue', 'name' => 'Bat Cave Road Farm', 'value' => 'BCRF-' . (int)$job['id']],
     'hiringOrganization' => [
         '@type' => 'Organization', 'name' => 'Bat Cave Road Farm',
-        'sameAs' => 'https://batcaveroadfarm.com/', 'logo' => 'https://batcaveroadfarm.com/img/logo.png',
+        'sameAs' => (bcrf_farm_url() . '/'), 'logo' => (bcrf_farm_url() . '/img/logo.png'),
     ],
     'jobLocation' => ['@type' => 'Place', 'address' => site_schema_address()],
 ];

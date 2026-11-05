@@ -1,10 +1,11 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 require_once '../../config.php';
 $pageTitle     = "Thrift Shop Finds - Bat Cave Road Farm";
 $metaDesc      = "Browse available thrift shop finds at Bat Cave Road Farm in Old Fort, NC — vintage, antiques, and one-of-a-kind treasures, updated as our shelves change.";
-$canonicalUrl  = "https://batcaveroadfarm.com/thrift-shop/items/";
-$ogImage       = "https://batcaveroadfarm.com/img/og-thriftshop.jpg";
-$pageCSS       = "https://batcaveroadfarm.com/css/min.farmstand.css";
+$canonicalUrl  = (bcrf_farm_url() . "/thrift-shop/items/");
+$ogImage       = (bcrf_farm_url() . "/img/og-thriftshop.jpg");
+$pageCSS       = (bcrf_farm_url() . "/css/min.farmstand.css");
 
 $search = trim($_GET['search'] ?? '');
 $items = [];
@@ -39,16 +40,16 @@ foreach ($items as $__it) {
     $__id = (int)($__it['id'] ?? 0); if ($__id <= 0) continue;
     $__nm = (string)($__it['name'] ?? '');
     $__li[] = ['@type' => 'ListItem', 'position' => ++$__n,
-        'url'  => 'https://batcaveroadfarm.com/thrift-shop/items/' . $__id . '/' . (createSlug($__nm) ?: 'item') . '/',
+        'url'  => (bcrf_farm_url() . '/thrift-shop/items/') . $__id . '/' . (createSlug($__nm) ?: 'item') . '/',
         'name' => $__nm];
 }
 if ($__li) {
     echo '<script type="application/ld+json">' . json_encode([
         '@context' => 'https://schema.org', '@type' => 'CollectionPage',
-        '@id'      => 'https://batcaveroadfarm.com/thrift-shop/items/#collection',
-        'url'      => 'https://batcaveroadfarm.com/thrift-shop/items/',
+        '@id'      => (bcrf_farm_url() . '/thrift-shop/items/#collection'),
+        'url'      => (bcrf_farm_url() . '/thrift-shop/items/'),
         'name'     => ($pageTitle ?? 'Thrift Shop Finds — Bat Cave Road Farm'),
-        'isPartOf' => ['@id' => 'https://batcaveroadfarm.com/#website'],
+        'isPartOf' => ['@id' => (bcrf_farm_url() . '/#website')],
         'mainEntity' => ['@type' => 'ItemList', 'numberOfItems' => count($__li), 'itemListElement' => $__li],
     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "</script>\n";
 }

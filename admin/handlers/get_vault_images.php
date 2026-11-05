@@ -1,5 +1,6 @@
 <?php
 // admin/handlers/get_vault_images.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Returns vault image list as JSON for the inline schema image picker modal.
 
 ob_start();
@@ -18,7 +19,7 @@ require_once __DIR__ . '/../includes/permission_checks.php';   // audit #8: same
 require_permission([['view', 'media'], ['view', 'site_info']], true);   // vault picker: Image Library + Site Info
 
 $folder_filter = trim($_GET['folder'] ?? '');
-$site_base     = 'https://batcaveroadfarm.com';
+$site_base     = (bcrf_farm_url());
 $img_root      = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/img/';
 $exts          = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
 $images        = [];

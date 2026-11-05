@@ -1,5 +1,6 @@
 <?php
 // account/verify.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 ob_start();
 require_once '../config.php';
 require_once '../includes/auth.php';
@@ -38,7 +39,7 @@ ob_end_clean();
 
 $pageTitle       = 'Confirm Your Email | Bat Cave Road Farm';
 $metaDesc        = 'Confirm the email address on your Bat Cave Road Farm account.';
-$canonicalUrl    = 'https://batcaveroadfarm.com/account/verify.php';
+$canonicalUrl    = (bcrf_farm_url() . '/account/verify.php');
 $hideBreadcrumbs = true;
 require_once '../includes/head.php';
 require_once '../includes/header.php';

@@ -1,5 +1,6 @@
 <?php
 // blog/index.php - Farmstead Journal Archive Directory Index
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 require_once '../config.php';
 require_once '../includes/img_dims.php';
 
@@ -54,9 +55,9 @@ $blogCategories = $pdo->query(
 
 $pageTitle = "The Farmstead Journal Blog | Bat Cave Road Farm";
 $pageDescription = "Read updates directly from Bat Cave Road Farm. Farmstead logs covering sustainable agricultural habits, animal care, and life in Old Fort, NC.";
-$canonicalUrl = "https://batcaveroadfarm.com/blog/";
-$pageCSS      = "https://batcaveroadfarm.com/css/min.blog.css";
-$preloadImage = "https://batcaveroadfarm.com/img/Bloghero.webp"; // hero photo = mobile LCP (Nov 3 perf fix)
+$canonicalUrl = (bcrf_farm_url() . "/blog/");
+$pageCSS      = (bcrf_farm_url() . "/css/min.blog.css");
+$preloadImage = (bcrf_farm_url() . "/img/Bloghero.webp"); // hero photo = mobile LCP (Nov 3 perf fix)
 require_once '../includes/head.php';
 require_once '../includes/header.php';
 
@@ -65,16 +66,16 @@ $__li = []; $__n = 0;
 foreach ($articles as $__a) {
     if (empty($__a['slug'])) continue;
     $__li[] = ['@type' => 'ListItem', 'position' => ++$__n,
-        'url'  => 'https://batcaveroadfarm.com/blog/' . urlencode($__a['slug']) . '/',
+        'url'  => (bcrf_farm_url() . '/blog/') . urlencode($__a['slug']) . '/',
         'name' => (string)($__a['title'] ?? '')];
 }
 if ($__li) {
     echo '<script type="application/ld+json">' . json_encode([
         '@context' => 'https://schema.org', '@type' => 'CollectionPage',
-        '@id'      => 'https://batcaveroadfarm.com/blog/#collection',
-        'url'      => 'https://batcaveroadfarm.com/blog/',
+        '@id'      => (bcrf_farm_url() . '/blog/#collection'),
+        'url'      => (bcrf_farm_url() . '/blog/'),
         'name'     => ($pageTitle ?? 'Blog — Bat Cave Road Farm'),
-        'isPartOf' => ['@id' => 'https://batcaveroadfarm.com/#website'],
+        'isPartOf' => ['@id' => (bcrf_farm_url() . '/#website')],
         'mainEntity' => ['@type' => 'ItemList', 'numberOfItems' => count($__li), 'itemListElement' => $__li],
     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "</script>\n";
 }

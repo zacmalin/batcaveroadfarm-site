@@ -1,5 +1,6 @@
 <?php
 // includes/jobs/default_templates.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Default wording for the Jobs email templates. Used once, by the database setup
 // (includes/jobs/schema.php), to seed email_templates, and by "Reset to default"
 // in Hiring > Emails > Templates. Edit the live wording there, not here.
@@ -39,7 +40,7 @@ if (!function_exists('jobs_default_templates')) {
                 'body'    => $h1('Let\'s meet, {first_name}')
                     . $p('We\'d like to talk with you about the <strong>{position}</strong> position.')
                     . $box('<strong>When:</strong> {interview_datetime}<br><strong>Where:</strong> {interview_location}')
-                    . $p('A calendar invite is attached. Directions: <a href="https://batcaveroadfarm.com/directions/" style="color:#e8b84b;">batcaveroadfarm.com/directions</a>')
+                    . $p(('A calendar invite is attached. Directions: <a href="' . bcrf_farm_url() . '/directions/" style="color:#e8b84b;">' . bcrf_farm_domain() . '/directions</a>'))
                     . $sm('Need a different time? Reply to this email or call {farm_phone}.'),
             ],
             'offer' => [

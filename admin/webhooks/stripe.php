@@ -1,5 +1,6 @@
 <?php
 // admin/webhooks/stripe.php — receives Stripe webhook events.
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Publicly reachable. Security = Stripe-Signature header verification.
 // Register this URL in Stripe Dashboard → Developers → Webhooks.
 // Event to listen for: checkout.session.completed
@@ -79,7 +80,7 @@ if ($passId > 0) {
         $pass = $pst->fetch(PDO::FETCH_ASSOC);
 
         if ($pass && function_exists('bcf_send_mail')) {
-            $verifyUrl = 'https://batcaveroadfarm.com/passes/verify.php?token=' . rawurlencode($pass['token']);
+            $verifyUrl = (bcrf_farm_url() . '/passes/verify.php?token=') . rawurlencode($pass['token']);
             $inner = '<h1 style="font-family:Rye,Georgia,serif;color:#e8b84b;font-size:1.3rem;margin:0 0 14px">Your annual pass is active! 🎟</h1>'
                 . '<p style="margin:0 0 12px">Hi ' . htmlspecialchars($pass['holder_name']) . ', your <strong>' . htmlspecialchars($pass['label']) . '</strong> is confirmed and ready to use.</p>'
                 . '<p style="margin:0 0 12px">Valid until <strong>' . date('F j, Y', strtotime($pass['valid_until'])) . '</strong></p>'

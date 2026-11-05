@@ -1,8 +1,9 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 	$pageTitle    = "Accessibility - Bat Cave Road Farm";
-	$metaDesc     = "Bat Cave Road Farm's commitment to keeping batcaveroadfarm.com accessible, the steps we've taken, and how to tell us about any barriers you run into.";
-	$canonicalUrl = "https://batcaveroadfarm.com/accessibility/";
-	$pageCSS      = "https://batcaveroadfarm.com/css/min.legal.css";
+	$metaDesc     = ("Bat Cave Road Farm's commitment to keeping " . bcrf_farm_domain() . " accessible, the steps we've taken, and how to tell us about any barriers you run into.");
+	$canonicalUrl = (bcrf_farm_url() . "/accessibility/");
+	$pageCSS      = (bcrf_farm_url() . "/css/min.legal.css");
 	$breadcrumbs  = [['label' => 'Accessibility']];
 	require('../includes/head.php');
 	include('../includes/header.php');
@@ -21,7 +22,7 @@
             <article class="legal-doc reveal">
               <p class="legal-updated">Last reviewed: November 3, 2026</p>
               <p class="legal-intro">Bat Cave Road Farm is committed to making
-                <strong>batcaveroadfarm.com</strong> usable for as many people as possible, including
+                <strong><?= bcrf_farm_domain() ?></strong> usable for as many people as possible, including
                 visitors who use screen readers, keyboard navigation, or other assistive technology. Accessibility
                 is an ongoing effort for us, and we welcome your feedback.</p>
 
@@ -82,7 +83,7 @@
                 <p>To report an accessibility barrier or request help:</p>
                 <p>Bat Cave Road Farm<br>
                    4132 Bat Cave Road, Old Fort, NC 28762<br>
-                   <a href="mailto:support@batcaveroadfarm.com">support@batcaveroadfarm.com</a><br>
+                   <a href="mailto:<?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?>"><?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?></a><br>
                    <a href="tel:+18282165488">(828) 216-5488</a></p>
               </div>
             </article>

@@ -1,5 +1,6 @@
 <?php
 // includes/head.php — <head> block, asset version
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Ensure a DB handle (and session) exist so the seasonal theme resolves on EVERY page,
 // including static pages (gallery, about, faq, legal) that don't open the DB themselves.
 require_once __DIR__ . '/../config.php';
@@ -13,7 +14,7 @@ if (!isset($canonicalUrl)) {
     $__p = preg_replace('#/index\.php$#', '/', $__p);
     if ($__p === '') { $__p = '/'; }
     if (substr($__p, -1) !== '/' && !preg_match('#\.[a-z0-9]+$#i', $__p)) { $__p .= '/'; }
-    $canonicalUrl = 'https://batcaveroadfarm.com' . $__p;
+    $canonicalUrl = (bcrf_farm_url()) . $__p;
 }
 if (!isset($metaDesc) && isset($pageDescription)) { $metaDesc = $pageDescription; }
 // Seasonal theme: resolve once here so header.php can print the body class + banner.
@@ -29,7 +30,7 @@ require_once __DIR__ . '/ga.php';   // GA4: staff visits tagged internal, queued
         <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-DLB6LEFWQZ"></script>
 <!-- Fix pack M: one combined file replaces min.gtag/nav/app/hours/subscribe/analytics/theme.js (built by tools/build-js.mjs) -->
-<script defer src="https://batcaveroadfarm.com/js/min.site.js?v=<?= bcrf_asset_v('/js/min.site.js') ?>"></script>
+<script defer src="<?= bcrf_farm_url() ?>/js/min.site.js?v=<?= bcrf_asset_v('/js/min.site.js') ?>"></script>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <?php if (!empty($preloadImage)): ?><link rel="preload" as="image" href="<?php echo htmlspecialchars($preloadImage); ?>" fetchpriority="high"><?php endif; ?>
@@ -38,21 +39,21 @@ require_once __DIR__ . '/ga.php';   // GA4: staff visits tagged internal, queued
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Lora:ital,wght@0,400;0,600;1,400&family=Playfair+Display:wght@700&family=Rye&display=swap" rel="stylesheet">
 
-        <link rel="stylesheet" href="https://batcaveroadfarm.com/css/min.style.css?v=<?= bcrf_asset_v('/css/min.style.css') ?>">
-        <link rel="stylesheet" href="https://batcaveroadfarm.com/css/min.print.css?v=<?= bcrf_asset_v('/css/min.print.css') ?>" media="print">
+        <link rel="stylesheet" href="<?= bcrf_farm_url() ?>/css/min.style.css?v=<?= bcrf_asset_v('/css/min.style.css') ?>">
+        <link rel="stylesheet" href="<?= bcrf_farm_url() ?>/css/min.print.css?v=<?= bcrf_asset_v('/css/min.print.css') ?>" media="print">
       
         <?php if (isset($pageCSS)): foreach ((array)$pageCSS as $__pcss): ?>
     		<link rel="stylesheet" href="<?php echo $__pcss; ?>?v=<?= bcrf_asset_v((string)$__pcss) ?>">
 	<?php endforeach; endif; ?>
         <meta name="description" content="<?php echo isset($metaDesc) ? htmlspecialchars($metaDesc) : 'Family-owned petting zoo in Old Fort, NC with goats, donkeys and more, plus a seasonal farmstand and thrift shop. Open Tue–Sun, 10 AM–4 PM.'; ?>">
         <meta name="author" content="Bat Cave Road Farm">
-        <link rel="icon" href="https://batcaveroadfarm.com/img/favicon.ico" sizes="any">
-        <link rel="icon" href="https://batcaveroadfarm.com/img/icon.svg" type="image/svg+xml">
-        <link rel="apple-touch-icon" href="https://batcaveroadfarm.com/img/icon.png">
-        <link rel="manifest" href="https://batcaveroadfarm.com/site.webmanifest">
-        <link rel="canonical" href="<?php echo isset($canonicalUrl) ? htmlspecialchars($canonicalUrl) : 'https://batcaveroadfarm.com/'; ?>">
-        <link rel="alternate" type="application/rss+xml" title="Bat Cave Road Farm — Farmstead Journal" href="https://batcaveroadfarm.com/blog/feed.php">
-        <link type="text/plain" rel="author" href="https://batcaveroadfarm.com/humans.txt" />
+        <link rel="icon" href="<?= bcrf_farm_url() ?>/img/favicon.ico" sizes="any">
+        <link rel="icon" href="<?= bcrf_farm_url() ?>/img/icon.svg" type="image/svg+xml">
+        <link rel="apple-touch-icon" href="<?= bcrf_farm_url() ?>/img/icon.png">
+        <link rel="manifest" href="<?= bcrf_farm_url() ?>/site.webmanifest">
+        <link rel="canonical" href="<?php echo isset($canonicalUrl) ? htmlspecialchars($canonicalUrl) : (bcrf_farm_url() . '/'); ?>">
+        <link rel="alternate" type="application/rss+xml" title="Bat Cave Road Farm — Farmstead Journal" href="<?= bcrf_farm_url() ?>/blog/feed.php">
+        <link type="text/plain" rel="author" href="<?= bcrf_farm_url() ?>/humans.txt" />
         <meta name="theme-color" content="#3b2010">
         
         <!-- Open Graph (Facebook, Instagram, iMessage, WhatsApp) -->
@@ -60,8 +61,8 @@ require_once __DIR__ . '/ga.php';   // GA4: staff visits tagged internal, queued
         <meta property="og:site_name"   content="Bat Cave Road Farm">
         <meta property="og:title"       content="<?php echo isset($pageTitle) ? htmlspecialchars($pageTitle) : "Bat Cave Road Farm | Petting Zoo, Farmstand & Thrift Shop — Old Fort, NC"; ?>">
         <meta property="og:description" content="<?php echo isset($metaDesc) ? htmlspecialchars($metaDesc) : 'Family-owned petting zoo in Old Fort, NC with goats, donkeys and more, plus a seasonal farmstand and thrift shop. Open Tue–Sun, 10 AM–4 PM.'; ?>">
-        <meta property="og:url"         content="<?php echo isset($canonicalUrl) ? htmlspecialchars($canonicalUrl) : 'https://batcaveroadfarm.com/'; ?>">
-        <meta property="og:image"       content="<?php echo isset($ogImage) ? htmlspecialchars($ogImage) : "https://batcaveroadfarm.com/img/og-home.jpg"; ?>">
+        <meta property="og:url"         content="<?php echo isset($canonicalUrl) ? htmlspecialchars($canonicalUrl) : (bcrf_farm_url() . '/'); ?>">
+        <meta property="og:image"       content="<?php echo isset($ogImage) ? htmlspecialchars($ogImage) : (bcrf_farm_url() . "/img/og-home.jpg"); ?>">
         <?php if (empty($ogImageNoSize)): ?>
         <meta property="og:image:width"  content="<?php echo !empty($ogImageWidth) ? (int)$ogImageWidth : 1200; ?>">
         <meta property="og:image:height" content="<?php echo !empty($ogImageHeight) ? (int)$ogImageHeight : 630; ?>">
@@ -77,7 +78,7 @@ require_once __DIR__ . '/ga.php';   // GA4: staff visits tagged internal, queued
         <meta name="twitter:card"        content="summary_large_image">
         <meta name="twitter:title"       content="<?php echo isset($pageTitle) ? htmlspecialchars($pageTitle) : "Bat Cave Road Farm | Petting Zoo, Farmstand & Thrift Shop — Old Fort, NC"; ?>">
         <meta name="twitter:description" content="<?php echo isset($metaDesc) ? htmlspecialchars($metaDesc) : 'Family-owned petting zoo in Old Fort, NC with goats, donkeys and more, plus a seasonal farmstand and thrift shop. Open Tue–Sun, 10 AM–4 PM.'; ?>">
-        <meta name="twitter:image"       content="<?php echo isset($ogImage) ? htmlspecialchars($ogImage) : "https://batcaveroadfarm.com/img/og-home.jpg"; ?>">
+        <meta name="twitter:image"       content="<?php echo isset($ogImage) ? htmlspecialchars($ogImage) : (bcrf_farm_url() . "/img/og-home.jpg"); ?>">
         <meta name="twitter:image:alt"   content="Bat Cave Road Farm in Old Fort, NC">  
         
         <script type="application/ld+json">
@@ -89,20 +90,20 @@ require_once __DIR__ . '/ga.php';   // GA4: staff visits tagged internal, queued
         "LocalBusiness",
         "TouristAttraction"
       ],
-      "@id": "https://batcaveroadfarm.com/#business",
+      "@id": "<?= bcrf_farm_url() ?>/#business",
       "name": "Bat Cave Road Farm",
       "alternateName": "Bat Cave Road Petting Zoo",
       "description": "Family-owned farm in Old Fort, NC offering a hands-on petting zoo with goats, pigs, ducks, chickens, peacocks, and donkeys, a seasonal farmstand with fresh vegetables, eggs, honey, and baked goods, and a charming on-farm thrift shop. Near Asheville, Western North Carolina.",
-      "url": "https://batcaveroadfarm.com/",
-      "logo": "https://batcaveroadfarm.com/img/logo.png",
+      "url": "<?= bcrf_farm_url() ?>/",
+      "logo": "<?= bcrf_farm_url() ?>/img/logo.png",
       "image": [
-        "https://batcaveroadfarm.com/img/og-home.jpg",
-        "https://batcaveroadfarm.com/img/og-pettingzoo.jpg",
-        "https://batcaveroadfarm.com/img/og-farmstand.jpg",
-        "https://batcaveroadfarm.com/img/og-thriftshop.jpg"
+        "<?= bcrf_farm_url() ?>/img/og-home.jpg",
+        "<?= bcrf_farm_url() ?>/img/og-pettingzoo.jpg",
+        "<?= bcrf_farm_url() ?>/img/og-farmstand.jpg",
+        "<?= bcrf_farm_url() ?>/img/og-thriftshop.jpg"
       ],
       "telephone": "+18282165488",
-      "email": "support@batcaveroadfarm.com",
+      "email": "<?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?>",
       "address": {
         "@type": "PostalAddress",
         "streetAddress": "4132 Bat Cave Road",
@@ -187,11 +188,11 @@ require_once __DIR__ . '/ga.php';   // GA4: staff visits tagged internal, queued
     },
     {
       "@type": "WebSite",
-      "@id": "https://batcaveroadfarm.com/#website",
-      "url": "https://batcaveroadfarm.com/",
+      "@id": "<?= bcrf_farm_url() ?>/#website",
+      "url": "<?= bcrf_farm_url() ?>/",
       "name": "Bat Cave Road Farm",
       "publisher": {
-        "@id": "https://batcaveroadfarm.com/#business"
+        "@id": "<?= bcrf_farm_url() ?>/#business"
       }
     }
   ]

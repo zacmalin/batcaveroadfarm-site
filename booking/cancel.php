@@ -1,5 +1,6 @@
 <?php
 // booking/cancel.php — shown when visitor abandons the Stripe checkout.
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Booking remains in the DB (status=pending, payment_status=pending) so
 // they can retry or be followed up manually.
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
@@ -41,6 +42,6 @@ $token = trim((string)($_GET['token'] ?? ''));
     <a class="btn secondary" href="/booking/">Start over</a>
     <a class="btn secondary" href="/contact-us/">Contact us</a>
   </div>
-  <p class="note">Need help? Call (828) 216-5488 or email support@batcaveroadfarm.com<br>Open Tuesday – Sunday, 10AM – 4PM.</p>
+  <p class="note">Need help? Call (828) 216-5488 or email <?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?><br>Open Tuesday – Sunday, 10AM – 4PM.</p>
 </div>
 </body></html>

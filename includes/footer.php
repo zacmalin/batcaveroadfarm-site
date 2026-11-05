@@ -1,4 +1,4 @@
-        </main>
+<?php if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // farm website + emails from Settings (Farm OS Phase 0) ?>        </main>
  	<footer>
         <div class="footer-inner">
             <div class="footer-cols">
@@ -8,7 +8,7 @@
                     <p>
                         <a rel="noopener" target="_blank" href="https://maps.google.com/?q=4132 Bat Cave Road, Old Fort, North Carolina, 28762">4132 Bat Cave Road<br>Old Fort, NC 28762</a><br>
                         <a href="tel:+18282165488">(828) 216-5488</a><br>
-                        <a href="mailto:support@batcaveroadfarm.com">support@batcaveroadfarm.com</a>
+                        <a href="mailto:<?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?>"><?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?></a>
                     </p>
                     © 2026 Bat Cave Road Farm - All Rights Reserved
                 </div>
@@ -21,10 +21,10 @@
 
                             <p class="chalk chalk-body">
                                 <a href="https://www.facebook.com/batcaveroadfarm" target="_blank" rel="noopener">
-                                    <img class="socialicon" src="https://batcaveroadfarm.com/img/facebook.png" alt="" width="64" height="64" decoding="async" loading="lazy"> Facebook
+                                    <img class="socialicon" src="<?= bcrf_farm_url() ?>/img/facebook.png" alt="" width="64" height="64" decoding="async" loading="lazy"> Facebook
                                 </a>
                                 <a href="https://www.instagram.com/batcaveroadfarm" target="_blank" rel="noopener">
-                                    <img class="socialicon" src="https://batcaveroadfarm.com/img/instagram.png" alt="" width="64" height="64" decoding="async" loading="lazy"> Instagram
+                                    <img class="socialicon" src="<?= bcrf_farm_url() ?>/img/instagram.png" alt="" width="64" height="64" decoding="async" loading="lazy"> Instagram
                                 </a>    
                             </p>
 
@@ -39,33 +39,33 @@
             </div>
             <nav aria-label="Footer">
             <p>
-            	<a href="https://batcaveroadfarm.com/">Home</a> <span aria-hidden="true">✦</span>
-            	<a href="https://batcaveroadfarm.com/plan-your-visit/"> Plan Your Visit</a> <span aria-hidden="true">✦</span>
-            	<a href="https://batcaveroadfarm.com/directions/"> Directions</a> <span aria-hidden="true">✦</span>
-            	<a href="https://batcaveroadfarm.com/booking/"> Book a Visit</a> <span aria-hidden="true">✦</span>
-            	<a href="https://batcaveroadfarm.com/tickets/"> Day Tickets</a> <span aria-hidden="true">✦</span>
-            	<a href="https://batcaveroadfarm.com/passes/"> Annual Passes</a> <span aria-hidden="true">✦</span>
-            	<a href="https://batcaveroadfarm.com/private-events/"> Private Events</a> <span aria-hidden="true">✦</span>
-            	<a href="https://batcaveroadfarm.com/petting-zoo/"> Petting Zoo</a> <span aria-hidden="true">✦</span>
-            	<a href="https://batcaveroadfarm.com/farm-stand/"> Farmstand</a> <span aria-hidden="true">✦</span>
-            	<a href="https://batcaveroadfarm.com/thrift-shop/"> Thrift Shop</a> <span aria-hidden="true">✦</span>
-            	<a href="https://batcaveroadfarm.com/shop/"> Shop</a> <span aria-hidden="true">✦</span>
-            	<a href="https://batcaveroadfarm.com/recipes/"> Recipes</a> <span aria-hidden="true">✦</span>
-            	<a href="https://batcaveroadfarm.com/blog/"> Blog</a> <span aria-hidden="true">✦</span>
-            	<a href="https://batcaveroadfarm.com/events/"> Events</a> <span aria-hidden="true">✦</span>
-            	<a href="https://batcaveroadfarm.com/about/"> About</a> <span aria-hidden="true">✦</span>
-            	<a href="https://batcaveroadfarm.com/contact-us/"> Contact Us</a> <span aria-hidden="true">✦</span>
-            	<a href="https://batcaveroadfarm.com/faq/"> FAQ</a> <span aria-hidden="true">✦</span>
-            	<a href="https://batcaveroadfarm.com/jobs/"> Jobs</a> <span aria-hidden="true">✦</span>
-            	<a href="https://batcaveroadfarm.com/gallery/"> Gallery</a>
+            	<a href="<?= bcrf_farm_url() ?>/">Home</a> <span aria-hidden="true">✦</span>
+            	<a href="<?= bcrf_farm_url() ?>/plan-your-visit/"> Plan Your Visit</a> <span aria-hidden="true">✦</span>
+            	<a href="<?= bcrf_farm_url() ?>/directions/"> Directions</a> <span aria-hidden="true">✦</span>
+            	<a href="<?= bcrf_farm_url() ?>/booking/"> Book a Visit</a> <span aria-hidden="true">✦</span>
+            	<a href="<?= bcrf_farm_url() ?>/tickets/"> Day Tickets</a> <span aria-hidden="true">✦</span>
+            	<a href="<?= bcrf_farm_url() ?>/passes/"> Annual Passes</a> <span aria-hidden="true">✦</span>
+            	<a href="<?= bcrf_farm_url() ?>/private-events/"> Private Events</a> <span aria-hidden="true">✦</span>
+            	<a href="<?= bcrf_farm_url() ?>/petting-zoo/"> Petting Zoo</a> <span aria-hidden="true">✦</span>
+            	<a href="<?= bcrf_farm_url() ?>/farm-stand/"> Farmstand</a> <span aria-hidden="true">✦</span>
+            	<a href="<?= bcrf_farm_url() ?>/thrift-shop/"> Thrift Shop</a> <span aria-hidden="true">✦</span>
+            	<a href="<?= bcrf_farm_url() ?>/shop/"> Shop</a> <span aria-hidden="true">✦</span>
+            	<a href="<?= bcrf_farm_url() ?>/recipes/"> Recipes</a> <span aria-hidden="true">✦</span>
+            	<a href="<?= bcrf_farm_url() ?>/blog/"> Blog</a> <span aria-hidden="true">✦</span>
+            	<a href="<?= bcrf_farm_url() ?>/events/"> Events</a> <span aria-hidden="true">✦</span>
+            	<a href="<?= bcrf_farm_url() ?>/about/"> About</a> <span aria-hidden="true">✦</span>
+            	<a href="<?= bcrf_farm_url() ?>/contact-us/"> Contact Us</a> <span aria-hidden="true">✦</span>
+            	<a href="<?= bcrf_farm_url() ?>/faq/"> FAQ</a> <span aria-hidden="true">✦</span>
+            	<a href="<?= bcrf_farm_url() ?>/jobs/"> Jobs</a> <span aria-hidden="true">✦</span>
+            	<a href="<?= bcrf_farm_url() ?>/gallery/"> Gallery</a>
             </p>
             </nav>
-            <p class="footer-legal"><a href="https://batcaveroadfarm.com/privacy/">Privacy Policy</a> <span aria-hidden="true">·</span> <a href="https://batcaveroadfarm.com/terms/">Terms of Service</a> <span aria-hidden="true">·</span> <a href="https://batcaveroadfarm.com/accessibility/">Accessibility</a></p>
+            <p class="footer-legal"><a href="<?= bcrf_farm_url() ?>/privacy/">Privacy Policy</a> <span aria-hidden="true">·</span> <a href="<?= bcrf_farm_url() ?>/terms/">Terms of Service</a> <span aria-hidden="true">·</span> <a href="<?= bcrf_farm_url() ?>/accessibility/">Accessibility</a></p>
             </div>
     </footer>
 
     <div id="cookie-notice" class="cookie-notice" hidden role="region" aria-label="Cookie notice">
-      <p>We use cookies for basic analytics to see how visitors use our site. By continuing, you accept this — see our <a href="https://batcaveroadfarm.com/privacy/">Privacy Policy</a>.</p>
+      <p>We use cookies for basic analytics to see how visitors use our site. By continuing, you accept this — see our <a href="<?= bcrf_farm_url() ?>/privacy/">Privacy Policy</a>.</p>
       <button type="button" class="cookie-dismiss" id="cookie-dismiss">Got it</button>
     </div>
 

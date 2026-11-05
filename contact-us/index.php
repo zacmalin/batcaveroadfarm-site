@@ -1,16 +1,17 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 	$pageTitle = "Contact Us - Bat Cave Road Farm";
 	$metaDesc = "Reach out to Bat Cave Road Farm — your family farm in Old Fort, NC. Call (828) 216-5488 or visit Tue–Sun, 10AM–4PM.";
-	$canonicalUrl = "https://batcaveroadfarm.com/contact-us/";
-	$pageJS = "https://batcaveroadfarm.com/js/min.contact-us.js";
-	$ogImage = "https://batcaveroadfarm.com/img/og-contact.jpg";
-	$pageCSS = "https://batcaveroadfarm.com/css/min.contactus.css";
-	$preloadImage = "https://batcaveroadfarm.com/img/Mailhero.webp"; // hero photo = mobile LCP (Nov 3 perf fix)
+	$canonicalUrl = (bcrf_farm_url() . "/contact-us/");
+	$pageJS = (bcrf_farm_url() . "/js/min.contact-us.js");
+	$ogImage = (bcrf_farm_url() . "/img/og-contact.jpg");
+	$pageCSS = (bcrf_farm_url() . "/css/min.contactus.css");
+	$preloadImage = (bcrf_farm_url() . "/img/Mailhero.webp"); // hero photo = mobile LCP (Nov 3 perf fix)
 	require('../includes/head.php');
 	include('../includes/header.php');
 ?>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"ContactPage","name":"Contact Bat Cave Road Farm","url":"https://batcaveroadfarm.com/contact-us/","description":"Get in touch with Bat Cave Road Farm in Old Fort, NC — call (828) 216-5488 or visit Tuesday through Sunday, 10AM–4PM.","mainEntity":{"@id":"https://batcaveroadfarm.com/#business"}}
+{"@context":"https://schema.org","@type":"ContactPage","name":"Contact Bat Cave Road Farm","url":"<?= bcrf_farm_url() ?>/contact-us/","description":"Get in touch with Bat Cave Road Farm in Old Fort, NC — call (828) 216-5488 or visit Tuesday through Sunday, 10AM–4PM.","mainEntity":{"@id":"<?= bcrf_farm_url() ?>/#business"}}
 </script>
 
         <div id="page-contact-us" class="page1">
@@ -19,8 +20,8 @@
             <div class="hero-content">
               <h1>Contact Us</h1>
               <p>We'd love to hear from you. Reach out any time!</p>
-              <p style="margin-top:10px;">Looking for a quick answer first? Many common questions are covered on our <a href="https://batcaveroadfarm.com/faq/">FAQ page</a>.</p>
-              <p style="margin-top:10px;">Planning a visit or a group event? <a class="cta-btn" href="https://batcaveroadfarm.com/booking/">🎟️ Request a booking →</a></p>
+              <p style="margin-top:10px;">Looking for a quick answer first? Many common questions are covered on our <a href="<?= bcrf_farm_url() ?>/faq/">FAQ page</a>.</p>
+              <p style="margin-top:10px;">Planning a visit or a group event? <a class="cta-btn" href="<?= bcrf_farm_url() ?>/booking/">🎟️ Request a booking →</a></p>
             </div>
           </div>
           <div class="divider" aria-hidden="true">✦ ✦ ✦</div>
@@ -43,7 +44,7 @@
               <div class="info-tile reveal">
                 <div class="icon" aria-hidden="true">📧</div>
                 <h2>Email</h2>
-                <p><a href="mailto:support@batcaveroadfarm.com">support@batcaveroadfarm.com</a>
+                <p><a href="mailto:<?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?>"><?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?></a>
                 <br>We reply within 24 hours.</p>
               </div>
               <div class="info-tile reveal">
@@ -56,7 +57,7 @@
         
             <div class="contact-form reveal" id="contactform">
               <h2 style="font-family:'Rye',serif;font-size:1.3rem;color:var(--brown-dark);margin-bottom:24px;text-align:center;">Send Us a Message</h2>
-              <form  name="contact" id="contact" action="https://batcaveroadfarm.com/send-message.php" method="POST">
+              <form  name="contact" id="contact" action="<?= bcrf_farm_url() ?>/send-message.php" method="POST">
                   <?php require_once __DIR__ . '/../includes/auth.php'; echo csrf_field(); /* fix pack K: send-message.php requires this token */ ?>
                   <div class="hp" aria-hidden="true">
                     <label for="website">Website</label>
@@ -99,11 +100,11 @@
               <p>We share daily farm updates, new farmstand arrivals, animal moments, and thrift shop highlights on our social channels. Come say hello — we love our online community just as much as our in-person visitors!</p>
               <p style="margin-top:16px;font-size:1.1rem;">
                 <a href="https://www.facebook.com/batcaveroadfarm" target="_blank" rel="noopener">
-                    <img class="socialicon" src="https://batcaveroadfarm.com/img/facebook.png" alt="Bat Cave Road Farm on Facebook" width="64" height="64" decoding="async" loading="lazy"> Facebook:
+                    <img class="socialicon" src="<?= bcrf_farm_url() ?>/img/facebook.png" alt="Bat Cave Road Farm on Facebook" width="64" height="64" decoding="async" loading="lazy"> Facebook:
                 </a>
                 @BatCaveRoadFarm &nbsp;|&nbsp; 
                 <a href="https://www.instagram.com/batcaveroadfarm" target="_blank" rel="noopener">
-                    <img class="socialicon" src="https://batcaveroadfarm.com/img/instagram.png" alt="Bat Cave Road Farm on Instagram" width="64" height="64" decoding="async" loading="lazy"> Instagram:
+                    <img class="socialicon" src="<?= bcrf_farm_url() ?>/img/instagram.png" alt="Bat Cave Road Farm on Instagram" width="64" height="64" decoding="async" loading="lazy"> Instagram:
                 </a>
                 @batcaveroadfarm
               </p>

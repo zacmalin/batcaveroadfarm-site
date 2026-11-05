@@ -1,4 +1,5 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 require_once __DIR__ . '/img_dims.php';
 /**
  * Farm events engine for batcaveroadfarm.com.
@@ -95,7 +96,7 @@ if (!function_exists('bcrf_event_anchor')) {
     {
         $slug = trim((string)($ev['slug'] ?? ''));
         if ($slug === '') $slug = 'event-' . (int)($ev['id'] ?? 0);
-        return 'https://batcaveroadfarm.com/events/#' . $slug;
+        return (bcrf_farm_url() . '/events/#') . $slug;
     }
 }
 
@@ -127,14 +128,14 @@ if (!function_exists('bcrf_event_schema')) {
                     'addressCountry'  => $bcrfAddr['country'],
                 ],
             ],
-            'organizer' => ['@type' => 'Organization', '@id' => 'https://batcaveroadfarm.com/#business', 'name' => 'Bat Cave Road Farm', 'url' => 'https://batcaveroadfarm.com/'],
+            'organizer' => ['@type' => 'Organization', '@id' => (bcrf_farm_url() . '/#business'), 'name' => 'Bat Cave Road Farm', 'url' => (bcrf_farm_url() . '/')],
         ];
         $ed = bcrf_event_iso($ev['end_datetime'] ?? '', $allDay);
         if ($ed !== null) $node['endDate'] = $ed;
         $desc = trim((string)($ev['description'] ?? ''));
         if ($desc !== '') $node['description'] = $desc;
         $img = trim((string)($ev['image_url'] ?? ''));
-        if ($img !== '') $node['image'] = (strpos($img, 'http') === 0) ? $img : 'https://batcaveroadfarm.com/' . ltrim($img, '/');
+        if ($img !== '') $node['image'] = (strpos($img, 'http') === 0) ? $img : (bcrf_farm_url() . '/') . ltrim($img, '/');
 
         // recurring → eventSchedule
         $rec = (string)($ev['recurrence'] ?? 'none');

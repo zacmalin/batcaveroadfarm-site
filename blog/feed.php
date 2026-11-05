@@ -1,8 +1,9 @@
 <?php
 // blog/feed.php — RSS 2.0 feed of published posts. Drives ESP "RSS-to-email" + feed readers.
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 require_once '../config.php';
 
-$SITE = 'https://batcaveroadfarm.com';
+$SITE = (bcrf_farm_url());
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');   // farm time zone setting (Phase 0, C-03)
 
 try {

@@ -1,5 +1,6 @@
 <?php
 // includes/ga.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Google Analytics 4 helpers (Nov 2026, task "GA4 & Search Console: privacy, conversions, admin reports").
 //
 //   bcrf_ga_is_staff()            signed-in staff → page gets data-ga-internal="1" → traffic_type=internal
@@ -62,8 +63,8 @@ function bcrf_ga_tags_html(): string {
     $v = function_exists('bcrf_asset_v') ? bcrf_asset_v('/js/min.gtag.js') : '1';
     $va = function_exists('bcrf_asset_v') ? bcrf_asset_v('/js/min.analytics.js') : '1';
     return '<script async src="https://www.googletagmanager.com/gtag/js?id=' . htmlspecialchars(bcrf_ga_measurement_id(), ENT_QUOTES) . '"></script>' . "\n"
-         . '<script defer src="https://batcaveroadfarm.com/js/min.gtag.js?v=' . htmlspecialchars($v, ENT_QUOTES) . '"></script>' . "\n"
-         . '<script defer src="https://batcaveroadfarm.com/js/min.analytics.js?v=' . htmlspecialchars($va, ENT_QUOTES) . '"></script>' . "\n";
+         . ('<script defer src="' . bcrf_farm_url() . '/js/min.gtag.js?v=') . htmlspecialchars($v, ENT_QUOTES) . '"></script>' . "\n"
+         . ('<script defer src="' . bcrf_farm_url() . '/js/min.analytics.js?v=') . htmlspecialchars($va, ENT_QUOTES) . '"></script>' . "\n";
 }
 
 /**

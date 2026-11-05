@@ -1,5 +1,6 @@
 <?php
 // admin/handlers/quick_upload.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // AJAX image upload for the schema form inline image widget.
 // Returns JSON: {ok, url, message}
 
@@ -78,7 +79,7 @@ try {
 
     $url = '/img/' . $subfolder . '/' . $filename;
     erp_audit($pdo, 'create', 'media', null, 'Image added (quick upload): ' . $url);
-    jx(true, 'Uploaded.', ['url' => $url, 'full_url' => 'https://batcaveroadfarm.com' . $url]);
+    jx(true, 'Uploaded.', ['url' => $url, 'full_url' => (bcrf_farm_url()) . $url]);
 
 } catch (Throwable $e) {
     error_log('[ERP] quick_upload failed: ' . $e->getMessage());

@@ -1,4 +1,5 @@
 <?php // includes/nc_warning.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 /*
  * Required North Carolina liability warnings (compliance review, Nov 2026).
  *
@@ -30,7 +31,7 @@ if (!function_exists('bcrf_nc_warning_html')) {
              . '<p class="nc-warning-title"><strong>WARNING</strong></p>'
              . '<p>' . htmlspecialchars($farm) . '</p>'
              . ($compact ? '<p class="nc-warning-more">By continuing you agree to our '
-                 . '<a href="https://batcaveroadfarm.com/terms/">Terms of Use</a>.</p>' : '')
+                 . ('<a href="' . bcrf_farm_url() . '/terms/">Terms of Use</a>.</p>') : '')
              . '</div>';
     }
 }

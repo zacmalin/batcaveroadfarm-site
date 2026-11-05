@@ -1,4 +1,5 @@
 <?php // admin/cron/check_social_token.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 /*
  * Daily Facebook Page token check (Nov 2026). Emails you if the token stops working
  * (once a day until fixed) and before it or its data access expires (14, 7, 3, 2, 1, 0 days).
@@ -35,7 +36,7 @@ if ($alert = bcrf_social_token_alert($s)) {
         bcf_send_mail(BCRF_STOCK_ALERT_TO, 'Bat Cave Road Farm: ' . $subject,
             '<h1 style="font-family:Rye,Georgia,serif;color:#e8b84b;font-size:22px;margin:0 0 14px;">' . htmlspecialchars($subject) . '</h1>'
             . '<p style="margin:0 0 12px;">' . htmlspecialchars($msg) . '</p>'
-            . '<p style="margin:0;"><a href="https://batcaveroadfarm.com/admin/admin.php?view=social" style="color:#e8b84b;">Open the Social Queue</a></p>',
+            . ('<p style="margin:0;"><a href="' . bcrf_farm_url() . '/admin/admin.php?view=social" style="color:#e8b84b;">Open the Social Queue</a></p>'),
             ['subtitle' => 'System Alert']);
     }
     echo "  emailed: {$subject}\n";

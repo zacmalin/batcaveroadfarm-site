@@ -1,5 +1,6 @@
 <?php
 // unsubscribe.php — newsletter opt-out.
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 //  1. One-click (RFC 8058): Gmail / Apple Mail "Unsubscribe" button POSTs
 //     List-Unsubscribe=One-Click to ?e=..&t=..  -> unsubscribed instantly.
 //  2. Link in the email (GET ?e=..&t=..): shows a one-button confirm page.
@@ -65,12 +66,12 @@ if ($isPost) {
         // Same message whether or not the address was on the list (privacy).
         $message = 'Done. ' . $email . ' will no longer receive Bat Cave Road Farm newsletters.';
     } elseif ($message === '') {
-        $message = 'Something went wrong. Please try again, or email support@batcaveroadfarm.com.';
+        $message = ('Something went wrong. Please try again, or email ' . bcrf_farm_email('support') . '.');
     }
 }
 
 $pageTitle = 'Unsubscribe | Bat Cave Road Farm';
-$pageCSS   = 'https://batcaveroadfarm.com/css/min.contactus.css';
+$pageCSS   = (bcrf_farm_url() . '/css/min.contactus.css');
 header('X-Robots-Tag: noindex');
 require_once __DIR__ . '/includes/head.php';
 require_once __DIR__ . '/includes/header.php';

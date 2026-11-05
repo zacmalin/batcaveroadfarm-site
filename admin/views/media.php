@@ -1,7 +1,8 @@
 <?php
 // Active folder filter — comes from GET, defaults to all
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 $active_folder = $_GET['folder'] ?? '_all';
-$site_base     = 'https://batcaveroadfarm.com'; // prepended to all copied/displayed paths
+$site_base     = (bcrf_farm_url()); // prepended to all copied/displayed paths
 
 // Helper: build full URL, avoiding double-prepend if already absolute
 function full_img_url(string $path, string $base): string {

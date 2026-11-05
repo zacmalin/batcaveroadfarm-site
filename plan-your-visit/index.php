@@ -1,5 +1,6 @@
 <?php
     // Hours + admission are loaded BEFORE head.php so the search snippet (title + meta description) can
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
     // show them: people searching for this page want hours and prices (Search & Analytics, Nov 2026).
     require_once __DIR__ . '/../config.php';
     require_once __DIR__ . '/../includes/site_info.php';
@@ -29,14 +30,14 @@
     $metaDesc        = ($openDays !== '' && $openTime !== '' ? 'Open ' . str_replace(' – ', '–', $openDays) . ', ' . $__short($openTime) . '. ' : '')
                      . ($__prices ? 'Admission: ' . implode(', ', $__prices) . '. ' : '')
                      . 'Petting zoo, farmstand & thrift shop in Old Fort, NC, near Asheville.';
-    $canonicalUrl    = "https://batcaveroadfarm.com/plan-your-visit/";
-    $ogImage         = "https://batcaveroadfarm.com/img/og-home.jpg";
-    $preloadImage = "https://batcaveroadfarm.com/img/planhero.webp"; // hero photo = mobile LCP (Nov 3 perf fix)
+    $canonicalUrl    = (bcrf_farm_url() . "/plan-your-visit/");
+    $ogImage         = (bcrf_farm_url() . "/img/og-home.jpg");
+    $preloadImage = (bcrf_farm_url() . "/img/planhero.webp"); // hero photo = mobile LCP (Nov 3 perf fix)
     require('../includes/head.php');
     include('../includes/header.php');
 ?>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","name":"Plan Your Visit — Bat Cave Road Farm","url":"https://batcaveroadfarm.com/plan-your-visit/","description":"Hours, directions, parking, and what to expect at Bat Cave Road Farm in Old Fort, NC — petting zoo, farmstand, and thrift shop near Asheville.","about":{"@id":"https://batcaveroadfarm.com/#business"},"isPartOf":{"@id":"https://batcaveroadfarm.com/#website"}}
+{"@context":"https://schema.org","@type":"WebPage","name":"Plan Your Visit — Bat Cave Road Farm","url":"<?= bcrf_farm_url() ?>/plan-your-visit/","description":"Hours, directions, parking, and what to expect at Bat Cave Road Farm in Old Fort, NC — petting zoo, farmstand, and thrift shop near Asheville.","about":{"@id":"<?= bcrf_farm_url() ?>/#business"},"isPartOf":{"@id":"<?= bcrf_farm_url() ?>/#website"}}
 </script>
 
         <div id="page-plan-your-visit" class="page1">
@@ -45,7 +46,7 @@
             <div class="hero-content">
               <h1>Plan Your Visit</h1>
               <p>Everything you need to know before you head out to the farm.</p>
-              <p style="margin-top:14px;"><a class="cta-btn" href="https://batcaveroadfarm.com/booking/">🎟️ Book a Visit →</a></p>
+              <p style="margin-top:14px;"><a class="cta-btn" href="<?= bcrf_farm_url() ?>/booking/">🎟️ Book a Visit →</a></p>
             </div>
           </div>
 
@@ -162,7 +163,7 @@
 
             <section class="visit-questions" aria-label="Questions">
               <h2 class="visit-section-title">Questions before you come?</h2>
-              <p>Ready to come out? <a href="https://batcaveroadfarm.com/booking/">Book your visit</a> — or check our <a href="/faq/">frequently asked questions</a> or <a href="/contact-us/">get in touch</a>. We're happy to help you plan the perfect farm day.</p>
+              <p>Ready to come out? <a href="<?= bcrf_farm_url() ?>/booking/">Book your visit</a> — or check our <a href="/faq/">frequently asked questions</a> or <a href="/contact-us/">get in touch</a>. We're happy to help you plan the perfect farm day.</p>
             </section>
 
           </div>

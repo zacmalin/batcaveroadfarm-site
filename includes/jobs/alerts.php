@@ -1,5 +1,6 @@
 <?php
 // includes/jobs/alerts.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Job alerts + Talent Pool notices (Jobs pack P7).
 //  - Signup is double opt-in. Nothing is stored until the owner taps the signed
 //    link in the confirm email (HMAC over email + choices + time, 7 days), the
@@ -17,7 +18,7 @@ if (!function_exists('jobs_alert_sig')) {
 
     if (!defined('JOBS_ALERT_LINK_DAYS')) define('JOBS_ALERT_LINK_DAYS', 7);
     if (!defined('JOBS_NOTIFY_BATCH'))    define('JOBS_NOTIFY_BATCH', 40);
-    if (!defined('JOBS_SITE_URL_ALERTS')) define('JOBS_SITE_URL_ALERTS', 'https://batcaveroadfarm.com');
+    if (!defined('JOBS_SITE_URL_ALERTS')) define('JOBS_SITE_URL_ALERTS', (bcrf_farm_url()));
 
     function jobs_alert_ready(): bool
     {

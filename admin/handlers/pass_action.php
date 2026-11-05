@@ -1,5 +1,6 @@
 <?php
 // Included by admin/admin.php only (which checks login, CSRF and permissions first).
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 if (!isset($pdo, $current_role)) { http_response_code(404); exit; }
 // admin/handlers/pass_action.php — admin pass management actions.
 require_once dirname(__DIR__, 2) . '/admin/includes/email_template.php';
@@ -101,7 +102,7 @@ if ($action === 'issue') {
 
     // Send welcome email
     if (function_exists('bcf_send_mail')) {
-        $verifyUrl = 'https://batcaveroadfarm.com/passes/verify.php?token=' . rawurlencode($token);
+        $verifyUrl = (bcrf_farm_url() . '/passes/verify.php?token=') . rawurlencode($token);
         $inner = '<h1 style="font-family:Rye,Georgia,serif;color:#e8b84b;font-size:1.3rem;margin:0 0 14px">Your annual pass is active! 🎟</h1>'
             . '<p style="margin:0 0 12px">Hi ' . htmlspecialchars($name) . ', your <strong>' . htmlspecialchars($pt['label']) . '</strong> is ready to use.</p>'
             . '<p style="margin:0 0 12px">Valid until <strong>' . date('F j, Y', strtotime('+' . max(1, (int)($pt['duration_months'] ?? 12)) . ' months')) . '</strong> — show the link below to staff at the gate.</p>'

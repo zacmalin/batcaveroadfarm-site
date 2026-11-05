@@ -1,5 +1,6 @@
 <?php
 // account/welcome.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // New-hire "set your password" page (Jobs pack P6). The link comes from the
 // Hired welcome email: /account/welcome.php?token=<64 hex>. Tokens live in
 // password_resets (purpose 'invite'), stored as a SHA-256 hash, single-use,
@@ -84,7 +85,7 @@ ob_end_clean();
 
 $pageTitle       = 'Welcome | Bat Cave Road Farm';
 $metaDesc        = 'Set your password for your Bat Cave Road Farm staff account.';
-$canonicalUrl    = 'https://batcaveroadfarm.com/account/welcome.php';
+$canonicalUrl    = (bcrf_farm_url() . '/account/welcome.php');
 $hideBreadcrumbs = true;
 require_once '../includes/head.php';
 require_once '../includes/header.php';

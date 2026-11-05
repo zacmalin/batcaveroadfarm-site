@@ -1,5 +1,6 @@
 <?php
 // admin/views/theme_scheduler.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 require_once __DIR__ . '/../../includes/themes.php';
 $catalog = bcrf_theme_catalog();
 
@@ -50,7 +51,7 @@ $nameOf = fn(string $s): string => isset($catalog[$s]) ? $catalog[$s]['name'] : 
     </div>
     <div class="mt-3 flex flex-wrap gap-1.5">
         <?php foreach ($catalog as $slug => $meta): ?>
-            <a href="https://batcaveroadfarm.com/?theme=<?= urlencode($slug) ?>" target="_blank" rel="noopener"
+            <a href="<?= bcrf_farm_url() ?>/?theme=<?= urlencode($slug) ?>" target="_blank" rel="noopener"
                class="text-[11px] font-mono border border-stone-300 rounded px-2 py-1 hover:bg-stone-100">
                 👁 <?= htmlspecialchars($meta['name']) ?>
             </a>

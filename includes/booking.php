@@ -1,4 +1,5 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 /**
  * includes/booking.php — Booking engine for batcaveroadfarm.com.
  *
@@ -197,7 +198,7 @@ function booking_fmt_when(array $b): string {
 
 /* ---------- email ---------- */
 function _booking_from(): array {
-    $email = function_exists('site') ? (site('email.booking') ?: 'support@batcaveroadfarm.com') : 'support@batcaveroadfarm.com';
+    $email = function_exists('site') ? (site('email.booking') ?: (bcrf_farm_email('support'))) : (bcrf_farm_email('support'));
     $name  = function_exists('site_setting') ? site_setting('business_name', 'Bat Cave Road Farm') : 'Bat Cave Road Farm';
     return [$name, $email];
 }
@@ -244,7 +245,7 @@ function _booking_summary_html(array $b, ?array $type = null): string {
 }
 
 function _booking_cancel_url(array $b): string {
-    return 'https://batcaveroadfarm.com/cancel-booking.php?id=' . (int)$b['id'] . '&t=' . rawurlencode($b['token']);
+    return (bcrf_farm_url() . '/cancel-booking.php?id=') . (int)$b['id'] . '&t=' . rawurlencode($b['token']);
 }
 
 /** Acknowledge a new request (status pending). */

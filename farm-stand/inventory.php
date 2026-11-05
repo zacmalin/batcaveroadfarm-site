@@ -1,4 +1,5 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 require_once '../config.php';
 require_once '../includes/ingredient_match.php';
 $recipeIngredientIndex = bcrf_recipe_ingredient_index($pdo);
@@ -91,8 +92,8 @@ foreach ($groups as $g) {
 
 $pageTitle       = "Farm Stand Inventory | Bat Cave Road Farm";
 $pageDescription = "See what's on the shelves today at our Old Fort, NC farm stand — fresh produce, baked goods, and pantry provisions, organized by category.";
-$pageCSS         = "https://batcaveroadfarm.com/css/min.farmstand.css";
-$canonicalUrl    = "https://batcaveroadfarm.com/farm-stand/inventory.php";
+$pageCSS         = (bcrf_farm_url() . "/css/min.farmstand.css");
+$canonicalUrl    = (bcrf_farm_url() . "/farm-stand/inventory.php");
 require_once '../includes/head.php';
 require_once '../includes/header.php';
 ?>

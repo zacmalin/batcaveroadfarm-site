@@ -1,5 +1,6 @@
 <?php
 // includes/jobs/pipeline.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Applicant pipeline service (Jobs pack P4): look up applications, list them
 // with filters, move them between statuses (history + emails), notes, spam and
 // archive, and the interview calendar invite (.ics).
@@ -195,7 +196,7 @@ if (!function_exists('jobs_app_find')) {
         $lines = [
             'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Bat Cave Road Farm//Jobs//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
             'BEGIN:VEVENT',
-            'UID:interview-' . (int)$app['id'] . '-' . $start->format('YmdHi') . '@batcaveroadfarm.com',
+            'UID:interview-' . (int)$app['id'] . '-' . $start->format('YmdHi') . ('@' . bcrf_farm_domain()),
             'DTSTAMP:' . gmdate('Ymd\THis\Z'),
             'DTSTART:' . $fmt($start),
             'DTEND:' . $fmt($end),

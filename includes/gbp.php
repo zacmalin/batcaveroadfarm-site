@@ -1,4 +1,5 @@
 <?php // includes/gbp.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 /*
  * Google Business Profile posting (Nov 2026; API access approved 2026-11-05, case 2-8077000042009).
  *
@@ -268,7 +269,7 @@ function gbp_photo_url(?string $url): ?string {
         if (!$ok) return null;
     }
     $scheme = parse_url($url, PHP_URL_SCHEME) ?: 'https';
-    $host   = parse_url($url, PHP_URL_HOST) ?: 'batcaveroadfarm.com';
+    $host   = parse_url($url, PHP_URL_HOST) ?: (bcrf_farm_domain());
     return "{$scheme}://{$host}{$rel}";
 }
 
@@ -332,7 +333,7 @@ function gbp_retry_row(PDO $pdo, int $id): string {
     if (!$rec) throw new RuntimeException('The recipe/post/animal no longer exists.');
     require_once __DIR__ . '/social.php';
     if (!function_exists('bcrf_utm_url')) require_once __DIR__ . '/ga.php';
-    $base = defined('BCRF_SOCIAL_BASE_URL') ? BCRF_SOCIAL_BASE_URL : 'https://batcaveroadfarm.com';
+    $base = defined('BCRF_SOCIAL_BASE_URL') ? BCRF_SOCIAL_BASE_URL : (bcrf_farm_url());
     $img  = null;
     foreach (['feature_image', 'image_url', 'featured_image', 'image', 'photo_url'] as $k) {
         if (!empty($rec[$k])) { $u = (string)$rec[$k]; $img = preg_match('#^https?://#', $u) ? $u : $base . ($u[0] === '/' ? '' : '/') . $u; break; }
