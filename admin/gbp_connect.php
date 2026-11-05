@@ -3,7 +3,8 @@
  * Google Business Profile connection (Nov 2026). Administrators only.
  * Sign in once with the Google account that manages the profile, pick the farm's location,
  * and the social queue (admin/cron/send_social.php) can post "What's new" updates there.
- * Google redirects back here: https://admin.batcaveroadfarm.com/gbp_connect.php
+ * Google returns to https://api.batcaveroadfarm.com/gbp-callback.php, which forwards code + state here
+ * (ModSecurity on this host blocks Google's original reply).
  * Library: includes/gbp.php
  */
 require_once '../config.php';

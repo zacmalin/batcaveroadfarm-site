@@ -10,11 +10,12 @@
  * Needs in bcrf-secrets.php (above docroot):  GBP_CLIENT_ID, GBP_CLIENT_SECRET
  * Google Cloud: enable Google My Business API, My Business Account Management API and
  * My Business Business Information API; OAuth client redirect URI
- *   https://admin.batcaveroadfarm.com/gbp_connect.php
+ *   https://api.batcaveroadfarm.com/gbp-callback.php  (relay: ModSecurity blocks Google's reply on
+ *   the admin host; api/gbp-callback.php forwards code + state to admin/gbp_connect.php)
  */
 
 const GBP_SCOPE       = 'https://www.googleapis.com/auth/business.manage';
-const GBP_REDIRECT    = 'https://admin.batcaveroadfarm.com/gbp_connect.php';
+const GBP_REDIRECT    = 'https://api.batcaveroadfarm.com/gbp-callback.php';
 const GBP_SUMMARY_MAX = 1500;   // Google's limit for a post's text
 
 function gbp_configured(): bool {
@@ -128,7 +129,6 @@ function gbp_auth_url(string $state): string {
         'scope'         => GBP_SCOPE . ' openid email',
         'access_type'   => 'offline',
         'prompt'        => 'consent',       // always hand back a refresh token
-        'include_granted_scopes' => 'true',
         'state'         => $state,
     ]);
 }
