@@ -7,6 +7,12 @@ $social_ready = false;
 try { $pdo->query("SELECT 1 FROM social_queue LIMIT 1"); $social_ready = true; }
 catch (Throwable $e) { $social_ready = false; }
 
+// Google Business Profile (Nov 2026): connection status + adds the gbp_* columns
+require_once dirname(__DIR__, 2) . '/includes/gbp.php';
+if ($social_ready) gbp_schema($pdo);
+$gbp_auth  = gbp_configured() ? gbp_auth_row($pdo) : [];
+$gbp_on    = gbp_ready($pdo);
+
 $rows = [];
 if ($social_ready) {
     try {
@@ -30,7 +36,14 @@ $badge = function (string $s): string {
 <div class="max-w-5xl">
   <div class="flex items-center justify-between mb-4">
     <h1 class="text-lg font-serif font-black text-stone-800">📣 Social Share Queue</h1>
-    <span class="text-[10px] font-mono text-stone-400 uppercase tracking-widest">Facebook &amp; Instagram</span>
+    <span class="text-[10px] font-mono text-stone-400 uppercase tracking-widest">Facebook · Instagram · Google</span>
+  </div>
+  <div class="border rounded p-3 mb-4 text-xs <?= $gbp_on ? (empty($gbp_auth['last_error']) ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-amber-50 border-amber-200 text-amber-900') : 'bg-stone-50 border-stone-200 text-stone-700' ?>">
+    <span class="font-black"><?= $gbp_on ? (empty($gbp_auth['last_error']) ? '✅' : '⚠️') : '⚪' ?> Google Business Profile</span>
+    <span class="ml-2"><?= $gbp_on
+        ? 'Posting to ' . htmlspecialchars((string)$gbp_auth['location_title']) . (!empty($gbp_auth['last_error']) ? ' — last error: ' . htmlspecialchars(mb_substr((string)$gbp_auth['last_error'], 0, 160)) : '')
+        : 'Not connected.' ?></span>
+    <a class="underline font-bold ml-2" href="/admin/gbp_connect.php"><?= $gbp_on ? 'Manage' : 'Connect' ?></a>
   </div>
   <?php $sh_always = true; include __DIR__ . '/layout/social_health_banner.php'; ?>
 
@@ -77,13 +90,20 @@ $badge = function (string $s): string {
             <?php endif; ?>
           </div>
         </div>
+        <?php if (!empty($r['gbp_caption'])): ?>
+          <div class="mt-2">
+            <div class="text-[9px] font-black uppercase tracking-wider text-emerald-700 mb-1">Google</div>
+            <div class="text-[11px] text-stone-700 whitespace-pre-line border border-stone-100 rounded bg-stone-50 p-2"><?= htmlspecialchars((string)$r['gbp_caption']) ?></div>
+          </div>
+        <?php endif; ?>
         <?php if (!empty($r['last_error'])): ?>
           <div class="text-[10px] text-red-700 mt-2 font-mono">⚠ <?= htmlspecialchars((string)$r['last_error']) ?></div>
         <?php endif; ?>
-        <?php if (!empty($r['fb_post_id']) || !empty($r['ig_media_id'])): ?>
+        <?php if (!empty($r['fb_post_id']) || !empty($r['ig_media_id']) || !empty($r['gbp_post_id'])): ?>
           <div class="text-[9px] font-mono text-stone-400 mt-1">
             <?php if (!empty($r['fb_post_id'])): ?>fb:<?= htmlspecialchars((string)$r['fb_post_id']) ?> <?php endif; ?>
-            <?php if (!empty($r['ig_media_id'])): ?>ig:<?= htmlspecialchars((string)$r['ig_media_id']) ?><?php endif; ?>
+            <?php if (!empty($r['ig_media_id'])): ?>ig:<?= htmlspecialchars((string)$r['ig_media_id']) ?> <?php endif; ?>
+            <?php if (!empty($r['gbp_post_id'])): ?>google:<?= htmlspecialchars(basename((string)$r['gbp_post_id'])) ?><?php endif; ?>
           </div>
         <?php endif; ?>
       </div>

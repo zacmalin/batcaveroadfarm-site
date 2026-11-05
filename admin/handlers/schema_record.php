@@ -327,7 +327,10 @@ try {
                 $__shared = (bool)$__c->fetchColumn();
             } catch (Throwable $e) { /* marker column missing -> treat as not yet shared */ }
             if (!$__shared) {
+                $__gbp = !empty($_POST['social_gbp_on']) ? trim((string)($_POST['social_gbp'] ?? '')) : '';
                 social_enqueue($pdo, (['recipes' => 'recipe', 'animals' => 'animal'][$target_table] ?? 'blog'), (int)$record_id, [
+                    'platforms' => 'facebook,instagram' . ($__gbp !== '' ? ',google' : ''),
+                    'gbp'      => $__gbp,
                     'fb'       => trim((string)($_POST['social_fb']   ?? '')),
                     'ig'       => trim((string)($_POST['social_ig']   ?? '')),
                     'hashtags' => trim((string)($_POST['social_tags'] ?? '')),

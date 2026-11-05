@@ -1607,6 +1607,19 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                           <input type="text" name="social_tags" value="<?= htmlspecialchars($__sc['hashtags']) ?>"
                                  class="w-full p-2 border rounded text-[11px] bg-white outline-none">
                         </div>
+                        <?php
+                        // Google Business Profile (Nov 2026): only once connected at /admin/gbp_connect.php
+                        $__gbp_file = dirname(__DIR__, 2) . '/includes/gbp.php';
+                        if (file_exists($__gbp_file)) require_once $__gbp_file;
+                        if (function_exists('gbp_ready') && gbp_ready($pdo)): ?>
+                        <div class="mt-3">
+                          <label class="flex items-center gap-2 text-[9px] font-black uppercase tracking-wider text-emerald-700 mb-1">
+                            <input type="checkbox" name="social_gbp_on" value="1" checked class="rounded"> Also post to Google Business Profile
+                          </label>
+                          <textarea name="social_gbp" rows="4" maxlength="1500" class="w-full p-2 border rounded text-[11px] bg-white outline-none"><?= htmlspecialchars(gbp_caption_from($__sc['fb'])) ?></textarea>
+                          <p class="text-[10px] text-stone-400 mt-1">No links here — Google adds a “Learn more” button to this page. Avoid phone numbers; Google rejects posts that include them.</p>
+                        </div>
+                        <?php endif; ?>
                         <p class="text-[10px] text-stone-400 mt-2">
                           Edit freely — exactly this text is queued when you publish. Facebook shows the link's preview card, so it skips the hashtags.
                         </p>

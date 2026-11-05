@@ -2,7 +2,8 @@
 /**
  * admin/cron/send_social.php
  * Drains social_queue: posts the admin-approved caption to the Facebook Page and,
- * if configured, to Instagram (container -> poll -> publish). Each row is attempted
+ * if configured, to Instagram (container -> poll -> publish) and Google Business Profile
+ * (rows whose platforms include "google"; connection at admin/gbp_connect.php, code in includes/gbp.php). Each row is attempted
  * once and lands on a terminal status (sent / partial / failed) so a re-run never
  * double-posts. Safe to run every few minutes.
  *
@@ -45,8 +46,12 @@ date_default_timezone_set('America/New_York');
 function social_log($m) { echo $m . "\n"; }
 
 // ── Config / credentials ──
-if (!defined('FB_PAGE_ID') || !defined('FB_PAGE_TOKEN') || FB_PAGE_ID === '' || FB_PAGE_TOKEN === '') {
-    social_log('send_social: Facebook credentials not configured (FB_PAGE_ID / FB_PAGE_TOKEN). Nothing sent.');
+require_once dirname($bcrf_cfg) . '/includes/gbp.php';
+$FB_OK  = defined('FB_PAGE_ID') && defined('FB_PAGE_TOKEN') && FB_PAGE_ID !== '' && FB_PAGE_TOKEN !== '';
+gbp_schema($pdo);            // adds social_queue.gbp_caption / gbp_post_id if missing (the UPDATE below uses them)
+$GBP_OK = gbp_ready($pdo);
+if (!$FB_OK && !$GBP_OK) {
+    social_log('send_social: neither Facebook (FB_PAGE_ID / FB_PAGE_TOKEN) nor Google Business Profile is configured. Nothing sent.');
     exit(0);
 }
 $GRAPH   = 'https://graph.facebook.com/' . (defined('BCRF_GRAPH_VERSION') ? BCRF_GRAPH_VERSION : 'v23.0');
@@ -134,7 +139,7 @@ if (!$pending) { social_log('send_social: nothing pending.'); exit(0); }
 
 $upd = $pdo->prepare(
     "UPDATE social_queue
-        SET status = ?, fb_post_id = ?, ig_media_id = ?, last_error = ?, attempts = attempts + 1, processed_at = NOW()
+        SET status = ?, fb_post_id = ?, ig_media_id = ?, gbp_post_id = ?, last_error = ?, attempts = attempts + 1, processed_at = NOW()
       WHERE id = ?"
 );
 
@@ -142,7 +147,7 @@ foreach ($pending as $q) {
     $type = in_array($q['content_type'], ['recipe', 'animal'], true) ? $q['content_type'] : 'blog';
     $row  = social_record($pdo, $type, (int)$q['content_id']);
     if (!$row) {
-        $upd->execute(['failed', null, null, 'Source record no longer exists', $q['id']]);
+        $upd->execute(['failed', null, null, null, 'Source record no longer exists', $q['id']]);
         social_log("#{$q['id']}: FAILED — source {$type} #{$q['content_id']} missing");
         continue;
     }
@@ -156,10 +161,13 @@ foreach ($pending as $q) {
     $fbCaption = str_replace($permalink, $fbLink, $fbCaption);
     $igCaption = trim((string)$q['ig_caption'] . (trim((string)$q['ig_hashtags']) !== '' ? "\n\n" . $q['ig_hashtags'] : ''));
 
-    $fbId = null; $igId = null; $errors = [];
+    $fbId = null; $igId = null; $gbpId = null; $errors = [];
+    $wantGbp = str_contains((string)$q['platforms'], 'google') && trim((string)($q['gbp_caption'] ?? '')) !== '';
 
     // ── FACEBOOK ──
-    if ($img) {
+    if (!$FB_OK) {
+        $errors[] = 'FB: not configured';
+    } elseif ($img) {
         $r = social_http('POST', "{$GRAPH}/" . FB_PAGE_ID . "/photos", [
             'url' => $img, 'caption' => $fbCaption, 'access_token' => FB_PAGE_TOKEN,
         ]);
@@ -170,10 +178,10 @@ foreach ($pending as $q) {
         ]);
         $fbId = $r['json']['id'] ?? null;
     }
-    if (!$fbId) { $errors[] = 'FB: ' . social_err($r); }
+    if ($FB_OK && !$fbId) { $errors[] = 'FB: ' . social_err($r); }
 
     // ── INSTAGRAM (only if configured and we have a public image) ──
-    if ($IG_ID && $img) {
+    if ($FB_OK && $IG_ID && $img) {
         $c = social_http('POST', "{$GRAPH}/{$IG_ID}/media", [
             'image_url' => $img, 'caption' => $igCaption, 'access_token' => FB_PAGE_TOKEN,
         ]);
@@ -200,20 +208,26 @@ foreach ($pending as $q) {
                 $errors[] = 'IG container never reached FINISHED';
             }
         }
-    } elseif ($IG_ID && !$img) {
+    } elseif ($FB_OK && $IG_ID && !$img) {
         $errors[] = 'IG skipped: no public image on this post';
     }
 
-    // ── Final status (terminal — never re-posts) ──
-    if ($fbId && ($igId || !$IG_ID)) {
-        $status = 'sent';
-    } elseif ($fbId) {
-        $status = 'partial';   // FB went out, IG didn't
-    } else {
-        $status = 'failed';
+    // ── GOOGLE BUSINESS PROFILE ──
+    if ($wantGbp && !$GBP_OK) {
+        $errors[] = 'Google: not connected';
+    } elseif ($wantGbp) {
+        try {
+            $gbpLink = bcrf_utm_url($permalink, 'google', 'organic', 'gbp-' . $type);
+            $gbpId   = gbp_post($pdo, (string)$q['gbp_caption'], $gbpLink, $img);
+        } catch (Throwable $e) { $errors[] = 'Google: ' . $e->getMessage(); }
     }
-    $upd->execute([$status, $fbId, $igId, ($errors ? implode(' | ', $errors) : null), $q['id']]);
-    social_log("#{$q['id']}: {$status}" . ($fbId ? " fb={$fbId}" : '') . ($igId ? " ig={$igId}" : '') . ($errors ? ' — ' . implode(' | ', $errors) : ''));
+
+    // ── Final status (terminal — never re-posts) ──
+    $wanted = 1 + ($IG_ID ? 1 : 0) + ($wantGbp ? 1 : 0);
+    $got    = ($fbId ? 1 : 0) + ($igId ? 1 : 0) + ($gbpId ? 1 : 0);
+    $status = $got === 0 ? 'failed' : ($got >= $wanted ? 'sent' : 'partial');
+    $upd->execute([$status, $fbId, $igId, $gbpId, ($errors ? implode(' | ', $errors) : null), $q['id']]);
+    social_log("#{$q['id']}: {$status}" . ($fbId ? " fb={$fbId}" : '') . ($igId ? " ig={$igId}" : '') . ($gbpId ? " google={$gbpId}" : '') . ($errors ? ' — ' . implode(' | ', $errors) : ''));
 }
 
 social_log('send_social: done.');

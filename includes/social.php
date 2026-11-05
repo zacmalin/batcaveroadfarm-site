@@ -174,6 +174,20 @@ if (!function_exists('social_enqueue')) {
     // Store the admin-approved post for the cron layer to send later.
     function social_enqueue(PDO $pdo, string $type, int $id, array $payload): bool {
         if (!social_tables_ready($pdo)) return false;
+        $platforms = (string)($payload['platforms'] ?? 'facebook,instagram');
+        $gbp       = trim((string)($payload['gbp'] ?? ''));
+        if ($gbp !== '' && str_contains($platforms, 'google')) {
+            // Google Business Profile (Nov 2026): gbp_schema() adds the gbp_* columns
+            require_once __DIR__ . '/gbp.php';
+            gbp_schema($pdo);
+            $st = $pdo->prepare(
+                "INSERT INTO social_queue
+                    (content_type, content_id, platforms, fb_caption, ig_caption, ig_hashtags, gbp_caption, status, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', NOW())"
+            );
+            return $st->execute([$type, $id, $platforms, (string)($payload['fb'] ?? ''), (string)($payload['ig'] ?? ''),
+                (string)($payload['hashtags'] ?? ''), $gbp]);
+        }
         $st = $pdo->prepare(
             "INSERT INTO social_queue
                 (content_type, content_id, platforms, fb_caption, ig_caption, ig_hashtags, status, created_at)
@@ -182,7 +196,7 @@ if (!function_exists('social_enqueue')) {
         return $st->execute([
             $type,
             $id,
-            (string)($payload['platforms'] ?? 'facebook,instagram'),
+            $platforms,
             (string)($payload['fb'] ?? ''),
             (string)($payload['ig'] ?? ''),
             (string)($payload['hashtags'] ?? ''),
