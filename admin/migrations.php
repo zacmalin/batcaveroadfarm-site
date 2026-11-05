@@ -33,6 +33,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($c['triggers'] || $c['routines']) $note[] = "Note: the database also has {$c['triggers']} trigger(s) and {$c['routines']} stored routine(s), which the snapshot doesn't include.";
             $go('ok', $note);
         }
+        if ($action === 'make_baseline') {
+            $sha = bcrf_baseline_from_snapshot();
+            $audit('Saved structure snapshot as migration 0001_baseline');
+            $go('ok', ['Saved as migration 0001_baseline (fingerprint ' . substr($sha, 0, 12) . ').', 'Next: tap Start tracking.']);
+        }
         if ($action === 'adopt') {
             [$ok, $msg] = bcrf_migrations_adopt_baseline($pdo, $uid);
             if ($ok) $audit('Started migration tracking (0001 baseline recorded)');
@@ -118,6 +123,13 @@ label.chk{display:flex;gap:8px;align-items:center;margin:8px 0;font-size:.92em}
 
 <div class="card">
   <h2>Actions</h2>
+  <?php if (!$hasBase && $snapAt): ?>
+    <form method="POST"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
+      <p>The structure snapshot is ready. <b>Save as migration 0001</b> turns it into <code>0001_baseline</code>, the starting point every future change builds on.</p>
+      <button class="primary" name="action" value="make_baseline">Save as migration 0001</button>
+    </form>
+  <?php endif; ?>
+
   <?php if ($hasBase && !$tracking): ?>
     <form method="POST"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
       <p>This database already has all its tables. <b>Start tracking</b> records <code>0001_baseline</code> as the starting point without running it.</p>

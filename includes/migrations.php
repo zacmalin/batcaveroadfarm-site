@@ -158,7 +158,7 @@ function bcrf_migrations_adopt_baseline(PDO $pdo, ?int $userId): array {
 /** Structure-only snapshot of the current database, ready to become a migration. Returns [sql, counts]. */
 function bcrf_schema_snapshot(PDO $pdo): array {
     $tables = []; $views = [];
-    foreach ($pdo->query('SHOW FULL TABLES') as $r) {
+    foreach ($pdo->query('SHOW FULL TABLES')->fetchAll(PDO::FETCH_NUM) as $r) {   // by position: the site's default fetch mode is by name
         $name = (string)$r[0];
         if ($name === 'schema_migrations') continue;
         if (strtoupper((string)$r[1]) === 'VIEW') $views[] = $name; else $tables[] = $name;
@@ -198,6 +198,26 @@ function bcrf_schema_snapshot_save(PDO $pdo): array {
     $file = $dir . '/schema_snapshot.txt';
     if (@file_put_contents($file, $sql) === false) throw new RuntimeException('Could not write ' . $file);
     return $counts + ['bytes' => strlen($sql), 'file' => 'admin/migrations/schema_snapshot.txt'];
+}
+
+/** Turn the saved snapshot into admin/migrations/0001_baseline.php (once). Returns the new file's SHA-256. */
+function bcrf_baseline_from_snapshot(): string {
+    $dir = bcrf_migrations_dir();
+    $snap = $dir . '/schema_snapshot.txt';
+    $out  = $dir . '/0001_baseline.php';
+    if (is_file($out)) throw new RuntimeException('0001_baseline.php already exists. It must never be replaced.');
+    if (!is_file($snap)) throw new RuntimeException('Capture the structure first.');
+    $sql = (string)file_get_contents($snap);
+    if (preg_match('/^SQL;?$/m', $sql)) throw new RuntimeException('The snapshot contains a line that would end the file early.');
+    $php = "<?php\n"
+         . "// admin/migrations/0001_baseline.php — Farm OS Phase 0 (Nov 5, 2026)\n"
+         . "// The database structure of the live Bat Cave Road Farm site as captured on Nov 5, 2026 (78 tables, no data),\n"
+         . "// via admin → Settings → Database → Capture structure.\n"
+         . "// On the live database this is recorded as the starting point (\"baseline\") and is never run.\n"
+         . "// On a new, empty database it creates every table. Never edit this file: put changes in 0002 and later.\n"
+         . "return <<<'SQL'\n" . $sql . "SQL;\n";
+    if (@file_put_contents($out, $php) === false) throw new RuntimeException('Could not write ' . $out);
+    return hash('sha256', $php);
 }
 
 /** Newest local database backup time (Unix), or 0. */
