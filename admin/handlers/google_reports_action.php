@@ -1,13 +1,15 @@
 <?php
 // admin/handlers/google_reports_action.php
 // "Refresh now" on the Search & Analytics screen. Routed from admin/admin.php (CSRF and the
-// view permission are checked there). Limited to once every 10 minutes.
+// view permission are checked there). Limited to once every 10 minutes after a successful refresh.
 require_once __DIR__ . '/../../includes/google_reports.php';
 
 $last = null;
 try {
     bcrf_greports_schema($pdo);
-    $last = $pdo->query("SELECT MAX(GREATEST(COALESCE(fetched_at, '2000-01-01'), COALESCE(error_at, '2000-01-01'))) FROM google_report_cache")->fetchColumn();
+    // Only a fully successful refresh counts toward the limit; after any failure (setup not finished) retry right away.
+    $failed = (int)$pdo->query("SELECT COUNT(*) FROM google_report_cache WHERE last_error IS NOT NULL")->fetchColumn();
+    if ($failed === 0) $last = $pdo->query("SELECT MAX(fetched_at) FROM google_report_cache")->fetchColumn();
 } catch (Throwable $e) {}
 
 if ($last && strtotime($last . ' UTC') > time() - 600) {
