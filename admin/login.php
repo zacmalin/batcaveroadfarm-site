@@ -164,6 +164,7 @@ ob_end_clean(); // Done with buffering — render the page
                 Sign In
             </button>
         </form>
+        <p class="text-center mt-5"><a href="/account/forgot.php?staff=1" class="text-sm text-stone-600 underline">Forgot password?</a></p>
     </div>
 </body>
 </html>

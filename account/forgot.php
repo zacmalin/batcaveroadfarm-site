@@ -6,9 +6,12 @@ require_once '../config.php';
 require_once '../includes/auth.php';
 require_once '../includes/rate_limit.php';   // fix pack K
 require_once '../admin/includes/email_template.php';
+require_once '../includes/customer_auth.php';   // customers table (Farm OS Phase 0, C-02)
 header('Cache-Control: no-store, private');
 
-if (is_logged_in()) { ob_end_clean(); header('Location: /'); exit; }
+// ?staff=1 (linked from the console sign-in): reset a staff password (users) instead of a customer one.
+$staffMode = !empty($_GET['staff']) || !empty($_POST['staff']);
+if (!$staffMode && is_logged_in()) { ob_end_clean(); header('Location: /'); exit; }
 
 $error = '';
 $sent  = false;
@@ -32,19 +35,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sent = true;
     } else {
         try {
-            $stmt = $pdo->prepare("SELECT id, first_name, email FROM users WHERE email = ? LIMIT 1");
-            $stmt->execute([strtolower($emailOld)]);
-            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            // Customer accounts, or staff accounts from the console's "Forgot password?" (Farm OS Phase 0, C-02).
+            // Customer and staff ids can be the same number, so every reset row says which table it means.
+            if ($staffMode) {
+                $stmt = $pdo->prepare("SELECT id, first_name, email FROM users WHERE email = ? AND role IN ('administrator','moderator','Shopkeep','Media','Staff') AND account_status <> 'disabled' LIMIT 1");
+                $stmt->execute([strtolower($emailOld)]);
+                $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            } else {
+                $user = bcrf_customer_find_by_email($pdo, $emailOld);
+                if ($user && !bcrf_customer_active($user)) $user = null;
+            }
+            $realm  = $staffMode ? 'staff' : 'customer';
+            $hasRealm = bcrf_resets_have_realm($pdo);
 
             if ($user) {
-                // Invalidate any earlier unused tokens for this user, then issue a fresh one.
-                $pdo->prepare("UPDATE password_resets SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL")
-                    ->execute([(int)$user['id']]);
+                // Invalidate any earlier unused tokens for this account, then issue a fresh one.
+                $pdo->prepare("UPDATE password_resets SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL" . ($hasRealm ? " AND realm = ?" : ''))
+                    ->execute($hasRealm ? [(int)$user['id'], $realm] : [(int)$user['id']]);
 
                 $token = bin2hex(random_bytes(32));
                 $hash  = hash('sha256', $token);
-                $pdo->prepare("INSERT INTO password_resets (user_id, token_hash, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))")
-                    ->execute([(int)$user['id'], $hash]);
+                if ($hasRealm) {
+                    $pdo->prepare("INSERT INTO password_resets (user_id, token_hash, expires_at, realm) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR), ?)")
+                        ->execute([(int)$user['id'], $hash, $realm]);
+                } else {
+                    $pdo->prepare("INSERT INTO password_resets (user_id, token_hash, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))")
+                        ->execute([(int)$user['id'], $hash]);
+                }
 
                 $link = (bcrf_farm_url() . '/account/reset.php?token=') . $token;
                 $name = trim((string)($user['first_name'] ?? '')) ?: 'there';
@@ -84,15 +101,16 @@ require_once '../includes/header.php';
       <?php if ($sent): ?>
         <h1>Check Your Email</h1>
         <p class="auth-sub">If an account exists for that address, a password-reset link is on its way. The link expires in 1 hour.</p>
-        <p class="auth-alt"><a href="/account/login.php">Back to log in</a></p>
+        <p class="auth-alt"><a href="<?= $staffMode ? '/admin/login.php' : '/account/login.php' ?>">Back to log in</a></p>
       <?php else: ?>
-        <h1>Forgot Password</h1>
-        <p class="auth-sub">Enter your email and we'll send you a link to reset your password.</p>
+        <h1><?= $staffMode ? 'Forgot Staff Password' : 'Forgot Password' ?></h1>
+        <p class="auth-sub">Enter your <?= $staffMode ? 'staff ' : '' ?>email and we'll send you a link to reset your password.</p>
 
         <?php if ($error !== ''): ?><div class="auth-error" role="alert"><?= htmlspecialchars($error) ?></div><?php endif; ?>
 
         <form method="POST" action="/account/forgot.php" novalidate>
           <?= csrf_field() ?>
+          <?php if ($staffMode): ?><input type="hidden" name="staff" value="1"><?php endif; ?>
           <div class="auth-hp" aria-hidden="true"><label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
           <div class="auth-field">
             <label for="forgot-email">Email</label>
@@ -101,7 +119,7 @@ require_once '../includes/header.php';
           <button type="submit" class="auth-btn">Send Reset Link</button>
         </form>
 
-        <p class="auth-alt">Remembered it? <a href="/account/login.php">Back to log in</a></p>
+        <p class="auth-alt">Remembered it? <a href="<?= $staffMode ? '/admin/login.php' : '/account/login.php' ?>">Back to log in</a></p>
       <?php endif; ?>
     </div>
   </div>

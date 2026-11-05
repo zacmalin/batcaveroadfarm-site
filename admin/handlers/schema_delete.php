@@ -55,8 +55,10 @@ $fk_map = [
                             ['recipe_ratings',            'recipe_id'],
                             ['recipe_comments',           'recipe_id'],
                             ['blog_posts',                'linked_recipe_id']],
-    'users'             => [['time_cards',                'user_id'],
-                            ['recipe_ratings',            'user_id'],
+    'users'             => [['time_cards',                'user_id'],     // staff (Farm OS Phase 0, C-02)
+                            ['recipe_ratings',            'user_id'],     // until migration 0006 moves these to customers
+                            ['recipe_comments',           'user_id']],
+    'customers'         => [['recipe_ratings',            'user_id'],
                             ['recipe_comments',           'user_id']],
     'inventory'         => [['product_ingredients',       'product_id']],
     'mailing_list'      => [],

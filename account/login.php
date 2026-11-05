@@ -4,6 +4,7 @@ ob_start(); // buffer so header() redirects work even if an include emits whites
 require_once '../config.php';
 require_once '../includes/auth.php';
 require_once '../includes/rate_limit.php';   // fix pack K: server-side login limits
+require_once '../includes/customer_auth.php';   // customers table (Farm OS Phase 0, C-02)
 
 $next = safe_next((string)($_GET['next'] ?? ($_POST['next'] ?? '')));
 
@@ -26,10 +27,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Email and password are required.';
     } else {
         try {
-            $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ? LIMIT 1");
-            $stmt->execute([strtolower($emailOld)]);
-            $user = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($user && password_verify($password, (string)($user['password'] ?? ''))) {
+            // Customer accounts only: staff sign in at /admin/login.php (Farm OS Phase 0, C-02)
+            $user = bcrf_customer_find_by_email($pdo, $emailOld);
+            if ($user && bcrf_customer_active($user) && password_verify($password, (string)($user['password'] ?? ''))) {
                 bcrf_login_success($emailOld);
                 auth_login_user($user);
                 ob_end_clean();

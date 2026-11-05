@@ -67,8 +67,9 @@ try {
             $rejection_count = (int)$count_stmt->fetchColumn();
 
             if ($rejection_count >= 5) {
+                require_once dirname(__DIR__, 2) . '/includes/customer_auth.php';   // commenters are customers (C-02)
                 $pdo->prepare("
-                    UPDATE users
+                    UPDATE " . bcrf_customer_table($pdo) . "
                     SET    comment_restricted_until = DATE_ADD(CURDATE(), INTERVAL 60 DAY)
                     WHERE  id = ?
                       AND (comment_restricted_until IS NULL OR comment_restricted_until < CURDATE())
@@ -82,7 +83,7 @@ try {
         erp_audit($pdo, 'update', 'recipe_comments', count($comment_ids) === 1 ? $comment_ids[0] : null,
             "Rejected {$done} comment(s): #" . implode(', #', array_slice($comment_ids, 0, 20)));
         foreach ($restricted as $ruid) {
-            erp_audit($pdo, 'update', 'users', $ruid, 'Comments restricted 60 days (5+ rejections in 30 days)');
+            erp_audit($pdo, 'update', bcrf_customer_table($pdo), $ruid, 'Comments restricted 60 days (5+ rejections in 30 days)');
         }
 
         $msg = "{$done} comment" . ($done !== 1 ? 's' : '') . " rejected.";

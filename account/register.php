@@ -38,23 +38,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         try {
             $email = strtolower($old['email']);
-            $chk = $pdo->prepare("SELECT id FROM users WHERE email = ? LIMIT 1");
-            $chk->execute([$email]);
-            if ($chk->fetch()) {
+            // customers table (Farm OS Phase 0, C-02; includes/customer_auth.php)
+            require_once __DIR__ . '/../includes/customer_auth.php';
+            if (bcrf_customer_email_taken($pdo, $email)) {
                 $error = 'An account with that email already exists. Try logging in.';
             } else {
-                $ins = $pdo->prepare(
-                    "INSERT INTO users (first_name, last_name, email, phone_number, password, role)
-                     VALUES (?, ?, ?, ?, ?, 'user')"
-                );
-                $ins->execute([
-                    $old['first_name'],
-                    $old['last_name'],
-                    $email,
-                    ($old['phone_number'] !== '' ? $old['phone_number'] : null),
-                    password_hash($password, PASSWORD_DEFAULT),
-                ]);
-                $user = ['id' => (int)$pdo->lastInsertId(), 'role' => 'user',
+                $newId = bcrf_customer_create($pdo, $old['first_name'], $old['last_name'], $email,
+                    ($old['phone_number'] !== '' ? $old['phone_number'] : null), password_hash($password, PASSWORD_DEFAULT));
+                $user = ['id' => $newId, 'role' => 'user', 'email' => $email,
                          'first_name' => $old['first_name'], 'last_name' => $old['last_name']];
                 auth_login_user($user);
                 @evf_issue($pdo, (int)$user['id'], $email, $old['first_name']);

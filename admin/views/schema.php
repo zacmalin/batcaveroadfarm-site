@@ -421,7 +421,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
         ?>
         <!-- Fix 10: dirty-form unsaved changes warning -->
         <form method="POST" class="space-y-4 text-xs" id="schemaEditForm" data-dirty="false"
-              <?php if (!in_array($target_table, ['users', 'mailing_list'], true)): /* no personal data in device drafts */ ?>data-autosave="<?= htmlspecialchars($__dKey, ENT_QUOTES) ?>" data-autosave-confirm<?= $__dClear !== '' ? ' data-autosave-clear="' . htmlspecialchars($__dClear, ENT_QUOTES) . '"' : '' ?><?= $__dRestore ? ' data-autosave-restore' : '' ?><?php endif; ?>>
+              <?php if (!in_array($target_table, ['users', 'customers', 'mailing_list'], true)): /* no personal data in device drafts */ ?>data-autosave="<?= htmlspecialchars($__dKey, ENT_QUOTES) ?>" data-autosave-confirm<?= $__dClear !== '' ? ' data-autosave-clear="' . htmlspecialchars($__dClear, ENT_QUOTES) . '"' : '' ?><?= $__dRestore ? ' data-autosave-restore' : '' ?><?php endif; ?>>
             <input type="hidden" name="csrf_token"        value="<?= $_SESSION['csrf_token'] ?>">
             <input type="hidden" name="save_schema_record" value="1">
             <input type="hidden" name="id"                value="<?= (int)($edit_data['id'] ?? 0) ?>">

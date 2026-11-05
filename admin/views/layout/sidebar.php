@@ -73,8 +73,10 @@ $_sections = [
     'settings' => ['label'=>'Settings','icon'=>'⚙️','items'=>[
         ['label'=>'Hours & Contacts', 'short'=>'Hours','icon'=>'🏠','tabs'=>[['Hours & Contacts','?view=site_info','view','site_info']]],
         ['label'=>'Users & Roles',    'short'=>'Users','icon'=>'🔐','tabs'=>[
-            ['Users',       '?view=schema&table=users', 'table', 'users'],
-            ['Permissions', '?view=permissions',        'view',  'permissions'],
+            ['Staff',       '?view=schema&table=users',     'table', 'users'],       // staff accounts (Farm OS Phase 0, C-02)
+            ['Customers',   '?view=schema&table=customers', 'table', 'customers'],   // public site accounts
+            ['Permissions', '?view=permissions',            'view',  'permissions'],
+            ['Two-step',    '/admin/two_step.php',          'view',  'two_step'],
         ]],
         ['label'=>'Integrations',     'icon'=>'🤖','tabs'=>[['AI Connections','/admin/mcp_connections.php','view','mcp_connections']]],   // administrators only
         ['label'=>'Backups & Export', 'short'=>'Backups','icon'=>'💾','tabs'=>[['Backups','/admin/backups.php','view','backups']]],          // administrators only

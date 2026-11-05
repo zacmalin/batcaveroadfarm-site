@@ -1,5 +1,14 @@
 <?php
 // includes/jobs/hire.php
+if (!function_exists('jobs_resets_staff_only')) {
+    /** Limit a password_resets update to staff rows once migration 0006 adds realm (customer ids can match, C-02). */
+    function jobs_resets_staff_only(PDO $pdo): string {
+        $f = dirname(__DIR__) . '/customer_auth.php';
+        if (is_file($f)) require_once $f;
+        return (function_exists('bcrf_resets_have_realm') && bcrf_resets_have_realm($pdo)) ? " AND (realm = 'staff' OR purpose = 'invite')" : '';
+    }
+}
+
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Hire flow + staff records (Jobs pack P6).
 //  - jobs_hire_defaults / jobs_hire_validate / jobs_hire_save: the confirm screen
@@ -411,7 +420,7 @@ if (!function_exists('jobs_hire_save')) {
             $off = $loginOff && !$stillOpen && (int)$user['id'] !== (int)$uid;
             if ($off) {
                 $pdo->prepare("UPDATE users SET account_status = 'disabled' WHERE id = ?")->execute([(int)$user['id']]);
-                $pdo->prepare('UPDATE password_resets SET used_at = ? WHERE user_id = ? AND used_at IS NULL')->execute([jobs_now(), (int)$user['id']]);
+                $pdo->prepare('UPDATE password_resets SET used_at = ? WHERE user_id = ? AND used_at IS NULL' . jobs_resets_staff_only($pdo))->execute([jobs_now(), (int)$user['id']]);
             }
             $pdo->commit();
         } catch (Throwable $e) {
@@ -441,7 +450,7 @@ if (!function_exists('jobs_hire_save')) {
             $pdo->prepare('UPDATE users SET account_status = ? WHERE id = ?')->execute([$status, $userId]);
         } else {
             $pdo->prepare("UPDATE users SET account_status = 'disabled' WHERE id = ?")->execute([$userId]);
-            $pdo->prepare('UPDATE password_resets SET used_at = ? WHERE user_id = ? AND used_at IS NULL')->execute([jobs_now(), $userId]);
+            $pdo->prepare('UPDATE password_resets SET used_at = ? WHERE user_id = ? AND used_at IS NULL' . jobs_resets_staff_only($pdo))->execute([jobs_now(), $userId]);
         }
         if (function_exists('erp_audit')) erp_audit($pdo, 'update', 'users', $userId, $name . ': login turned ' . ($on ? 'on' : 'off'));
         return [true, $on ? $name . '\'s login is on.' . (empty($user['password']) ? ' They still need to set a password; send them a link.' : '')

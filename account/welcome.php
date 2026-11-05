@@ -65,7 +65,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $error === '') {
             $pdo->prepare("UPDATE users SET password = ?, account_status = IF(account_status = 'invited', 'active', account_status),
                                   email_verified_at = COALESCE(email_verified_at, NOW()) WHERE id = ?")
                 ->execute([password_hash($pw, PASSWORD_DEFAULT), (int)$invite['user_id']]);
-            $pdo->prepare("UPDATE password_resets SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL")
+            // Staff invite: burn this staff account's other links only (customer ids can be the same number, C-02).
+            require_once __DIR__ . '/../includes/customer_auth.php';
+            $pdo->prepare("UPDATE password_resets SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL"
+                          . (bcrf_resets_have_realm($pdo) ? " AND (realm = 'staff' OR purpose = 'invite')" : ''))
                 ->execute([(int)$invite['user_id']]);
             $pdo->commit();
             $done = true;
