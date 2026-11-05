@@ -53,7 +53,10 @@ if (empty($item['sku'])) {
 
 // ── FETCH INGREDIENTS (label order: heaviest first, set in the Print Label window) ──
 require_once __DIR__ . '/includes/label_ingredients.php';
-$ingredients = array_column(bcrf_label_ingredients($pdo, (int)$item_id)['rows'], 'name');
+$lab_rows    = bcrf_label_ingredients($pdo, (int)$item_id)['rows'];
+$ingredients = array_column($lab_rows, 'name');
+// Ingredient statement with sub-ingredients in parentheses + "Contains:" allergens
+$stmt_parts  = bcrf_label_statement($lab_rows);
 
 // ── BUILD DISPLAY STRINGS ─────────────────────────────────────────────────────
 $name_esc  = htmlspecialchars($item['name'], ENT_QUOTES);
@@ -66,8 +69,13 @@ $size_esc  = htmlspecialchars($size_str ?: '—', ENT_QUOTES);
 // Maker's name and physical address from Site Info (required; a website doesn't count)
 $made_esc  = htmlspecialchars(bcrf_label_made_by(), ENT_QUOTES);
 $ing_str   = !empty($ingredients)
-    ? htmlspecialchars(implode(', ', $ingredients), ENT_QUOTES)
+    ? htmlspecialchars($stmt_parts['ingredients'], ENT_QUOTES)
     : $name_esc;
+$contains_esc = htmlspecialchars($stmt_parts['contains'], ENT_QUOTES);
+// Problems shown above the sheet (not printed)
+$label_warnings = [];
+if ($stmt_parts['unchecked'])  $label_warnings[] = 'Allergens not checked yet for: ' . implode(', ', $stmt_parts['unchecked']) . '. The Contains line may be incomplete.';
+if ($stmt_parts['needs_name']) $label_warnings[] = 'Name the specific nut, fish or shellfish for: ' . implode(', ', $stmt_parts['needs_name']) . '.';
 $best_str  = '';
 if ($best_by) {
     $ts = strtotime($best_by);
@@ -196,12 +204,14 @@ for ($p = 0; $p < $total_pages; $p++) {
             padding: 4pt 3pt;
             font-family: Arial, Helvetica, sans-serif;
             color: #111;
+            font-size: 5pt;   /* everything below is relative, so the fit check can shrink it */
         }
-        .l-url  { font-size: 6.5pt; font-weight: bold; color: #322016; margin-bottom: 2pt; }
-        .l-ing  { font-size: 5pt; line-height: 1.4; word-break: break-word; }
-        .l-ing strong { font-size: 5.5pt; display: block; margin-bottom: 1pt; }
-        .l-bestby { font-size: 5.5pt; font-weight: bold; margin-top: 3pt; }
-        .l-madeby { font-size: 4.5pt; line-height: 1.3; margin-top: 2pt; color: #222; }
+        .l-url  { font-size: 1.3em; font-weight: bold; color: #322016; margin-bottom: 2pt; }
+        .l-ing  { font-size: 1em; line-height: 1.35; word-break: break-word; }
+        .l-ing strong { font-size: 1.1em; display: block; margin-bottom: 1pt; }
+        .l-contains { font-size: 1em; font-weight: bold; margin-top: 1.5pt; line-height: 1.3; }
+        .l-bestby { font-size: 1.1em; font-weight: bold; margin-top: 2pt; }
+        .l-madeby { font-size: 0.9em; line-height: 1.3; margin-top: 2pt; color: #222; }
 
         /* Divider */
         .l-div {
@@ -272,6 +282,9 @@ for ($p = 0; $p < $total_pages; $p++) {
                     <div class="l-ing">
                         <strong>Ingredients:</strong><?= $ing_str ?>
                     </div>
+                    <?php if ($contains_esc): ?>
+                    <div class="l-contains">Contains: <?= $contains_esc ?></div>
+                    <?php endif; ?>
                     <?php if ($made_esc): ?>
                     <div class="l-madeby"><?= $made_esc ?></div>
                     <?php endif; ?>
@@ -308,12 +321,44 @@ for ($p = 0; $p < $total_pages; $p++) {
         🖨 Print Labels
     </button>
 </div>
+<!-- Warnings (not printed): unchecked allergens, unnamed nuts/fish/shellfish, text that doesn't fit -->
+<div id="labelWarnings" class="no-print" style="position:fixed;top:44px;left:0;right:0;z-index:998;font-family:Arial,sans-serif;font-size:12px;">
+    <?php foreach ($label_warnings as $w): ?>
+    <div style="background:#fde2dd;color:#8b2018;padding:8px 20px;border-bottom:1px solid #f3b8ad;font-weight:bold;">⚠ <?= htmlspecialchars($w) ?></div>
+    <?php endforeach; ?>
+    <div id="fitWarning" style="display:none;background:#fde2dd;color:#8b2018;padding:8px 20px;border-bottom:1px solid #f3b8ad;font-weight:bold;"></div>
+</div>
 <!-- Spacer so first label isn't hidden under the bar -->
-<div style="height:44px;" class="no-print"></div>
+<div style="height:<?= 44 + 34 * count($label_warnings) ?>px;" class="no-print" id="barSpacer"></div>
 
 <script>
-// Render barcodes on page load so they're visible in the preview
+// Fit check: the rotated info panel is 1in deep. If the text is longer, shrink it a little
+// (5pt down to 4.25pt); if it still doesn't fit, say so instead of printing cut-off text.
+function fitInfoPanels() {
+    var inners = document.querySelectorAll('.l-info-inner');
+    if (!inners.length) return;
+    var limit = inners[0].parentNode.clientWidth;          // 1in in CSS px (the panel is rotated)
+    var sizes = [5, 4.75, 4.5, 4.25], used = 5;
+    for (var i = 0; i < sizes.length; i++) {
+        used = sizes[i];
+        inners.forEach(function (el) { el.style.fontSize = used + 'pt'; });
+        if (inners[0].offsetHeight <= limit) break;
+    }
+    var w = document.getElementById('fitWarning');
+    if (inners[0].offsetHeight > limit) {
+        w.textContent = '⚠ The ingredient text is too long for this label and will be cut off. Shorten sub-ingredients or use a larger label.';
+        w.style.display = 'block';
+        var sp = document.getElementById('barSpacer'); sp.style.height = (sp.offsetHeight + 34) + 'px';
+    } else if (used < 5) {
+        w.textContent = 'Text shrunk to ' + used + 'pt to fit the label.';
+        w.style.background = '#fbefd2'; w.style.color = '#7a5200'; w.style.display = 'block';
+        var sp2 = document.getElementById('barSpacer'); sp2.style.height = (sp2.offsetHeight + 34) + 'px';
+    }
+}
+
+// On load: fit the text, then render barcodes so they're visible in the preview
 window.onload = function() {
+    fitInfoPanels();
     document.querySelectorAll('.barcode-svg[data-sku]').forEach(function(svg) {
         var sku = svg.getAttribute('data-sku');
         if (!sku) return;

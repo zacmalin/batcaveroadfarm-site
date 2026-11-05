@@ -52,7 +52,9 @@ try {
         'size_label'  => $size_label,
         'made_by'     => bcrf_label_made_by(),
         'ingredients' => $ingredients,
-        'ingredient_rows' => $lab['rows'],      // [{id, name}] in label order
+        'ingredient_rows' => $lab['rows'],      // [{id, name, allergens (null = not checked), sub_ingredients}] in label order
+        'statement'   => bcrf_label_statement($lab['rows']),   // ingredients text, contains, unchecked, needs_name
+        'allergen_list' => bcrf_allergen_list(),
         'order_set'   => $lab['order_set'],     // false = never put in order (old alphabetical list)
         'all_ingredients' => bcrf_all_ingredients($pdo),
     ]);

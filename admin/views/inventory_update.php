@@ -213,7 +213,9 @@ async function openLabelModal(itemId, itemName) {
     document.getElementById('labelBestBy').value  = '';
     document.getElementById('labelPreviewBestBy').textContent = '';
     document.getElementById('labelPreviewIngredients').textContent = 'Loading...';
-    labelIngs = []; labelAllIngs = []; labelIngDirty = false; labelIngOrderSet = true;
+    labelIngs = []; labelAllIngs = []; labelIngDirty = false; labelIngOrderSet = true; labelIngOpen = null;
+    document.getElementById('labelPreviewContains').textContent = '';
+    document.getElementById('labelAllergenWarn').classList.add('hidden');
     document.getElementById('labelIngList').replaceChildren();
     document.getElementById('labelIngStatus').textContent = '';
 
@@ -225,8 +227,9 @@ async function openLabelModal(itemId, itemName) {
             labelItemData = data;
             document.getElementById('labelPreviewSize').textContent = data.size_label || '—';
             document.getElementById('labelPreviewMadeBy').textContent = data.made_by || '';
-            labelIngs     = (data.ingredient_rows || []).map(r => ({ id: r.id, name: r.name }));
+            labelIngs     = (data.ingredient_rows || []).map(r => ({ id: r.id, name: r.name, allergens: r.allergens, sub_ingredients: r.sub_ingredients || '' }));
             labelAllIngs  = data.all_ingredients || [];
+            labelAllergenList = data.allergen_list || {};
             labelIngDirty = false;
             labelIngOrderSet = data.order_set !== false;
             renderLabelIngs();
@@ -240,20 +243,142 @@ async function openLabelModal(itemId, itemName) {
 
 // ── LABEL INGREDIENTS: order heaviest first (food labels list ingredients by weight) ──
 let labelIngs = [], labelAllIngs = [], labelIngDirty = false, labelIngOrderSet = true;
+let labelAllergenList = {}, labelIngOpen = null;   // labelIngOpen = id of the ingredient whose details are open
+
+// "milk,tree_nuts:pecans" -> {milk:'', tree_nuts:'pecans'}  (same rules as bcrf_allergens_parse)
+function parseAllergens(raw) {
+    const out = {};
+    String(raw || '').split(',').forEach(p => {
+        p = p.trim(); if (!p) return;
+        const i = p.indexOf(':');
+        const k = (i < 0 ? p : p.slice(0, i)).trim().toLowerCase().replace(/[ -]/g, '_');
+        if (labelAllergenList[k]) out[k] = i < 0 ? '' : p.slice(i + 1).trim();
+    });
+    return out;
+}
+
+// Same output as bcrf_label_statement() in admin/includes/label_ingredients.php
+function labelStatement(rows) {
+    const keys = Object.keys(labelAllergenList), found = [], unchecked = [], needs = [];
+    const add = (k, label) => { if (!found.some(f => f.key === k)) found.push({ key: k, label }); };
+    const parts = rows.map(r => {
+        let sub = String(r.sub_ingredients || '').replace(/^\s*ingredients\s*:\s*/i, '').replace(/\s+/g, ' ').replace(/[\s.]+$/, '');
+        if (r.allergens === null || r.allergens === undefined) unchecked.push(r.name);
+        else Object.entries(parseAllergens(r.allergens)).forEach(([k, d]) => {
+            const [label, named] = labelAllergenList[k];
+            if (!named) return add(k, label);
+            if (!d) { needs.push(r.name); return add(k + ':', label); }
+            d.split(/\s*(?:&|\/|\band\b)\s*/i).forEach(one => {
+                one = one.trim(); if (!one) return;
+                add(k + ':' + one.toLowerCase(), one.replace(/\w\S*/g, w => w[0].toUpperCase() + w.slice(1).toLowerCase()));
+            });
+        });
+        return r.name + (sub ? ' (' + sub + ')' : '');
+    });
+    found.sort((a, b) => (keys.indexOf(a.key.split(':')[0]) - keys.indexOf(b.key.split(':')[0])) || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+    return { ingredients: parts.join(', '), contains: found.map(f => f.label).join(', '), unchecked, needs };
+}
+
+function ingSummary(ing) {
+    if (ing.allergens === null || ing.allergens === undefined) return { text: 'Allergens not checked', warn: true };
+    const a = parseAllergens(ing.allergens), names = Object.entries(a).map(([k, d]) => d || labelAllergenList[k][0]);
+    let t = names.length ? 'Allergens: ' + names.join(', ') : 'No major allergens';
+    if (ing.sub_ingredients) t += ' · has sub-ingredients';
+    return { text: t, warn: false };
+}
+
+function buildIngDetails(ing) {
+    const box = document.createElement('div');
+    box.className = 'mt-2 mb-1 ml-7 p-2 border rounded bg-white space-y-2';
+    const cur = parseAllergens(ing.allergens);
+    const help = document.createElement('p');
+    help.className = 'text-[11px] text-stone-500';
+    help.textContent = 'Tick every major allergen this ingredient contains (check the bought product\'s label). Saving with none ticked records "no major allergens".';
+    box.append(help);
+    const grid = document.createElement('div');
+    grid.className = 'grid grid-cols-2 gap-x-3 gap-y-1';
+    Object.entries(labelAllergenList).forEach(([k, [label, named]]) => {
+        const wrap = document.createElement('div');
+        const lab = document.createElement('label');
+        lab.className = 'flex items-center gap-2 py-1 cursor-pointer';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox'; cb.value = k; cb.className = 'ing-allergen w-4 h-4'; cb.checked = k in cur;
+        const sp = document.createElement('span'); sp.textContent = label;
+        lab.append(cb, sp); wrap.append(lab);
+        if (named) {
+            const inp = document.createElement('input');
+            inp.type = 'text'; inp.className = 'ing-allergen-detail w-full p-1.5 border rounded bg-stone-50 mb-1';
+            inp.dataset.key = k; inp.value = cur[k] || '';
+            inp.placeholder = { tree_nuts: 'Which nut? e.g. pecans', fish: 'Which fish? e.g. cod', shellfish: 'Which shellfish? e.g. shrimp' }[k];
+            inp.classList.toggle('hidden', !cb.checked);
+            cb.addEventListener('change', () => inp.classList.toggle('hidden', !cb.checked));
+            wrap.append(inp);
+        }
+        grid.append(wrap);
+    });
+    box.append(grid);
+    const subLab = document.createElement('label');
+    subLab.className = 'block font-bold text-stone-600 mt-1';
+    subLab.textContent = 'Sub-ingredients (only for bought ingredients with their own ingredient list)';
+    const sub = document.createElement('textarea');
+    sub.rows = 2; sub.className = 'ing-sub w-full p-2 border rounded bg-stone-50';
+    sub.placeholder = 'Copy it from the package, e.g. sugar, chocolate, cocoa butter, soy lecithin, vanilla';
+    sub.value = ing.sub_ingredients || '';
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-3';
+    const save = document.createElement('button');
+    save.type = 'button'; save.textContent = 'Save ingredient';
+    save.className = 'bg-stone-900 text-white font-bold px-3 py-2 rounded hover:bg-stone-700';
+    const st = document.createElement('span');
+    st.className = 'text-[11px] text-stone-600'; st.setAttribute('role', 'status');
+    save.addEventListener('click', () => saveIngDetails(ing.id, box, st, save));
+    row.append(save, st);
+    box.append(subLab, sub, row);
+    return box;
+}
+
+async function saveIngDetails(id, box, st, btn) {
+    const body = new URLSearchParams({ csrf_token: LABEL_CSRF, ingredient_id: id, sub_ingredients: box.querySelector('.ing-sub').value });
+    box.querySelectorAll('.ing-allergen:checked').forEach(cb => body.append('allergens[]', cb.value));
+    box.querySelectorAll('.ing-allergen-detail').forEach(inp => body.append('allergen_detail[' + inp.dataset.key + ']', inp.value));
+    btn.disabled = true; st.textContent = 'Saving…';
+    try {
+        const res  = await fetch('/admin/handlers/ingredient_label_info_save.php', { method: 'POST', body });
+        const data = await res.json();
+        btn.disabled = false;
+        if (!data.ok) { st.textContent = data.message || 'Could not save.'; return; }
+        [labelIngs, labelAllIngs].forEach(arr => arr.filter(x => x.id === id).forEach(x => { x.allergens = data.allergens; x.sub_ingredients = data.sub_ingredients; }));
+        labelIngOpen = null;
+        renderLabelIngs();
+    } catch (err) {
+        btn.disabled = false; st.textContent = 'Could not save — check your connection.';
+    }
+}
 
 function renderLabelIngs() {
     const list = document.getElementById('labelIngList');
     list.replaceChildren();
     labelIngs.forEach((ing, i) => {
         const row = document.createElement('li');
-        row.className = 'flex items-center gap-2 py-1.5 border-b border-stone-200 last:border-0';
+        row.className = 'flex items-center gap-2 py-1.5' + (labelIngOpen === ing.id ? '' : ' border-b border-stone-200 last:border-0');
         const num = document.createElement('span');
         num.className = 'w-5 text-right font-mono text-stone-400';
         num.textContent = (i + 1) + '.';
         const name = document.createElement('span');
-        name.className = 'flex-1 font-medium text-stone-800';
-        name.textContent = ing.name;
-        row.append(num, name);
+        name.className = 'flex-1 min-w-0';
+        const nm = document.createElement('span');
+        nm.className = 'block font-medium text-stone-800';
+        nm.textContent = ing.name;
+        const sm = ingSummary(ing), smEl = document.createElement('span');
+        smEl.className = 'block text-[10px] ' + (sm.warn ? 'text-amber-700 font-semibold' : 'text-stone-500');
+        smEl.textContent = sm.text;
+        name.append(nm, smEl);
+        const det = document.createElement('button');
+        det.type = 'button'; det.textContent = labelIngOpen === ing.id ? 'Close' : 'Details';
+        det.setAttribute('aria-expanded', labelIngOpen === ing.id ? 'true' : 'false');
+        det.className = 'h-9 px-2 border rounded bg-white text-stone-700 hover:bg-stone-100 text-[11px] font-bold';
+        det.addEventListener('click', () => { labelIngOpen = labelIngOpen === ing.id ? null : ing.id; renderLabelIngs(); });
+        row.append(num, name, det);
         [['▲', 'Move up', () => moveLabelIng(i, -1), i === 0],
          ['▼', 'Move down', () => moveLabelIng(i, 1), i === labelIngs.length - 1],
          ['✕', 'Remove', () => removeLabelIng(i), false]].forEach(([txt, title, fn, off]) => {
@@ -264,7 +389,14 @@ function renderLabelIngs() {
             b.addEventListener('click', fn);
             row.append(b);
         });
-        list.append(row);
+        if (labelIngOpen === ing.id) {
+            const li = document.createElement('li');
+            li.className = 'border-b border-stone-200';
+            li.append(buildIngDetails(ing));
+            list.append(row, li);
+        } else {
+            list.append(row);
+        }
     });
     document.getElementById('labelIngEmpty').classList.toggle('hidden', labelIngs.length > 0);
 
@@ -280,9 +412,17 @@ function renderLabelIngs() {
     document.getElementById('labelIngSave').disabled = !labelIngDirty;
     document.getElementById('labelIngStatus').textContent = labelIngDirty ? 'Not saved yet' : '';
 
-    // Preview
+    // Preview (ingredient statement with sub-ingredients + Contains line)
+    const stmt = labelStatement(labelIngs);
     document.getElementById('labelPreviewIngredients').textContent =
-        labelIngs.length ? labelIngs.map(x => x.name).join(', ') : (labelItemData ? labelItemData.name : '—');
+        labelIngs.length ? stmt.ingredients : (labelItemData ? labelItemData.name : '—');
+    document.getElementById('labelPreviewContains').textContent = stmt.contains ? 'Contains: ' + stmt.contains : '';
+    const al = document.getElementById('labelAllergenWarn');
+    const msgs = [];
+    if (stmt.unchecked.length) msgs.push('Allergens not checked yet for: ' + stmt.unchecked.join(', ') + '. Tap Details on each one.');
+    if (stmt.needs.length) msgs.push('Name the specific nut, fish or shellfish for: ' + stmt.needs.join(', ') + '.');
+    al.textContent = msgs.join(' ');
+    al.classList.toggle('hidden', !msgs.length);
 }
 
 function moveLabelIng(i, d) {
@@ -297,7 +437,7 @@ function addLabelIng() {
     const id = parseInt(sel.value, 10);
     const found = labelAllIngs.find(x => x.id === id);
     if (!found) return;
-    labelIngs.push({ id: found.id, name: found.name });
+    labelIngs.push({ id: found.id, name: found.name, allergens: found.allergens, sub_ingredients: found.sub_ingredients || '' });
     labelIngDirty = true; renderLabelIngs();
 }
 
@@ -451,6 +591,7 @@ function showInvToast(msg, isError = false) {
                             <div style="position:absolute;left:1in;top:0;width:2in;transform:rotate(90deg);transform-origin:top left;padding:5pt 4pt;font-family:Arial,sans-serif;font-size:5.5pt;line-height:1.4;color:#111;">
                                 <div style="font-size:6.5pt;font-weight:bold;color:#322016;margin-bottom:2pt;">batcaveroadfarm.com</div>
                                 <div style="font-size:5pt;"><strong style="font-size:5.5pt;display:block;margin-bottom:1pt;">Ingredients:</strong><span id="labelPreviewIngredients">—</span></div>
+                                <div id="labelPreviewContains" style="font-size:5pt;font-weight:bold;margin-top:1.5pt;line-height:1.3;"></div>
                                 <div id="labelPreviewMadeBy" style="font-size:4.5pt;line-height:1.3;margin-top:2pt;color:#222;"></div>
                                 <div id="labelPreviewBestBy" style="font-size:5.5pt;font-weight:bold;margin-top:3pt;"></div>
                             </div>
@@ -472,9 +613,10 @@ function showInvToast(msg, isError = false) {
         <!-- Ingredients, heaviest first -->
         <div class="px-6 pb-4 text-xs font-sans">
             <label class="block font-bold text-stone-600 mb-0.5">Ingredients — heaviest first</label>
-            <p class="text-[11px] text-stone-500 mb-2">Food labels must list ingredients by weight, the ingredient there is most of first. Use ▲ ▼ to set the order, then Save.</p>
+            <p class="text-[11px] text-stone-500 mb-2">Food labels must list ingredients by weight, the ingredient there is most of first. Use ▲ ▼ to set the order, then Save order. Tap Details on an ingredient to record its allergens and sub-ingredients (shared by every product that uses it).</p>
             <p id="labelIngWarn" class="hidden mb-2 p-2 rounded border border-amber-300 bg-amber-50 text-amber-900 text-[11px] font-semibold">This order hasn't been set yet (it's alphabetical). Put the heaviest ingredient first and tap Save.</p>
-            <ol id="labelIngList" class="border rounded bg-stone-50 px-3 max-h-56 overflow-y-auto"></ol>
+            <p id="labelAllergenWarn" class="hidden mb-2 p-2 rounded border border-red-300 bg-red-50 text-red-800 text-[11px] font-semibold"></p>
+            <ol id="labelIngList" class="border rounded bg-stone-50 px-3 max-h-96 overflow-y-auto"></ol>
             <p id="labelIngEmpty" class="hidden text-[11px] text-stone-500 py-2">No ingredients linked. The label will show the product name as its only ingredient.</p>
             <div class="flex gap-2 mt-2">
                 <select id="labelIngAdd" class="flex-1 min-w-0 p-2 border rounded bg-white"></select>
