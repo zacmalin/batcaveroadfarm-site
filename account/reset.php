@@ -59,8 +59,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $error === '') {
                 bcrf_customer_update($pdo, (int)$reset['user_id'], ['password' => password_hash($pw, PASSWORD_DEFAULT)]);
             }
             // Single-use: burn this token and any other outstanding ones for the account.
-            $pdo->prepare("UPDATE password_resets SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL" . ($hasRealm ? " AND realm = ?" : ''))
-                ->execute($hasRealm ? [(int)$reset['user_id'], (string)$reset['realm']] : [(int)$reset['user_id']]);
+            // (staff invites keep the default realm, so staff means realm 'staff' or an invite)
+            $burnScope = !$hasRealm ? '' : ($isStaff ? " AND (realm = 'staff' OR purpose = 'invite')" : " AND realm = 'customer' AND purpose <> 'invite'");
+            $pdo->prepare("UPDATE password_resets SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL" . $burnScope)
+                ->execute([(int)$reset['user_id']]);
             $pdo->commit();
             $done = true;
         } catch (Throwable $e) {

@@ -50,8 +50,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($user) {
                 // Invalidate any earlier unused tokens for this account, then issue a fresh one.
-                $pdo->prepare("UPDATE password_resets SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL" . ($hasRealm ? " AND realm = ?" : ''))
-                    ->execute($hasRealm ? [(int)$user['id'], $realm] : [(int)$user['id']]);
+                // (staff invites keep the default realm, so staff means realm 'staff' or an invite)
+                $burnScope = !$hasRealm ? '' : ($staffMode ? " AND (realm = 'staff' OR purpose = 'invite')" : " AND realm = 'customer' AND purpose <> 'invite'");
+                $pdo->prepare("UPDATE password_resets SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL" . $burnScope)
+                    ->execute([(int)$user['id']]);
 
                 $token = bin2hex(random_bytes(32));
                 $hash  = hash('sha256', $token);
