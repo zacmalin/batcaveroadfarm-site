@@ -24,3 +24,4 @@ secrets-check.php
 tmp/
 uploads/
 vendor/
+admin/migrations/schema_snapshot.txt
