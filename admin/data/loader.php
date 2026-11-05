@@ -513,11 +513,13 @@ if ($target_view === 'comment_moderation') {
 
     // Load all unmoderated comments (pending + flagged)
     try {
+        require_once dirname(__DIR__, 2) . '/includes/customer_auth.php';   // commenters are customers (C-02)
+        $__ct = bcrf_customer_table($pdo);
         $stmt = $pdo->query("
             SELECT  c.id, c.recipe_id, c.user_id, c.comment_text,
                     c.status, c.created_at, c.updated_at,
                     r.title      AS recipe_title,
-                    u.first_name, u.last_name, u.role,
+                    u.first_name, u.last_name, 'user' AS role,
                     COALESCE(u.comment_restricted_until, NULL) AS restricted_until,
                     (SELECT COUNT(*) FROM recipe_comments rc2
                      WHERE  rc2.user_id = c.user_id
@@ -526,7 +528,7 @@ if ($target_view === 'comment_moderation') {
                     ) AS recent_rejections
             FROM    recipe_comments c
             JOIN    recipes r ON c.recipe_id = r.id
-            JOIN    users   u ON c.user_id   = u.id
+            JOIN    {$__ct} u ON c.user_id   = u.id
             WHERE   c.status IN ('pending','flagged')
             ORDER   BY c.created_at ASC
         ");

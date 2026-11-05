@@ -18,7 +18,7 @@ $token = preg_replace('/[^a-f0-9]/', '', strtolower($token)); // tokens are hex
 /** Look up a live (unused, unexpired) reset row for a raw token. */
 $findReset = function (PDO $pdo, string $rawToken) {
     if ($rawToken === '') return null;
-    $st = $pdo->prepare("SELECT id, user_id, expires_at FROM password_resets WHERE token_hash = ? AND used_at IS NULL AND expires_at > NOW() LIMIT 1");
+    $st = $pdo->prepare("SELECT * FROM password_resets WHERE token_hash = ? AND used_at IS NULL AND expires_at > NOW() LIMIT 1");
     $st->execute([hash('sha256', $rawToken)]);
     $row = $st->fetch(PDO::FETCH_ASSOC);
     return $row ?: null;
@@ -46,11 +46,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $error === '') {
     } else {
         try {
             $pdo->beginTransaction();
-            // A new hire who never used their welcome link becomes active here too (Jobs pack P6).
-            $pdo->prepare("UPDATE users SET password = ?, account_status = IF(account_status = 'invited', 'active', account_status) WHERE id = ?")
-                ->execute([password_hash($pw, PASSWORD_DEFAULT), (int)$reset['user_id']]);
-            // Single-use: burn this token and any other outstanding ones for the user.
-            $pdo->prepare("UPDATE password_resets SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL")
+            // Which table the reset is for (Farm OS Phase 0, C-02): staff (users) or customer (customers).
+            // Before migration 0006 there's no realm column and everyone is in users.
+            require_once __DIR__ . '/../includes/customer_auth.php';
+            $hasRealm = array_key_exists('realm', $reset);
+            $isStaff  = !$hasRealm || ($reset['realm'] ?? '') === 'staff' || ($reset['purpose'] ?? '') === 'invite';
+            if ($isStaff) {
+                // A new hire who never used their welcome link becomes active here too (Jobs pack P6).
+                $pdo->prepare("UPDATE users SET password = ?, account_status = IF(account_status = 'invited', 'active', account_status) WHERE id = ?")
+                    ->execute([password_hash($pw, PASSWORD_DEFAULT), (int)$reset['user_id']]);
+            } else {
+                bcrf_customer_update($pdo, (int)$reset['user_id'], ['password' => password_hash($pw, PASSWORD_DEFAULT)]);
+            }
+            // Single-use: burn this token and any other outstanding ones for the account.
+            // (staff invites keep the default realm, so staff means realm 'staff' or an invite)
+            $burnScope = !$hasRealm ? '' : ($isStaff ? " AND (realm = 'staff' OR purpose = 'invite')" : " AND realm = 'customer' AND purpose <> 'invite'");
+            $pdo->prepare("UPDATE password_resets SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL" . $burnScope)
                 ->execute([(int)$reset['user_id']]);
             $pdo->commit();
             $done = true;

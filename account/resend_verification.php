@@ -22,9 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Too many requests. Please wait a little while and try again.';
     } else {
         try {
-            $st = $pdo->prepare("SELECT email, first_name, email_verified_at FROM users WHERE id = ? LIMIT 1");
-            $st->execute([current_user_id()]);
-            $u = $st->fetch(PDO::FETCH_ASSOC);
+            require_once __DIR__ . '/../includes/customer_auth.php';   // customers table (Farm OS Phase 0, C-02)
+            $u = bcrf_customer_find($pdo, current_user_id());
             // Only send if still unverified; either way show the same confirmation.
             if ($u && empty($u['email_verified_at'])) {
                 @evf_issue($pdo, current_user_id(), (string)$u['email'], (string)($u['first_name'] ?? ''));

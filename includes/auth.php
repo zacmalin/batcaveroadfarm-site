@@ -2,7 +2,8 @@
 /**
  * includes/auth.php — public-site auth, CSRF, and abuse helpers.
  * Requires config.php (session already started, $pdo available) to be loaded first.
- * Staff auth stays in /admin; public sign-ups get role 'user' and can never reach /admin.
+ * Staff auth stays in /admin (users table); public accounts are in customers (Farm OS Phase 0, C-02)
+ * and can never reach /admin.
  */
 
 if (!function_exists('csrf_token')) {
@@ -21,9 +22,16 @@ if (!function_exists('csrf_token')) {
 }
 
 if (!function_exists('is_logged_in')) {
-    function is_logged_in(): bool   { return !empty($_SESSION['user_id']); }
-    function current_user_id(): int { return (int)($_SESSION['user_id'] ?? 0); }
-    function current_user_name(): string { return (string)($_SESSION['user_name'] ?? ''); }
+    // Customer sign-in (Farm OS Phase 0, C-02): the public site uses only customer_* session values and the
+    // customers table (includes/customer_auth.php). Staff sign in at /admin/login.php, which sets
+    // user_id / user_role; nothing here reads or writes those, so a public-site bug can't open the console.
+    // Someone can be signed in to both at once (staff have a linked customer account).
+    require_once __DIR__ . '/customer_auth.php';
+
+    function is_logged_in(): bool   { return !empty($_SESSION['customer_id']); }
+    function current_user_id(): int { return (int)($_SESSION['customer_id'] ?? 0); }
+    function current_user_name(): string { return (string)($_SESSION['customer_name'] ?? ''); }
+    /** The console role of whoever is signed in as staff in this browser ('' if nobody). */
     function current_user_role(): string { return (string)($_SESSION['user_role'] ?? ''); }
 
     /** Roles allowed into /admin. Public sign-ups ('user') are deliberately excluded. */
@@ -31,28 +39,24 @@ if (!function_exists('is_logged_in')) {
         return in_array((string)$role, ['administrator', 'moderator', 'Shopkeep', 'Media', 'Staff'], true);
     }
 
-    /** Establish a logged-in session for a fetched users row (mirrors admin/login.php). */
+    /** Sign a customer account in on the public site (a customers row). Never touches the staff sign-in. */
     function auth_login_user(array $user): void {
+        $staffSignedIn = !empty($_SESSION['user_id']) && is_staff_role($_SESSION['user_role'] ?? '');
         session_regenerate_id(true);
-        $_SESSION['user_id']    = (int)$user['id'];
-        $_SESSION['user_role']  = $user['role'] ?? 'user';
-        // Staff who need two-step sign-in get a customer session here; the console asks them to sign in
-        // at /admin/login.php with their code (includes/staff_auth.php, Farm OS Phase 0).
-        unset($_SESSION['mfa_ok'], $_SESSION['mfa_pending']);
-        if (is_staff_role($_SESSION['user_role'])) {
-            global $pdo;
-            $sa = dirname(__DIR__) . '/includes/staff_auth.php';
-            if (is_file($sa)) require_once $sa;
-            try {
-                if ($pdo instanceof PDO && function_exists('bcrf_mfa_needed') && bcrf_mfa_needed($pdo, $user) !== '') $_SESSION['user_role'] = 'user';
-            } catch (Throwable $e) { $_SESSION['user_role'] = 'user'; }   // can't check: no console access from here
-        }
-        $_SESSION['user_name']  = trim((string)($user['first_name'] ?? '') . ' ' . (string)($user['last_name'] ?? ''));
+        $_SESSION['customer_id']    = (int)$user['id'];
+        $_SESSION['customer_name']  = trim((string)($user['first_name'] ?? '') . ' ' . (string)($user['last_name'] ?? ''));
         $_SESSION['email_verified'] = !empty($user['email_verified_at'] ?? null);
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        // New CSRF token on sign-in, unless the console is open in this browser too (its forms would fail).
+        if (!$staffSignedIn) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        // Before the split, a public account's session was user_id + role 'user': drop that leftover.
+        if (($_SESSION['user_role'] ?? '') === 'user') unset($_SESSION['user_id'], $_SESSION['user_role'], $_SESSION['user_name']);
     }
 
+    /** Sign the customer out. A staff sign-in in the same browser stays signed in. */
     function auth_logout(): void {
+        unset($_SESSION['customer_id'], $_SESSION['customer_name'], $_SESSION['email_verified'], $_SESSION['evf_nudge_dismissed']);
+        if (($_SESSION['user_role'] ?? '') === 'user') unset($_SESSION['user_id'], $_SESSION['user_role'], $_SESSION['user_name']);
+        if (!empty($_SESSION['user_id'])) { session_regenerate_id(true); return; }
         $_SESSION = [];
         if (ini_get('session.use_cookies')) {
             $p = session_get_cookie_params();
@@ -79,7 +83,7 @@ if (!function_exists('is_logged_in')) {
     /** If the logged-in user is currently barred from commenting, returns the date; else null. */
     function comment_blocked_until(PDO $pdo, int $userId): ?string {
         try {
-            $st = $pdo->prepare("SELECT comment_restricted_until FROM users WHERE id = ?");
+            $st = $pdo->prepare("SELECT comment_restricted_until FROM " . bcrf_customer_table($pdo) . " WHERE id = ?");
             $st->execute([$userId]);
             $d = $st->fetchColumn();
             if ($d && strtotime((string)$d) >= strtotime(date('Y-m-d'))) return (string)$d;
@@ -119,10 +123,8 @@ if (!function_exists('auth_attempt_login')) {
         $email = strtolower(trim($email));
         if ($email === '' || $password === '') return ['ok' => false, 'error' => 'Email and password are required.'];
         try {
-            $st = $pdo->prepare("SELECT * FROM users WHERE email = ? LIMIT 1");
-            $st->execute([$email]);
-            $u = $st->fetch(PDO::FETCH_ASSOC);
-            if ($u && password_verify($password, (string)($u['password'] ?? ''))) return ['ok' => true, 'user' => $u];
+            $u = bcrf_customer_find_by_email($pdo, $email);   // customer accounts only (C-02)
+            if ($u && bcrf_customer_active($u) && password_verify($password, (string)($u['password'] ?? ''))) return ['ok' => true, 'user' => $u];
         } catch (Throwable $e) {
             error_log('[auth_attempt_login] ' . $e->getMessage());
             return ['ok' => false, 'error' => 'A server error occurred. Please try again.'];
@@ -142,12 +144,9 @@ if (!function_exists('auth_attempt_login')) {
         if (strlen($pw) < 8) return ['ok' => false, 'error' => 'Password must be at least 8 characters.'];
         if ($pw !== $conf) return ['ok' => false, 'error' => 'The two passwords do not match.'];
         try {
-            $c = $pdo->prepare("SELECT id FROM users WHERE email = ? LIMIT 1");
-            $c->execute([$email]);
-            if ($c->fetch()) return ['ok' => false, 'error' => 'An account with that email already exists. Try logging in.'];
-            $ins = $pdo->prepare("INSERT INTO users (first_name, last_name, email, phone_number, password, role) VALUES (?, ?, ?, ?, ?, 'user')");
-            $ins->execute([$first, $last, $email, ($phone !== '' ? $phone : null), password_hash($pw, PASSWORD_DEFAULT)]);
-            return ['ok' => true, 'user' => ['id' => (int)$pdo->lastInsertId(), 'role' => 'user', 'first_name' => $first, 'last_name' => $last]];
+            if (bcrf_customer_email_taken($pdo, $email)) return ['ok' => false, 'error' => 'An account with that email already exists. Try logging in.'];
+            $id = bcrf_customer_create($pdo, $first, $last, $email, ($phone !== '' ? $phone : null), password_hash($pw, PASSWORD_DEFAULT));
+            return ['ok' => true, 'user' => ['id' => $id, 'first_name' => $first, 'last_name' => $last, 'email' => $email]];
         } catch (Throwable $e) {
             error_log('[auth_attempt_register] ' . $e->getMessage());
             return ['ok' => false, 'error' => 'A server error occurred. Please try again.'];

@@ -77,8 +77,9 @@ if (!function_exists('evf_issue')) {
         if (!$row) return null;
         $uid = (int)$row['user_id'];
         try {
+            require_once __DIR__ . '/customer_auth.php';   // customers table (Farm OS Phase 0, C-02)
             $pdo->beginTransaction();
-            $pdo->prepare("UPDATE users SET email_verified_at = COALESCE(email_verified_at, NOW()) WHERE id = ?")
+            $pdo->prepare("UPDATE " . bcrf_customer_table($pdo) . " SET email_verified_at = COALESCE(email_verified_at, NOW()) WHERE id = ?")
                 ->execute([$uid]);
             $pdo->prepare("UPDATE email_verifications SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL")
                 ->execute([$uid]);
@@ -94,7 +95,8 @@ if (!function_exists('evf_issue')) {
     /** Authoritative check (reads the DB). Use to gate checkout/ticketing later. */
     function evf_is_verified(PDO $pdo, int $userId): bool {
         try {
-            $st = $pdo->prepare("SELECT email_verified_at FROM users WHERE id = ? LIMIT 1");
+            require_once __DIR__ . '/customer_auth.php';
+            $st = $pdo->prepare("SELECT email_verified_at FROM " . bcrf_customer_table($pdo) . " WHERE id = ? LIMIT 1");
             $st->execute([$userId]);
             return !empty($st->fetchColumn());
         } catch (Throwable $e) {

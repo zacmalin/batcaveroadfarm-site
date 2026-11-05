@@ -3,6 +3,7 @@
 // Comment text is stored raw and escaped on output. Names show as "First L." for privacy.
 
 if (!function_exists('bcrf_comment_stars_html')) {
+    require_once __DIR__ . '/customer_auth.php';   // commenters are customer accounts (Farm OS Phase 0, C-02)
 
     function bcrf_comment_stars_html(int $val): string {
         if ($val < 1) return '';
@@ -39,12 +40,13 @@ if (!function_exists('bcrf_comment_stars_html')) {
 
     function bcrf_fetch_comments(PDO $pdo, int $recipeId): array {
         try {
+            $ct  = bcrf_customer_table($pdo);
             $sql = "SELECT c.id, c.user_id, c.comment_text, c.created_at, u.first_name, u.last_name,
                            (SELECT r.rating FROM recipe_ratings r
                              WHERE r.recipe_id = c.recipe_id AND r.user_id = c.user_id
                              ORDER BY r.id DESC LIMIT 1) AS user_rating
                     FROM recipe_comments c
-                    JOIN users u ON u.id = c.user_id
+                    JOIN {$ct} u ON u.id = c.user_id
                     WHERE c.recipe_id = ? AND c.status = 'published'
                     ORDER BY c.created_at DESC, c.id DESC";
             $st = $pdo->prepare($sql);
@@ -58,12 +60,13 @@ if (!function_exists('bcrf_comment_stars_html')) {
 
     function bcrf_fetch_comment(PDO $pdo, int $commentId): ?array {
         try {
+            $ct  = bcrf_customer_table($pdo);
             $sql = "SELECT c.id, c.user_id, c.comment_text, c.created_at, u.first_name, u.last_name,
                            (SELECT r.rating FROM recipe_ratings r
                              WHERE r.recipe_id = c.recipe_id AND r.user_id = c.user_id
                              ORDER BY r.id DESC LIMIT 1) AS user_rating
                     FROM recipe_comments c
-                    JOIN users u ON u.id = c.user_id
+                    JOIN {$ct} u ON u.id = c.user_id
                     WHERE c.id = ? LIMIT 1";
             $st = $pdo->prepare($sql);
             $st->execute([$commentId]);
