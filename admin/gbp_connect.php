@@ -83,8 +83,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         erp_audit($pdo, 'update', 'gbp_auth', 1, 'Disconnected Google Business Profile');
         $go('Disconnected. Queued posts will skip Google until you connect again.');
     }
+    if ($do === 'manual') {
+        // Fallback when Google's lookup APIs are unavailable: Business Profile ID (= location ID) typed in.
+        $digits = fn(string $v, string $prefix) => preg_match('#(?:^|' . $prefix . '/)(\d{5,30})$#', trim($v), $m) ? $m[1] : '';
+        $raw    = trim((string)($_POST['location_id'] ?? ''));
+        $locId  = $digits(preg_replace('#^accounts/\d+/#', '', $raw), 'locations');
+        $acctId = $digits((string)($_POST['account_id'] ?? ''), 'accounts');
+        if ($acctId === '' && preg_match('#^accounts/(\d+)/locations/#', $raw, $m)) $acctId = $m[1];
+        $title  = trim(strip_tags((string)($_POST['title'] ?? ''))) ?: 'Bat Cave Road Farm';
+        if ($locId === '') $go('Enter the Business Profile ID (numbers only).');
+        try {
+            $tried = [];
+            $candidates = $acctId !== '' ? [$acctId] : array_map(fn($n) => basename($n), gbp_v4_accounts($pdo));
+            foreach ($candidates as $a) {
+                try { gbp_verify_ids($pdo, $a, $locId); $save_pick(['account' => "accounts/{$a}", 'location' => "locations/{$locId}", 'title' => mb_substr($title, 0, 190)]); $go('Saved. Posts will go to ' . $title . '.'); }
+                catch (RuntimeException $e) { $tried[] = $e->getMessage(); }
+            }
+            $go($tried ? end($tried) : 'No Google account found for this sign-in. Enter the account ID too.');
+        } catch (RuntimeException $e) {
+            $go($e->getMessage() . ' Enter the account ID as well.');
+        }
+    }
     if ($do === 'check') {
-        try { $n = count(gbp_list_locations($pdo)); gbp_note($pdo, true); $go("Connection works ({$n} location" . ($n === 1 ? '' : 's') . ' visible).'); }
+        try {
+            // Once a location is saved, check it with the posting API (the lookup APIs may have no quota).
+            $a = gbp_auth_row($pdo);
+            if (!empty($a['location_name'])) {
+                gbp_verify_ids($pdo, basename((string)$a['account_name']), basename((string)$a['location_name']));
+                gbp_note($pdo, true); $go('Connection works — Google accepts posts for ' . ($a['location_title'] ?: 'this location') . '.');
+            }
+            $n = count(gbp_list_locations($pdo)); gbp_note($pdo, true); $go("Connection works ({$n} location" . ($n === 1 ? '' : 's') . ' visible).');
+        }
         catch (Throwable $e) { $go('Connection problem: ' . $e->getMessage()); }
     }
 }
@@ -143,7 +172,15 @@ label.loc{display:block;padding:8px 0;border-bottom:1px solid #eee}code{backgrou
 <?php if ($signed && empty($a['location_name'])): ?>
 <div class="card<?= $locErr ? ' err' : '' ?>">
   <?php if ($locErr): ?>
-    <?= $h($locErr) ?>
+    <div style="color:#8b2018;margin-bottom:10px">Google's location lookup isn't available right now: <?= $h($locErr) ?></div>
+    <form method="post"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="manual">
+      <strong>Enter the IDs instead</strong>
+      <p class="meta" style="margin:6px 0 10px">Business Profile ID: search the farm's name on Google (signed in) → <em>Edit profile</em> → ⋮ → <em>Business Profile settings</em> → <em>Advanced settings</em>. Leave the account ID blank and the site will try to find it.</p>
+      <label class="meta">Business Profile ID<br><input name="location_id" inputmode="numeric" required style="width:100%;padding:8px;font:inherit;border:1px solid #ccc;border-radius:8px"></label><br>
+      <label class="meta">Account ID (optional)<br><input name="account_id" inputmode="numeric" style="width:100%;padding:8px;font:inherit;border:1px solid #ccc;border-radius:8px"></label><br>
+      <label class="meta">Name to show<br><input name="title" value="Bat Cave Road Farm" style="width:100%;padding:8px;font:inherit;border:1px solid #ccc;border-radius:8px"></label>
+      <button style="margin-top:10px">Save IDs</button>
+    </form>
   <?php elseif (!$locs): ?>
     This Google account doesn't manage any Business Profile locations.
   <?php else: ?>

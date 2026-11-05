@@ -172,9 +172,23 @@ function gbp_note(PDO $pdo, bool $ok, string $err = ''): void {
     } catch (Throwable $e) {}
 }
 
-/** Every location the signed-in Google account can manage: [['account','location','title','address'], ...]. */
+/**
+ * Every location the signed-in Google account can manage: [['account','location','title','address'], ...].
+ * Tries the current APIs (Account Management + Business Information) first. If those fail (e.g. their
+ * quota is 0 — Nov 2026, project 166156148942), falls back to the older v4 lookups, which run on the
+ * Google My Business API quota that posting uses. If both fail, the connect page offers manual IDs.
+ */
 function gbp_list_locations(PDO $pdo): array {
     $t = gbp_access_token($pdo);
+    try {
+        return gbp_list_locations_v1($t);
+    } catch (RuntimeException $e) {
+        try { return gbp_list_locations_v4($t); }
+        catch (RuntimeException $e4) { throw new RuntimeException($e->getMessage() . ' — older lookup also failed: ' . $e4->getMessage()); }
+    }
+}
+
+function gbp_list_locations_v1(string $t): array {
     $r = gbp_http('GET', 'https://mybusinessaccountmanagement.googleapis.com/v1/accounts?pageSize=20', null, $t);
     if ($r['code'] !== 200) throw new RuntimeException('Could not list Google accounts: ' . gbp_err($r));
     $out = [];
@@ -193,6 +207,44 @@ function gbp_list_locations(PDO $pdo): array {
         }
     }
     return $out;
+}
+
+/** Older v4 lookups (same API as posting). Location names come back as accounts/X/locations/Y. */
+function gbp_list_locations_v4(string $t): array {
+    $r = gbp_http('GET', 'https://mybusiness.googleapis.com/v4/accounts?pageSize=20', null, $t);
+    if ($r['code'] !== 200) throw new RuntimeException(gbp_err($r));
+    $out = [];
+    foreach ($r['json']['accounts'] ?? [] as $acc) {
+        $l = gbp_http('GET', 'https://mybusiness.googleapis.com/v4/' . $acc['name'] . '/locations?pageSize=100', null, $t);
+        if ($l['code'] !== 200) throw new RuntimeException(gbp_err($l));
+        foreach ($l['json']['locations'] ?? [] as $loc) {
+            $addr = $loc['address'] ?? [];
+            $out[] = [
+                'account'  => (string)$acc['name'],
+                'location' => 'locations/' . basename((string)$loc['name']),
+                'title'    => (string)($loc['locationName'] ?? ''),
+                'address'  => trim(implode(', ', array_filter([implode(' ', $addr['addressLines'] ?? []), $addr['locality'] ?? '', $addr['administrativeArea'] ?? '']))),
+            ];
+        }
+    }
+    return $out;
+}
+
+/** Account names visible through v4 only (for the manual-ID fallback when no account ID is given). */
+function gbp_v4_accounts(PDO $pdo): array {
+    $r = gbp_http('GET', 'https://mybusiness.googleapis.com/v4/accounts?pageSize=20', null, gbp_access_token($pdo));
+    if ($r['code'] !== 200) throw new RuntimeException('Could not look up the account ID: ' . gbp_err($r));
+    return array_map(fn($a) => (string)$a['name'], $r['json']['accounts'] ?? []);
+}
+
+/**
+ * Manual IDs: confirm Google accepts accounts/{a}/locations/{l} by listing its posts (posting API quota).
+ * Returns true or throws with Google's message.
+ */
+function gbp_verify_ids(PDO $pdo, string $acctId, string $locId): bool {
+    $r = gbp_http('GET', "https://mybusiness.googleapis.com/v4/accounts/{$acctId}/locations/{$locId}/localPosts?pageSize=1", null, gbp_access_token($pdo));
+    if ($r['code'] !== 200) throw new RuntimeException('Google did not accept those IDs: ' . gbp_err($r));
+    return true;
 }
 
 /** Google post text from a caption: links don't work in post text (the button carries the link). */
