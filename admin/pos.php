@@ -89,41 +89,9 @@ $grocery_tax_categories  = ['Produce','Bakery','Pantry','Baked Goods','Fruits & 
 $json_grocery_categories = json_encode($grocery_tax_categories,   JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP);
 
 // ── TABLE SETUP ───────────────────────────────────────────────────────────────
-try {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS sales_history (
-        id            INT AUTO_INCREMENT PRIMARY KEY,
-        inventory_id  INT NOT NULL,
-        quantity_sold DECIMAL(10,2) NOT NULL DEFAULT 1,
-        sold_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_inv (inventory_id)
-    )");
-    // Add sold_at if table existed before this column was introduced
-    try { $pdo->exec("ALTER TABLE sales_history ADD COLUMN sold_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"); } catch (Throwable $ignored) {}
-} catch (Throwable $e) { error_log('[POS] sales_history setup: ' . $e->getMessage()); }
-
-try {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS pos_receipts (
-        id             INT AUTO_INCREMENT PRIMARY KEY,
-        receipt_number VARCHAR(50)   NOT NULL UNIQUE,
-        cart_json      LONGTEXT      NOT NULL,
-        subtotal       DECIMAL(10,2) NOT NULL,
-        discount       DECIMAL(10,2) NOT NULL,
-        tax            DECIMAL(10,2) NOT NULL,
-        total          DECIMAL(10,2) NOT NULL,
-        payment_method VARCHAR(30)   NOT NULL,
-        tax_exempt     TINYINT(1)    NOT NULL DEFAULT 0,
-        was_printed    TINYINT(1)    NOT NULL DEFAULT 0,
-        created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )");
-    // Add columns if upgrading from older schema
-    foreach (['tax_exempt TINYINT(1) NOT NULL DEFAULT 0', 'was_printed TINYINT(1) NOT NULL DEFAULT 0'] as $col_def) {
-        $col_name = explode(' ', $col_def)[0];
-        try { $pdo->exec("ALTER TABLE pos_receipts ADD COLUMN {$col_def}"); } catch (Throwable $ignored) {}
-    }
-} catch (Throwable $e) { error_log('[POS] Table setup: ' . $e->getMessage()); }
-
-// Ensure sku column exists (pos.php is standalone — schema_safety may not have run)
-try { $pdo->exec("ALTER TABLE inventory ADD COLUMN sku VARCHAR(50) NULL DEFAULT NULL"); } catch (Throwable $ignored) {}
+// sales_history, pos_receipts (tax_exempt, was_printed) and inventory.sku are in
+// migration 0001_baseline (admin → Settings → Database). They used to be created or
+// altered here on every POS load; removed Nov 5, 2026 (Farm OS Phase 0).
 
 // ── TODAY'S SALES SUMMARY ────────────────────────────────────────────────────
 $today_stats = ['cnt' => 0, 'rev' => '0.00'];
