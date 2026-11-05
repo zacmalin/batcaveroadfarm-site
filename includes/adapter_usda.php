@@ -1,13 +1,13 @@
 <?php
-// includes/adapters/usda.php — USDA FoodData Central (Farm OS Phase 0, Nov 5, 2026).
+// includes/adapter_usda.php — USDA FoodData Central (Farm OS Phase 0, Nov 5, 2026).
 // Key in the tenant config (bcrf-secrets.php: USDA_API_KEY), read by admin/includes/nutrition_config.php;
 // without it USDA's public DEMO_KEY is used (low rate limit).
-require_once __DIR__ . '/http.php';
+require_once __DIR__ . '/adapter_http.php';
 
 if (!function_exists('bcrf_usda_search')) {
 
 function bcrf_usda_key(): string {
-    if (!defined('USDA_API_KEY')) @include_once dirname(__DIR__, 2) . '/admin/includes/nutrition_config.php';
+    if (!defined('USDA_API_KEY')) @include_once dirname(__DIR__) . '/admin/includes/nutrition_config.php';
     return defined('USDA_API_KEY') ? (string)USDA_API_KEY : 'DEMO_KEY';
 }
 

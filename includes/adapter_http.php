@@ -1,5 +1,5 @@
 <?php
-// includes/adapters/http.php — one HTTP client for every outside service (Farm OS Phase 0, Nov 5, 2026).
+// includes/adapter_http.php — one HTTP client for every outside service (Farm OS Phase 0, Nov 5, 2026).
 // Adapters (meta, cloudflare, usda) call this instead of writing their own cURL code, so timeouts,
 // error handling and the Bluehost quirks live in one place.
 

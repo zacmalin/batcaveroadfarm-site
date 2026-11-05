@@ -1,9 +1,9 @@
 <?php
-// includes/adapters/meta.php — Facebook / Instagram Graph API (Farm OS Phase 0, Nov 5, 2026).
+// includes/adapter_meta.php — Facebook / Instagram Graph API (Farm OS Phase 0, Nov 5, 2026).
 // The only place that knows the Graph address and version. Credentials stay in the tenant config
 // (bcrf-secrets.php): META_APP_ID, META_APP_SECRET, FB_PAGE_ID, FB_PAGE_TOKEN, IG_USER_ID,
 // BCRF_GRAPH_VERSION (optional). Used by admin/cron/send_social.php and includes/social_token.php.
-require_once __DIR__ . '/http.php';
+require_once __DIR__ . '/adapter_http.php';
 
 if (!function_exists('bcrf_meta_graph_base')) {
 

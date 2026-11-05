@@ -56,8 +56,8 @@ if (!function_exists('_si_done')) {
     }
     // Cloudflare purge — only fires if a token + zone are configured; silent no-op otherwise.
     function _si_cf_purge(): void {
-        // Cloudflare adapter (Farm OS Phase 0): includes/adapters/cloudflare.php; no-op without credentials
-        require_once __DIR__ . '/../../includes/adapters/cloudflare.php';
+        // Cloudflare adapter (Farm OS Phase 0): includes/adapter_cloudflare.php; no-op without credentials
+        require_once __DIR__ . '/../../includes/adapter_cloudflare.php';
         bcrf_cdn_purge();
     }
     // One (scope,day) row from posted day data; incomplete times collapse to closed.

@@ -1,8 +1,8 @@
 <?php
-// includes/adapters/cloudflare.php — Cloudflare cache purge (Farm OS Phase 0, Nov 5, 2026).
+// includes/adapter_cloudflare.php — Cloudflare cache purge (Farm OS Phase 0, Nov 5, 2026).
 // Credentials in the tenant config (bcrf-secrets.php / environment): BCRF_CF_TOKEN, BCRF_CF_ZONE.
 // Without them every call is a quiet no-op, so a farm without Cloudflare works unchanged.
-require_once __DIR__ . '/http.php';
+require_once __DIR__ . '/adapter_http.php';
 
 if (!function_exists('bcrf_cdn_purge')) {
 

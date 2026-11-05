@@ -29,8 +29,8 @@ function bcrf_social_token_save(array $s): void {
 
 /** GET a Graph URL and return [httpCode, decodedJson]. */
 function bcrf_social_graph_get(string $url): array {
-    // Meta adapter (Farm OS Phase 0): includes/adapters/meta.php
-    require_once __DIR__ . '/adapters/meta.php';
+    // Meta adapter (Farm OS Phase 0): includes/adapter_meta.php
+    require_once __DIR__ . '/adapter_meta.php';
     $r = bcrf_meta_request('GET', $url, [], 20);
     if ($r['code'] === 0) throw new RuntimeException('could not reach Facebook: ' . bcrf_meta_error($r));
     return [$r['code'], $r['json']];
@@ -44,7 +44,7 @@ function bcrf_social_graph_get(string $url): array {
 function bcrf_social_token_check(): array {
     $prev = bcrf_social_token_status();
     $s = ['checked_at' => date('c'), 'alerts' => $prev['alerts'] ?? []];
-    require_once __DIR__ . '/adapters/meta.php';
+    require_once __DIR__ . '/adapter_meta.php';
     $graph = bcrf_meta_graph_base();
 
     if (!defined('FB_PAGE_TOKEN') || FB_PAGE_TOKEN === '' || !defined('FB_PAGE_ID') || FB_PAGE_ID === '') {

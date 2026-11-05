@@ -47,7 +47,7 @@ function social_log($m) { echo $m . "\n"; }
 
 // ── Config / credentials ──
 require_once dirname($bcrf_cfg) . '/includes/gbp.php';
-require_once dirname($bcrf_cfg) . '/includes/adapters/meta.php';   // Meta adapter (Farm OS Phase 0)
+require_once dirname($bcrf_cfg) . '/includes/adapter_meta.php';   // Meta adapter (Farm OS Phase 0)
 require_once dirname($bcrf_cfg) . '/includes/farm.php';
 $FB_OK  = bcrf_meta_ready();
 gbp_schema($pdo);            // adds social_queue.gbp_caption / gbp_post_id if missing (the UPDATE below uses them)
@@ -60,7 +60,7 @@ $GRAPH   = bcrf_meta_graph_base();
 $IG_ID   = bcrf_meta_ig_user();
 $BASEURL = bcrf_farm_url();
 
-// ── HTTP: the Meta adapter (includes/adapters/meta.php → adapters/http.php, which has the Bluehost fallback) ──
+// ── HTTP: the Meta adapter (includes/adapter_meta.php → adapter_http.php, which has the Bluehost fallback) ──
 function social_http(string $method, string $url, array $fields = []): array {
     return bcrf_meta_request($method, $url, $fields, 45);
 }

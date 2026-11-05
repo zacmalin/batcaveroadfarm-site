@@ -81,8 +81,8 @@ $query = trim($_POST['query'] ?? '');
 if (!$query) ujson(false, 'Search query is required.');
 if (strlen($query) > 100) ujson(false, 'Query too long.');
 
-// USDA FoodData Central search, through the USDA adapter (Farm OS Phase 0): includes/adapters/usda.php
-require_once __DIR__ . '/../../includes/adapters/usda.php';
+// USDA FoodData Central search, through the USDA adapter (Farm OS Phase 0): includes/adapter_usda.php
+require_once __DIR__ . '/../../includes/adapter_usda.php';
 $usda = bcrf_usda_search($query);
 if (!$usda['ok']) {
     error_log('[Nutrition] USDA request failed. Status: ' . $usda['status'] . ' ' . $usda['error']);
