@@ -57,7 +57,20 @@ try {
             error_log('[ERP] SKU generation failed: ' . $sku_e->getMessage());
         }
     }
-    if (isset($fields['title']))                                $fields['slug'] = createSlug($fields['title']);
+    // Title-based slugs (recipes, blog posts…) are the page's web address. Make one for a new record,
+    // but keep it when a title is edited later, so links and Google rankings don't break (Nov 2026).
+    if (isset($fields['title']) && isset($col_meta['slug'])) {
+        $__oldSlug = '';
+        if ($id) {
+            try {
+                $__s = $pdo->prepare("SELECT slug FROM `{$target_table}` WHERE id = ?");
+                $__s->execute([$id]);
+                $__oldSlug = (string)$__s->fetchColumn();
+            } catch (Throwable $e) { $__oldSlug = ''; }
+        }
+        if ($__oldSlug !== '') unset($fields['slug']);
+        else $fields['slug'] = createSlug($fields['title']);
+    }
 
     // Normalize boolean flag columns
     $boolean_tables = ['breeds', 'animals', 'fruits_vegetables', 'baked_goods', 'pantry', 'thrift_finds', 'petting_zoo_products', 'inventory'];
