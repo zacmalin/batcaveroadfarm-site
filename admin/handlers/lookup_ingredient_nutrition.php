@@ -81,44 +81,14 @@ $query = trim($_POST['query'] ?? '');
 if (!$query) ujson(false, 'Search query is required.');
 if (strlen($query) > 100) ujson(false, 'Query too long.');
 
-// USDA FoodData Central search
-// dataType: Foundation and SR Legacy are the most reliable for cooking ingredients
-$url = 'https://api.nal.usda.gov/fdc/v1/foods/search?' . http_build_query([
-    'query'    => $query,
-    'api_key'  => USDA_API_KEY,
-    'dataType' => 'Foundation,SR Legacy',
-    'pageSize' => 5,
-]);
-
-// Use file_get_contents (simpler than cURL for GET requests, works on most hosts)
-$context = stream_context_create([
-    'http' => [
-        'timeout'       => 15,
-        'ignore_errors' => true,
-    ],
-]);
-
-$raw = @file_get_contents($url, false, $context);
-
-// Check HTTP status from response headers
-$status = 200;
-// PHP 8.4+ provides http_get_last_response_headers(); the old $http_response_header
-// variable is deprecated in 8.5 (fix pack O). Works on both.
-$resp_headers = function_exists('http_get_last_response_headers')
-    ? (http_get_last_response_headers() ?? [])
-    : ($http_response_header ?? []);
-if ($resp_headers) {
-    foreach ($resp_headers as $h) {
-        if (preg_match('/HTTP\/\d+\.?\d*\s+(\d+)/', $h, $m)) {
-            $status = (int)$m[1];
-        }
-    }
+// USDA FoodData Central search, through the USDA adapter (Farm OS Phase 0): includes/adapters/usda.php
+require_once __DIR__ . '/../../includes/adapters/usda.php';
+$usda = bcrf_usda_search($query);
+if (!$usda['ok']) {
+    error_log('[Nutrition] USDA request failed. Status: ' . $usda['status'] . ' ' . $usda['error']);
+    ujson(false, "USDA API error (HTTP {$usda['status']}). Check USDA_API_KEY in bcrf-secrets.php.");
 }
-
-if ($raw === false || $status !== 200) {
-    error_log('[Nutrition] USDA request failed. Status: ' . $status);
-    ujson(false, "USDA API error (HTTP {$status}). Check your API key in nutrition_config.php.");
-}
+$raw = $usda['raw'];
 
 $data = json_decode($raw, true);
 if (!$data || empty($data['foods'])) {

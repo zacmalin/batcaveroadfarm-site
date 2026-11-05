@@ -29,17 +29,11 @@ function bcrf_social_token_save(array $s): void {
 
 /** GET a Graph URL and return [httpCode, decodedJson]. */
 function bcrf_social_graph_get(string $url): array {
-    if (($tb = getenv('BCRF_GRAPH_TEST_BASE')) !== false && $tb !== '') {   // test hook only
-        $url = preg_replace('#^https://graph\.facebook\.com#', rtrim($tb, '/'), $url);
-    }
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_CONNECTTIMEOUT => 10, CURLOPT_TIMEOUT => 20]);
-    $body = curl_exec($ch);
-    $code = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-    $err  = curl_error($ch);
-    curl_close($ch);
-    if ($body === false) throw new RuntimeException('could not reach Facebook: ' . $err);
-    return [$code, json_decode((string)$body, true) ?: []];
+    // Meta adapter (Farm OS Phase 0): includes/adapters/meta.php
+    require_once __DIR__ . '/adapters/meta.php';
+    $r = bcrf_meta_request('GET', $url, [], 20);
+    if ($r['code'] === 0) throw new RuntimeException('could not reach Facebook: ' . bcrf_meta_error($r));
+    return [$r['code'], $r['json']];
 }
 
 /**
@@ -50,7 +44,8 @@ function bcrf_social_graph_get(string $url): array {
 function bcrf_social_token_check(): array {
     $prev = bcrf_social_token_status();
     $s = ['checked_at' => date('c'), 'alerts' => $prev['alerts'] ?? []];
-    $graph = 'https://graph.facebook.com/' . (defined('BCRF_GRAPH_VERSION') ? BCRF_GRAPH_VERSION : 'v23.0');
+    require_once __DIR__ . '/adapters/meta.php';
+    $graph = bcrf_meta_graph_base();
 
     if (!defined('FB_PAGE_TOKEN') || FB_PAGE_TOKEN === '' || !defined('FB_PAGE_ID') || FB_PAGE_ID === '') {
         $s += ['state' => 'missing', 'ok' => false, 'error' => 'FB_PAGE_ID / FB_PAGE_TOKEN are not set in bcrf-secrets.php'];

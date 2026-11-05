@@ -56,21 +56,9 @@ if (!function_exists('_si_done')) {
     }
     // Cloudflare purge — only fires if a token + zone are configured; silent no-op otherwise.
     function _si_cf_purge(): void {
-        $token = defined('BCRF_CF_TOKEN') ? BCRF_CF_TOKEN : (getenv('BCRF_CF_TOKEN') ?: '');
-        $zone  = defined('BCRF_CF_ZONE')  ? BCRF_CF_ZONE  : (getenv('BCRF_CF_ZONE')  ?: '');
-        if (!$token || !$zone || !function_exists('curl_init')) return;
-        try {
-            $ch = curl_init("https://api.cloudflare.com/client/v4/zones/" . rawurlencode($zone) . "/purge_cache");
-            curl_setopt_array($ch, [
-                CURLOPT_POST           => true,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT        => 8,
-                CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . $token, 'Content-Type: application/json'],
-                CURLOPT_POSTFIELDS     => json_encode(['purge_everything' => true]),
-            ]);
-            curl_exec($ch);
-            curl_close($ch);
-        } catch (Throwable $e) { error_log('[BCRF CF purge] ' . $e->getMessage()); }
+        // Cloudflare adapter (Farm OS Phase 0): includes/adapters/cloudflare.php; no-op without credentials
+        require_once __DIR__ . '/../../includes/adapters/cloudflare.php';
+        bcrf_cdn_purge();
     }
     // One (scope,day) row from posted day data; incomplete times collapse to closed.
     function _si_write_day(PDO $pdo, string $scope, int $day, array $row): void {
@@ -113,7 +101,8 @@ try {
         }
 
         case 'address': {
-            $keys = ['business_name', 'address_street', 'address_city', 'address_state', 'address_zip', 'address_country', 'timezone', 'geo_lat', 'geo_lng', 'map_embed_url', 'google_rating', 'google_review_count'];
+            $keys = ['business_name', 'address_street', 'address_city', 'address_state', 'address_zip', 'address_country', 'timezone', 'geo_lat', 'geo_lng', 'map_embed_url', 'google_rating', 'google_review_count',
+                     'site_url', 'email_support', 'email_noreply', 'email_jobs', 'email_newsletter', 'meta_app_id'];   // last six: farm values (Farm OS Phase 0)
             $cur = [];
             foreach ($pdo->query("SELECT setting_key, setting_value FROM site_settings")->fetchAll(PDO::FETCH_KEY_PAIR) as $k => $v) $cur[$k] = $v;
             foreach ($keys as $k) {
@@ -125,6 +114,15 @@ try {
                     $si_warn = '"' . $new . '" is not a time zone name. Use one like America/New_York. The time zone was not changed.';
                     continue;
                 }
+                // Website and sender addresses go into every email link and payment page: only valid ones.
+                if ($k === 'site_url' && $new !== '') {
+                    $new = rtrim($new, '/');
+                    if (!preg_match('#^https://[a-z0-9.-]+\.[a-z]{2,}$#i', $new)) { $si_warn = '"' . $new . '" is not a website address like https://example.com. It was not changed.'; continue; }
+                }
+                if (str_starts_with($k, 'email_') && $new !== '' && !filter_var($new, FILTER_VALIDATE_EMAIL)) {
+                    $si_warn = '"' . $new . '" is not an email address. It was not changed.'; continue;
+                }
+                if ($k === 'meta_app_id' && $new !== '' && !ctype_digit($new)) { $si_warn = 'The Facebook app ID is digits only. It was not changed.'; continue; }
                 if ($old !== $new) { _si_set($pdo, $k, $new); _si_audit($pdo, 'address', $k, $old, $new); $changed = true; }
             }
             break;

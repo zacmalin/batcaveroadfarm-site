@@ -5,6 +5,7 @@
 // handlers/site_info_save.php (wired in admin.php's POST dispatcher).
 
 require_once __DIR__ . '/../../includes/site_info.php';
+require_once __DIR__ . '/../../includes/farm.php';   // website + sender addresses (Farm OS Phase 0)
 
 $csrf = htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES);
 $DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']; // 0..6
@@ -113,6 +114,17 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 font-mo
                     <input class="<?= $inputCls ?>" name="settings[google_review_count]" value="<?= $g('google_review_count') ?>" placeholder="24" type="number" min="0">
                     <p class="text-[10px] text-stone-400 mt-1">Total number of Google reviews. Update this any time you check your GBP.</p>
                 </div>
+                <!-- Website & email (Farm OS Phase 0): the code reads these instead of having them written in -->
+                <div class="sm:col-span-2 pt-2 border-t border-stone-200">
+                    <p class="text-xs font-bold text-stone-700">Website &amp; email</p>
+                    <p class="text-[10px] text-stone-400">Used for links in emails, payment pages and social posts, and as the sender of each kind of email.<?= ($settings['site_url'] ?? '') === '' ? ' <b class="text-amber-700">Not saved yet: tap Save below once to keep these values in Settings.</b>' : '' ?></p>
+                </div>
+                <div class="sm:col-span-2"><label class="<?= $labelCls ?>">Website address</label><input class="<?= $inputCls ?>" type="url" name="settings[site_url]" value="<?= $g('site_url', bcrf_farm('site_url')) ?>" placeholder="https://example.com"></div>
+                <div><label class="<?= $labelCls ?>">Support email <span class="font-normal opacity-60">(replies, newsletter sender)</span></label><input class="<?= $inputCls ?>" type="email" name="settings[email_support]" value="<?= $g('email_support', bcrf_farm('email_support')) ?>"></div>
+                <div><label class="<?= $labelCls ?>">No-reply email <span class="font-normal opacity-60">(account emails)</span></label><input class="<?= $inputCls ?>" type="email" name="settings[email_noreply]" value="<?= $g('email_noreply', bcrf_farm('email_noreply')) ?>"></div>
+                <div><label class="<?= $labelCls ?>">Jobs email <span class="font-normal opacity-60">(hiring replies, new-applicant alerts)</span></label><input class="<?= $inputCls ?>" type="email" name="settings[email_jobs]" value="<?= $g('email_jobs', bcrf_farm('email_jobs')) ?>"></div>
+                <div><label class="<?= $labelCls ?>">Newsletter email</label><input class="<?= $inputCls ?>" type="email" name="settings[email_newsletter]" value="<?= $g('email_newsletter', bcrf_farm('email_newsletter')) ?>"></div>
+                <div><label class="<?= $labelCls ?>">Facebook app ID <span class="font-normal opacity-60">(public, for share previews)</span></label><input class="<?= $inputCls ?>" inputmode="numeric" name="settings[meta_app_id]" value="<?= $g('meta_app_id', bcrf_farm('meta_app_id')) ?>"></div>
             </div>
             <button class="<?= $btnCls ?>" type="submit">Save business &amp; address</button>
         </form>

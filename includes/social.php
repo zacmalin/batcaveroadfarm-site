@@ -8,8 +8,9 @@ if (file_exists(__DIR__ . '/site_info.php')) {
     require_once __DIR__ . '/site_info.php';   // for site() — optional
 }
 
-if (!defined('BCRF_SOCIAL_BASE_URL')) {
-    define('BCRF_SOCIAL_BASE_URL', 'https://batcaveroadfarm.com');
+if (!defined('BCRF_SOCIAL_BASE_URL')) {   // the farm's website address, from Settings (Farm OS Phase 0)
+    require_once __DIR__ . '/farm.php';
+    define('BCRF_SOCIAL_BASE_URL', bcrf_farm_url());
 }
 
 if (!function_exists('social_tables_ready')) {
