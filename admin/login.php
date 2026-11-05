@@ -123,15 +123,18 @@ ob_end_clean(); // Done with buffering — render the page
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Farm Control Console Login</title>
+    <!-- Phone-sized page (Nov 2026): without this, phones drew a desktop page and shrank it. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>Staff Console Login</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
-<body class="bg-stone-100 flex items-center justify-center min-h-screen p-4">
-    <div class="bg-white p-8 rounded shadow-md max-w-sm w-full border border-stone-200">
-        <h2 class="text-xl font-serif font-bold text-stone-800 mb-6 text-center">Staff Console Login</h2>
+<body class="bg-stone-100 min-h-screen flex items-start sm:items-center justify-center px-4 py-10 sm:py-4">
+    <div class="bg-white p-6 sm:p-8 rounded-lg shadow-md w-full max-w-sm border border-stone-200">
+        <h1 class="text-2xl font-serif font-bold text-stone-800 mb-6 text-center">Staff Console</h1>
 
         <?php if ($error): ?>
-            <div class="p-2 mb-4 text-xs bg-red-50 text-red-800 border border-red-200 rounded font-mono">
+            <div class="p-3 mb-4 text-sm bg-red-50 text-red-800 border border-red-200 rounded" role="alert">
                 <?= htmlspecialchars($error) ?>
             </div>
         <?php endif; ?>
@@ -139,19 +142,25 @@ ob_end_clean(); // Done with buffering — render the page
         <form method="POST" class="space-y-4">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
             <!-- Hotfix K1: no hidden bot-trap field here. Phone password managers autofilled it with the email, which blocked real logins. CSRF + lockouts protect this form. -->
+            <!-- Fields are 16px text: smaller makes iPhones zoom in when you tap them. -->
             <div>
-                <label class="block text-xs font-semibold text-stone-600 mb-1">Email</label>
-                <input type="email" name="email" autocomplete="username" required autofocus
+                <label for="email" class="block text-sm font-semibold text-stone-700 mb-1">Email</label>
+                <input id="email" type="email" name="email" autocomplete="username" inputmode="email" autocapitalize="none" spellcheck="false" required autofocus
                     value="<?= htmlspecialchars($_POST['email'] ?? '', ENT_QUOTES) ?>"
-                    class="w-full p-2.5 border border-stone-300 rounded text-sm outline-none bg-stone-50 focus:ring-1 focus:ring-stone-500">
+                    class="w-full px-3 py-3 border border-stone-300 rounded-md text-base outline-none bg-stone-50 focus:ring-2 focus:ring-stone-500">
             </div>
             <div>
-                <label class="block text-xs font-semibold text-stone-600 mb-1">Password</label>
-                <input type="password" name="password" autocomplete="current-password" required
-                    class="w-full p-2.5 border border-stone-300 rounded text-sm outline-none bg-stone-50 focus:ring-1 focus:ring-stone-500">
+                <label for="password" class="block text-sm font-semibold text-stone-700 mb-1">Password</label>
+                <div class="relative">
+                    <input id="password" type="password" name="password" autocomplete="current-password" required
+                        class="w-full px-3 py-3 pr-16 border border-stone-300 rounded-md text-base outline-none bg-stone-50 focus:ring-2 focus:ring-stone-500">
+                    <button type="button" class="absolute inset-y-0 right-0 px-3 text-sm font-semibold text-stone-600"
+                        aria-controls="password" aria-label="Show password"
+                        onclick="var f=document.getElementById('password'),s=f.type==='password';f.type=s?'text':'password';this.textContent=s?'Hide':'Show';this.setAttribute('aria-label',s?'Hide password':'Show password')">Show</button>
+                </div>
             </div>
             <button type="submit"
-                class="w-full bg-stone-950 text-white p-2.5 rounded hover:bg-stone-800 transition font-medium text-sm shadow-xs">
+                class="w-full bg-stone-950 text-white py-3 rounded-md hover:bg-stone-800 transition font-semibold text-base shadow-xs">
                 Sign In
             </button>
         </form>
