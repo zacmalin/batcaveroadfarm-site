@@ -79,6 +79,7 @@ $_sections = [
         ['label'=>'Integrations',     'icon'=>'🤖','tabs'=>[['AI Connections','/admin/mcp_connections.php','view','mcp_connections']]],   // administrators only
         ['label'=>'Backups & Export', 'short'=>'Backups','icon'=>'💾','tabs'=>[['Backups','/admin/backups.php','view','backups']]],          // administrators only
         ['label'=>'System Health',    'short'=>'Health','icon'=>'🩺','tabs'=>[['System Health','/admin/system_health.php','view','system_health']]], // administrators only
+        ['label'=>'Database',         'short'=>'DB','icon'=>'🗄️','tabs'=>[['Database','/admin/migrations.php','view','migrations']]],             // administrators only (Phase 0 migrations)
         ['label'=>'Audit Log',        'short'=>'Audit','icon'=>'📜','tabs'=>[['Audit Log','?view=audit_log','view','audit_log']]],
     ]],
 ];
