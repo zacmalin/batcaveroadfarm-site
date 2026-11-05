@@ -199,6 +199,11 @@ function check_admin() {
         header("Location: /admin/login.php");
         exit;
     }
+    // Two-step sign-in (Farm OS Phase 0): a session that still needs a code is sent to admin/two_step.php.
+    if (is_file(__DIR__ . '/includes/staff_auth.php')) {
+        require_once __DIR__ . '/includes/staff_auth.php';
+        bcrf_staff_mfa_gate();
+    }
     // Staff can open exactly one screen: admin.php?view=timecard. Every other
     // admin page or handler that calls check_admin() sends them back to it.
     if ($_SESSION['user_role'] === 'Staff') {
