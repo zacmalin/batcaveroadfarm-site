@@ -367,31 +367,31 @@ try {
     // database structure would end the save's transaction early. If it fails, the record is still saved.
     $__socialWarn = '';
     try {
-    if (in_array($target_table, ['blog_posts', 'recipes', 'animals'], true)
-        && ($_POST['post_status'] ?? '') === 'published'
-        && !empty($_POST['social_share'])) {
-        $__sf = dirname(__DIR__, 2) . '/includes/social.php';
-        if (file_exists($__sf)) require_once $__sf;
-        if (function_exists('social_enqueue') && social_tables_ready($pdo)) {
-            $__shared = false;
-            try {
-                $__c = $pdo->prepare("SELECT social_shared_at FROM {$target_table} WHERE id = ?");
-                $__c->execute([$record_id]);
-                $__shared = (bool)$__c->fetchColumn();
-            } catch (Throwable $e) { /* marker column missing -> treat as not yet shared */ }
-            if (!$__shared) {
-                $__gbp = !empty($_POST['social_gbp_on']) ? trim((string)($_POST['social_gbp'] ?? '')) : '';
-                social_enqueue($pdo, (['recipes' => 'recipe', 'animals' => 'animal'][$target_table] ?? 'blog'), (int)$record_id, [
-                    'platforms' => 'facebook,instagram' . ($__gbp !== '' ? ',google' : ''),
-                    'gbp'      => $__gbp,
-                    'fb'       => trim((string)($_POST['social_fb']   ?? '')),
-                    'ig'       => trim((string)($_POST['social_ig']   ?? '')),
-                    'hashtags' => trim((string)($_POST['social_tags'] ?? '')),
-                ]);
-                try { $pdo->prepare("UPDATE {$target_table} SET social_shared_at = NOW() WHERE id = ?")->execute([$record_id]); } catch (Throwable $e) {}
+        if (in_array($target_table, ['blog_posts', 'recipes', 'animals'], true)
+            && ($_POST['post_status'] ?? '') === 'published'
+            && !empty($_POST['social_share'])) {
+            $__sf = dirname(__DIR__, 2) . '/includes/social.php';
+            if (file_exists($__sf)) require_once $__sf;
+            if (function_exists('social_enqueue') && social_tables_ready($pdo)) {
+                $__shared = false;
+                try {
+                    $__c = $pdo->prepare("SELECT social_shared_at FROM {$target_table} WHERE id = ?");
+                    $__c->execute([$record_id]);
+                    $__shared = (bool)$__c->fetchColumn();
+                } catch (Throwable $e) { /* marker column missing -> treat as not yet shared */ }
+                if (!$__shared) {
+                    $__gbp = !empty($_POST['social_gbp_on']) ? trim((string)($_POST['social_gbp'] ?? '')) : '';
+                    social_enqueue($pdo, (['recipes' => 'recipe', 'animals' => 'animal'][$target_table] ?? 'blog'), (int)$record_id, [
+                        'platforms' => 'facebook,instagram' . ($__gbp !== '' ? ',google' : ''),
+                        'gbp'      => $__gbp,
+                        'fb'       => trim((string)($_POST['social_fb']   ?? '')),
+                        'ig'       => trim((string)($_POST['social_ig']   ?? '')),
+                        'hashtags' => trim((string)($_POST['social_tags'] ?? '')),
+                    ]);
+                    try { $pdo->prepare("UPDATE {$target_table} SET social_shared_at = NOW() WHERE id = ?")->execute([$record_id]); } catch (Throwable $e) {}
+                }
             }
         }
-    }
     } catch (Throwable $e) {
         error_log('[ERP] social share queue failed: ' . $e->getMessage());
         $__socialWarn = ' The social post was not queued: ' . $e->getMessage();
