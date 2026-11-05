@@ -4,6 +4,7 @@ ob_start();
 require_once '../config.php';
 require_once '../includes/auth.php';
 require_once '../includes/email_verify.php';
+require_once '../includes/rate_limit.php';   // server-side resend cap (Nov 2026)
 header('Cache-Control: no-store, private');
 
 if (!is_logged_in()) { ob_end_clean(); header('Location: /account/login.php'); exit; }
@@ -14,7 +15,9 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
         $error = 'Your session expired. Please try again.';
-    } elseif (throttle_hit('verify_resend', 5, 1800)) {
+    } elseif (throttle_hit('verify_resend', 5, 1800)
+              // Server-side: at most 3 resends per account per day.
+              | bcrf_rl_hit('verify_resend_user', (string)current_user_id(), 3, 86400)) {
         $error = 'Too many requests. Please wait a little while and try again.';
     } else {
         try {

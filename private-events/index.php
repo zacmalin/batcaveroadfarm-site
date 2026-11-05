@@ -11,7 +11,8 @@ include '../includes/header.php';
 
 $errMap = [
     'csrf'    => 'Session expired — please try again.',
-    'name'    => 'Please enter your name.',
+    'name'    => 'Please enter your name (up to 100 characters).',
+    'rate'    => 'We\'ve received several inquiries from this connection in a short time. Please wait a few minutes and try again, or call (828) 216-5488.',
     'email'   => 'Please enter a valid email address.',
     'type'    => 'Please select an event type.',
     'guests'  => 'Please enter the number of guests.',
@@ -80,7 +81,7 @@ $heardFrom = ['Google search', 'Google Maps / Apple Maps', 'Facebook', 'Instagra
 
     <form method="POST" action="/private-events/submit.php">
         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES) ?>">
-        <input type="hidden" name="website" value=""><!-- honeypot -->
+        <div aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden"><label>Leave this empty<input type="text" name="website" value="" tabindex="-1" autocomplete="off"></label></div><!-- honeypot: a real text field bots fill in; hidden inputs were never filled -->
 
         <!-- Event type -->
         <div class="pe-section">
@@ -165,7 +166,7 @@ $heardFrom = ['Google search', 'Google Maps / Apple Maps', 'Facebook', 'Instagra
             <div class="pe-grid">
                 <div class="pe-field full">
                     <label class="pe-label">Your name *</label>
-                    <input type="text" name="customer_name" class="pe-input" required
+                    <input type="text" name="customer_name" class="pe-input" required maxlength="100"
                            autocomplete="name" placeholder="Full name">
                 </div>
                 <div class="pe-field">

@@ -2,6 +2,7 @@
 // private-events/submit.php — handles private event inquiry form submission.
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../includes/rate_limit.php';   // server-side limits (Nov 2026)
 if (is_file(__DIR__ . '/../admin/includes/email_template.php')) {
     require_once __DIR__ . '/../admin/includes/email_template.php';
 }
@@ -23,6 +24,12 @@ if (empty($_SESSION['csrf_token']) || $csrf === '' || !hash_equals($_SESSION['cs
     _pe_bail('csrf');
 }
 
+// Server-side limits: 3 inquiries per 10 minutes and 10 per day from one connection.
+// Single | on purpose: both counters always record the attempt.
+if (bcrf_rl_hit('pe_ip10', bcrf_rl_ip(), 3, 600) | bcrf_rl_hit('pe_ipday', bcrf_rl_ip(), 10, 86400)) {
+    _pe_bail('rate');
+}
+
 // Validate
 $name       = trim(strip_tags((string)($_POST['customer_name'] ?? '')));
 $email      = filter_var(trim((string)($_POST['email'] ?? '')), FILTER_VALIDATE_EMAIL);
@@ -37,7 +44,9 @@ $addons     = array_values(array_filter((array)($_POST['addons'] ?? []), fn($v) 
 $special    = trim(strip_tags((string)($_POST['special_requests'] ?? '')));
 $heardFrom  = trim(strip_tags((string)($_POST['heard_from'] ?? '')));
 
-if ($name === '')  _pe_bail('name');
+$name    = trim(preg_replace('/[\r\n]+/', ' ', $name));
+$special = mb_substr($special, 0, 4000);
+if ($name === '' || mb_strlen($name) > 100)  _pe_bail('name');
 if (!$email)       _pe_bail('email');
 if ($eventType === '') _pe_bail('type');
 if ($adults + $children < 1 && $special === '') _pe_bail('guests');
@@ -121,6 +130,9 @@ if (function_exists('bcf_send_mail')) {
         . '<p style="margin:0 0 14px">A member of our team will be in touch within 24 hours to discuss your event and put together a custom package.</p>'
         . '<p style="margin:0;font-size:.9rem;color:rgba(245,234,214,.8)">In the meantime, feel free to call us at (828) 216-5488 if you have any questions. We\'re open Tuesday – Sunday, 10AM – 4PM.</p>';
 
+    // Auto-reply goes to any one address at most 2 times a day, so this form
+    // can't be used to send mail to someone who didn't ask for it.
+    if (!bcrf_rl_hit('pe_ack', $email, 2, 86400))
     @bcf_send_mail($email,
         'We received your private event inquiry — Bat Cave Road Farm',
         $replyInner,

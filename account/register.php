@@ -3,6 +3,7 @@ ob_start();
 require_once '../config.php';
 require_once '../includes/auth.php';
 require_once '../includes/email_verify.php';
+require_once '../includes/rate_limit.php';   // server-side signup limits (Nov 2026)
 
 $next = safe_next((string)($_GET['next'] ?? ($_POST['next'] ?? '')));
 
@@ -20,7 +21,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Your session expired. Please try again.';
     } elseif (honeypot_tripped()) {
         $error = 'Something went wrong. Please try again.';
-    } elseif (throttle_hit('register', 5, 1800)) {
+    } elseif (throttle_hit('register', 5, 1800)
+              // Server-side (survives dropped cookies): 5 per hour, 10 per day per connection.
+              | bcrf_rl_hit('reg_ip', bcrf_rl_ip(), 5, 3600)
+              | bcrf_rl_hit('reg_ipday', bcrf_rl_ip(), 10, 86400)) {
         $error = 'Too many sign-up attempts. Please wait a little while and try again.';
     } elseif ($old['first_name'] === '' || $old['last_name'] === '' || $old['email'] === '') {
         $error = 'Name and email are required.';
