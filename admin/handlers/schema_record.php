@@ -362,6 +362,12 @@ try {
     // Audit trail (after commit, so only successful saves are logged)
     erp_audit($pdo, $id ? 'update' : 'create', (string)$target_table, (int)$record_id, erp_audit_label($fields));
 
+    // Domain event for content saved as published (Farm OS Phase 0; the runner clears the CDN cache)
+    if (in_array($target_table, ['blog_posts', 'recipes', 'animals'], true) && ($_POST['post_status'] ?? '') === 'published') {
+        require_once dirname(__DIR__, 2) . '/includes/queue.php';
+        bcrf_event('content.published', (string)$target_table, (int)$record_id, ['label' => erp_audit_label($fields), 'new' => !$id]);
+    }
+
     // ── FIRST-PUBLISH SOCIAL SHARE (recipes + blog + animals) — queue the admin-approved post ─
     // Runs after commit (Nov 5 fix): queueing is a side effect, and anything in it that changes the
     // database structure would end the save's transaction early. If it fails, the record is still saved.
