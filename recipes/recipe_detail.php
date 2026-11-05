@@ -13,7 +13,25 @@ if (empty($slug)) { die("Missing recipe identification parameter."); }
 $stmt = $pdo->prepare("SELECT r.*, c.name AS cuisine FROM recipes r LEFT JOIN cuisines c ON r.cuisine_id = c.id WHERE r.slug = ? AND r.status = 'published'");
 $stmt->execute([$slug]);
 $recipe = $stmt->fetch();
-if (!$recipe) { die("Recipe resource missing."); }
+if (!$recipe) {
+    // Old addresses of renamed recipes -> 301 to the current one (keeps links and Google ranking).
+    // Since Nov 2026 the editor keeps a slug when the title changes, so this list should rarely grow.
+    $__moved = [
+        'creamy-poblano-chicken-pollo-con-crema' => 25,   // renamed "Pollo Poblano (Creamy Poblano Chicken)", Nov 4, 2026
+    ];
+    if (isset($__moved[$slug])) {
+        $__m = $pdo->prepare("SELECT slug FROM recipes WHERE id = ? AND status = 'published'");
+        $__m->execute([$__moved[$slug]]);
+        if ($__new = $__m->fetchColumn()) {
+            header('Location: https://batcaveroadfarm.com/recipes/' . rawurlencode($__new) . '/', true, 301);
+            exit;
+        }
+    }
+    // Unknown recipe: a real 404 page, so Google drops it instead of indexing an error message.
+    chdir(dirname(__DIR__));
+    require dirname(__DIR__) . '/404.php';
+    exit;
+}
 
 $recipe_id = (int)$recipe['id'];
 $comments = bcrf_fetch_comments($pdo, $recipe_id);
