@@ -50,3 +50,11 @@ A backup only counts if it restores. Every 3 months:
 3. Download the newest files backup from **Google Drive**, open it with the password from your password manager,
    and open one photo and one résumé PDF.
 4. Note the date in the Notion backups task.
+
+### Restore test log
+
+| Date | What was tested | Result |
+|---|---|---|
+| Nov 5, 2026 | Google Drive copy `bcrf-db-20261105-051501.sql.gz.zip` opened with BACKUP_PASSWORD, imported into a scratch database in phpMyAdmin, tables spot-checked, scratch database deleted | ✅ Passed (Farm OS Phase 0 first test restore) |
+
+Next test due: **February 2027**.
