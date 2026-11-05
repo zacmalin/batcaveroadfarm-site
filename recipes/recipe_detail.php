@@ -172,8 +172,27 @@ if ($__descPlain !== '' && mb_strlen($__descPlain) > 158) {
 } else {
     $__descMeta = $__descPlain;
 }
-$pageTitle    = $recipe['title'] . " Recipe | Bat Cave Road Farm";
-$metaDesc     = $__descMeta !== '' ? $__descMeta : ("Make " . $recipe['title'] . " at home — a farmhouse recipe from Bat Cave Road Farm in Old Fort, NC.");
+// Search snippet (Nov 2026, Search & Analytics): Google shows ~60 title characters, so drop the
+// " | Bat Cave Road Farm" suffix when it would push the recipe name out. The meta description leads
+// with total time and servings, which are what recipe searchers compare on.
+$__t = trim(preg_replace('/^\x{200B}+/u', '', (string)$recipe['title']));   // some titles start with a zero-width space
+$pageTitle = mb_strlen($__t . ' Recipe | Bat Cave Road Farm') <= 60 ? $__t . ' Recipe | Bat Cave Road Farm'
+           : (mb_strlen($__t . ' Recipe') <= 60 ? $__t . ' Recipe' : $__t);
+$__mins  = (int)($recipe['prep_time'] ?? 0) + (int)($recipe['cook_time'] ?? 0);
+$__serv  = (int)($recipe['servings'] ?? 0) ?: (int)($recipe['recipe_yield'] ?? 0);
+$__lead  = trim(($__mins > 0 ? 'Ready in ' . ($__mins >= 90 ? rtrim(rtrim(number_format($__mins / 60, 1), '0'), '.') . ' hours' : $__mins . ' minutes') : '')
+         . ($__serv > 1 ? ($__mins > 0 ? ', serves ' : 'Serves ') . $__serv : ''));
+if ($__lead !== '' && $__descPlain !== '') {
+    $__room = 155 - mb_strlen($__lead) - 2;
+    $__body = $__descPlain;
+    if (mb_strlen($__body) > $__room) {
+        $__cut  = mb_substr($__body, 0, $__room);
+        $__sp   = mb_strrpos($__cut, ' ');
+        $__body = rtrim(($__sp > 60 ? mb_substr($__cut, 0, $__sp) : $__cut), " ,;:-—") . '…';
+    }
+    $__descMeta = $__lead . '. ' . $__body;
+}
+$metaDesc     = $__descMeta !== '' ? $__descMeta : ("Make " . $__t . " at home — a farmhouse recipe from Bat Cave Road Farm in Old Fort, NC.");
 $canonicalUrl = "https://batcaveroadfarm.com/recipes/" . $recipe['slug'] . "/";
 $pageCSS      = "https://batcaveroadfarm.com/css/min.recipes.css";
 $pageJS       = ["https://batcaveroadfarm.com/js/min.recipe.js", "https://batcaveroadfarm.com/js/min.share.js", "https://batcaveroadfarm.com/js/min.auth.js", "https://batcaveroadfarm.com/js/min.rating.js", "https://batcaveroadfarm.com/js/min.comments.js"];
@@ -240,6 +259,13 @@ if ($__ratingCount > 0 && $__avgRating > 0) {
     ];
 }
 $__cal = (int)($recipe['calories'] ?? 0);
+// Calories are per serving only if the calculator recorded what it divided by (nutrition_servings,
+// Nov 2026). Older calculations divided by an empty Servings field, i.e. by 1, so they hold the whole
+// dish: divide by the yield here.
+if ($__cal > 0 && empty($recipe['nutrition_servings'])) {
+    $__div = (int)($recipe['servings'] ?? 0) ?: (int)($recipe['recipe_yield'] ?? 0);
+    if ($__div > 1 && (int)($recipe['servings'] ?? 0) < 1) $__cal = (int)round($__cal / $__div);
+}
 if ($__cal > 0) {
     $__recipeSchema['nutrition'] = ["@type" => "NutritionInformation", "calories" => $__cal . " calories"];
 }

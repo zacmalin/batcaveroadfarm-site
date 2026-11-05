@@ -79,7 +79,7 @@ if ($target_table === 'recipes' && !empty($columns_schema)) {
 
     $skip_recipe_fields = ['cuisine', 'protein_g', 'fat_g', 'carbs_g', 'fiber_g',
                            'sugar_g', 'sodium_mg', 'nutrition_source', 'nutrition_updated_at',
-                           'pairs_with_recipe_id'];
+                           'pairs_with_recipe_id', 'nutrition_servings'];
 
     foreach ($columns_schema as $col) {
         if ($col['Field'] === 'cuisine')       continue;

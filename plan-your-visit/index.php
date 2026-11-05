@@ -1,18 +1,12 @@
 <?php
-    $pageTitle       = "Plan Your Visit | Bat Cave Road Farm — Old Fort, NC";
-    $metaDesc        = "Plan a visit to Bat Cave Road Farm in Old Fort, NC: hours, admission, directions, and what to expect at the petting zoo, farmstand, and thrift shop.";
-    $canonicalUrl    = "https://batcaveroadfarm.com/plan-your-visit/";
-    $ogImage         = "https://batcaveroadfarm.com/img/og-home.jpg";
-    $preloadImage = "https://batcaveroadfarm.com/img/planhero.webp"; // hero photo = mobile LCP (Nov 3 perf fix)
-    require('../includes/head.php');
-    include('../includes/header.php');
-
-    // Live hours from site_info (single source of truth)
+    // Hours + admission are loaded BEFORE head.php so the search snippet (title + meta description) can
+    // show them: people searching for this page want hours and prices (Search & Analytics, Nov 2026).
+    require_once __DIR__ . '/../config.php';
+    require_once __DIR__ . '/../includes/site_info.php';
     $bhours    = function_exists('site_hours_summary') ? site_hours_summary('general') : [];
     $openDays  = $bhours['open_days']  ?? 'Tuesday – Sunday';
     $openTime  = $bhours['open_time']  ?? '10:00 AM – 4:00 PM';
     $closedTxt = $bhours['closed_phrase'] ?? 'Closed Mondays.';
-
     // Admission pricing from inventory — single source of truth shared with /tickets/
     $visitTypes = [];
     try {
@@ -23,6 +17,23 @@
              ORDER BY i.price DESC, i.name ASC"
         )->fetchAll(PDO::FETCH_ASSOC) ?: [];
     } catch (Throwable $e) { /* Admissions category not yet created */ }
+    $__short = fn(string $s) => str_replace([':00 ', ' – '], [' ', '–'], $s);   // "10:00 AM – 4:00 PM" -> "10 AM–4 PM"
+    $__prices = [];
+    foreach (array_slice($visitTypes, 0, 3) as $__vt) {
+        $__p = (float)$__vt['price'];
+        $__nm = trim(preg_replace('/\s*admission$/i', '', (string)$__vt['name']));                      // "Adult Admission" -> "Adult"
+        $__nm = preg_replace(['/^childs?\b/i', '/^child\'s\b/i', '/^adult\b/i'], ['Kids', 'Kids', 'Adults'], $__nm);
+        $__prices[] = $__nm . ' ' . ($__p <= 0 ? 'free' : '$' . (fmod($__p, 1) == 0.0 ? number_format($__p, 0) : number_format($__p, 2)));
+    }
+    $pageTitle       = "Hours, Admission & Directions | Bat Cave Road Farm";
+    $metaDesc        = ($openDays !== '' && $openTime !== '' ? 'Open ' . str_replace(' – ', '–', $openDays) . ', ' . $__short($openTime) . '. ' : '')
+                     . ($__prices ? 'Admission: ' . implode(', ', $__prices) . '. ' : '')
+                     . 'Petting zoo, farmstand & thrift shop in Old Fort, NC, near Asheville.';
+    $canonicalUrl    = "https://batcaveroadfarm.com/plan-your-visit/";
+    $ogImage         = "https://batcaveroadfarm.com/img/og-home.jpg";
+    $preloadImage = "https://batcaveroadfarm.com/img/planhero.webp"; // hero photo = mobile LCP (Nov 3 perf fix)
+    require('../includes/head.php');
+    include('../includes/header.php');
 ?>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebPage","name":"Plan Your Visit — Bat Cave Road Farm","url":"https://batcaveroadfarm.com/plan-your-visit/","description":"Hours, directions, parking, and what to expect at Bat Cave Road Farm in Old Fort, NC — petting zoo, farmstand, and thrift shop near Asheville.","about":{"@id":"https://batcaveroadfarm.com/#business"},"isPartOf":{"@id":"https://batcaveroadfarm.com/#website"}}
