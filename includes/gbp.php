@@ -255,7 +255,43 @@ function gbp_caption_from(string $caption): string {
 }
 
 /**
+ * Google posts take JPG/PNG photos only; most site images are WebP (Google answers those with a bare
+ * "Internal error encountered"). Makes a cached JPG copy under /img/social-cache/ and returns its public
+ * URL, or null if the image can't be read (the post then goes out without a photo).
+ */
+function gbp_photo_url(?string $url): ?string {
+    if (!$url) return null;
+    $path = (string)parse_url($url, PHP_URL_PATH);
+    if (preg_match('#\.(jpe?g|png)$#i', $path)) return $url;
+    $docroot = dirname(__DIR__);
+    $src = realpath($docroot . rawurldecode($path));
+    if (!$src || !str_starts_with($src, realpath($docroot) . '/') || !is_file($src)) return null;
+    $rel = '/img/social-cache/gbp-' . substr(sha1($src . '|' . filemtime($src)), 0, 16) . '.jpg';
+    $dst = $docroot . $rel;
+    if (!is_file($dst)) {
+        $im = @imagecreatefromstring((string)file_get_contents($src));
+        if (!$im) return null;
+        // Flatten transparency onto white; Google wants at least 250px on each side.
+        $w = imagesx($im); $h = imagesy($im);
+        $scale = max(1, 250 / max(1, min($w, $h)));
+        $nw = (int)ceil($w * $scale); $nh = (int)ceil($h * $scale);
+        $out = imagecreatetruecolor($nw, $nh);
+        imagefill($out, 0, 0, imagecolorallocate($out, 255, 255, 255));
+        imagecopyresampled($out, $im, 0, 0, 0, 0, $nw, $nh, $w, $h);
+        if (!is_dir(dirname($dst))) @mkdir(dirname($dst), 0755, true);
+        $ok = imagejpeg($out, $dst, 88);
+        imagedestroy($im); imagedestroy($out);
+        if (!$ok) return null;
+    }
+    $scheme = parse_url($url, PHP_URL_SCHEME) ?: 'https';
+    $host   = parse_url($url, PHP_URL_HOST) ?: 'batcaveroadfarm.com';
+    return "{$scheme}://{$host}{$rel}";
+}
+
+/**
  * Publish one "What's new" post. $link becomes the "Learn more" button; $image must be a public URL.
+ * Photos are converted to JPG for Google. If Google fails with a server error while a photo is attached,
+ * the post is retried once without the photo (text + button still go out).
  * Returns the post's resource name; throws with Google's message on failure.
  */
 function gbp_post(PDO $pdo, string $summary, ?string $link, ?string $image): string {
@@ -265,15 +301,62 @@ function gbp_post(PDO $pdo, string $summary, ?string $link, ?string $image): str
     if ($acctId === '' || $locId === '') throw new RuntimeException('No Google location picked — open Social Queue → Connect Google.');
 
     $body = ['languageCode' => 'en-US', 'topicType' => 'STANDARD', 'summary' => mb_substr(trim($summary), 0, GBP_SUMMARY_MAX)];
-    if ($link)  $body['callToAction'] = ['actionType' => 'LEARN_MORE', 'url' => $link];
-    if ($image) $body['media'] = [['mediaFormat' => 'PHOTO', 'sourceUrl' => $image]];
+    if ($link) $body['callToAction'] = ['actionType' => 'LEARN_MORE', 'url' => $link];
+    $photo = gbp_photo_url($image);
+    if ($photo) $body['media'] = [['mediaFormat' => 'PHOTO', 'sourceUrl' => $photo]];
 
-    $r = gbp_http('POST', "https://mybusiness.googleapis.com/v4/accounts/{$acctId}/locations/{$locId}/localPosts", $body, gbp_access_token($pdo));
+    $endpoint = "https://mybusiness.googleapis.com/v4/accounts/{$acctId}/locations/{$locId}/localPosts";
+    $r = gbp_http('POST', $endpoint, $body, gbp_access_token($pdo));
+    if (empty($r['json']['name']) && $photo && ($r['code'] >= 500 || $r['code'] === 400)) {
+        error_log('[GBP] post with photo failed (' . gbp_err($r) . ') — retrying without photo: ' . $photo);
+        unset($body['media']);
+        $r = gbp_http('POST', $endpoint, $body, gbp_access_token($pdo));
+    }
     if (empty($r['json']['name'])) {
         $msg = gbp_err($r);
+        error_log('[GBP] post failed: HTTP ' . $r['code'] . ' ' . substr($r['raw'], 0, 500));
         gbp_note($pdo, false, $msg);
         throw new RuntimeException($msg);
     }
     gbp_note($pdo, true);
     return (string)$r['json']['name'];
+}
+
+/** Queue rows that asked for Google but didn't get there (for the retry list on the connect page). */
+function gbp_failed_rows(PDO $pdo): array {
+    gbp_schema($pdo);
+    try {
+        return $pdo->query("SELECT id, content_type, content_id, gbp_caption, last_error, processed_at FROM social_queue
+            WHERE platforms LIKE '%google%' AND gbp_post_id IS NULL AND status IN ('partial','failed')
+              AND gbp_caption IS NOT NULL AND gbp_caption <> '' AND processed_at >= NOW() - INTERVAL 30 DAY
+            ORDER BY id DESC LIMIT 10")->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Throwable $e) { return []; }
+}
+
+/** Re-send one queue row to Google only (Facebook/Instagram untouched). Returns the post name or throws. */
+function gbp_retry_row(PDO $pdo, int $id): string {
+    $st = $pdo->prepare("SELECT * FROM social_queue WHERE id = ?");
+    $st->execute([$id]);
+    $q = $st->fetch(PDO::FETCH_ASSOC);
+    if (!$q || trim((string)($q['gbp_caption'] ?? '')) === '') throw new RuntimeException('That queued post has no Google text.');
+    if (!empty($q['gbp_post_id'])) throw new RuntimeException('That post is already on Google.');
+    $type  = in_array($q['content_type'], ['recipe', 'animal'], true) ? $q['content_type'] : 'blog';
+    $table = $type === 'recipe' ? 'recipes' : ($type === 'animal' ? 'animals' : 'blog_posts');
+    $rs = $pdo->prepare("SELECT * FROM {$table} WHERE id = ?");
+    $rs->execute([(int)$q['content_id']]);
+    $rec = $rs->fetch(PDO::FETCH_ASSOC);
+    if (!$rec) throw new RuntimeException('The recipe/post/animal no longer exists.');
+    require_once __DIR__ . '/social.php';
+    if (!function_exists('bcrf_utm_url')) require_once __DIR__ . '/ga.php';
+    $base = defined('BCRF_SOCIAL_BASE_URL') ? BCRF_SOCIAL_BASE_URL : 'https://batcaveroadfarm.com';
+    $img  = null;
+    foreach (['feature_image', 'image_url', 'featured_image', 'image', 'photo_url'] as $k) {
+        if (!empty($rec[$k])) { $u = (string)$rec[$k]; $img = preg_match('#^https?://#', $u) ? $u : $base . ($u[0] === '/' ? '' : '/') . $u; break; }
+    }
+    $link = bcrf_utm_url(social_permalink($type, $rec), 'google', 'organic', 'gbp-' . $type);
+    $name = gbp_post($pdo, (string)$q['gbp_caption'], $link, $img);
+    $done = !empty($q['fb_post_id']) && (empty($q['ig_media_id']) === false || !defined('IG_USER_ID') || IG_USER_ID === '');
+    $pdo->prepare("UPDATE social_queue SET gbp_post_id = ?, status = ?, last_error = NULL WHERE id = ?")
+        ->execute([$name, $done ? 'sent' : $q['status'], $id]);
+    return $name;
 }

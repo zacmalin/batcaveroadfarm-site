@@ -104,6 +104,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $go($e->getMessage() . ' Enter the account ID as well.');
         }
     }
+    if ($do === 'retry') {
+        try { gbp_retry_row($pdo, (int)($_POST['id'] ?? 0)); $go('Posted to Google.'); }
+        catch (Throwable $e) { $go('Google still refused it: ' . $e->getMessage()); }
+    }
     if ($do === 'check') {
         try {
             // Once a location is saved, check it with the posting API (the lookup APIs may have no quota).
@@ -195,5 +199,19 @@ label.loc{display:block;padding:8px 0;border-bottom:1px solid #eee}code{backgrou
 </div>
 <?php endif; ?>
 
-<p class="sub" style="margin-top:22px">Google posts use the Facebook caption without links (links in Google post text aren't clickable; the button carries it) and the post's photo. You can edit the Google text in the composer before publishing.</p>
+<?php $failed = gbp_ready($pdo) ? gbp_failed_rows($pdo) : []; if ($failed): ?>
+<div class="card">
+  <strong>Didn't reach Google</strong>
+  <p class="meta" style="margin:4px 0 8px">Facebook/Instagram aren't touched by a retry.</p>
+  <?php foreach ($failed as $f): ?>
+    <div style="border-top:1px solid #eee;padding:8px 0">
+      <div class="meta"><?= $h(ucfirst($f['content_type'])) ?> #<?= (int)$f['content_id'] ?> · <?= $h($when($f['processed_at'])) ?> · <?= $h(mb_substr((string)$f['gbp_caption'], 0, 80)) ?>…</div>
+      <?php if (!empty($f['last_error'])): ?><div class="meta" style="color:#8b2018"><?= $h(mb_substr((string)$f['last_error'], 0, 200)) ?></div><?php endif; ?>
+      <form method="post"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="retry"><input type="hidden" name="id" value="<?= (int)$f['id'] ?>"><button class="ghost">Retry on Google</button></form>
+    </div>
+  <?php endforeach; ?>
+</div>
+<?php endif; ?>
+
+<p class="sub" style="margin-top:22px">Google posts use the Facebook caption without links (links in Google post text aren't clickable; the button carries it) and the post's photo (converted to JPG for Google; if Google still errors, the post goes out without the photo). You can edit the Google text in the composer before publishing.</p>
 </div></body></html>
