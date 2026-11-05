@@ -54,11 +54,23 @@
     }
     function initAutosave(form) {
         var key = 'bcf_draft:' + form.getAttribute('data-autosave');
+        // data-autosave-confirm: the server says when a save worked (data-autosave-clear names the draft to drop)
+        // or failed (data-autosave-restore puts the typed values straight back). Without it, submit drops the draft.
+        var confirmMode = form.hasAttribute('data-autosave-confirm');
+        var clearKey = form.getAttribute('data-autosave-clear');
+        if (clearKey) { try { localStorage.removeItem('bcf_draft:' + clearKey); } catch (e) {} }
         var base = JSON.stringify(draftSnapshot(form));
         var saved = null;
         try { saved = JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) {}
 
-        if (saved && saved.t && Date.now() - saved.t < DRAFT_TTL && JSON.stringify(saved.v) !== base) {
+        if (saved && saved.v && form.hasAttribute('data-autosave-restore')) {
+            draftApply(form, saved.v);
+            var note = document.createElement('div');
+            note.setAttribute('role', 'status');
+            note.className = 'mb-4 p-3 rounded-lg border border-red-300 bg-red-50 text-red-900 text-xs font-semibold';
+            note.textContent = "That save didn't go through, so your changes are back in the form. Fix the problem and tap Save again.";
+            form.parentNode.insertBefore(note, form);
+        } else if (saved && saved.t && Date.now() - saved.t < DRAFT_TTL && JSON.stringify(saved.v) !== base) {
             var bar = document.createElement('div');
             bar.setAttribute('role', 'status');
             bar.className = 'mb-4 p-3 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 text-xs flex flex-wrap items-center gap-2';
@@ -91,7 +103,11 @@
         form.addEventListener('input', later);
         form.addEventListener('change', later);
         document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') { clearTimeout(timer); store(); } });
-        form.addEventListener('submit', function () { clearTimeout(timer); try { localStorage.removeItem(key); } catch (e) {} });
+        form.addEventListener('submit', function () {
+            clearTimeout(timer);
+            if (confirmMode) { store(); return; }   // keep it until the server confirms the save
+            try { localStorage.removeItem(key); } catch (e) {}
+        });
     }
 
     function labelTables() {
