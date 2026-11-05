@@ -22,29 +22,13 @@ function gbp_configured(): bool {
     return defined('GBP_CLIENT_ID') && defined('GBP_CLIENT_SECRET') && GBP_CLIENT_ID !== '' && GBP_CLIENT_SECRET !== '';
 }
 
-/** One-row table for the connection, plus the Google columns on social_queue. Safe to call often. */
+/**
+ * The gbp_auth table and social_queue.gbp_caption / gbp_post_id now come from migrations
+ * (admin/migrations/0001_baseline.php, Farm OS Phase 0), so this no longer changes the database.
+ * Kept so existing callers keep working. New tables or columns for Google: add a migration in
+ * admin/migrations/ (next free number) instead of creating them here.
+ */
 function gbp_schema(PDO $pdo): void {
-    static $done = false;
-    if ($done) return;
-    $done = true;
-    try {
-        $pdo->exec("CREATE TABLE IF NOT EXISTS gbp_auth (
-            id TINYINT UNSIGNED NOT NULL PRIMARY KEY,
-            refresh_token_enc TEXT NULL,
-            google_email VARCHAR(190) NULL,
-            account_name VARCHAR(120) NULL,
-            location_name VARCHAR(120) NULL,
-            location_title VARCHAR(190) NULL,
-            connected_at DATETIME NULL,
-            last_ok_at DATETIME NULL,
-            last_error VARCHAR(500) NULL
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-        foreach (['gbp_caption' => 'TEXT NULL', 'gbp_post_id' => 'VARCHAR(190) NULL'] as $col => $def) {
-            if (!$pdo->query("SHOW COLUMNS FROM social_queue LIKE '{$col}'")->fetch()) {
-                $pdo->exec("ALTER TABLE social_queue ADD COLUMN {$col} {$def}");
-            }
-        }
-    } catch (Throwable $e) { error_log('[GBP] schema: ' . $e->getMessage()); }
 }
 
 function gbp_auth_row(PDO $pdo): array {
