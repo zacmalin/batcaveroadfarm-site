@@ -1,6 +1,11 @@
 <?php
+// admin/views/schema.php — generic record list + editor (Blog, Recipes, Catalog, Animals, Kitchen reference, Users…).
+// Phone (Nov 5, 2026, 02 Navigation & UX): list and form are separate screens; sticky Save; drafts kept on the device.
 // Fix 1: whitelist $target_table before ANY query touches it
 if (empty($target_table) || !in_array($target_table, $system_tables)) return;
+require_once __DIR__ . '/layout/ui.php';
+$__is_new  = isset($_GET['new']);
+$__editing = !empty($edit_data) || $__is_new;   // phone shows the form instead of the list
 
 // ── FRACTION DISPLAY HELPER ───────────────────────────────────────────────────
 // Shows stored decimals as clean numbers (0.25 → "0.25", 1.0 → "1", 0.5 → "0.5")
@@ -281,38 +286,22 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
 
     <!-- ── RECORD LIST ── -->
-    <div class="bg-white rounded border border-stone-200 p-4 shadow-xs h-fit print:hidden <?= !empty($edit_data) ? 'hidden md:block' : '' ?>">
+    <div class="bg-white rounded-xl border border-stone-200 p-4 shadow-xs h-fit print:hidden <?= $__editing ? 'hidden md:block' : '' ?>">
         <div class="flex justify-between items-center mb-3">
             <h2 class="text-xs uppercase font-bold text-stone-400 capitalize">
                 <?= htmlspecialchars(str_replace('_', ' ', $target_table)) ?>
                 <span class="text-stone-300 font-normal">(<?= count($active_records) ?>)</span>
             </h2>
-            <a href="/admin/admin.php?view=schema&table=<?= urlencode($target_table) ?>"
-                class="bg-stone-900 text-white font-bold text-[10px] px-2 py-1 rounded uppercase tracking-wider">
-                + New
-            </a>
+            <a href="/admin/admin.php?view=schema&table=<?= urlencode($target_table) ?>&new=1" class="<?= ui_btn('primary') ?>">+ New</a>
         </div>
 
-        <!-- live filter + sort on record list -->
-        <?php if (count($active_records) > 1): ?>
-        <div class="mb-2 space-y-1.5">
-            <input type="text" id="recordListFilter" oninput="filterRecordList(this.value)"
-                placeholder="Filter records..."
-                class="w-full p-1.5 border rounded bg-stone-50 text-[11px] font-medium outline-none">
-            <select id="recordListSort" onchange="sortRecordList(this.value)"
-                class="w-full p-1.5 border rounded bg-stone-50 text-[11px] font-medium outline-none">
-                <option value="">Sort…</option>
-                <option value="name-asc">Name A–Z</option>
-                <option value="name-desc">Name Z–A</option>
-                <option value="date-desc">Newest first</option>
-                <option value="date-asc">Oldest first</option>
-            </select>
-        </div>
-        <?php endif; ?>
-
-        <div id="recordList" class="divide-y max-h-[65vh] overflow-y-auto text-[11px] font-medium tracking-tight">
+        <!-- Search + sort toolbar is added by /admin/assets/admin-list.js (data-admin-list-records) -->
+        <div id="recordList" <?= count($active_records) > 1 ? 'data-admin-list-records' : '' ?> class="divide-y md:max-h-[65vh] md:overflow-y-auto text-xs md:text-[11px] font-medium tracking-tight">
             <?php if (empty($active_records)): ?>
-                <p class="text-stone-400 italic py-4 pl-1">No records yet.</p>
+                <div class="py-6 text-center">
+                    <p class="text-sm font-bold text-stone-600">Nothing here yet</p>
+                    <p class="text-xs text-stone-400 mt-1">Tap + New to add the first one.</p>
+                </div>
             <?php endif; ?>
 
             <?php foreach ($active_records as $rec):
@@ -344,24 +333,24 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                     $row_bg = ''; $name_cls = 'text-stone-800';
                 }
             ?>
-                <div class="record-row py-2.5 flex justify-between items-center <?= $row_bg ?>"
+                <div class="record-row py-3 md:py-2.5 flex justify-between items-center gap-2 <?= $row_bg ?>"
+                    data-id="<?= (int)$rec['id'] ?>"
                     data-name="<?= htmlspecialchars(strtolower($display_name), ENT_QUOTES) ?>"
                     data-date="<?= (int)strtotime($rec['updated_at'] ?? $rec['created_at'] ?? '@0') ?>">
                     <?php if ($target_table === 'recipes' && !empty($rec['featured_image'])): ?>
                     <img src="<?= htmlspecialchars($rec['featured_image']) ?>"
                          alt="" class="w-8 h-8 rounded object-cover shrink-0 mr-2 border border-stone-200">
                     <?php endif; ?>
-                    <span class="truncate pr-2 font-bold <?= $name_cls ?>">
+                    <a href="/admin/admin.php?view=schema&table=<?= urlencode($target_table) ?>&edit_id=<?= (int)$rec['id'] ?>"
+                       class="flex-1 min-w-0 truncate pr-2 font-bold <?= $name_cls ?>">
                         <?= $is_editing ? '✏️ ' : '' ?><?= htmlspecialchars($display_name) ?>
                         <?php if ($target_table === 'recipes' && isset($ratings_map[$rec['id']])): $rdata = $ratings_map[$rec['id']]; ?>
                             <span class="ml-1 text-[9px] font-mono text-amber-600">★ <?= $rdata['avg_r'] ?> (<?= $rdata['cnt'] ?>)</span>
                         <?php endif; ?>
-                        <?php if ($post_status === 'published'): ?>
-                            <span class="ml-1 text-[8px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-100 border border-emerald-200 px-1 py-0.5 rounded">Live</span>
-                        <?php elseif ($post_status === 'draft'): ?>
-                            <span class="ml-1 text-[8px] font-black uppercase tracking-wider text-yellow-700 bg-yellow-100 border border-yellow-200 px-1 py-0.5 rounded">Draft</span>
+                        <?php if ($post_status === 'published' || $post_status === 'draft'): ?>
+                            <span class="ml-1"><?= ui_chip($post_status) ?></span>
                         <?php endif; ?>
-                    </span>
+                    </a>
                     <?php
                     $ts_display = $rec['updated_at'] ?? $rec['created_at'] ?? null;
                     if ($ts_display): ?>
@@ -369,13 +358,15 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                         <?= date('M j', strtotime($ts_display)) ?>
                     </span>
                     <?php endif; ?>
-                    <div class="space-x-3 shrink-0 flex items-center">
+                    <div class="gap-1 md:gap-3 shrink-0 flex items-center">
                         <a href="/admin/admin.php?view=schema&table=<?= urlencode($target_table) ?>&edit_id=<?= (int)$rec['id'] ?>"
-                            class="text-stone-600 hover:text-stone-950 underline font-semibold">Edit</a>
+                            class="hidden md:inline text-stone-600 hover:text-stone-950 underline font-semibold">Edit</a>
                         <a href="/admin/admin.php?view=schema&table=<?= urlencode($target_table) ?>&delete_id=<?= (int)$rec['id'] ?>"
-                            onclick="return sysDeleteConfirm('<?= htmlspecialchars(addslashes($display_name), ENT_QUOTES) ?>', this);"
-                            class="text-red-600 hover:text-red-900 font-bold uppercase text-[9px] tracking-wider border border-red-100 bg-red-50/40 px-1.5 py-0.5 rounded">
-                            Drop
+                            data-confirm="Delete &quot;<?= htmlspecialchars($display_name, ENT_QUOTES) ?>&quot;? It is removed for good and cannot be undone."
+                            data-confirm-title="Delete record" data-confirm-label="Delete"
+                            aria-label="Delete <?= htmlspecialchars($display_name, ENT_QUOTES) ?>"
+                            class="inline-flex items-center min-h-9 md:min-h-0 text-red-600 hover:text-red-900 font-bold uppercase text-[9px] tracking-wider border border-red-100 bg-red-50/40 px-2 md:px-1.5 py-0.5 rounded">
+                            Delete
                         </a>
                     </div>
                 </div>
@@ -384,7 +375,8 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
     </div>
 
     <!-- ── EDIT / ADD FORM ── -->
-    <div class="md:col-span-2 bg-white rounded border border-stone-200 p-6 shadow-xs">
+    <div class="md:col-span-2 bg-white rounded-xl border border-stone-200 p-4 md:p-6 shadow-xs <?= $__editing ? '' : 'hidden md:block' ?>">
+        <a href="/admin/admin.php?view=schema&table=<?= urlencode($target_table) ?>" class="md:hidden inline-flex items-center min-h-10 -mt-1 mb-2 text-xs font-bold text-stone-500">← Back to list</a>
         <?php
         // Resolve a friendly label for the edit header — mirrors the list's logic
         // so classifications, ingredients, categories, unit conversions, subscribers
@@ -419,7 +411,8 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
         <?php else: ?>
 
         <!-- Fix 10: dirty-form unsaved changes warning -->
-        <form method="POST" class="space-y-4 text-xs" id="schemaEditForm" data-dirty="false">
+        <form method="POST" class="space-y-4 text-xs" id="schemaEditForm" data-dirty="false"
+              <?php if (!in_array($target_table, ['users', 'mailing_list'], true)): /* no personal data in device drafts */ ?>data-autosave="schema:<?= htmlspecialchars($target_table, ENT_QUOTES) ?>:<?= (int)($edit_data['id'] ?? 0) ?>:<?= (int)($current_user_id ?? 0) ?>"<?php endif; ?>>
             <input type="hidden" name="csrf_token"        value="<?= $_SESSION['csrf_token'] ?>">
             <input type="hidden" name="save_schema_record" value="1">
             <input type="hidden" name="id"                value="<?= (int)($edit_data['id'] ?? 0) ?>">
@@ -521,7 +514,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4" id="schemaFieldGrid">
 
                 <?php elseif ($name === '_linked_recipe_picker'): ?>
-                    <div class="space-y-1 col-span-2">
+                    <div class="space-y-1 md:col-span-2">
                         <label class="block font-bold text-stone-600">Linked Recipe</label>
                         <select name="fields[linked_recipe_id]" id="linkedRecipeSelect"
                             class="w-full p-2 border bg-white rounded font-medium text-xs">
@@ -1419,7 +1412,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                     (str_ends_with($name, '_image') || str_ends_with($name, '_photo') || str_ends_with($name, '_image_url'))
                     && !str_ends_with($name, '_alt') && !str_ends_with($name, '_text') && !str_ends_with($name, '_caption')
                 )): ?>
-                    <div class="space-y-2 col-span-2" id="imgWidget_<?= htmlspecialchars($name, ENT_QUOTES) ?>">
+                    <div class="space-y-2 md:col-span-2" id="imgWidget_<?= htmlspecialchars($name, ENT_QUOTES) ?>">
                         <label class="block font-bold text-stone-600 capitalize">
                             <?= htmlspecialchars(str_replace('_', ' ', $name)) ?>
                         </label>
@@ -1440,12 +1433,12 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                         <?php endif; ?>
 
                         <!-- URL input + action buttons -->
-                        <div class="flex gap-2 items-center">
+                        <div class="flex flex-wrap md:flex-nowrap gap-2 items-center">
                             <input type="text"
                                 name="fields[<?= htmlspecialchars($name, ENT_QUOTES) ?>]"
                                 id="imgUrl_<?= htmlspecialchars($name, ENT_QUOTES) ?>"
                                 value="<?= $val ?>"
-                                class="flex-1 p-2 border bg-stone-50 rounded font-mono text-xs outline-none"
+                                class="flex-1 basis-full md:basis-auto min-w-0 p-2 border bg-stone-50 rounded font-mono text-xs outline-none"
                                 placeholder="/img/inventory/filename.webp"
                                 oninput="updateImgPreview('<?= htmlspecialchars($name, ENT_QUOTES) ?>')">
                             <button type="button"
@@ -1632,7 +1625,8 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                 <?php endif; ?>
             <?php endif; ?>
 
-            <div class="pt-4 border-t flex justify-between items-center print:hidden">
+            <!-- Save bar: sticks above the phone bottom bar so Save is always reachable -->
+            <div class="sticky md:static bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-20 -mx-4 px-4 pb-3 md:mx-0 md:px-0 md:pb-0 bg-white pt-4 border-t flex flex-wrap gap-2 justify-between items-center print:hidden">
                 <?php if (in_array($target_table, ['blog_posts', 'recipes', 'animals'], true)): ?>
                     <?php
                     // Animals have no status column: "published" = is_active (shown on the petting zoo pages).
@@ -1644,7 +1638,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                     <span class="text-xxs font-mono text-stone-400 font-bold uppercase tracking-wider">
                         Current: <?= $status_label ?>
                     </span>
-                    <div class="flex gap-2">
+                    <div class="flex flex-wrap gap-2 justify-end">
                         <?php if ($target_table === 'animals' && !empty($edit_data['id'])): ?>
                         <a href="/petting-zoo/animals/<?= (int)$edit_data['id'] ?>/<?= htmlspecialchars(createSlug((string)($edit_data['name'] ?? 'animal')), ENT_QUOTES) ?>/?preview=1"
                             target="_blank" rel="noopener" title="Opens the saved version, even while it's a draft"
