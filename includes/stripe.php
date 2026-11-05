@@ -49,7 +49,8 @@ function stripe_create_checkout_session(array $booking, array $type): array {
     $pplLabel  = $model === 'per_person' ? ' · ' . (int)$booking['party_size'] . ' guests' : '';
     $itemName  = htmlspecialchars_decode($type['label'] ?? 'Farm Booking') . $pplLabel;
 
-    $base    = rtrim(defined('BCRF_SOCIAL_BASE_URL') ? BCRF_SOCIAL_BASE_URL : 'https://batcaveroadfarm.com', '/');
+    require_once __DIR__ . '/farm.php';
+    $base    = bcrf_farm_url();   // farm website from Settings (Farm OS Phase 0)
     $tok     = rawurlencode((string)$booking['token']);
 
     return stripe_api('POST', 'checkout/sessions', [

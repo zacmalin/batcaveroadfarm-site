@@ -4,6 +4,8 @@
 // Do not add any executable code here — functions only.
 
 if (function_exists('bcf_email_header')) return; // prevent double-definition
+// Farm values (name, sender addresses) come from includes/farm.php (Farm OS Phase 0, Nov 5, 2026).
+if (is_file(dirname(__DIR__, 2) . '/includes/farm.php')) require_once dirname(__DIR__, 2) . '/includes/farm.php';
 
 // ── EMAIL TEMPLATE ───────────────────────────────────────────────────────────
 // Fully inlined from batcaveroadfarm.com/css/min.style.css
@@ -215,7 +217,10 @@ function bcf_phpmailer_ready(): bool {
  * Send one branded HTML+plaintext email. Single sender for the whole site.
  * Uses authenticated SMTP when configured (far better deliverability), and
  * falls back to PHP mail() otherwise — so dependency-free callers still work.
- * $opts: subtitle, unsubscribe (bool), from_name, from_email, reply_to, text, list_unsubscribe.
+ * $opts: subtitle, unsubscribe (bool), from_name, from_email, reply_to, text, list_unsubscribe,
+ *        transport ('auto' = SMTP when set up, else mail(); 'mail' = always mail(), for bulk sends),
+ *        headers (extra header lines, e.g. ['Precedence: bulk']).
+ * This is the email adapter (Farm OS Phase 0): every email the site sends goes through here.
  */
 function bcf_send_mail(string $to, string $subject, string $innerHtml, array $opts = []): bool {
     // Optional (Jobs pack P3): 'cc' => [emails], 'attachments' => [[content, filename, mime]].
@@ -225,8 +230,10 @@ function bcf_send_mail(string $to, string $subject, string $innerHtml, array $op
     $attach      = (array)($opts['attachments'] ?? []);
     $subtitle    = $opts['subtitle']    ?? '';
     $unsubscribe = !empty($opts['unsubscribe']);
-    $fromName    = $opts['from_name']   ?? 'Bat Cave Road Farm';
-    $fromEmail   = $opts['from_email']  ?? 'no-reply@batcaveroadfarm.com';
+    $fromName    = $opts['from_name']   ?? (function_exists('bcrf_farm_name') ? bcrf_farm_name() : 'Bat Cave Road Farm');
+    $fromEmail   = $opts['from_email']  ?? (function_exists('bcrf_farm_email') ? bcrf_farm_email('noreply') : 'no-reply@batcaveroadfarm.com');
+    $supportTo   = function_exists('bcrf_farm_email') ? bcrf_farm_email('support') : 'support@batcaveroadfarm.com';
+    $extraHdrs   = array_values(array_filter(array_map('trim', (array)($opts['headers'] ?? [])), fn($h) => $h !== '' && !preg_match('/[\r\n]/', $h)));
     $replyTo     = $opts['reply_to']    ?? $fromEmail;
 
     // Optional GA campaign tags on links to our site: 'utm_campaign' => 'job-alert' (+ 'utm_source', default 'email')
@@ -252,7 +259,7 @@ function bcf_send_mail(string $to, string $subject, string $innerHtml, array $op
             str_replace(['<br>', '<br/>', '<br />', '</p>', '</div>', '</h1>', '</h2>'], "\n", $innerHtml)), ENT_QUOTES)));
 
     // ── Preferred path: authenticated SMTP via PHPMailer (best deliverability) ──
-    if (bcf_smtp_available() && bcf_phpmailer_ready()) {
+    if (($opts['transport'] ?? 'auto') !== 'mail' && bcf_smtp_available() && bcf_phpmailer_ready()) {
         try {
             $m = new \PHPMailer\PHPMailer\PHPMailer(true);
             $m->isSMTP();
@@ -269,9 +276,10 @@ function bcf_send_mail(string $to, string $subject, string $innerHtml, array $op
             foreach ($attach as $att) { $m->addStringAttachment((string)$att[0], (string)$att[1], 'base64', (string)($att[2] ?? 'application/octet-stream')); }
             if ($replyTo !== '') { $m->addReplyTo($replyTo); }
             if ($unsubUrl !== '') {
-                $m->addCustomHeader('List-Unsubscribe', '<' . $unsubUrl . '>, <mailto:support@batcaveroadfarm.com?subject=unsubscribe>');
+                $m->addCustomHeader('List-Unsubscribe', '<' . $unsubUrl . '>, <mailto:' . $supportTo . '?subject=unsubscribe>');
                 if ($oneClick) $m->addCustomHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
             }
+            foreach ($extraHdrs as $hl) { [$hn, $hv] = array_map('trim', explode(':', $hl, 2) + [1 => '']); if ($hn !== '') $m->addCustomHeader($hn, $hv); }
             $m->Subject = $subject;
             $m->isHTML(true);
             $m->Body    = $html;
@@ -308,9 +316,10 @@ function bcf_send_mail(string $to, string $subject, string $innerHtml, array $op
     if ($cc) $headers .= 'Cc: ' . implode(', ', $cc) . "\r\n";
     $headers .= 'Reply-To: ' . $replyTo . "\r\n";
     if ($unsubUrl !== '') {
-        $headers .= 'List-Unsubscribe: <' . $unsubUrl . ">, <mailto:support@batcaveroadfarm.com?subject=unsubscribe>\r\n";
+        $headers .= 'List-Unsubscribe: <' . $unsubUrl . '>, <mailto:' . $supportTo . "?subject=unsubscribe>\r\n";
         if ($oneClick) $headers .= "List-Unsubscribe-Post: List-Unsubscribe=One-Click\r\n";
     }
+    foreach ($extraHdrs as $hl) $headers .= $hl . "\r\n";
     $headers .= "MIME-Version: 1.0\r\n";
     $headers .= 'Content-Type: ' . $ctype . "\r\n";
 

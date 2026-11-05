@@ -50,8 +50,9 @@ date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'Am
 
 // ── Tunables ──
 const NL_BATCH       = 40;                              // recipients per run (stay under host limits)
-const NL_FROM_EMAIL  = 'support@batcaveroadfarm.com';
-const NL_FROM_NAME   = 'Bat Cave Road Farm';
+require_once dirname(__DIR__, 2) . '/includes/farm.php';   // farm values (Farm OS Phase 0)
+define('NL_FROM_EMAIL', bcrf_farm_email('support'));
+define('NL_FROM_NAME',  bcrf_farm_name());
 const NL_SITE        = 'https://batcaveroadfarm.com';
 
 function nl_log($m) { echo $m . "\n"; }
@@ -112,32 +113,26 @@ try {
         $content .= '<h1 style="font-family:Rye,Georgia,serif;color:#e8b84b;font-size:24px;line-height:1.25;margin:0 0 14px;">' . htmlspecialchars($post['title']) . '</h1>';
         $content .= '<p style="font-family:Lora,Georgia,serif;color:#f5ead6;font-size:16px;line-height:1.7;margin:0 0 24px;">' . htmlspecialchars($excerpt) . '</p>';
         $content .= '<p style="margin:0;"><a href="' . htmlspecialchars($url, ENT_QUOTES) . '" style="display:inline-block;background:#c9923a;color:#3b2010;font-family:Lora,Georgia,serif;font-weight:bold;text-decoration:none;padding:13px 28px;border-radius:8px;">Read the full post &#8594;</a></p>';
-        if (!function_exists('bcrf_utm_html')) require_once __DIR__ . '/../../includes/ga.php';
-        $html = bcrf_utm_html(bcf_email_header() . $content, 'newsletter', 'email', 'new-post-' . $post['title']) . bcf_email_footer();   // GA campaign tags
-        // Tokenize the template's own built-in unsubscribe link (one-click, per recipient)
-        $html = str_replace('https://batcaveroadfarm.com/unsubscribe.php', htmlspecialchars($unsub, ENT_QUOTES), $html);
-
         // Plain-text alternative
+        if (!function_exists('bcrf_utm_url')) require_once __DIR__ . '/../../includes/ga.php';
         $text = $post['title'] . "\n\n" . $excerpt . "\n\nRead it here: " . bcrf_utm_url($url, 'newsletter', 'email', 'new-post-' . $post['title'])
-              . "\n\n---\nYou joined the Bat Cave Road Farm mailing list. Unsubscribe: " . $unsub . "\n";
+              . "\n\n---\nYou joined the " . NL_FROM_NAME . " mailing list. Unsubscribe: " . $unsub . "\n";
 
-        // MIME multipart/alternative
-        $boundary = 'bcrf_' . bin2hex(random_bytes(8));
-        $body  = "--$boundary\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n" . $text . "\r\n";
-        $body .= "--$boundary\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n" . $html . "\r\n";
-        $body .= "--$boundary--";
-
-        $headers  = 'From: ' . NL_FROM_NAME . ' <' . NL_FROM_EMAIL . ">\r\n";
-        $headers .= 'Reply-To: ' . NL_FROM_EMAIL . "\r\n";
-        $headers .= 'MIME-Version: 1.0' . "\r\n";
-        $headers .= 'Content-Type: multipart/alternative; boundary="' . $boundary . '"' . "\r\n";
-        $headers .= 'List-Unsubscribe: <' . $unsub . '>, <mailto:' . NL_FROM_EMAIL . '?subject=unsubscribe>' . "\r\n";
-        $headers .= 'List-Unsubscribe-Post: List-Unsubscribe=One-Click' . "\r\n";
-        $headers .= 'Precedence: bulk' . "\r\n";
-        $headers .= 'Message-ID: <' . $boundary . '@batcaveroadfarm.com>' . "\r\n";
-        $headers .= 'Date: ' . date('r') . "\r\n";
-
-        $ok = @mail($email, $subject, $body, $headers, '-f' . NL_FROM_EMAIL);
+        // Email adapter (Farm OS Phase 0): same template, per-recipient one-click unsubscribe and GA tags as
+        // before. Bulk sends stay on PHP mail() (transport 'mail') so they don't count against the SMTP limit.
+        $ok = bcf_send_mail($email, $subject, $content, [
+            'subtitle'         => 'Newsletter',
+            'from_name'        => NL_FROM_NAME,
+            'from_email'       => NL_FROM_EMAIL,
+            'reply_to'         => NL_FROM_EMAIL,
+            'unsubscribe'      => true,
+            'list_unsubscribe' => $unsub,
+            'text'             => $text,
+            'utm_source'       => 'newsletter',
+            'utm_campaign'     => 'new-post-' . $post['title'],
+            'transport'        => 'mail',
+            'headers'          => ['Precedence: bulk', 'Message-ID: <' . bin2hex(random_bytes(8)) . '@' . bcrf_farm_domain() . '>'],
+        ]);
         $logIns->execute([$pid, $email]); // log regardless to avoid retry-spamming a bad address
         if ($ok) $sent++;
         usleep(120000); // ~0.12s between sends, gentle on the mail queue

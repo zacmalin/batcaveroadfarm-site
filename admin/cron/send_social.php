@@ -47,53 +47,25 @@ function social_log($m) { echo $m . "\n"; }
 
 // ── Config / credentials ──
 require_once dirname($bcrf_cfg) . '/includes/gbp.php';
-$FB_OK  = defined('FB_PAGE_ID') && defined('FB_PAGE_TOKEN') && FB_PAGE_ID !== '' && FB_PAGE_TOKEN !== '';
+require_once dirname($bcrf_cfg) . '/includes/adapter_meta.php';   // Meta adapter (Farm OS Phase 0)
+require_once dirname($bcrf_cfg) . '/includes/farm.php';
+$FB_OK  = bcrf_meta_ready();
 gbp_schema($pdo);            // adds social_queue.gbp_caption / gbp_post_id if missing (the UPDATE below uses them)
 $GBP_OK = gbp_ready($pdo);
 if (!$FB_OK && !$GBP_OK) {
     social_log('send_social: neither Facebook (FB_PAGE_ID / FB_PAGE_TOKEN) nor Google Business Profile is configured. Nothing sent.');
     exit(0);
 }
-$GRAPH   = 'https://graph.facebook.com/' . (defined('BCRF_GRAPH_VERSION') ? BCRF_GRAPH_VERSION : 'v23.0');
-$IG_ID   = (defined('IG_USER_ID') && IG_USER_ID !== '') ? IG_USER_ID : null;
-$BASEURL = defined('BCRF_SOCIAL_BASE_URL') ? BCRF_SOCIAL_BASE_URL : 'https://batcaveroadfarm.com';
+$GRAPH   = bcrf_meta_graph_base();
+$IG_ID   = bcrf_meta_ig_user();
+$BASEURL = bcrf_farm_url();
 
-// ── HTTP helpers (cURL first, file_get_contents fallback for Bluehost) ──
+// ── HTTP: the Meta adapter (includes/adapter_meta.php → adapter_http.php, which has the Bluehost fallback) ──
 function social_http(string $method, string $url, array $fields = []): array {
-    $body = '';
-    $code = 0;
-    if (function_exists('curl_init')) {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 45);
-        if ($method === 'POST') {
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($fields));
-        }
-        $body = (string)curl_exec($ch);
-        $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        if ($body === '' && curl_errno($ch)) { $body = json_encode(['error' => ['message' => curl_error($ch)]]); }
-        curl_close($ch);
-    } else {
-        $ctx = ['http' => [
-            'method'  => $method,
-            'timeout' => 45,
-            'ignore_errors' => true,
-            'header'  => "Content-Type: application/x-www-form-urlencoded\r\n",
-        ]];
-        if ($method === 'POST') { $ctx['http']['content'] = http_build_query($fields); }
-        $body = (string)@file_get_contents($url, false, stream_context_create($ctx));
-        // PHP 8.5: $http_response_header is deprecated; use the new function when present (fix pack O).
-        $rh = function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? []);
-        if (isset($rh[0]) && preg_match('/\s(\d{3})\s/', $rh[0], $m)) { $code = (int)$m[1]; }
-    }
-    $json = json_decode($body, true);
-    return ['code' => $code, 'json' => is_array($json) ? $json : [], 'raw' => $body];
+    return bcrf_meta_request($method, $url, $fields, 45);
 }
 function social_err(array $r): string {
-    if (!empty($r['json']['error']['message'])) return $r['json']['error']['message'];
-    return 'HTTP ' . $r['code'] . ' ' . substr($r['raw'], 0, 200);
+    return bcrf_meta_error($r);
 }
 
 // ── Resolve a record's public image URL + permalink (mirrors recipe_detail logic) ──

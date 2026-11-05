@@ -202,9 +202,14 @@ function _booking_from(): array {
     return [$name, $email];
 }
 
-/** Send one branded HTML+text email via mail(); returns bool. */
+/** Send one branded HTML+text email; returns bool.
+ *  Goes through the email adapter (bcf_send_mail: SMTP when set up) since Farm OS Phase 0; the mail()
+ *  code below only runs if admin/includes/email_template.php is missing. */
 function _booking_mail(string $to, string $subject, string $innerHtml): bool {
     [$fromName, $fromEmail] = _booking_from();
+    if (function_exists('bcf_send_mail')) {
+        return bcf_send_mail($to, $subject, $innerHtml, ['from_name' => $fromName, 'from_email' => $fromEmail, 'subtitle' => '']);
+    }
     $html = (function_exists('bcf_email_header') ? bcf_email_header() : '<div style="font-family:Georgia,serif;color:#3b2010;">')
           . $innerHtml
           . (function_exists('bcf_email_footer') ? bcf_email_footer() : '</div>');

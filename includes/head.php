@@ -68,7 +68,10 @@ require_once __DIR__ . '/ga.php';   // GA4: staff visits tagged internal, queued
         <?php endif; ?>
         <meta property="og:image:alt"   content="<?php echo isset($ogImageAlt) && $ogImageAlt !== '' ? htmlspecialchars($ogImageAlt) : 'Bat Cave Road Farm — Petting Zoo, Farmstand, and Thrift Shop in Old Fort, NC'; ?>">
         <meta property="og:locale"      content="en_US">
-        <meta property="fb:app_id"      content="4401281856803313"><!-- BCRF Meta app (same ID as the auto-share pipeline); public, not a secret -->
+        <?php if (!function_exists('bcrf_farm')) require_once __DIR__ . '/farm.php';
+              if (($bcrfFbApp = bcrf_farm('meta_app_id')) !== ''): ?>
+        <meta property="fb:app_id"      content="<?= htmlspecialchars($bcrfFbApp, ENT_QUOTES) ?>"><!-- Meta app ID from Settings (Farm OS Phase 0); public, not a secret -->
+        <?php endif; ?>
         
         <!-- Twitter / X Card -->
         <meta name="twitter:card"        content="summary_large_image">

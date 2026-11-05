@@ -11,10 +11,12 @@ if (!function_exists('bcf_send_mail')) require_once __DIR__ . '/../../admin/incl
 
 if (!function_exists('jobs_mail_send')) {
 
-    if (!defined('JOBS_FROM_EMAIL'))   define('JOBS_FROM_EMAIL', 'support@batcaveroadfarm.com');
-    if (!defined('JOBS_REPLY_TO'))     define('JOBS_REPLY_TO', 'jobs@batcaveroadfarm.com');
-    /** Where "New applicant" alerts go (Zac). Change here if you want a different inbox. */
-    if (!defined('JOBS_NOTIFY_EMAIL')) define('JOBS_NOTIFY_EMAIL', 'jobs@batcaveroadfarm.com');
+    // Sender and inboxes come from Settings → Hours & Contacts → Website & email (Farm OS Phase 0).
+    require_once __DIR__ . '/../farm.php';
+    if (!defined('JOBS_FROM_EMAIL'))   define('JOBS_FROM_EMAIL', bcrf_farm_email('support'));
+    if (!defined('JOBS_REPLY_TO'))     define('JOBS_REPLY_TO', bcrf_farm_email('jobs'));
+    /** Where "New applicant" alerts go: the jobs email. */
+    if (!defined('JOBS_NOTIFY_EMAIL')) define('JOBS_NOTIFY_EMAIL', bcrf_farm_email('jobs'));
 
     /** Admin link to one application. (Until the pipeline screen ships, opens the job's application list.) */
     function jobs_admin_app_url(array $app): string
