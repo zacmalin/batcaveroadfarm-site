@@ -177,21 +177,12 @@ function booking_fmt_date(string $d): string { $ts = strtotime($d); return $ts ?
  * tickets are good any open day. An undated ticket is stored with booking_date =
  * purchase date (so sales reports still group it) and date_flexible = 1, which
  * reminder/review-request crons skip and every "When" line shows as "Any day".
- * The column is added on first use, like admin/includes/schema_safety.php does.
+ * The column is part of migration 0001_baseline.
  */
 function booking_ensure_flexible_col(PDO $pdo): bool {
-    static $ok = null;
-    if ($ok !== null) return $ok;
-    try {
-        if (!$pdo->query("SHOW COLUMNS FROM bookings LIKE 'date_flexible'")->fetch()) {
-            $pdo->exec("ALTER TABLE bookings ADD COLUMN date_flexible TINYINT(1) NOT NULL DEFAULT 0");
-        }
-        $ok = true;
-    } catch (Throwable $e) {
-        error_log('[BCRF booking] date_flexible column: ' . $e->getMessage());
-        $ok = false;
-    }
-    return $ok;
+    // bookings.date_flexible is in migration 0001_baseline (Farm OS Phase 0, Nov 5, 2026);
+    // it is no longer added on first use. Kept so existing callers don't change.
+    return true;
 }
 /** Visit date for display: "Any day we're open" for undated tickets, else the formatted date. */
 function booking_fmt_visit_date(array $b): string {
