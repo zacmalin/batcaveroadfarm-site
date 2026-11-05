@@ -55,10 +55,14 @@ if (!function_exists('_si_done')) {
             ->execute([$key, $val]);
     }
     // Cloudflare purge — only fires if a token + zone are configured; silent no-op otherwise.
+    // Purges right away so the change shows at once; if Cloudflare doesn't answer, the job queue retries
+    // (includes/queue.php). Also records a site_info.changed event (Farm OS Phase 0).
     function _si_cf_purge(): void {
         // Cloudflare adapter (Farm OS Phase 0): includes/adapter_cloudflare.php; no-op without credentials
         require_once __DIR__ . '/../../includes/adapter_cloudflare.php';
-        bcrf_cdn_purge();
+        require_once __DIR__ . '/../../includes/queue.php';
+        bcrf_event('site_info.changed', 'site_settings', (string)($GLOBALS['action'] ?? ''));
+        if (!bcrf_cdn_purge()) bcrf_queue_push('cdn.purge', [], ['dedupe' => 'cdn.purge:all']);
     }
     // One (scope,day) row from posted day data; incomplete times collapse to closed.
     function _si_write_day(PDO $pdo, string $scope, int $day, array $row): void {

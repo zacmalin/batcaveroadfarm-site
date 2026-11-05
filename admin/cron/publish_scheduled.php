@@ -22,6 +22,7 @@ define('CRON_ALLOWED', true);
 require_once dirname(__DIR__, 2) . '/config.php';
 require_once dirname(__DIR__) . '/includes/audit.php';   // fix pack O: audit log
 require_once dirname(__DIR__, 2) . '/includes/cron_health.php';
+require_once dirname(__DIR__, 2) . '/includes/queue.php';   // content.published events (Farm OS Phase 0)
 bcrf_cron_begin('publish_scheduled');   // heartbeat for the admin System Health page
 
 $now = date('Y-m-d H:i:s');
@@ -54,6 +55,7 @@ try {
             if ($upd->rowCount() > 0) {
                 $published++;
                 erp_audit($pdo, 'update', 'blog_posts', (int)$post['id'], 'Published on schedule: ' . $post['title'], 'Scheduler');
+                bcrf_event('content.published', 'blog_posts', (int)$post['id'], ['title' => (string)$post['title'], 'how' => 'schedule']);
                 echo "[{$now}] Published: #{$post['id']} — {$post['title']}\n";
             }
         } catch (Throwable $e) {

@@ -19,6 +19,7 @@ if (!function_exists('bcrf_cron_jobs')) {
 function bcrf_cron_jobs(): array {
     // Schedules match cPanel → Cron Jobs as of Nov 4, 2026.
     return [
+        'run'                    => ['Farm OS runner (job queue)', 20,          'every 5 minutes'],   // admin/cron/run.php (Phase 0)
         'publish_scheduled'      => ['Scheduled blog posts',       60,          'every 15 minutes'],
         'send_social'            => ['Facebook & Instagram posts', 60,          'every 17 minutes'],
         'send_newsletter'        => ['Newsletter sending',         90,          'every 20 minutes'],
@@ -33,19 +34,8 @@ function bcrf_cron_jobs(): array {
     ];
 }
 
+/** The cron_runs table comes from migration 0001 (Farm OS Phase 0), so this no longer changes the database. */
 function bcrf_cron_schema(PDO $pdo): void {
-    static $done = false;
-    if ($done) return;
-    $pdo->exec("CREATE TABLE IF NOT EXISTS cron_runs (
-        job          VARCHAR(60)  NOT NULL PRIMARY KEY,
-        last_start   DATETIME     NULL,   -- UTC
-        last_ok      DATETIME     NULL,
-        last_fail    DATETIME     NULL,
-        last_message VARCHAR(500) NULL,
-        last_ms      INT          NULL,
-        fails_in_row INT          NOT NULL DEFAULT 0
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $done = true;
 }
 
 /** Start recording this run. Safe to call when the DB is down (does nothing). */
