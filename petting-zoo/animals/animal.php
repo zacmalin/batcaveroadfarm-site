@@ -1,4 +1,5 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 require_once '../../config.php';
 
 if (!function_exists('bcrfAgeLabel')) {
@@ -50,8 +51,8 @@ if (!$animal) {
     http_response_code(404);
     $pageTitle    = "Animal Not Found - Bat Cave Road Farm";
     $metaDesc     = "We couldn't find that animal.";
-    $canonicalUrl = "https://batcaveroadfarm.com/petting-zoo/";
-    $pageCSS      = "https://batcaveroadfarm.com/css/min.pettingzoo.css";
+    $canonicalUrl = (bcrf_farm_url() . "/petting-zoo/");
+    $pageCSS      = (bcrf_farm_url() . "/css/min.pettingzoo.css");
     require_once '../../includes/head.php';
     require_once '../../includes/header.php';
     ?>
@@ -95,15 +96,15 @@ $pageTitle    = $name . " - Petting Zoo - Bat Cave Road Farm";
 $metaDesc     = $tagline !== ''
     ? "Meet " . $name . " — " . $tagline . " — at the Bat Cave Road Farm petting zoo in Old Fort, NC."
     : "Meet " . $name . ($breedName !== '' ? ", one of our " . $breedName : "") . " at the Bat Cave Road Farm petting zoo in Old Fort, NC.";
-$canonicalUrl = "https://batcaveroadfarm.com/petting-zoo/animals/" . (int)$animal['id'] . "/" . createSlug($name) . "/";
+$canonicalUrl = (bcrf_farm_url() . "/petting-zoo/animals/") . (int)$animal['id'] . "/" . createSlug($name) . "/";
 // Social card image must be an absolute URL; the photo's real size isn't 1200x630, so don't claim it.
-$ogImage      = $img !== '' ? (preg_match('#^https?://#i', $img) ? $img : 'https://batcaveroadfarm.com' . $img)
-                            : "https://batcaveroadfarm.com/img/og-pettingzoo.jpg";
+$ogImage      = $img !== '' ? (preg_match('#^https?://#i', $img) ? $img : (bcrf_farm_url()) . $img)
+                            : (bcrf_farm_url() . "/img/og-pettingzoo.jpg");
 if ($img !== '') { $ogImageNoSize = true; }
 $ogImageAlt   = $imgAlt;
-$pageCSS      = "https://batcaveroadfarm.com/css/min.pettingzoo.css";
+$pageCSS      = (bcrf_farm_url() . "/css/min.pettingzoo.css");
 if ($img !== '') { $preloadImage = $img; }
-$pageJS       = ["https://batcaveroadfarm.com/js/min.lightbox.js", "https://batcaveroadfarm.com/js/min.share.js"];
+$pageJS       = [(bcrf_farm_url() . "/js/min.lightbox.js"), (bcrf_farm_url() . "/js/min.share.js")];
 
 // ---- Share controls (Web Share API + Facebook / X / email / copy) ----
 $svgShare = [

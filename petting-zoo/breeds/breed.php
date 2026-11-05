@@ -1,4 +1,5 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 require_once '../../config.php';
 
 if (!function_exists('bcrfAgeLabel')) {
@@ -33,8 +34,8 @@ if (!$breed) {
     http_response_code(404);
     $pageTitle    = "Breed Not Found - Bat Cave Road Farm";
     $metaDesc     = "We couldn't find that breed.";
-    $canonicalUrl = "https://batcaveroadfarm.com/petting-zoo/";
-    $pageCSS      = "https://batcaveroadfarm.com/css/min.pettingzoo.css";
+    $canonicalUrl = (bcrf_farm_url() . "/petting-zoo/");
+    $pageCSS      = (bcrf_farm_url() . "/css/min.pettingzoo.css");
     require_once '../../includes/head.php';
     require_once '../../includes/header.php';
     ?>
@@ -82,9 +83,9 @@ $breadcrumbs = [
 ];
 $pageTitle    = "Meet Our " . $breedName . " - Bat Cave Road Farm";
 $metaDesc     = mb_strimwidth(trim(strip_tags((string)($breed['description'] ?? ''))) ?: ("Meet our " . $breedName . " at the Bat Cave Road Farm petting zoo in Old Fort, NC."), 0, 155, '…');
-$canonicalUrl = "https://batcaveroadfarm.com/petting-zoo/breeds/" . (int)$breed['id'] . "/" . $breedSlug . "/";
-$ogImage      = !empty($breed['image_url']) ? $breed['image_url'] : "https://batcaveroadfarm.com/img/og-pettingzoo.jpg";
-$pageCSS      = "https://batcaveroadfarm.com/css/min.pettingzoo.css";
+$canonicalUrl = (bcrf_farm_url() . "/petting-zoo/breeds/") . (int)$breed['id'] . "/" . $breedSlug . "/";
+$ogImage      = !empty($breed['image_url']) ? $breed['image_url'] : (bcrf_farm_url() . "/img/og-pettingzoo.jpg");
+$pageCSS      = (bcrf_farm_url() . "/css/min.pettingzoo.css");
 
 require_once '../../includes/head.php';
 require_once '../../includes/header.php';

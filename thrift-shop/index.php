@@ -1,12 +1,13 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 	require_once '../config.php';
 	$pageTitle = "Thrift Shop - Bat Cave Road Farm";
 	$metaDesc = "Vintage clothing, cast iron, depression glass, vinyl records, antiques, and estate finds at Bat Cave Road Farm's thrift shop in Old Fort, NC.";
-	$canonicalUrl = "https://batcaveroadfarm.com/thrift-shop/";
-	$ogImage = "https://batcaveroadfarm.com/img/og-thriftshop.jpg";
-	$pageCSS = "https://batcaveroadfarm.com/css/min.farmstand.css";
-	$pageJS = "https://batcaveroadfarm.com/js/min.comingsoon.js";
-	$preloadImage = "https://batcaveroadfarm.com/img/thrift1.webp"; // hero photo = mobile LCP (Nov 3 perf fix)
+	$canonicalUrl = (bcrf_farm_url() . "/thrift-shop/");
+	$ogImage = (bcrf_farm_url() . "/img/og-thriftshop.jpg");
+	$pageCSS = (bcrf_farm_url() . "/css/min.farmstand.css");
+	$pageJS = (bcrf_farm_url() . "/js/min.comingsoon.js");
+	$preloadImage = (bcrf_farm_url() . "/img/thrift1.webp"); // hero photo = mobile LCP (Nov 3 perf fix)
 	require('../includes/head.php');
 ?>
 
@@ -16,11 +17,11 @@
   "@graph": [
     {
       "@type": "Store",
-      "@id": "https://batcaveroadfarm.com/thrift-shop/#thriftshop",
+      "@id": "<?= bcrf_farm_url() ?>/thrift-shop/#thriftshop",
       "name": "Bat Cave Road Farm — Thrift Shop & Antiques",
-      "url": "https://batcaveroadfarm.com/thrift-shop/",
+      "url": "<?= bcrf_farm_url() ?>/thrift-shop/",
       "description": "On-farm thrift shop and antique resale store in Old Fort, NC carrying vintage kitchenware, antique furniture, lamps, clocks, collectibles, estate items, books, toys, and clothing. New inventory arrives weekly from local estates and community donations. Near Asheville, Western North Carolina.",
-      "image": "https://batcaveroadfarm.com/img/og-thriftshop.jpg",
+      "image": "<?= bcrf_farm_url() ?>/img/og-thriftshop.jpg",
       "telephone": <?= json_encode(function_exists('site_tel') ? site_tel('general') : '+18282165488') ?>,
       "address": <?= json_encode(function_exists('site_schema_address') ? site_schema_address() : ['@type' => 'PostalAddress', 'streetAddress' => '4132 Bat Cave Road', 'addressLocality' => 'Old Fort', 'addressRegion' => 'NC', 'postalCode' => '28762', 'addressCountry' => 'US'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>,
       "geo": <?= json_encode(function_exists('site_schema_geo') ? site_schema_geo() : ['@type' => 'GeoCoordinates', 'latitude' => 35.5785104, 'longitude' => -82.1821418], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>,
@@ -30,7 +31,7 @@
       "isAccessibleForFree": true,
       "keywords": "thrift store, antique shop, vintage, resale, estate sale, secondhand, Old Fort NC, near Asheville",
       "parentOrganization": {
-        "@id": "https://batcaveroadfarm.com/#business"
+        "@id": "<?= bcrf_farm_url() ?>/#business"
       },
       "hasOfferCatalog": {
         "@type": "OfferCatalog",
@@ -62,44 +63,44 @@
     {
       "@type": "ItemList",
       "name": "Current Thrift Shop Inventory Categories — Bat Cave Road Farm",
-      "url": "https://batcaveroadfarm.com/thrift-shop/",
+      "url": "<?= bcrf_farm_url() ?>/thrift-shop/",
       "description": "Rotating inventory of vintage, antique, and secondhand goods at the Bat Cave Road Farm thrift shop in Old Fort, NC. New items from local estates arrive every week.",
       "itemListElement": [
         {
           "@type": "ListItem",
           "position": 1,
           "name": "Antique & Vintage Furniture",
-          "url": "https://batcaveroadfarm.com/thrift-shop/"
+          "url": "<?= bcrf_farm_url() ?>/thrift-shop/"
         },
         {
           "@type": "ListItem",
           "position": 2,
           "name": "Vintage Kitchenware & Cast Iron",
-          "url": "https://batcaveroadfarm.com/thrift-shop/"
+          "url": "<?= bcrf_farm_url() ?>/thrift-shop/"
         },
         {
           "@type": "ListItem",
           "position": 3,
           "name": "Lamps, Clocks & Home Decor",
-          "url": "https://batcaveroadfarm.com/thrift-shop/"
+          "url": "<?= bcrf_farm_url() ?>/thrift-shop/"
         },
         {
           "@type": "ListItem",
           "position": 4,
           "name": "Books, Toys & Games",
-          "url": "https://batcaveroadfarm.com/thrift-shop/"
+          "url": "<?= bcrf_farm_url() ?>/thrift-shop/"
         },
         {
           "@type": "ListItem",
           "position": 5,
           "name": "Clothing & Accessories",
-          "url": "https://batcaveroadfarm.com/thrift-shop/"
+          "url": "<?= bcrf_farm_url() ?>/thrift-shop/"
         },
         {
           "@type": "ListItem",
           "position": 6,
           "name": "Collectibles & Estate Curiosities",
-          "url": "https://batcaveroadfarm.com/thrift-shop/"
+          "url": "<?= bcrf_farm_url() ?>/thrift-shop/"
         }
       ]
     }
@@ -115,7 +116,7 @@
           
         <div id="comingsoon">
         <img id="floating-img"
-             src="https://batcaveroadfarm.com/img/comingsoon.png"
+             src="<?= bcrf_farm_url() ?>/img/comingsoon.png"
              alt="Coming soon"
              width="428" height="323" decoding="async" loading="lazy">
         </div>        <!-- ─── FLOATING IMAGE ─── -->
@@ -135,7 +136,7 @@
             <div class="card-grid">
               <div class="card reveal">
                 <div class="card-img-placeholder">
-                    <img class="boximg" src="https://batcaveroadfarm.com/img/kitchenware.webp" alt="Vintage kitchenware estate finds at Bat Cave Road Farm thrift shop — antique cast iron skillets, Atlas mason jars, depression glass plates, stoneware crocks, and floral teapots on rustic wooden shelves in Old Fort, NC" width="500" height="500" decoding="async" loading="lazy">
+                    <img class="boximg" src="<?= bcrf_farm_url() ?>/img/kitchenware.webp" alt="Vintage kitchenware estate finds at Bat Cave Road Farm thrift shop — antique cast iron skillets, Atlas mason jars, depression glass plates, stoneware crocks, and floral teapots on rustic wooden shelves in Old Fort, NC" width="500" height="500" decoding="async" loading="lazy">
                 </div>
                 <div class="card-body">
                   <h3 class="card-title">Vintage Kitchenware</h3>
@@ -144,7 +145,7 @@
               </div>
               <div class="card reveal">
                 <div class="card-img-placeholder">
-                    <img class="boximg" src="https://batcaveroadfarm.com/img/books.webp" alt="Antique books and paper collection for sale at Bat Cave Road Farm thrift shop — out-of-print volumes, vintage cookbooks, old dictionaries, children's books, and handwritten recipe cards on rustic shelves in Old Fort, NC" width="500" height="500" decoding="async" loading="lazy">
+                    <img class="boximg" src="<?= bcrf_farm_url() ?>/img/books.webp" alt="Antique books and paper collection for sale at Bat Cave Road Farm thrift shop — out-of-print volumes, vintage cookbooks, old dictionaries, children's books, and handwritten recipe cards on rustic shelves in Old Fort, NC" width="500" height="500" decoding="async" loading="lazy">
                 </div>
                 <div class="card-body">
                   <h3 class="card-title">Books & Paper</h3>
@@ -153,7 +154,7 @@
               </div>
               <div class="card reveal">
                 <div class="card-img-placeholder">
-                    <img class="boximg" src="https://batcaveroadfarm.com/img/antique.webp" alt="Antique books and paper collection for sale at Bat Cave Road Farm thrift shop — out-of-print volumes, vintage cookbooks, old dictionaries, children's books, and handwritten recipe cards on rustic shelves in Old Fort, NC" width="500" height="500" decoding="async" loading="lazy">
+                    <img class="boximg" src="<?= bcrf_farm_url() ?>/img/antique.webp" alt="Antique books and paper collection for sale at Bat Cave Road Farm thrift shop — out-of-print volumes, vintage cookbooks, old dictionaries, children's books, and handwritten recipe cards on rustic shelves in Old Fort, NC" width="500" height="500" decoding="async" loading="lazy">
                 </div>
                 <div class="card-body">
                   <h3 class="card-title">Antiques, Curiosities & Artwork</h3>
@@ -209,17 +210,17 @@
 
             <div class="two-col reveal">
               <div class="two-col-img">
-                  <img class="boximg" src="https://batcaveroadfarm.com/img/thrift1.webp" alt="Inside the Bat Cave Road Farm thrift shop in Old Fort, NC — vintage clothing racks, depression glass, cast iron cookware, vinyl records, graphic tees, and antique housewares on hardwood floors with a rustic checkout counter" width="500" height="375" decoding="async" loading="lazy">
+                  <img class="boximg" src="<?= bcrf_farm_url() ?>/img/thrift1.webp" alt="Inside the Bat Cave Road Farm thrift shop in Old Fort, NC — vintage clothing racks, depression glass, cast iron cookware, vinyl records, graphic tees, and antique housewares on hardwood floors with a rustic checkout counter" width="500" height="375" decoding="async" loading="lazy">
               </div>
               <div class="two-col-text">
                 <h3>Donations Welcome</h3>
-                <p>We gladly accept gently used furniture, housewares, clothing, books, and collectibles. Donations go toward saving <a href="https://batcaveroadfarm.com/petting-zoo/">animals</a>. Drop off any open day during shop hours — no appointment needed for small loads. Large furniture donations, please call ahead.</p>
-                <a href="https://batcaveroadfarm.com/contact-us/#contactform" class="cta-btn">Contact Us</a>
+                <p>We gladly accept gently used furniture, housewares, clothing, books, and collectibles. Donations go toward saving <a href="<?= bcrf_farm_url() ?>/petting-zoo/">animals</a>. Drop off any open day during shop hours — no appointment needed for small loads. Large furniture donations, please call ahead.</p>
+                <a href="<?= bcrf_farm_url() ?>/contact-us/#contactform" class="cta-btn">Contact Us</a>
               </div>
             </div>
                              <div class="ctaDiv">
                                     
-                    <a href="https://batcaveroadfarm.com/farm-stand/" class="cta-btn">
+                    <a href="<?= bcrf_farm_url() ?>/farm-stand/" class="cta-btn">
                             Don't leave without checking the farmstand
                     </a>
 

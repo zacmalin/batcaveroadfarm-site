@@ -1,5 +1,6 @@
 <?php
 // tickets/index.php — self-serve day-admission ticket purchase (groups < 6).
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Pricing is driven by inventory items in the 'admissions' category.
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
@@ -9,10 +10,10 @@ require_once __DIR__ . '/../includes/booking.php';
 
 $pageTitle    = 'Buy Tickets — Bat Cave Road Farm';
 $metaDesc     = 'Buy petting zoo day tickets online for Bat Cave Road Farm in Old Fort, NC. For groups of 5 or fewer: pick your date and pay securely.';
-$canonicalUrl = 'https://batcaveroadfarm.com/tickets/';
-$ogImage      = 'https://batcaveroadfarm.com/img/og-pettingzoo.jpg';
-$pageCSS      = 'https://batcaveroadfarm.com/css/min.tickets.css';
-$pageJS       = 'https://batcaveroadfarm.com/js/min.tickets.js';
+$canonicalUrl = (bcrf_farm_url() . '/tickets/');
+$ogImage      = (bcrf_farm_url() . '/img/og-pettingzoo.jpg');
+$pageCSS      = (bcrf_farm_url() . '/css/min.tickets.css');
+$pageJS       = (bcrf_farm_url() . '/js/min.tickets.js');
 require '../includes/head.php';
 include '../includes/header.php';
 
@@ -163,7 +164,7 @@ $errMsg = $errMap[$errKey] ?? '';
             </div>
         </section>
 
-        <p class="purchase-policy">Tickets are <strong>non-refundable</strong> and good for any day we're open, including days when a private event is booked. <a href="https://batcaveroadfarm.com/terms/#purchases">Full policy</a></p>
+        <p class="purchase-policy">Tickets are <strong>non-refundable</strong> and good for any day we're open, including days when a private event is booked. <a href="<?= bcrf_farm_url() ?>/terms/#purchases">Full policy</a></p>
         <?php require_once __DIR__ . '/../includes/nc_warning.php'; echo bcrf_nc_warning_html(true); ?>
         <div class="tickets-actions">
             <button type="submit" id="tickets-submit" class="cta-btn tickets-buy-btn" disabled>

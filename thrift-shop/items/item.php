@@ -1,4 +1,5 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 require_once '../../config.php';
 
 $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
@@ -19,8 +20,8 @@ if (!$item) {
     http_response_code(404);
     $pageTitle    = "Item Not Found - Bat Cave Road Farm";
     $metaDesc     = "This thrift item is no longer available.";
-    $canonicalUrl = "https://batcaveroadfarm.com/thrift-shop/items/";
-    $pageCSS      = "https://batcaveroadfarm.com/css/min.farmstand.css";
+    $canonicalUrl = (bcrf_farm_url() . "/thrift-shop/items/");
+    $pageCSS      = (bcrf_farm_url() . "/css/min.farmstand.css");
     require_once '../../includes/head.php';
     require_once '../../includes/header.php';
     ?>
@@ -52,16 +53,16 @@ if ($img !== '' && !preg_match('#^https?://#i', $img) && $img[0] !== '/') { $img
 $pageTitle    = $name . " - Thrift Shop - Bat Cave Road Farm";
 $metaDesc     = mb_strimwidth(trim(strip_tags($descRaw)) !== '' ? strip_tags($descRaw) : $name, 0, 155, '…');
 $itemSlug     = createSlug($name) ?: 'item';
-$canonicalUrl = "https://batcaveroadfarm.com/thrift-shop/items/" . (int)$itemId . "/" . $itemSlug . "/";
+$canonicalUrl = (bcrf_farm_url() . "/thrift-shop/items/") . (int)$itemId . "/" . $itemSlug . "/";
 $breadcrumbs = [
     ['label' => 'Thrift Shop', 'url' => '/thrift-shop/'],
     ['label' => 'Items', 'url' => '/thrift-shop/items/'],
     ['label' => $name],
 ];
-$ogImage      = !empty($item['image_url']) ? $item['image_url'] : "https://batcaveroadfarm.com/img/og-thriftshop.jpg";
-$pageCSS      = "https://batcaveroadfarm.com/css/min.farmstand.css";
+$ogImage      = !empty($item['image_url']) ? $item['image_url'] : (bcrf_farm_url() . "/img/og-thriftshop.jpg");
+$pageCSS      = (bcrf_farm_url() . "/css/min.farmstand.css");
 if ($img !== '') { $preloadImage = $img; }
-$pageJS       = "https://batcaveroadfarm.com/js/min.lightbox.js";
+$pageJS       = (bcrf_farm_url() . "/js/min.lightbox.js");
 
 require_once '../../includes/head.php';
 require_once '../../includes/header.php';

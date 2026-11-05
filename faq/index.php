@@ -1,11 +1,12 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 	$pageTitle = "FAQ | Bat Cave Road Farm — Old Fort, NC";
 	$metaDesc = "Find answers to common questions about Bat Cave Road Farm — hours, animals, farmstand, thrift shop, and visiting us in Old Fort, NC.";
-	$canonicalUrl = "https://batcaveroadfarm.com/faq/";
-	$ogImage = "https://batcaveroadfarm.com/img/og-faq.jpg";
-	$pageJS = "https://batcaveroadfarm.com/js/min.faq.js";
-	$pageCSS = "https://batcaveroadfarm.com/css/min.faq.css";
-	$preloadImage = "https://batcaveroadfarm.com/img/Faqhero.webp"; // hero photo = mobile LCP (Nov 3 perf fix)
+	$canonicalUrl = (bcrf_farm_url() . "/faq/");
+	$ogImage = (bcrf_farm_url() . "/img/og-faq.jpg");
+	$pageJS = (bcrf_farm_url() . "/js/min.faq.js");
+	$pageCSS = (bcrf_farm_url() . "/css/min.faq.css");
+	$preloadImage = (bcrf_farm_url() . "/img/Faqhero.webp"); // hero photo = mobile LCP (Nov 3 perf fix)
 	include('../includes/head.php');
 ?>
 
@@ -67,7 +68,7 @@
       "name": "Do you host birthday parties or group events?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes! We love hosting birthday parties, school field trips, homeschool groups, and family reunions. We offer group packages that include guided tours, animal feeding sessions, and private barn access for up to 20 guests. Request your date at https://batcaveroadfarm.com/booking/ to check availability."
+        "text": "Yes! We love hosting birthday parties, school field trips, homeschool groups, and family reunions. We offer group packages that include guided tours, animal feeding sessions, and private barn access for up to 20 guests. Request your date at <?= bcrf_farm_url() ?>/booking/ to check availability."
       }
     },
     {
@@ -115,7 +116,7 @@
       "name": "Do you sell annual passes?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes! Bat Cave Road Farm annual passes give you unlimited visits for 12 months. We offer an Individual Pass ($70), a Family Pass for up to 4 guests ($160), and a limited Founding Member pass for up to 6 guests with farmstand discounts and event perks ($275 — only 50 available). Passes can be purchased online at batcaveroadfarm.com/passes or in person during open hours."
+        "text": "Yes! Bat Cave Road Farm annual passes give you unlimited visits for 12 months. We offer an Individual Pass ($70), a Family Pass for up to 4 guests ($160), and a limited Founding Member pass for up to 6 guests with farmstand discounts and event perks ($275 — only 50 available). Passes can be purchased online at <?= bcrf_farm_domain() ?>/passes or in person during open hours."
       }
     },
     {
@@ -123,7 +124,7 @@
       "name": "Can I buy admission tickets online?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes — walk-in tickets for groups of 5 or fewer can be purchased online at batcaveroadfarm.com/tickets. Select the number of adults, children, and little ones under 3, then pick a date. Groups of 6 or more should use the group booking form instead."
+        "text": "Yes — walk-in tickets for groups of 5 or fewer can be purchased online at <?= bcrf_farm_domain() ?>/tickets. Select the number of adults, children, and little ones under 3, then pick a date. Groups of 6 or more should use the group booking form instead."
       }
     },
     {
@@ -131,7 +132,7 @@
       "name": "How do I plan a birthday party or private event at the farm?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "We love hosting private events — birthday parties, school field trips, corporate outings, and full farm buyouts. Fill out our private event inquiry form at batcaveroadfarm.com/private-events and we'll be in touch within 24 hours to discuss your event and put together a custom package. You can also call us at (828) 216-5488."
+        "text": "We love hosting private events — birthday parties, school field trips, corporate outings, and full farm buyouts. Fill out our private event inquiry form at <?= bcrf_farm_domain() ?>/private-events and we'll be in touch within 24 hours to discuss your event and put together a custom package. You can also call us at (828) 216-5488."
       }
     }
   ]
@@ -170,7 +171,7 @@
                         <button class="faq-question">
                             Is there an admission fee to visit the farm? <span class="faq-chevron" aria-hidden="true">▼</span>
                         </button>
-                        <div class="faq-answer">Walking the grounds and shopping at the farmstand and thrift shop is free! The petting zoo has a separate admission fee. See our <a href="https://batcaveroadfarm.com/petting-zoo/">Petting Zoo</a> page for current pricing.</div>
+                        <div class="faq-answer">Walking the grounds and shopping at the farmstand and thrift shop is free! The petting zoo has a separate admission fee. See our <a href="<?= bcrf_farm_url() ?>/petting-zoo/">Petting Zoo</a> page for current pricing.</div>
                     </div>
 
                     <div class="faq-item">
@@ -191,7 +192,7 @@
                         <button class="faq-question">
                             Is the farm accessible for strollers and wheelchairs? <span class="faq-chevron" aria-hidden="true">▼</span>
                         </button>
-                        <div class="faq-answer">Most of our main pathways are accessible and stroller-friendly. Some areas of the farm are on natural terrain which may be uneven. Please <a href="https://batcaveroadfarm.com/contact-us/#contactform">contact us</a> ahead of your visit if you have specific accessibility needs and we'll do our best to accommodate you.</div>
+                        <div class="faq-answer">Most of our main pathways are accessible and stroller-friendly. Some areas of the farm are on natural terrain which may be uneven. Please <a href="<?= bcrf_farm_url() ?>/contact-us/#contactform">contact us</a> ahead of your visit if you have specific accessibility needs and we'll do our best to accommodate you.</div>
                     </div>
 
                     <div class="faq-item">
@@ -234,7 +235,7 @@
                         <button class="faq-question" id="group-events">
                             Do you host birthday parties or group events? <span class="faq-chevron" aria-hidden="true">▼</span>
                         </button>
-                        <div class="faq-answer">Absolutely! We love hosting birthday parties, school field trips, homeschool groups, and family reunions. We offer group packages that include guided tours, animal feeding sessions, and private barn access. <a href="https://batcaveroadfarm.com/booking/">Request your date</a> and we'll confirm availability and pricing — or give us a call.</div>
+                        <div class="faq-answer">Absolutely! We love hosting birthday parties, school field trips, homeschool groups, and family reunions. We offer group packages that include guided tours, animal feeding sessions, and private barn access. <a href="<?= bcrf_farm_url() ?>/booking/">Request your date</a> and we'll confirm availability and pricing — or give us a call.</div>
                     </div>
 
                     <div class="faq-item">
@@ -285,7 +286,7 @@
                         <button class="faq-question">
                             Do you offer a CSA or weekly subscription box? <span class="faq-chevron" aria-hidden="true">▼</span>
                         </button>
-                        <div class="faq-answer">Yes! Our Community Supported Agriculture (CSA) program opens for sign-ups each spring. Members receive a curated weekly box of seasonal produce, baked goods, and pantry items. Boxes can be picked up at the farm. <a href="https://batcaveroadfarm.com/contact-us/#contactform">Contact us</a> to get on the waitlist!</div>
+                        <div class="faq-answer">Yes! Our Community Supported Agriculture (CSA) program opens for sign-ups each spring. Members receive a curated weekly box of seasonal produce, baked goods, and pantry items. Boxes can be picked up at the farm. <a href="<?= bcrf_farm_url() ?>/contact-us/#contactform">Contact us</a> to get on the waitlist!</div>
                     </div>
 
                     <div class="faq-item">
@@ -328,7 +329,7 @@
                         <button class="faq-question">
                             Can I put something on hold? <span class="faq-chevron" aria-hidden="true">▼</span>
                         </button>
-                        <div class="faq-answer">We can hold items for up to 24 hours with a deposit. Give us a call or send a message through our <a href="https://batcaveroadfarm.com/contact-us/#contactform">Contact page</a> and we'll do our best to accommodate you. All sales are final — we do not offer returns or exchanges.</div>
+                        <div class="faq-answer">We can hold items for up to 24 hours with a deposit. Give us a call or send a message through our <a href="<?= bcrf_farm_url() ?>/contact-us/#contactform">Contact page</a> and we'll do our best to accommodate you. All sales are final — we do not offer returns or exchanges.</div>
                     </div>
     
                     <div class="faq-item">
@@ -351,21 +352,21 @@
                         <button class="faq-question">
                             Can I buy admission tickets online? <span class="faq-chevron" aria-hidden="true">▼</span>
                         </button>
-                        <div class="faq-answer">Yes — groups of 5 or fewer can <a href="https://batcaveroadfarm.com/tickets/">purchase day tickets online</a>. Choose the number of adults, children (ages 3–12), and little ones under 3, then pick your visit date. Groups of 6 or more should use our <a href="https://batcaveroadfarm.com/booking/">group booking form</a> to reserve a dedicated time slot.</div>
+                        <div class="faq-answer">Yes — groups of 5 or fewer can <a href="<?= bcrf_farm_url() ?>/tickets/">purchase day tickets online</a>. Choose the number of adults, children (ages 3–12), and little ones under 3, then pick your visit date. Groups of 6 or more should use our <a href="<?= bcrf_farm_url() ?>/booking/">group booking form</a> to reserve a dedicated time slot.</div>
                     </div>
 
                     <div class="faq-item">
                         <button class="faq-question">
                             Do you sell annual passes? <span class="faq-chevron" aria-hidden="true">▼</span>
                         </button>
-                        <div class="faq-answer">Yes! Annual passes give you unlimited visits for 12 months. We offer three tiers: <strong>Individual ($70)</strong>, <strong>Family — up to 4 guests ($160)</strong>, and a limited <strong>Founding Member — up to 6 guests ($275)</strong>, which includes a 10% farmstand discount, priority event access, and your name on our Founders Wall. Only 50 Founding Member passes will ever be sold. <a href="https://batcaveroadfarm.com/passes/">Buy your pass online</a> or in person during open hours.</div>
+                        <div class="faq-answer">Yes! Annual passes give you unlimited visits for 12 months. We offer three tiers: <strong>Individual ($70)</strong>, <strong>Family — up to 4 guests ($160)</strong>, and a limited <strong>Founding Member — up to 6 guests ($275)</strong>, which includes a 10% farmstand discount, priority event access, and your name on our Founders Wall. Only 50 Founding Member passes will ever be sold. <a href="<?= bcrf_farm_url() ?>/passes/">Buy your pass online</a> or in person during open hours.</div>
                     </div>
 
                     <div class="faq-item">
                         <button class="faq-question">
                             How do I plan a birthday party or private event? <span class="faq-chevron" aria-hidden="true">▼</span>
                         </button>
-                        <div class="faq-answer">We love hosting private events — birthday parties, school field trips, corporate outings, and full farm buyouts. Fill out our <a href="https://batcaveroadfarm.com/private-events/">private event inquiry form</a> and we'll be in touch within 24 hours to put together a custom package. For urgent requests call us at <a href="tel:+18282165488">(828) 216-5488</a>.</div>
+                        <div class="faq-answer">We love hosting private events — birthday parties, school field trips, corporate outings, and full farm buyouts. Fill out our <a href="<?= bcrf_farm_url() ?>/private-events/">private event inquiry form</a> and we'll be in touch within 24 hours to put together a custom package. For urgent requests call us at <a href="tel:+18282165488">(828) 216-5488</a>.</div>
                     </div>
 
             </div>
@@ -375,7 +376,7 @@
         <div class="feature-band reveal">
             <h2><span aria-hidden="true">🌿</span> Still Have Questions?</h2>
             <p>We're always happy to help. Give us a call, send us a message, or just stop by — there's always someone around the farm who can point you in the right direction.</p>
-            <a href="https://batcaveroadfarm.com/contact-us/#contactform" class="cta-btn">Contact Us</a>
+            <a href="<?= bcrf_farm_url() ?>/contact-us/#contactform" class="cta-btn">Contact Us</a>
         </div>
 
     </div>

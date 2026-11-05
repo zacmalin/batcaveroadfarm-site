@@ -26,19 +26,17 @@ function bcrf_farm_keys(): array {
 /** One farm value: Settings → tenant config → fallback. */
 function bcrf_farm(string $key): string {
     static $settings = null;
-    if ($settings === null) {
+    global $pdo;
+    if ($settings === null && $pdo instanceof PDO) {   // read once, but not before the database is connected
         $settings = [];
-        global $pdo;
         try {
-            if ($pdo instanceof PDO) {
-                $in = implode(',', array_fill(0, count(bcrf_farm_keys()), '?'));
-                $st = $pdo->prepare("SELECT setting_key, setting_value FROM site_settings WHERE setting_key IN ($in)");
-                $st->execute(array_keys(bcrf_farm_keys()));
-                foreach ($st->fetchAll(PDO::FETCH_NUM) as [$k, $v]) $settings[$k] = trim((string)$v);
-            }
+            $in = implode(',', array_fill(0, count(bcrf_farm_keys()), '?'));
+            $st = $pdo->prepare("SELECT setting_key, setting_value FROM site_settings WHERE setting_key IN ($in)");
+            $st->execute(array_keys(bcrf_farm_keys()));
+            foreach ($st->fetchAll(PDO::FETCH_NUM) as [$k, $v]) $settings[$k] = trim((string)$v);
         } catch (Throwable $e) { /* settings table missing: fall through */ }
     }
-    if (($settings[$key] ?? '') !== '') return $settings[$key];
+    if (($settings[$key] ?? '') !== '') return (string)$settings[$key];
     [$cfgKey, $fallback] = bcrf_farm_keys()[$key] ?? ['', ''];
     $cfg = $GLOBALS['bcrf'][$cfgKey] ?? (defined($cfgKey) ? constant($cfgKey) : '');
     if (is_string($cfg) && trim($cfg) !== '') return trim($cfg);

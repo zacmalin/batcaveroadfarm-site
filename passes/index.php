@@ -1,12 +1,13 @@
 <?php
 // passes/index.php — annual pass purchase page.
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 $pageTitle    = 'Annual Passes — Bat Cave Road Farm';
 $metaDesc     = 'Become a Bat Cave Road Farm passholder. Unlimited visits for 12 months — individual, family, and founding member passes available.';
-$canonicalUrl = 'https://batcaveroadfarm.com/passes/';
-$ogImage      = 'https://batcaveroadfarm.com/img/og-home.jpg';
-$pageCSS      = 'https://batcaveroadfarm.com/css/min.passes.css';
-$pageJS       = ['https://batcaveroadfarm.com/js/qrcode.min.js',
-                 'https://batcaveroadfarm.com/js/min.passes.js'];
+$canonicalUrl = (bcrf_farm_url() . '/passes/');
+$ogImage      = (bcrf_farm_url() . '/img/og-home.jpg');
+$pageCSS      = (bcrf_farm_url() . '/css/min.passes.css');
+$pageJS       = [(bcrf_farm_url() . '/js/qrcode.min.js'),
+                 (bcrf_farm_url() . '/js/min.passes.js')];
 
 require '../includes/head.php';
 include '../includes/header.php';
@@ -146,7 +147,7 @@ $csrf   = $_SESSION['csrf_token'] ?? ($_SESSION['csrf_token'] = bin2hex(random_b
                 </div>
             </div>
 
-            <p class="purchase-policy">Annual passes are <strong>non-refundable</strong>. <a href="https://batcaveroadfarm.com/terms/#purchases">Full policy</a></p>
+            <p class="purchase-policy">Annual passes are <strong>non-refundable</strong>. <a href="<?= bcrf_farm_url() ?>/terms/#purchases">Full policy</a></p>
             <?php require_once __DIR__ . '/../includes/nc_warning.php'; echo bcrf_nc_warning_html(true); ?>
             <div class="pass-submit">
                 <button type="submit" class="cta-btn">Continue to secure checkout →</button>

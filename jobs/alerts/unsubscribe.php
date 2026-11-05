@@ -1,5 +1,6 @@
 <?php
 // jobs/alerts/unsubscribe.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Stop job alerts (Jobs pack P7). Link: ?e=<email>&t=<signature>
 // GET  -> "Stop job alerts" button (scanners open links; a GET changes nothing)
 // POST -> the button, or a mail app's one-click unsubscribe
@@ -41,8 +42,8 @@ header('Referrer-Policy: no-referrer');
 
 $pageTitle    = 'Stop Job Alerts | Bat Cave Road Farm';
 $metaDesc     = 'Stop Bat Cave Road Farm job alert emails.';
-$canonicalUrl = 'https://batcaveroadfarm.com/jobs/alerts/';
-$pageCSS      = 'https://batcaveroadfarm.com/css/min.jobs.css';
+$canonicalUrl = (bcrf_farm_url() . '/jobs/alerts/');
+$pageCSS      = (bcrf_farm_url() . '/css/min.jobs.css');
 $breadcrumbs  = [['label' => 'Jobs', 'url' => '/jobs/'], ['label' => 'Job alerts', 'url' => '/jobs/alerts/'], ['label' => 'Stop alerts']];
 require __DIR__ . '/../../includes/head.php';
 include __DIR__ . '/../../includes/header.php';
@@ -68,7 +69,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
     </div>
 <?php else: ?>
     <div class="jb-error" role="alert">This link isn't valid. Your email app may have cut it off.</div>
-    <p class="jb-note">To stop alerts, reply to any alert email or write to <a href="mailto:jobs@batcaveroadfarm.com">jobs@batcaveroadfarm.com</a> and we'll take you off.</p>
+    <p class="jb-note">To stop alerts, reply to any alert email or write to <a href="mailto:<?= htmlspecialchars(bcrf_farm_email('jobs'), ENT_QUOTES) ?>"><?= htmlspecialchars(bcrf_farm_email('jobs'), ENT_QUOTES) ?></a> and we'll take you off.</p>
 <?php endif; ?>
 </div>
 <?php require __DIR__ . '/../../includes/footer.php'; ?>

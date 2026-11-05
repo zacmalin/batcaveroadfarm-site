@@ -1,26 +1,27 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
     require('../config.php');
     require_once('../includes/events.php');
 
     $pageTitle    = "Farm Events & Seasonal Happenings | Bat Cave Road Farm";
     $metaDesc     = "Upcoming events at Bat Cave Road Farm in Old Fort, NC — seasonal celebrations, markets, and family farm days near Asheville. Open Tue–Sun, 10AM–4PM.";
-    $canonicalUrl = "https://batcaveroadfarm.com/events/";
-    $ogImage      = "https://batcaveroadfarm.com/img/og-home.jpg";
+    $canonicalUrl = (bcrf_farm_url() . "/events/");
+    $ogImage      = (bcrf_farm_url() . "/img/og-home.jpg");
 
     $events = bcrf_events_fetch_upcoming($pdo, 50);
 
-    $preloadImage = "https://batcaveroadfarm.com/img/Eventshero.webp"; // hero photo = mobile LCP (Nov 3 perf fix)
+    $preloadImage = (bcrf_farm_url() . "/img/Eventshero.webp"); // hero photo = mobile LCP (Nov 3 perf fix)
     require('../includes/head.php');
     include('../includes/header.php');
 
     // ── Structured data: CollectionPage + Event nodes ──
     $__graph = [[
         '@type'    => 'CollectionPage',
-        '@id'      => 'https://batcaveroadfarm.com/events/#collection',
-        'url'      => 'https://batcaveroadfarm.com/events/',
+        '@id'      => (bcrf_farm_url() . '/events/#collection'),
+        'url'      => (bcrf_farm_url() . '/events/'),
         'name'     => $pageTitle,
-        'isPartOf' => ['@id' => 'https://batcaveroadfarm.com/#website'],
-        'about'    => ['@id' => 'https://batcaveroadfarm.com/#business'],
+        'isPartOf' => ['@id' => (bcrf_farm_url() . '/#website')],
+        'about'    => ['@id' => (bcrf_farm_url() . '/#business')],
     ]];
     foreach ($events as $__ev) {
         $__node = bcrf_event_schema($__ev);

@@ -1,5 +1,6 @@
 <?php
 // includes/wiki_facts.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 //
 // "About the breed" facts for animal pages, from Wikipedia + Wikidata (Nov 2026).
 // Free for commercial use under CC BY-SA, so the page shows a "Source: Wikipedia" credit.
@@ -15,7 +16,7 @@
 
 if (!function_exists('bcrf_wiki_facts')) {
 
-define('BCRF_WIKI_UA', 'BatCaveRoadFarm/1.0 (https://batcaveroadfarm.com; support@batcaveroadfarm.com)');
+define('BCRF_WIKI_UA', ('BatCaveRoadFarm/1.0 (' . bcrf_farm_url() . '; ' . bcrf_farm_email('support') . ')'));
 define('BCRF_WIKI_TTL', 30 * 86400);
 define('BCRF_WIKI_FAIL_TTL', 86400);
 

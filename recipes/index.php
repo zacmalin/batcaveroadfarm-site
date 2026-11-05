@@ -1,5 +1,6 @@
 <?php
 // recipes/index.php - Relational Recipes Directory Index Hub
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 require_once '../config.php';
 require_once '../includes/ratings.php';
 require_once '../includes/img_dims.php';
@@ -116,9 +117,9 @@ $categories = $pdo->query("SELECT c.id, c.category_name, COUNT(DISTINCT rcj.reci
 
 $pageTitle = "Farmhouse Cookbook — Country Recipes | Bat Cave Road Farm";
 $pageDescription = "Discover home-grown kitchen preparation methods, baking guides, and seasonal canning recipes designed around fresh local ingredients.";
-$canonicalUrl = "https://batcaveroadfarm.com/recipes/";
-$pageCSS      = "https://batcaveroadfarm.com/css/min.recipes.css";
-$preloadImage = "https://batcaveroadfarm.com/img/recipehero.webp"; // hero photo = mobile LCP (Nov 3 perf fix)
+$canonicalUrl = (bcrf_farm_url() . "/recipes/");
+$pageCSS      = (bcrf_farm_url() . "/css/min.recipes.css");
+$preloadImage = (bcrf_farm_url() . "/img/recipehero.webp"); // hero photo = mobile LCP (Nov 3 perf fix)
 require_once '../includes/head.php';
 require_once '../includes/header.php';
 
@@ -127,16 +128,16 @@ $__li = []; $__n = 0;
 foreach ($recipes as $__r) {
     if (empty($__r['slug'])) continue;
     $__li[] = ['@type' => 'ListItem', 'position' => ++$__n,
-        'url'  => 'https://batcaveroadfarm.com/recipes/' . urlencode($__r['slug']) . '/',
+        'url'  => (bcrf_farm_url() . '/recipes/') . urlencode($__r['slug']) . '/',
         'name' => (string)($__r['title'] ?? '')];
 }
 if ($__li) {
     echo '<script type="application/ld+json">' . json_encode([
         '@context' => 'https://schema.org', '@type' => 'CollectionPage',
-        '@id'      => 'https://batcaveroadfarm.com/recipes/#collection',
-        'url'      => 'https://batcaveroadfarm.com/recipes/',
+        '@id'      => (bcrf_farm_url() . '/recipes/#collection'),
+        'url'      => (bcrf_farm_url() . '/recipes/'),
         'name'     => ($pageTitle ?? 'Recipes — Bat Cave Road Farm'),
-        'isPartOf' => ['@id' => 'https://batcaveroadfarm.com/#website'],
+        'isPartOf' => ['@id' => (bcrf_farm_url() . '/#website')],
         'mainEntity' => ['@type' => 'ItemList', 'numberOfItems' => count($__li), 'itemListElement' => $__li],
     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "</script>\n";
 }

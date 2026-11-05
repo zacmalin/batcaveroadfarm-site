@@ -1,5 +1,6 @@
 <?php
 // jobs/apply.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Application form for one job: /jobs/{slug}/apply/  (rewritten to apply.php?slug=).
 // GET shows the form; POST checks it and, if OK, saves and redirects to /jobs/thanks/.
 // Spam guards: CSRF, hidden "website" field (at the end of the form), at least 4 seconds
@@ -42,14 +43,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     } elseif (time() - (int)($_SESSION[$tsKey] ?? 0) < 4) {
         $formMsg = 'That was quick. Please check your answers and press Send again.';
     } elseif (bcrf_rl_count('jobs_apply', bcrf_rl_ip(), 3600) >= 5) {
-        $formMsg = 'We\'ve received several applications from this connection in the last hour. Please try again later, or email jobs@batcaveroadfarm.com.';
+        $formMsg = ('We\'ve received several applications from this connection in the last hour. Please try again later, or email ' . bcrf_farm_email('jobs') . '.');
     } else {
         [$data, $errors] = jobs_apply_validate($job, $questions, $_POST, $_FILES['resume'] ?? null);
         if (!$errors) {
             $dup = $pdo->prepare("SELECT 1 FROM applications WHERE job_cycle_id = ? AND email = ? AND is_spam = 0 LIMIT 1");
             $dup->execute([(int)$job['open_cycle_id'], $data['email']]);
             if ($dup->fetchColumn()) {
-                $formMsg = 'You\'ve already applied for this job with that email. We have it, so there\'s no need to send it again. To add anything, email jobs@batcaveroadfarm.com.';
+                $formMsg = ('You\'ve already applied for this job with that email. We have it, so there\'s no need to send it again. To add anything, email ' . bcrf_farm_email('jobs') . '.');
             } else {
                 try {
                     $app = jobs_apply_save($pdo, $job, $data, client_ip_hash(), 'website');
@@ -89,10 +90,10 @@ $ageIn = (string)($in['age_bracket'] ?? (count($brackets) === 1 ? '18_plus' : ''
 
 $pageTitle    = 'Apply: ' . $job['title'] . ' | Bat Cave Road Farm';
 $metaDesc     = 'Apply for ' . $job['title'] . ' at Bat Cave Road Farm in Old Fort, NC.';
-$canonicalUrl = 'https://batcaveroadfarm.com' . $jobUrl . 'apply/';
-$ogImage      = 'https://batcaveroadfarm.com/img/og-home.jpg';
-$pageCSS      = 'https://batcaveroadfarm.com/css/min.jobs.css';
-$pageJS       = 'https://batcaveroadfarm.com/js/min.jobs-apply.js';
+$canonicalUrl = (bcrf_farm_url()) . $jobUrl . 'apply/';
+$ogImage      = (bcrf_farm_url() . '/img/og-home.jpg');
+$pageCSS      = (bcrf_farm_url() . '/css/min.jobs.css');
+$pageJS       = (bcrf_farm_url() . '/js/min.jobs-apply.js');
 $breadcrumbs  = [['label' => 'Jobs', 'url' => '/jobs/'], ['label' => $job['title'], 'url' => $jobUrl], ['label' => 'Apply']];
 header('X-Robots-Tag: noindex, follow');
 

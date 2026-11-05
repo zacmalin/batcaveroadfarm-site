@@ -1,14 +1,15 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 	$pageTitle = "About Us | Bat Cave Road Farm — Family Farm in Old Fort, NC";
 	$metaDesc = "Meet the family behind Bat Cave Road Farm in Old Fort, NC, and the seven baby goats born in three days that turned a hobby into a farm.";
-	$canonicalUrl = "https://batcaveroadfarm.com/about/";
-	$ogImage = "https://batcaveroadfarm.com/img/og-about.jpg";
-	$pageCSS = "https://batcaveroadfarm.com/css/min.aboutus.css";
+	$canonicalUrl = (bcrf_farm_url() . "/about/");
+	$ogImage = (bcrf_farm_url() . "/img/og-about.jpg");
+	$pageCSS = (bcrf_farm_url() . "/css/min.aboutus.css");
 	require('../includes/head.php');
 	include('../includes/header.php');
 ?>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"AboutPage","name":"About Bat Cave Road Farm","url":"https://batcaveroadfarm.com/about/","description":"The family, the land, and the story behind Bat Cave Road Farm in Old Fort, NC.","mainEntity":{"@id":"https://batcaveroadfarm.com/#business"}}
+{"@context":"https://schema.org","@type":"AboutPage","name":"About Bat Cave Road Farm","url":"<?= bcrf_farm_url() ?>/about/","description":"The family, the land, and the story behind Bat Cave Road Farm in Old Fort, NC.","mainEntity":{"@id":"<?= bcrf_farm_url() ?>/#business"}}
 </script>
 
         <div id="page-about-us" class="page1">
@@ -26,7 +27,7 @@
             
             <div class="two-col reveal" style="margin-top:36px">
               <div class="two-col-img">
-                  <img src="https://batcaveroadfarm.com/img/us.webp" alt="Casey and Zac at the Bat Cave Road Farm petting zoo, Old Fort NC" width="500" height="375" decoding="async" loading="lazy">
+                  <img src="<?= bcrf_farm_url() ?>/img/us.webp" alt="Casey and Zac at the Bat Cave Road Farm petting zoo, Old Fort NC" width="500" height="375" decoding="async" loading="lazy">
               </div>
               <div class="two-col-text">
                 <h3>Casey &amp; Zac</h3>
@@ -88,7 +89,7 @@
           </div>
                            <div class="ctaDiv" style="text-align:center;padding-bottom:48px">
                                     
-                    <a href="https://batcaveroadfarm.com/directions/" class="cta-btn" data-ga="get_directions">
+                    <a href="<?= bcrf_farm_url() ?>/directions/" class="cta-btn" data-ga="get_directions">
                             Get directions to the farm
                     </a>
 

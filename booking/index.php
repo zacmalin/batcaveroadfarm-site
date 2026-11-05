@@ -1,14 +1,15 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
     header('Pragma: no-cache');
     require_once __DIR__ . '/../config.php';
     require_once __DIR__ . '/../includes/booking.php';
     $pageTitle    = "Book a Visit - Bat Cave Road Farm";
     $metaDesc     = "Request a farm visit, group tour, or private event at Bat Cave Road Farm in Old Fort, NC. Groups under 6 can walk in; larger groups book ahead.";
-    $canonicalUrl = "https://batcaveroadfarm.com/booking/";
-    $ogImage      = "https://batcaveroadfarm.com/img/og-pettingzoo.jpg";
-    $pageCSS      = 'https://batcaveroadfarm.com/css/min.booking.css';
-    $pageJS       = 'https://batcaveroadfarm.com/js/min.booking.js';
+    $canonicalUrl = (bcrf_farm_url() . "/booking/");
+    $ogImage      = (bcrf_farm_url() . "/img/og-pettingzoo.jpg");
+    $pageCSS      = (bcrf_farm_url() . '/css/min.booking.css');
+    $pageJS       = (bcrf_farm_url() . '/js/min.booking.js');
     require('../includes/head.php');
     include('../includes/header.php');
     $types  = function_exists('booking_types') ? booking_types($pdo) : [];
@@ -46,7 +47,7 @@
         <p class="booking-note">Online booking is briefly unavailable. Please call
             <?= htmlspecialchars(function_exists('site') ? site('phone.general') : '(828) 216-5488') ?> to book.</p>
     <?php else: ?>
-    <form class="booking-form" action="https://batcaveroadfarm.com/booking/submit.php" method="POST">
+    <form class="booking-form" action="<?= bcrf_farm_url() ?>/booking/submit.php" method="POST">
         <?php require_once __DIR__ . '/../includes/auth.php'; echo csrf_field(); /* fix pack L: submit.php checks this */ ?>
         <div class="hp" aria-hidden="true">
             <label for="website">Website</label>
@@ -137,7 +138,7 @@
         <label for="message">Anything else? <span class="opt">(event details, questions)</span></label>
         <textarea id="message" name="message" maxlength="2000"></textarea>
 
-        <p class="purchase-policy"><strong>Refunds:</strong> full refund if you cancel at least 30 days before your date. <strong>Weather:</strong> we're open rain or shine; if the weather looks bad, you can reschedule to a day within two weeks after your booked date. <a href="https://batcaveroadfarm.com/terms/#purchases">Full policy</a></p>
+        <p class="purchase-policy"><strong>Refunds:</strong> full refund if you cancel at least 30 days before your date. <strong>Weather:</strong> we're open rain or shine; if the weather looks bad, you can reschedule to a day within two weeks after your booked date. <a href="<?= bcrf_farm_url() ?>/terms/#purchases">Full policy</a></p>
         <?php require_once __DIR__ . '/../includes/nc_warning.php'; echo bcrf_nc_warning_html(true); ?>
         <button class="booking-submit" type="submit">Request Booking</button>
     </form>

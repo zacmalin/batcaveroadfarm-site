@@ -1,5 +1,6 @@
 <?php
 // admin/handlers/campaign_action.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Handles email campaign sends — both test and live blasts.
 
 ob_start();
@@ -167,7 +168,7 @@ if (!$phpmailer_loaded) {
 
 // ── SEND EMAILS ───────────────────────────────────────────────────────────────
 function sendEmail(string $to, string $toName, string $subject, string $htmlBody, string $fromName, string $replyTo, string $unsubUrl = ''): bool {
-    $from_email = 'no-reply@batcaveroadfarm.com';
+    $from_email = (bcrf_farm_email('noreply'));
 
     // Personalise any {{first_name}} tokens in the body
     $personalised = str_replace(
@@ -194,8 +195,8 @@ function sendEmail(string $to, string $toName, string $subject, string $htmlBody
         $footer = bcf_email_footer();
         if ($unsubUrl !== '') {
             // Personal signed unsubscribe link + one-click headers (Gmail / Apple Mail button)
-            $footer = str_replace('https://batcaveroadfarm.com/unsubscribe.php"', htmlspecialchars($unsubUrl, ENT_QUOTES) . '"', $footer);
-            $mail->addCustomHeader('List-Unsubscribe', '<' . $unsubUrl . '>, <mailto:support@batcaveroadfarm.com?subject=unsubscribe>');
+            $footer = str_replace((bcrf_farm_url() . '/unsubscribe.php"'), htmlspecialchars($unsubUrl, ENT_QUOTES) . '"', $footer);
+            $mail->addCustomHeader('List-Unsubscribe', '<' . $unsubUrl . ('>, <mailto:' . bcrf_farm_email('support') . '?subject=unsubscribe>'));
             if (str_contains($unsubUrl, '&t=')) $mail->addCustomHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
         }
         if (!function_exists('bcrf_utm_html')) require_once __DIR__ . '/../../includes/ga.php';

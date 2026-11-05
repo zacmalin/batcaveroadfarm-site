@@ -1,5 +1,6 @@
 <?php
 // includes/email_verify.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Email verification for public accounts. Mirrors the password_resets pattern:
 // a random token whose SHA-256 hash is stored, single-use, time-limited.
 // Soft gate: accounts work unverified; gate sensitive actions (checkout/tickets)
@@ -29,7 +30,7 @@ if (!function_exists('evf_issue')) {
                  VALUES (?, ?, DATE_ADD(NOW(), INTERVAL " . (int)EVF_TTL_HOURS . " HOUR))"
             )->execute([$userId, hash('sha256', $token)]);
 
-            $link = 'https://batcaveroadfarm.com/account/verify.php?token=' . $token;
+            $link = (bcrf_farm_url() . '/account/verify.php?token=') . $token;
             $name = trim($firstName) !== '' ? trim($firstName) : 'there';
             $hrs  = (int)EVF_TTL_HOURS;
             $subject = 'Confirm your email — Bat Cave Road Farm';
@@ -41,8 +42,8 @@ if (!function_exists('evf_issue')) {
                 return bcf_send_mail($email, $subject, $inner, ['subtitle' => 'Confirm Your Email']);
             }
             $body = "Hi {$name},\r\n\r\nConfirm your email (expires in {$hrs} hours):\r\n{$link}\r\n\r\nIf you didn't create an account, you can safely ignore this email.\r\n— Bat Cave Road Farm\r\n";
-            $headers = "From: Bat Cave Road Farm <no-reply@batcaveroadfarm.com>\r\nReply-To: no-reply@batcaveroadfarm.com\r\nContent-Type: text/plain; charset=UTF-8\r\n";
-            return @mail($email, $subject, $body, $headers, '-fno-reply@batcaveroadfarm.com');
+            $headers = ("From: Bat Cave Road Farm <" . bcrf_farm_email('noreply') . ">\r\nReply-To: " . bcrf_farm_email('noreply') . "\r\nContent-Type: text/plain; charset=UTF-8\r\n");
+            return @mail($email, $subject, $body, $headers, '-f' . bcrf_farm_email('noreply'));
         } catch (Throwable $e) {
             error_log('[evf_issue] ' . $e->getMessage());
             return false;

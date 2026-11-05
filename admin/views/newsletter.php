@@ -1,4 +1,5 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Fix 12: Segment counts passed to JS for live display
 $segment_counts_json = json_encode($nl_segment_counts);
 
@@ -126,7 +127,7 @@ $nlPct = ($nlActive && $nlTotalActive > 0) ? (int)round($nlSent / $nlTotalActive
                 </div>
                 <div>
                     <label class="block font-bold text-stone-600 mb-1">Reply-To Email</label>
-                    <input type="email" name="reply_to" value="support@batcaveroadfarm.com"
+                    <input type="email" name="reply_to" value="<?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?>"
                         class="w-full p-2 border bg-stone-50 rounded font-mono" required>
                 </div>
             </div>

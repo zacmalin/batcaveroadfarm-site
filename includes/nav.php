@@ -1,4 +1,5 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Determine the current top-level section from the request path so we can
 // mark the active nav item server-side (adds .active + aria-current="page").
 $navPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
@@ -82,7 +83,7 @@ function renderNavBtn(array $item, callable $navIsActive, string $suffix = '', b
     $active = $navIsActive($href);
     $cls    = 'nav-btn' . ($active ? ' active' : '');
     $aria   = $active ? ' aria-current="page"' : '';
-    $full   = 'https://batcaveroadfarm.com' . ($href === '/' ? '' : $href);
+    $full   = (bcrf_farm_url()) . ($href === '/' ? '' : $href);
     echo '<a href="' . $full . '" class="' . $cls . '" id="nav-' . $id . $suffix . '"' . $aria . '>'
        . '<span class="nav-emoji" aria-hidden="true">' . $emoji . '</span>'
        . '<span class="nav-label">' . $label . '</span></a>';
@@ -97,7 +98,7 @@ function renderNavDropdown(string $dropId, string $emoji, string $label, array $
     $id   = 'nav-' . $dropId . $suffix;
     $cls  = 'nav-btn nav-dropdown-toggle' . ($active ? ' active' : '');
     $aria = $active ? ' aria-current="true"' : '';
-    $base = 'https://batcaveroadfarm.com';
+    $base = (bcrf_farm_url());
     echo '<div class="nav-dropdown">';
     echo '<button type="button" class="' . $cls . '" id="' . $id . '" aria-expanded="false" aria-haspopup="true"' . $aria . '>'
        . '<span class="nav-emoji" aria-hidden="true">' . $emoji . '</span>'

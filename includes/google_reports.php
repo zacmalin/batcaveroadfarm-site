@@ -1,5 +1,6 @@
 <?php
 // includes/google_reports.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Search Console + Google Analytics 4 numbers for the admin "Search & Analytics" screen (Nov 2026).
 //
 // Signs in with a Google Cloud SERVICE ACCOUNT (server-to-server, nothing expires, no consent screen).
@@ -25,7 +26,7 @@ function bcrf_greports_config(): array {
         // Default: next to bcrf-secrets.php in the home folder (/home2/<user>/), one level above public_html
         'key_file'    => (string)($s['GOOGLE_SA_KEY_FILE'] ?? ((defined('BCRF_SECRETS_PATH') && BCRF_SECRETS_PATH !== '' ? dirname(BCRF_SECRETS_PATH) : dirname(__DIR__, 3)) . '/bcrf-google-sa.json')),
         'property_id' => preg_replace('/\D/', '', (string)($s['GA4_PROPERTY_ID'] ?? '')),
-        'gsc_site'    => (string)($s['GSC_SITE'] ?? 'sc-domain:batcaveroadfarm.com'),
+        'gsc_site'    => (string)($s['GSC_SITE'] ?? ('sc-domain:' . bcrf_farm_domain())),
     ];
 }
 

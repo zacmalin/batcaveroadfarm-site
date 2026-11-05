@@ -1,8 +1,9 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 	http_response_code(403);
 	$pageTitle    = "Access Denied (403) - Bat Cave Road Farm";
 	$metaDesc     = "This area isn't open to visitors.";
-	$canonicalUrl = "https://batcaveroadfarm.com/403";
+	$canonicalUrl = (bcrf_farm_url() . "/403");
 	$hideBreadcrumbs = true;
 	require('includes/head.php');
 	include('includes/header.php');
@@ -19,8 +20,8 @@
           <div class="content-wrap1">
             <p style="text-align:center;max-width:560px;margin:0 auto 6px">If you think you reached this by mistake, head back to the farm or get in touch:</p>
             <div class="ctaDiv" style="padding-bottom:48px">
-              <a class="cta-btn" href="https://batcaveroadfarm.com/">Home</a>
-              <a class="cta-btn" href="https://batcaveroadfarm.com/contact-us/">Contact Us</a>
+              <a class="cta-btn" href="<?= bcrf_farm_url() ?>/">Home</a>
+              <a class="cta-btn" href="<?= bcrf_farm_url() ?>/contact-us/">Contact Us</a>
             </div>
           </div>
         </div>

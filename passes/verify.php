@@ -1,5 +1,6 @@
 <?php
 // passes/verify.php — staff gate verification page.
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Opened when staff scans a passholder's QR code.
 // Anyone with the link sees whether the pass is valid (the unguessable 48-char token is the key).
 // Only signed-in staff (includes/pass_staff.php) see the "Log this visit" button (Nov 2026).
@@ -61,7 +62,7 @@ else switch ((string)($_GET['msg'] ?? '')) {
 <meta name="robots" content="noindex">
 <title>Pass Verification — Bat Cave Road Farm</title>
 <link href="https://fonts.googleapis.com/css2?family=Rye&family=Lora:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://batcaveroadfarm.com/css/min.passes.css?v=<?= bcrf_asset_v('/css/min.passes.css') ?>">
+<link rel="stylesheet" href="<?= bcrf_farm_url() ?>/css/min.passes.css?v=<?= bcrf_asset_v('/css/min.passes.css') ?>">
 </head><body style="background:#f5ead6;margin:0;padding:16px">
 
 <div class="verify-wrap">

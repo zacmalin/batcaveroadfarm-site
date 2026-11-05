@@ -1,5 +1,6 @@
 <?php
 // jobs/index.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Public job listing: every position taking applications right now,
 // with filter chips by area (category) and type (paid / work-trade / internship).
 require_once __DIR__ . '/../config.php';
@@ -27,9 +28,9 @@ $chipUrl = function (string $area, string $type): string {
 
 $pageTitle    = 'Jobs at Bat Cave Road Farm | Old Fort, NC';
 $metaDesc     = 'Work at Bat Cave Road Farm in Old Fort, NC. See open farm, petting zoo, farmstand and thrift shop jobs, pay, and apply online in a few minutes.';
-$canonicalUrl = 'https://batcaveroadfarm.com/jobs/';
-$ogImage      = 'https://batcaveroadfarm.com/img/og-home.jpg';
-$pageCSS      = 'https://batcaveroadfarm.com/css/min.jobs.css';
+$canonicalUrl = (bcrf_farm_url() . '/jobs/');
+$ogImage      = (bcrf_farm_url() . '/img/og-home.jpg');
+$pageCSS      = (bcrf_farm_url() . '/css/min.jobs.css');
 if ($fCat !== '' || $fType !== '') header('X-Robots-Tag: noindex, follow');
 
 require __DIR__ . '/../includes/head.php';
@@ -45,7 +46,7 @@ include __DIR__ . '/../includes/header.php';
     <div class="jb-card jb-empty">
         <h2>No openings right now</h2>
         <p>We're not hiring at the moment. Jobs usually open before the busy season. <a href="/jobs/alerts/">Get an email when we post a job</a>.</p>
-        <p>Questions about working here? Email <a href="mailto:jobs@batcaveroadfarm.com">jobs@batcaveroadfarm.com</a>.</p>
+        <p>Questions about working here? Email <a href="mailto:<?= htmlspecialchars(bcrf_farm_email('jobs'), ENT_QUOTES) ?>"><?= htmlspecialchars(bcrf_farm_email('jobs'), ENT_QUOTES) ?></a>.</p>
     </div>
 <?php else: ?>
     <p class="jb-alert-link"><a href="/jobs/alerts/">Get job alerts by email</a></p>

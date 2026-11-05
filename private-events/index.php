@@ -1,10 +1,11 @@
 <?php
 // private-events/index.php — Private event & birthday party inquiry form.
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 $pageTitle    = 'Private Events & Birthday Parties | Bat Cave Road Farm';
 $metaDesc     = 'Plan a birthday party, field trip, or farm buyout at Bat Cave Road Farm in Old Fort, NC. Tell us about your event and we\'ll build a custom package.';
-$canonicalUrl = 'https://batcaveroadfarm.com/private-events/';
-$ogImage      = 'https://batcaveroadfarm.com/img/og-home.jpg';
-$pageCSS      = 'https://batcaveroadfarm.com/css/min.booking.css';
+$canonicalUrl = (bcrf_farm_url() . '/private-events/');
+$ogImage      = (bcrf_farm_url() . '/img/og-home.jpg');
+$pageCSS      = (bcrf_farm_url() . '/css/min.booking.css');
 
 require '../includes/head.php';
 include '../includes/header.php';

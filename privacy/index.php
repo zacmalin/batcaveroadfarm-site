@@ -1,8 +1,9 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 	$pageTitle    = "Privacy Policy - Bat Cave Road Farm";
 	$metaDesc     = "How Bat Cave Road Farm collects, uses, and protects information on our website: contact forms, analytics, job applications, maps, and social feeds.";
-	$canonicalUrl = "https://batcaveroadfarm.com/privacy/";
-	$pageCSS      = "https://batcaveroadfarm.com/css/min.legal.css";
+	$canonicalUrl = (bcrf_farm_url() . "/privacy/");
+	$pageCSS      = (bcrf_farm_url() . "/css/min.legal.css");
 	$breadcrumbs  = [['label' => 'Privacy Policy']];
 	require('../includes/head.php');
 	include('../includes/header.php');
@@ -21,7 +22,7 @@
             <article class="legal-doc reveal">
               <p class="legal-updated">Last updated: November 4, 2026</p>
               <p class="legal-intro">Bat Cave Road Farm ("we," "us," or "our") runs the website at
-                <strong>batcaveroadfarm.com</strong>. This policy explains what information the website
+                <strong><?= bcrf_farm_domain() ?></strong>. This policy explains what information the website
                 collects, how we use it, and the choices you have. It applies to this website only — not to
                 anything that happens in person at the farm.</p>
 
@@ -45,7 +46,7 @@
 
               <h2 id="collect">Information we collect</h2>
               <h3>Information you give us</h3>
-              <p>When you use our <a href="https://batcaveroadfarm.com/contact-us/">contact form</a>, we
+              <p>When you use our <a href="<?= bcrf_farm_url() ?>/contact-us/">contact form</a>, we
                 collect the name, email address, and message you submit so we can reply to you. You don't
                 need to create an account to use this website.</p>
               <h3>Information collected automatically</h3>
@@ -121,14 +122,14 @@
                 with nothing that identifies you. If you're hired, the year starts when your job with us ends. If we
                 ask to keep your application on file for future openings, we keep it until you ask us to remove it.
                 To ask about, withdraw or delete your application, email
-                <a href="mailto:jobs@batcaveroadfarm.com">jobs@batcaveroadfarm.com</a>.</p>
+                <a href="mailto:<?= htmlspecialchars(bcrf_farm_email('jobs'), ENT_QUOTES) ?>"><?= htmlspecialchars(bcrf_farm_email('jobs'), ENT_QUOTES) ?></a>.</p>
 
               <h2 id="choices">Your choices &amp; rights</h2>
               <p>You can:</p>
               <ul>
                 <li>Adjust or block cookies in your browser, or use the Google Analytics opt-out linked above.</li>
                 <li>Ask us what information we have from a message you sent, or ask us to delete it, by emailing
-                  <a href="mailto:support@batcaveroadfarm.com">support@batcaveroadfarm.com</a>.</li>
+                  <a href="mailto:<?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?>"><?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?></a>.</li>
               </ul>
               <p>Depending on where you live, your state may give you additional rights to access or delete
                 personal information. Contact us at the address above and we'll do our best to honor applicable
@@ -153,7 +154,7 @@
                 <p>Questions about this policy or your information?</p>
                 <p>Bat Cave Road Farm<br>
                    4132 Bat Cave Road, Old Fort, NC 28762<br>
-                   <a href="mailto:support@batcaveroadfarm.com">support@batcaveroadfarm.com</a></p>
+                   <a href="mailto:<?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?>"><?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?></a></p>
               </div>
             </article>
           </div>

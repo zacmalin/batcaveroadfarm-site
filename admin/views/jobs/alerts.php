@@ -1,5 +1,6 @@
 <?php
 // admin/views/jobs/alerts.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Hiring > Alerts (Jobs pack P7): people signed up for job alerts on /jobs/alerts/.
 // Sending happens from a job's editor (Hiring > Jobs > a job > Let people know).
 // Administrators only (admin_only in the view registry).
@@ -53,7 +54,7 @@ $base  = 'show=' . $show . ($q !== '' ? '&q=' . rawurlencode($q) : '');
   </div>
 
   <div class="bg-stone-50 border border-stone-200 rounded-lg p-3 mb-4 text-sm text-stone-600">
-    To send alerts, open a job under <a class="text-amber-700 underline" href="/admin/admin.php?view=jobs_posts">Jobs</a> while hiring is open and tap <strong>Let people know</strong>. Signup page: <a class="text-amber-700 underline break-all" href="/jobs/alerts/" target="_blank" rel="noopener">batcaveroadfarm.com/jobs/alerts/</a>
+    To send alerts, open a job under <a class="text-amber-700 underline" href="/admin/admin.php?view=jobs_posts">Jobs</a> while hiring is open and tap <strong>Let people know</strong>. Signup page: <a class="text-amber-700 underline break-all" href="/jobs/alerts/" target="_blank" rel="noopener"><?= bcrf_farm_domain() ?>/jobs/alerts/</a>
   </div>
 
   <div class="flex flex-wrap items-center gap-1.5 mb-3">

@@ -1,5 +1,6 @@
 <?php
 // admin/includes/email_template.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Shared email template functions — used by campaign_action.php and view_campaign.php
 // Do not add any executable code here — functions only.
 
@@ -55,9 +56,9 @@ function bcf_email_header(string $subtitle = 'Newsletter'): string {
 <!-- ══ HEADER ROW ══ -->
 <tr>
     <td align="center" bgcolor="#3b2010"
-        style="background-color:#3b2010; background-image:url('https://batcaveroadfarm.com/img/background.png'); background-size:400px auto; background-repeat:repeat; padding:22px 24px 18px;">
-        <a href="https://batcaveroadfarm.com/" style="text-decoration:none; display:block;">
-            <img src="https://batcaveroadfarm.com/img/logo.png" alt="Bat Cave Road Farm Logo"
+        style="background-color:#3b2010; background-image:url('{{SITE_URL}}/img/background.png'); background-size:400px auto; background-repeat:repeat; padding:22px 24px 18px;">
+        <a href="{{SITE_URL}}/" style="text-decoration:none; display:block;">
+            <img src="{{SITE_URL}}/img/logo.png" alt="Bat Cave Road Farm Logo"
                 width="100" height="auto"
                 style="width:100px; height:auto; display:block; margin:0 auto 12px; filter:drop-shadow(0 3px 8px rgba(0,0,0,0.7));">
         </a>
@@ -74,7 +75,7 @@ function bcf_email_header(string $subtitle = 'Newsletter'): string {
         <!-- ══ USER BODY CONTENT BEGINS ══ -->
         <div style="color:#f5ead6; font-family:Lora, Georgia, serif; font-size:16px; line-height:1.7; text-align:left;">
 EMAILHTML;
-    return str_replace(['{{TITLE_SUFFIX}}', '{{SUBTITLE_DIV}}'], [$titleSuffix, $subtitleDiv], $tpl);
+    return str_replace(['{{TITLE_SUFFIX}}', '{{SUBTITLE_DIV}}', '{{SITE_URL}}'], [$titleSuffix, $subtitleDiv, bcrf_farm_url()], $tpl);
 }
 
 function bcf_email_footer(bool $withUnsubscribe = true): string {
@@ -88,7 +89,7 @@ function bcf_email_footer(bool $withUnsubscribe = true): string {
         <p style="margin:0; font-family:Georgia, serif; font-size:11px; color:rgba(245,234,214,0.45); line-height:1.7;">
             You received this message because you subscribed to updates from Bat Cave Road Farm.<br>
             If you no longer wish to receive these emails,
-            <a href="https://batcaveroadfarm.com/unsubscribe.php"
+            <a href="{{SITE_URL}}/unsubscribe.php"
                 style="color:rgba(245,234,214,0.65); text-decoration:underline;">click here to unsubscribe</a>.
         </p>
     </td>
@@ -126,8 +127,8 @@ UNSUB;
                         style="color:#e8d5b0; text-decoration:underline;">4132 Bat Cave Road<br>Old Fort, NC 28762</a><br>
                     <a href="tel:8282165488" rel="noopener" target="_blank"
                         style="color:#e8d5b0; text-decoration:underline;">(828) 216-5488</a><br>
-                    <a href="mailto:support@batcaveroadfarm.com"
-                        style="color:#e8d5b0; text-decoration:underline;">support@batcaveroadfarm.com</a>
+                    <a href="mailto:{{SUPPORT_EMAIL}}"
+                        style="color:#e8d5b0; text-decoration:underline;">{{SUPPORT_EMAIL}}</a>
                 </p>
                 <div style="color:rgba(245,234,214,0.45); font-size:12px; margin-top:6px;">&copy; 2026 Bat Cave Road Farm &mdash; All Rights Reserved</div>
             </td>
@@ -151,14 +152,14 @@ UNSUB;
                                 <tr>
                                     <td style="padding:0 8px;">
                                         <a href="https://facebook.com/batcaveroadfarm/" target="_blank" style="text-decoration:none;">
-                                            <img src="https://batcaveroadfarm.com/img/facebook.png" alt="Facebook"
+                                            <img src="{{SITE_URL}}/img/facebook.png" alt="Facebook"
                                                 width="48" height="48"
                                                 style="width:48px; height:48px; border-radius:10px; display:block; box-shadow:0 4px 14px rgba(0,0,0,0.25);">
                                         </a>
                                     </td>
                                     <td style="padding:0 8px;">
                                         <a href="https://instagram.com/batcaveroadfarm/" target="_blank" style="text-decoration:none;">
-                                            <img src="https://batcaveroadfarm.com/img/instagram.png" alt="Instagram"
+                                            <img src="{{SITE_URL}}/img/instagram.png" alt="Instagram"
                                                 width="48" height="48"
                                                 style="width:48px; height:48px; border-radius:10px; display:block; box-shadow:0 4px 14px rgba(0,0,0,0.25);">
                                         </a>
@@ -191,7 +192,9 @@ UNSUB;
 </body>
 </html>
 EMAILHTML;
-    return str_replace('{{UNSUBSCRIBE_ROW}}', $unsubRow, $tpl);
+    // {{SITE_URL}} / {{SUPPORT_EMAIL}}: the farm's website and support email from Settings (Farm OS Phase 0)
+    return str_replace(['{{UNSUBSCRIBE_ROW}}', '{{SITE_URL}}', '{{SUPPORT_EMAIL}}'],
+                       [$unsubRow, bcrf_farm_url(), htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES)], $tpl);
 }
 
 /**
@@ -231,8 +234,8 @@ function bcf_send_mail(string $to, string $subject, string $innerHtml, array $op
     $subtitle    = $opts['subtitle']    ?? '';
     $unsubscribe = !empty($opts['unsubscribe']);
     $fromName    = $opts['from_name']   ?? (function_exists('bcrf_farm_name') ? bcrf_farm_name() : 'Bat Cave Road Farm');
-    $fromEmail   = $opts['from_email']  ?? (function_exists('bcrf_farm_email') ? bcrf_farm_email('noreply') : 'no-reply@batcaveroadfarm.com');
-    $supportTo   = function_exists('bcrf_farm_email') ? bcrf_farm_email('support') : 'support@batcaveroadfarm.com';
+    $fromEmail   = $opts['from_email']  ?? bcrf_farm_email('noreply');
+    $supportTo   = bcrf_farm_email('support');
     $extraHdrs   = array_values(array_filter(array_map('trim', (array)($opts['headers'] ?? [])), fn($h) => $h !== '' && !preg_match('/[\r\n]/', $h)));
     $replyTo     = $opts['reply_to']    ?? $fromEmail;
 
@@ -248,7 +251,7 @@ function bcf_send_mail(string $to, string $subject, string $innerHtml, array $op
     if ($unsubscribe) {
         if (!function_exists('bcrf_unsub_url')) { @include_once dirname(__DIR__, 2) . '/includes/unsubscribe.php'; }
         if ($unsubUrl === '' && function_exists('bcrf_unsub_url')) $unsubUrl = bcrf_unsub_url($to);
-        if ($unsubUrl !== '') $html = str_replace('https://batcaveroadfarm.com/unsubscribe.php"', htmlspecialchars($unsubUrl, ENT_QUOTES) . '"', $html);
+        if ($unsubUrl !== '') $html = str_replace((bcrf_farm_url() . '/unsubscribe.php"'), htmlspecialchars($unsubUrl, ENT_QUOTES) . '"', $html);
     }
     $oneClick = $unsubUrl !== '' && str_contains($unsubUrl, '&t=');
 

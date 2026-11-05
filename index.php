@@ -1,8 +1,9 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 	require_once __DIR__ . '/config.php';
 	require_once __DIR__ . '/includes/img_dims.php';
 	$pageTitle = "Bat Cave Road Farm — Petting Zoo & Farmstand | Old Fort, NC";
-	$preloadImage = "https://batcaveroadfarm.com/img/homehero.webp"; // hero photo = mobile LCP (Nov 3 perf fix)
+	$preloadImage = (bcrf_farm_url() . "/img/homehero.webp"); // hero photo = mobile LCP (Nov 3 perf fix)
 	
 	include __DIR__ . '/includes/head.php';
 ?>
@@ -19,7 +20,7 @@
                 <span class="hero-deco" aria-hidden="true">🌾</span>
                 <div class="hero-content">
                     <h1>Petting Zoo, Farmstand &amp; Thrift Shop in Old Fort, NC</h1>
-                    <p>A family-owned slice of countryside magic — where <a href="https://batcaveroadfarm.com/farm-stand/">fresh food</a>, <a href="https://batcaveroadfarm.com/petting-zoo/">friendly animals</a>, and <a href="https://batcaveroadfarm.com/thrift-shop/">found treasures</a> come together.</p>
+                    <p>A family-owned slice of countryside magic — where <a href="<?= bcrf_farm_url() ?>/farm-stand/">fresh food</a>, <a href="<?= bcrf_farm_url() ?>/petting-zoo/">friendly animals</a>, and <a href="<?= bcrf_farm_url() ?>/thrift-shop/">found treasures</a> come together.</p>
                 </div>
             </div>
             <div class="divider" aria-hidden="true">✦ ✦ ✦</div>
@@ -28,9 +29,9 @@
                 <h2 class="section-heading reveal">Everything We Offer</h2>
         
                 <div class="card-grid">
-                    <a class="card cardLink reveal" href="https://batcaveroadfarm.com/petting-zoo/">
+                    <a class="card cardLink reveal" href="<?= bcrf_farm_url() ?>/petting-zoo/">
                         <div class="card-img-placeholder">
-                            <img class="boximg" src="https://batcaveroadfarm.com/img/animals1.webp" alt="White peacock displaying full tail feathers surrounded by goats, a pig, donkey, and wild turkeys at the Bat Cave Road Farm petting zoo in Old Fort, NC — family-friendly farm animal experience near Asheville, Western North Carolina" width="500" height="281" decoding="async">
+                            <img class="boximg" src="<?= bcrf_farm_url() ?>/img/animals1.webp" alt="White peacock displaying full tail feathers surrounded by goats, a pig, donkey, and wild turkeys at the Bat Cave Road Farm petting zoo in Old Fort, NC — family-friendly farm animal experience near Asheville, Western North Carolina" width="500" height="281" decoding="async">
                         </div>
                         <div class="card-body">
                             <h3 class="card-title">Petting Zoo</h3>
@@ -38,9 +39,9 @@
                             <span class="cta-btn wideBTN">Meet the animals</span>
                         </div>
                     </a>
-                    <a class="card cardLink reveal" href="https://batcaveroadfarm.com/farm-stand/">
+                    <a class="card cardLink reveal" href="<?= bcrf_farm_url() ?>/farm-stand/">
                         <div class="card-img-placeholder">
-                            <img class="boximg" src="https://batcaveroadfarm.com/img/farmstand1.webp" alt="Bat Cave Road Farmstand in Old Fort, NC — fresh seasonal vegetables, sourdough bread, farm eggs, local honey, homemade jams, and cut flower bouquets with the Blue Ridge Mountains in the background" width="500" height="273" decoding="async" loading="lazy">
+                            <img class="boximg" src="<?= bcrf_farm_url() ?>/img/farmstand1.webp" alt="Bat Cave Road Farmstand in Old Fort, NC — fresh seasonal vegetables, sourdough bread, farm eggs, local honey, homemade jams, and cut flower bouquets with the Blue Ridge Mountains in the background" width="500" height="273" decoding="async" loading="lazy">
                         </div>
                         <div class="card-body">
                             <h3 class="card-title">Farmstand</h3>
@@ -48,9 +49,9 @@
                             <span class="cta-btn wideBTN">Visit the stand</span>
                         </div>
                     </a>
-                    <a class="card cardLink reveal" href="https://batcaveroadfarm.com/thrift-shop/">
+                    <a class="card cardLink reveal" href="<?= bcrf_farm_url() ?>/thrift-shop/">
                         <div class="card-img-placeholder">
-                            <img class="boximg" src="https://batcaveroadfarm.com/img/thrift1.webp" alt="Inside the Bat Cave Road Farm thrift shop in Old Fort, NC — vintage clothing racks, depression glass, cast iron cookware, vinyl records, graphic tees, and antique housewares on hardwood floors with a rustic checkout counter" width="500" height="375" decoding="async" loading="lazy">
+                            <img class="boximg" src="<?= bcrf_farm_url() ?>/img/thrift1.webp" alt="Inside the Bat Cave Road Farm thrift shop in Old Fort, NC — vintage clothing racks, depression glass, cast iron cookware, vinyl records, graphic tees, and antique housewares on hardwood floors with a rustic checkout counter" width="500" height="375" decoding="async" loading="lazy">
                         </div>
                         <div class="card-body">
                             <h3 class="card-title">Thrift Shop</h3>
@@ -63,7 +64,7 @@
                 <div class="feature-band reveal">
                     <h2><span aria-hidden="true">🌿</span> Rooted in the Land Since 2023</h2>
                     <p>We believe in honest work, good food, and the joy of connecting with the natural world. Whether you're here to fill your basket or your heart, there's always something waiting for you.</p>
-                    <a href="https://batcaveroadfarm.com/about/" class="cta-btn">
+                    <a href="<?= bcrf_farm_url() ?>/about/" class="cta-btn">
                         Meet the family
                     </a>
                 </div>
@@ -158,7 +159,7 @@
                         <div class="icon" aria-hidden="true">📧</div>
                         <h3>Email</h3>
                         <p>
-                            <a href="mailto:support@batcaveroadfarm.com">support@batcaveroadfarm.com</a>
+                            <a href="mailto:<?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?>"><?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?></a>
                             <br>We reply within 24 hours.
                         </p>
                     </div>

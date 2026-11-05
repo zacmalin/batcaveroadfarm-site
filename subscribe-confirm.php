@@ -1,5 +1,6 @@
 <?php
 // subscribe-confirm.php — second step of the mailing-list double opt-in (fix pack K).
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 //
 // GET  (link from the email)  -> shows a "Confirm" button. Email security
 //                                scanners open links automatically, so a bare
@@ -34,8 +35,8 @@ header('Cache-Control: no-store, private');
 
 $pageTitle    = 'Confirm Signup | Bat Cave Road Farm';
 $metaDesc     = 'Confirm your Bat Cave Road Farm mailing list signup.';
-$canonicalUrl = 'https://batcaveroadfarm.com/subscribe.php';
-$pageCSS      = 'https://batcaveroadfarm.com/css/min.contactus.css';
+$canonicalUrl = (bcrf_farm_url() . '/subscribe.php');
+$pageCSS      = (bcrf_farm_url() . '/css/min.contactus.css');
 require_once __DIR__ . '/includes/head.php';
 require_once __DIR__ . '/includes/header.php';
 $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
@@ -51,7 +52,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
                 <p><a href="/">Back to the farm &rarr;</a></p>
 
 <?php elseif ($fail): ?>
-                <div class="subscribe-msg is-err" role="alert">Something went wrong on our end. Please try the link again in a moment, or email support@batcaveroadfarm.com.</div>
+                <div class="subscribe-msg is-err" role="alert">Something went wrong on our end. Please try the link again in a moment, or email <?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?>.</div>
 
 <?php elseif ($state === 'ok'): ?>
                 <p>Confirm Bat Cave Road Farm updates for <strong><?= $h($email) ?></strong>?</p>

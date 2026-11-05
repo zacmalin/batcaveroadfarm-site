@@ -1,5 +1,6 @@
 <?php
 // includes/jobs/hire.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Hire flow + staff records (Jobs pack P6).
 //  - jobs_hire_defaults / jobs_hire_validate / jobs_hire_save: the confirm screen
 //    turns an application into a staff account + user_employment stint, in one
@@ -15,7 +16,7 @@ require_once __DIR__ . '/pipeline.php';
 if (!function_exists('jobs_hire_save')) {
 
     if (!defined('JOBS_INVITE_DAYS')) define('JOBS_INVITE_DAYS', 7);
-    if (!defined('JOBS_SITE_URL'))    define('JOBS_SITE_URL', 'https://batcaveroadfarm.com');
+    if (!defined('JOBS_SITE_URL'))    define('JOBS_SITE_URL', (bcrf_farm_url()));
 
     /** Roles that can sign in to the staff console (same list as check_admin()). */
     function jobs_staff_roles(): array

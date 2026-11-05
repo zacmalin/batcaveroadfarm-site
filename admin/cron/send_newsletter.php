@@ -1,4 +1,5 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 /**
  * cron/send_newsletter.php
  * Sends a "new blog post" newsletter to subscribers via PHP mail(), in capped
@@ -53,7 +54,7 @@ const NL_BATCH       = 40;                              // recipients per run (s
 require_once dirname(__DIR__, 2) . '/includes/farm.php';   // farm values (Farm OS Phase 0)
 define('NL_FROM_EMAIL', bcrf_farm_email('support'));
 define('NL_FROM_NAME',  bcrf_farm_name());
-const NL_SITE        = 'https://batcaveroadfarm.com';
+define('NL_SITE', bcrf_farm_url());
 
 function nl_log($m) { echo $m . "\n"; }
 

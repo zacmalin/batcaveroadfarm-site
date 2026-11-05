@@ -1,5 +1,6 @@
 <?php
 // includes/jobs/mailer.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Jobs email: load a template from email_templates, fill in merge tags, send
 // through bcf_send_mail (PHPMailer SMTP, from support@, reply-to jobs@),
 // CC the guardian for under-18 applicants, and write every attempt to email_log.
@@ -21,7 +22,7 @@ if (!function_exists('jobs_mail_send')) {
     /** Admin link to one application. (Until the pipeline screen ships, opens the job's application list.) */
     function jobs_admin_app_url(array $app): string
     {
-        return 'https://batcaveroadfarm.com/admin/admin.php?view=jobs&app=' . (int)($app['id'] ?? 0);
+        return (bcrf_farm_url() . '/admin/admin.php?view=jobs&app=') . (int)($app['id'] ?? 0);
     }
 
     /** Merge tags whose values are already HTML (everything else is escaped). */

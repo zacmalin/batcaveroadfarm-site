@@ -1,4 +1,5 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 /**
  * includes/site_info.php — "Site Info" accessor (single source of truth).
  *
@@ -354,7 +355,7 @@ function site_tel(string $slot = 'general'): string {
 /** Email with literal fallback. */
 function site_email(string $slot = 'general'): string {
     $v = site('email.' . $slot);
-    return $v !== '' ? $v : 'support@batcaveroadfarm.com';
+    return $v !== '' ? $v : (bcrf_farm_email('support'));
 }
 
 /** Address split for two-line display: ['line1'=>street, 'line2'=>'City, ST ZIP']. */
@@ -415,8 +416,8 @@ function site_socials_display(): array {
     }
     if (empty($out)) {
         $out = [
-            ['name' => 'Facebook',  'url' => 'https://www.facebook.com/batcaveroadfarm',  'image' => 'https://batcaveroadfarm.com/img/facebook.png'],
-            ['name' => 'Instagram', 'url' => 'https://www.instagram.com/batcaveroadfarm', 'image' => 'https://batcaveroadfarm.com/img/instagram.png'],
+            ['name' => 'Facebook',  'url' => 'https://www.facebook.com/batcaveroadfarm',  'image' => (bcrf_farm_url() . '/img/facebook.png')],
+            ['name' => 'Instagram', 'url' => 'https://www.instagram.com/batcaveroadfarm', 'image' => (bcrf_farm_url() . '/img/instagram.png')],
         ];
     }
     return $out;

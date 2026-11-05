@@ -1,4 +1,5 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 require_once __DIR__ . '/img_dims.php';
 /**
  * Related cross-link modules for batcaveroadfarm.com.
@@ -39,7 +40,7 @@ if (!function_exists('bcrf_rel_abs')) {
         $v = trim($v);
         if ($v === '') return '';
         if (preg_match('#^https?://#i', $v)) return $v;
-        return 'https://batcaveroadfarm.com' . ($v[0] === '/' ? $v : '/' . $v);
+        return (bcrf_farm_url()) . ($v[0] === '/' ? $v : '/' . $v);
     }
 }
 

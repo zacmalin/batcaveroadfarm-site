@@ -1,8 +1,9 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 	http_response_code(404);
 	$pageTitle    = "Page Not Found (404) - Bat Cave Road Farm";
 	$metaDesc     = "Sorry, we couldn't find that page. Here's the way back to the farm.";
-	$canonicalUrl = "https://batcaveroadfarm.com/404";
+	$canonicalUrl = (bcrf_farm_url() . "/404");
 	$hideBreadcrumbs = true;
 	require('includes/head.php');
 	include('includes/header.php');
@@ -19,11 +20,11 @@
           <div class="content-wrap1">
             <p style="text-align:center;max-width:560px;margin:0 auto 6px">The page may have moved, or the link might have a typo. Here are some good places to go instead:</p>
             <div class="ctaDiv" style="padding-bottom:48px">
-              <a class="cta-btn" href="https://batcaveroadfarm.com/">Home</a>
-              <a class="cta-btn" href="https://batcaveroadfarm.com/petting-zoo/">Petting Zoo</a>
-              <a class="cta-btn" href="https://batcaveroadfarm.com/farm-stand/">Farm Stand</a>
-              <a class="cta-btn" href="https://batcaveroadfarm.com/thrift-shop/">Thrift Shop</a>
-              <a class="cta-btn" href="https://batcaveroadfarm.com/contact-us/">Contact Us</a>
+              <a class="cta-btn" href="<?= bcrf_farm_url() ?>/">Home</a>
+              <a class="cta-btn" href="<?= bcrf_farm_url() ?>/petting-zoo/">Petting Zoo</a>
+              <a class="cta-btn" href="<?= bcrf_farm_url() ?>/farm-stand/">Farm Stand</a>
+              <a class="cta-btn" href="<?= bcrf_farm_url() ?>/thrift-shop/">Thrift Shop</a>
+              <a class="cta-btn" href="<?= bcrf_farm_url() ?>/contact-us/">Contact Us</a>
             </div>
           </div>
         </div>

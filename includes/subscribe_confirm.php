@@ -1,5 +1,6 @@
 <?php
 // includes/subscribe_confirm.php — double opt-in for the mailing list (fix pack K).
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 //
 // Signing up no longer adds the address right away. subscribe.php emails a
 // signed confirmation link; nothing is written to mailing_list until the owner
@@ -27,7 +28,7 @@ if (!function_exists('bcrf_subconf_token')) {
         $ts = $ts ?? time();
         $t  = bcrf_subconf_token($email, $nursery, $inventory, $ts);
         if ($t === '') return '';
-        return 'https://batcaveroadfarm.com/subscribe-confirm.php?' . http_build_query([
+        return (bcrf_farm_url() . '/subscribe-confirm.php?') . http_build_query([
             'e' => strtolower(trim($email)), 'n' => $nursery ? 1 : 0, 'i' => $inventory ? 1 : 0, 'ts' => $ts, 't' => $t,
         ]);
     }
@@ -93,7 +94,7 @@ if (!function_exists('bcrf_subconf_token')) {
 
         return bcf_send_mail($email, 'Please confirm your Bat Cave Road Farm signup', $inner, [
             'subtitle'   => 'Confirm Signup',
-            'from_email' => 'support@batcaveroadfarm.com',
+            'from_email' => (bcrf_farm_email('support')),
             'text'       => "Confirm your Bat Cave Road Farm signup (link works for 7 days):\r\n{$url}\r\n\r\nIf you didn't sign up, ignore this email.",
         ]);
     }

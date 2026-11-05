@@ -1,5 +1,6 @@
 <?php
 // includes/header.php — site header (logo, open/closed status, Directions, We're hiring)
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 ?>
 <?php $bcrfTheme = $bcrfTheme ?? ''; $bcrfThemeGlyph = $bcrfThemeGlyph ?? ''; ?>
 <?php
@@ -45,18 +46,18 @@
 <?php endif; ?>
     	<header>
             <div class="header-inner">
-                <a class="logo-wrap" href="https://batcaveroadfarm.com/">
+                <a class="logo-wrap" href="<?= bcrf_farm_url() ?>/">
 <?php
                     // Fix pack M: smaller WebP logo when available (falls back to the PNG).
                     require_once __DIR__ . '/webp.php';
                     $__logoWebp = bcrf_webp_src('/img/logo.png');
                     if ($__logoWebp): ?>
                     <picture style="display:contents">
-                        <source srcset="https://batcaveroadfarm.com<?= htmlspecialchars($__logoWebp, ENT_QUOTES) ?>?v=<?= bcrf_asset_v((string)$__logoWebp) ?>" type="image/webp">
-                        <img src="https://batcaveroadfarm.com/img/logo.png" alt="Bat Cave Road Farm — home" width="400" height="299" decoding="async">
+                        <source srcset="<?= bcrf_farm_url() ?><?= htmlspecialchars($__logoWebp, ENT_QUOTES) ?>?v=<?= bcrf_asset_v((string)$__logoWebp) ?>" type="image/webp">
+                        <img src="<?= bcrf_farm_url() ?>/img/logo.png" alt="Bat Cave Road Farm — home" width="400" height="299" decoding="async">
                     </picture>
 <?php else: ?>
-                    <img src="https://batcaveroadfarm.com/img/logo.png" alt="Bat Cave Road Farm — home" width="400" height="299" decoding="async">
+                    <img src="<?= bcrf_farm_url() ?>/img/logo.png" alt="Bat Cave Road Farm — home" width="400" height="299" decoding="async">
 <?php endif; ?>
                 </a>
                 <div class="site-title">
@@ -70,11 +71,11 @@
                         <span class="bcrf-status-label"><?= htmlspecialchars($bcrfStatus['label']) ?></span>
                         <span class="bcrf-status-detail"><?= htmlspecialchars($bcrfStatus['detail']) ?></span>
                     </span>
-                    <a class="header-directions" href="https://batcaveroadfarm.com/directions/" aria-label="Directions to Bat Cave Road Farm">
+                    <a class="header-directions" href="<?= bcrf_farm_url() ?>/directions/" aria-label="Directions to Bat Cave Road Farm">
                         <span aria-hidden="true">📍</span> Directions
                     </a>
 <?php if ($bcrfHiring): ?>
-                    <a class="header-hiring" href="https://batcaveroadfarm.com/jobs/" aria-label="We're hiring: see open jobs at Bat Cave Road Farm">
+                    <a class="header-hiring" href="<?= bcrf_farm_url() ?>/jobs/" aria-label="We're hiring: see open jobs at Bat Cave Road Farm">
                         <span class="header-hiring-dot" aria-hidden="true"></span> We're hiring
                     </a>
 <?php endif; ?>

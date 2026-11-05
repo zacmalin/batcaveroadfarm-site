@@ -1,5 +1,6 @@
 <?php
 // jobs/alerts/index.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // /jobs/alerts/ — job alert signup (Jobs pack P7). Step 1 of a double opt-in:
 // nothing is saved here. We email a signed link; the signup is stored only
 // when its owner taps it (jobs/alerts/confirm.php). Same reply for every
@@ -45,8 +46,8 @@ header('Cache-Control: no-store, private');
 
 $pageTitle    = 'Job Alerts | Bat Cave Road Farm';
 $metaDesc     = 'Get an email when Bat Cave Road Farm posts a job at the farmstand, thrift shop, petting zoo or farm.';
-$canonicalUrl = 'https://batcaveroadfarm.com/jobs/alerts/';
-$pageCSS      = 'https://batcaveroadfarm.com/css/min.jobs.css';
+$canonicalUrl = (bcrf_farm_url() . '/jobs/alerts/');
+$pageCSS      = (bcrf_farm_url() . '/css/min.jobs.css');
 $breadcrumbs  = [['label' => 'Jobs', 'url' => '/jobs/'], ['label' => 'Job alerts']];
 require __DIR__ . '/../../includes/head.php';
 include __DIR__ . '/../../includes/header.php';
@@ -61,7 +62,7 @@ $on = fn(string $k, $v) => in_array((string)$v, array_map('strval', $in[$k]), tr
     </div>
 
 <?php if (!$ready): ?>
-    <div class="jb-card jb-empty"><p>Job alerts aren't available right now. Please check the <a href="/jobs/">Jobs page</a> or email <a href="mailto:jobs@batcaveroadfarm.com">jobs@batcaveroadfarm.com</a>.</p></div>
+    <div class="jb-card jb-empty"><p>Job alerts aren't available right now. Please check the <a href="/jobs/">Jobs page</a> or email <a href="mailto:<?= htmlspecialchars(bcrf_farm_email('jobs'), ENT_QUOTES) ?>"><?= htmlspecialchars(bcrf_farm_email('jobs'), ENT_QUOTES) ?></a>.</p></div>
 <?php elseif ($sent): ?>
     <div class="jb-card jb-ok" role="status">
         <h2>Check your email</h2>

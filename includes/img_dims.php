@@ -1,4 +1,5 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 /**
  * includes/img_dims.php — width/height attributes for local images.
  *
@@ -21,7 +22,7 @@ if (!function_exists('bcrf_img_attrs')) {
         $path = $src;
         if (preg_match('#^(?:https?:)?//([^/]+)(/.*)?$#i', $path, $m)) {
             $host = strtolower(preg_replace('/^www\./', '', $m[1]));
-            if ($host !== 'batcaveroadfarm.com') return $cache[$src] = '';
+            if ($host !== (bcrf_farm_domain())) return $cache[$src] = '';
             $path = $m[2] ?? '/';
         }
         $path = rawurldecode(strtok($path, '?#'));

@@ -1,5 +1,6 @@
 <?php
 // admin/pos.php - Resilient Dedicated Touchscreen Register Interface Console
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 require_once '../config.php';
 check_admin();
 require_once __DIR__ . '/includes/permission_checks.php';   // audit #8: same Permissions Matrix rules as the console
@@ -291,7 +292,7 @@ $last_receipt = $_SESSION['last_receipt'] ?? null;
 <!-- ── HEADER ── -->
 <header class="bg-stone-900 text-stone-100 px-6 py-4 flex justify-between items-center shadow-md print:hidden shrink-0">
     <div class="flex items-center space-x-3">
-        <img src="https://batcaveroadfarm.com/img/logos/logo.png" class="h-8 w-auto object-contain">
+        <img src="<?= bcrf_farm_url() ?>/img/logos/logo.png" class="h-8 w-auto object-contain">
         <h1 class="text-sm font-bold uppercase tracking-wider font-mono">Bat Cave Road Farm Stand Register</h1>
     </div>
     <div class="flex items-center space-x-4">
@@ -531,7 +532,7 @@ $last_receipt = $_SESSION['last_receipt'] ?? null;
 <div id="printReceiptBlock" style="display:none;">
     <!-- Compact centered header -->
     <div style="text-align:center;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:10px;">
-        <img src="https://batcaveroadfarm.com/img/logos/logo.png" style="height:48px;width:auto;display:inline-block;margin-bottom:4px;">
+        <img src="<?= bcrf_farm_url() ?>/img/logos/logo.png" style="height:48px;width:auto;display:inline-block;margin-bottom:4px;">
         <div style="font-size:17px;font-weight:900;font-family:serif;color:#000;line-height:1.1;">BAT CAVE ROAD FARM</div>
         <div style="font-size:9px;font-weight:bold;text-transform:uppercase;font-family:sans-serif;letter-spacing:0.05em;color:#333;margin-top:2px;">Petting Zoo &bull; Farm Stand &bull; Thrift Shop</div>
         <div style="font-size:9px;font-weight:bold;font-family:sans-serif;color:#555;margin-top:2px;">4132 Bat Cave Road, Old Fort, NC 28762 &bull; (828) 216-5488</div>
@@ -572,7 +573,7 @@ $last_receipt = $_SESSION['last_receipt'] ?? null;
         ⚠️ All thrift shop items are sold AS-IS. No warranties expressed or implied.
     </div>
     <div style="border-top:1px solid #000;margin-top:12px;padding-top:6px;text-align:center;font-size:9px;font-weight:bold;font-family:sans-serif;">
-        🌐 batcaveroadfarm.com &bull; 📱 @BatCaveRoadFarm
+        🌐 <?= bcrf_farm_domain() ?> &bull; 📱 @BatCaveRoadFarm
         <div style="font-family:serif;font-style:italic;font-size:10px;margin-top:2px;">Thank you for supporting our local Blue Ridge homestead!</div>
     </div>
 </div>

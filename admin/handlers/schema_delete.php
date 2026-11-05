@@ -1,5 +1,6 @@
 <?php
 // admin/handlers/schema_delete.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Handles record deletion from schema views with permission check.
 
 if ($target_view !== 'schema' || empty($target_table)) return;
@@ -20,7 +21,7 @@ if (!function_exists('erp_request_is_same_site')) {
         $ref = (string)($_SERVER['HTTP_REFERER'] ?? '');
         if ($ref === '') return false;                                        // no proof -> refuse
         $host = strtolower((string)parse_url($ref, PHP_URL_HOST));
-        return $host === 'batcaveroadfarm.com' || $host === 'www.batcaveroadfarm.com';
+        return $host === (bcrf_farm_domain()) || $host === 'www.batcaveroadfarm.com';
     }
 }
 if (!erp_request_is_same_site()) {

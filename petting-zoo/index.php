@@ -1,4 +1,5 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 require_once '../config.php';
 require_once '../includes/img_dims.php';
 
@@ -127,11 +128,11 @@ function bcrfBreedCards(PDO $pdo): void {
 }
 
 	$pageTitle    = "Petting Zoo | Bat Cave Road Farm — Old Fort, NC";
-	$preloadImage = "https://batcaveroadfarm.com/img/animals1.webp"; // hero photo = mobile LCP (Nov 3 perf fix)
+	$preloadImage = (bcrf_farm_url() . "/img/animals1.webp"); // hero photo = mobile LCP (Nov 3 perf fix)
 	$metaDesc = "Meet goats, pigs, donkeys, chickens, ducks, turkeys, and a rare white peacock at Bat Cave Road Farm petting zoo in Old Fort, NC near Asheville.";
-	$canonicalUrl = "https://batcaveroadfarm.com/petting-zoo/";
-	$ogImage = "https://batcaveroadfarm.com/img/og-pettingzoo.jpg";
-	$pageCSS = "https://batcaveroadfarm.com/css/min.pettingzoo.css";
+	$canonicalUrl = (bcrf_farm_url() . "/petting-zoo/");
+	$ogImage = (bcrf_farm_url() . "/img/og-pettingzoo.jpg");
+	$pageCSS = (bcrf_farm_url() . "/css/min.pettingzoo.css");
 	require('../includes/head.php');
 ?>
 	
@@ -142,11 +143,11 @@ function bcrfBreedCards(PDO $pdo): void {
   "@graph": [
     {
       "@type": "TouristAttraction",
-      "@id": "https://batcaveroadfarm.com/petting-zoo/#attraction",
+      "@id": "<?= bcrf_farm_url() ?>/petting-zoo/#attraction",
       "name": "Bat Cave Road Farm Petting Zoo",
-      "url": "https://batcaveroadfarm.com/petting-zoo/",
+      "url": "<?= bcrf_farm_url() ?>/petting-zoo/",
       "description": "Hands-on petting zoo with goats, donkeys, peacocks, pigs, ducks, turkeys, and chickens in Old Fort, NC — near Asheville, Western North Carolina.",
-      "image": "https://batcaveroadfarm.com/img/og-pettingzoo.jpg",
+      "image": "<?= bcrf_farm_url() ?>/img/og-pettingzoo.jpg",
       "address": {
         "@type": "PostalAddress",
         "streetAddress": "4132 Bat Cave Road",
@@ -172,7 +173,7 @@ function bcrfBreedCards(PDO $pdo): void {
         }
       ],
       "isPartOf": {
-        "@id": "https://batcaveroadfarm.com/#business"
+        "@id": "<?= bcrf_farm_url() ?>/#business"
       },
       "offers": [
         {
@@ -182,7 +183,7 @@ function bcrfBreedCards(PDO $pdo): void {
           "price": "8.00",
           "priceCurrency": "USD",
           "eligibleCustomerType": "https://schema.org/Adult",
-          "url": "https://batcaveroadfarm.com/petting-zoo/",
+          "url": "<?= bcrf_farm_url() ?>/petting-zoo/",
           "availability": "https://schema.org/InStock",
           "validFrom": "2025-01-01"
         },
@@ -192,7 +193,7 @@ function bcrfBreedCards(PDO $pdo): void {
           "description": "Admission for children ages 3 to 12",
           "price": "5.00",
           "priceCurrency": "USD",
-          "url": "https://batcaveroadfarm.com/petting-zoo/",
+          "url": "<?= bcrf_farm_url() ?>/petting-zoo/",
           "availability": "https://schema.org/InStock",
           "validFrom": "2025-01-01"
         },
@@ -202,7 +203,7 @@ function bcrfBreedCards(PDO $pdo): void {
           "description": "Children under 3 years old are admitted free",
           "price": "0.00",
           "priceCurrency": "USD",
-          "url": "https://batcaveroadfarm.com/petting-zoo/",
+          "url": "<?= bcrf_farm_url() ?>/petting-zoo/",
           "availability": "https://schema.org/InStock",
           "validFrom": "2025-01-01"
         },
@@ -212,7 +213,7 @@ function bcrfBreedCards(PDO $pdo): void {
           "description": "Bag of animal feed available for purchase at the petting zoo entrance",
           "price": "5.00",
           "priceCurrency": "USD",
-          "url": "https://batcaveroadfarm.com/petting-zoo/",
+          "url": "<?= bcrf_farm_url() ?>/petting-zoo/",
           "availability": "https://schema.org/InStock",
           "validFrom": "2025-01-01"
         }
@@ -220,24 +221,24 @@ function bcrfBreedCards(PDO $pdo): void {
     },
     {
       "@type": "Service",
-      "@id": "https://batcaveroadfarm.com/petting-zoo/#groupvisits",
+      "@id": "<?= bcrf_farm_url() ?>/petting-zoo/#groupvisits",
       "serviceType": "Group visits, birthday parties, and private farm events",
       "name": "Birthday Parties & Group Farm Visits — Bat Cave Road Farm",
       "description": "Host your birthday party, school field trip, homeschool group, or family reunion at Bat Cave Road Farm. Group packages include guided tours, animal feeding sessions, and private barn access for up to 20 guests.",
-      "url": "https://batcaveroadfarm.com/petting-zoo/",
-      "image": "https://batcaveroadfarm.com/img/og-pettingzoo.jpg",
+      "url": "<?= bcrf_farm_url() ?>/petting-zoo/",
+      "image": "<?= bcrf_farm_url() ?>/img/og-pettingzoo.jpg",
       "provider": {
         "@type": "LocalBusiness",
-        "@id": "https://batcaveroadfarm.com/#business",
+        "@id": "<?= bcrf_farm_url() ?>/#business",
         "name": "Bat Cave Road Farm",
-        "url": "https://batcaveroadfarm.com/"
+        "url": "<?= bcrf_farm_url() ?>/"
       },
       "areaServed": "Western North Carolina — Old Fort, Asheville & McDowell County",
       "offers": {
         "@type": "Offer",
         "name": "Group Visit Package",
         "description": "Guided farm tour, animal feeding session, and private barn access for groups up to 20. Call for pricing.",
-        "url": "https://batcaveroadfarm.com/contact-us/",
+        "url": "<?= bcrf_farm_url() ?>/contact-us/",
         "availability": "https://schema.org/InStock",
         "validFrom": "2025-01-01"
       },
@@ -268,27 +269,27 @@ function bcrfBreedCards(PDO $pdo): void {
                 <p class="section-intro reveal">Tap any breed to meet our animals and learn more &rarr;</p>
                 <?php bcrfBreedCards($pdo); ?>
                 <div class="ctaDiv">
-                    <a href="https://batcaveroadfarm.com/gallery/" class="cta-btn">
+                    <a href="<?= bcrf_farm_url() ?>/gallery/" class="cta-btn">
                             See more photos in the Gallery
                     </a>
                     <button type="button" class="cta-btn" data-subscribe-open><span aria-hidden="true">🐣</span> Get baby animal updates</button>
               	</div>  
              <div class="feature-band reveal">
                   <h2><span aria-hidden="true">🌾</span> Rules for a Happy Visit</h2>
-                  <p>Please be gentle with all animals. Children under 10 must be accompanied by an adult in the petting zoo area. No <a href="https://batcaveroadfarm.com/faq/#dressCode" class="ulLink">open-toed shoes in animal areas.</a>  Animal feed is available for purchase at the entrance. We ask that all visitors <a href="https://batcaveroadfarm.com/faq/#handwashing" class="ulLink">wash their hands</a> after visiting the animals.</p>
+                  <p>Please be gentle with all animals. Children under 10 must be accompanied by an adult in the petting zoo area. No <a href="<?= bcrf_farm_url() ?>/faq/#dressCode" class="ulLink">open-toed shoes in animal areas.</a>  Animal feed is available for purchase at the entrance. We ask that all visitors <a href="<?= bcrf_farm_url() ?>/faq/#handwashing" class="ulLink">wash their hands</a> after visiting the animals.</p>
                 </div>
             
                 <div class="two-col reveal">
                   <div class="two-col-img">
-                      <img src="https://batcaveroadfarm.com/img/animals2.webp" alt="Collage of farm animals at Bat Cave Road Farm petting zoo in Old Fort, NC — peacock, pig, donkey, chickens, and goats pictured in gold frames hanging on a rustic barn wall near Asheville, Western North Carolina" width="500" height="375" decoding="async" loading="lazy">
+                      <img src="<?= bcrf_farm_url() ?>/img/animals2.webp" alt="Collage of farm animals at Bat Cave Road Farm petting zoo in Old Fort, NC — peacock, pig, donkey, chickens, and goats pictured in gold frames hanging on a rustic barn wall near Asheville, Western North Carolina" width="500" height="375" decoding="async" loading="lazy">
                   </div>
                   <div class="two-col-text">
                     <h3>Birthday Parties & School Groups</h3>
                     <p>Looking for a truly memorable birthday party or field trip? We offer group packages that include guided tours, animal feeding, and private barn access. Up to 20 guests can be accommodated. Tell us about your event and we'll put together a custom package!</p>
                     <div class="cta-pair">
-                      <a href="https://batcaveroadfarm.com/private-events/" class="cta-btn">Plan a Private Event</a>
-                      <a href="https://batcaveroadfarm.com/booking/" class="cta-btn">Book a Group Visit</a>
-                      <a href="https://batcaveroadfarm.com/passes/" class="cta-btn">🪪 Annual Passes</a>
+                      <a href="<?= bcrf_farm_url() ?>/private-events/" class="cta-btn">Plan a Private Event</a>
+                      <a href="<?= bcrf_farm_url() ?>/booking/" class="cta-btn">Book a Group Visit</a>
+                      <a href="<?= bcrf_farm_url() ?>/passes/" class="cta-btn">🪪 Annual Passes</a>
                     </div>
                   </div>
                 </div>
@@ -300,7 +301,7 @@ function bcrfBreedCards(PDO $pdo): void {
                   <h2><span aria-hidden="true">🧢</span> Take Home a Souvenir</h2>
                   <p>Had a blast with the animals? Take a little of the farm home with you — hats, tees, and stickers featuring your favorite Bat Cave Road Farm critters. Every purchase helps keep them fed.</p>
                   <div class="ctaDiv">
-                    <a href="https://batcaveroadfarm.com/shop/" class="cta-btn"><span aria-hidden="true">🛍️</span> Visit the Farm Store</a>
+                    <a href="<?= bcrf_farm_url() ?>/shop/" class="cta-btn"><span aria-hidden="true">🛍️</span> Visit the Farm Store</a>
                   </div>
                 </div>
                 <?php endif; ?>
@@ -317,10 +318,10 @@ function bcrfBreedCards(PDO $pdo): void {
                 </div>
                                 <div class="ctaDiv">
                                     
-                    <a href="https://batcaveroadfarm.com/farm-stand/" class="cta-btn">
+                    <a href="<?= bcrf_farm_url() ?>/farm-stand/" class="cta-btn">
                             After the animals, grab something fresh
                     </a>
-                    <a href="https://batcaveroadfarm.com/thrift-shop/" class="cta-btn">
+                    <a href="<?= bcrf_farm_url() ?>/thrift-shop/" class="cta-btn">
                             or browse the thrift shop
                     </a>
 

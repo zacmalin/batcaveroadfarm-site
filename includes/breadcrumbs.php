@@ -1,4 +1,5 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 /**
  * Site-wide breadcrumbs — ARIA compliant (<nav aria-label="Breadcrumb"> + <ol>,
  * current item marked aria-current="page", separators are CSS-only/decorative) and
@@ -14,7 +15,7 @@
 (function () {
     global $hideBreadcrumbs;
     if (!empty($hideBreadcrumbs)) return;
-    $base = 'https://batcaveroadfarm.com';
+    $base = (bcrf_farm_url());
     $labelMap = [
         'farm-stand' => 'Farm Stand', 'petting-zoo' => 'Petting Zoo', 'thrift-shop' => 'Thrift Shop',
         'about' => 'About', 'contact-us' => 'Contact', 'faq' => 'FAQ', 'gallery' => 'Gallery',

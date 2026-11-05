@@ -1,4 +1,5 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 ob_start();
 // blog/article_view.php - Public Article Reader Core Interface
 require_once '../config.php';
@@ -22,14 +23,14 @@ $postWhen = !empty($post['date_published']) ? $post['date_published'] : ($post['
 
 // Use the post's feature image for social sharing (arbitrary size -> skip the fixed 1200x630 hint)
 if ($featImg !== '') {
-    $ogImage = preg_match('#^https?://#', $featImg) ? $featImg : 'https://batcaveroadfarm.com' . ($featImg[0] === '/' ? '' : '/') . $featImg;
+    $ogImage = preg_match('#^https?://#', $featImg) ? $featImg : (bcrf_farm_url()) . ($featImg[0] === '/' ? '' : '/') . $featImg;
     $ogImageNoSize = true;
 }
 $pageTitle = $post['title'] . " | The Farmstead Journal";
 $pageDescription = mb_substr(trim(preg_replace('/\s+/', ' ', strip_tags((string)$post['article']))), 0, 155) . "…";
-$canonicalUrl = "https://batcaveroadfarm.com/blog/" . $post['slug'] . "/";
-$pageCSS      = "https://batcaveroadfarm.com/css/min.blog.css";
-$pageJS       = "https://batcaveroadfarm.com/js/min.share.js";
+$canonicalUrl = (bcrf_farm_url() . "/blog/") . $post['slug'] . "/";
+$pageCSS      = (bcrf_farm_url() . "/css/min.blog.css");
+$pageJS       = (bcrf_farm_url() . "/js/min.share.js");
 $breadcrumbs = [
     ['label' => 'The Journal', 'url' => '/blog/'],
     ['label' => $post['title']],
@@ -48,7 +49,7 @@ $__articleSchema = array_filter([
     "image" => $__img,
     "author" => ["@type" => "Person", "name" => $post['author'] ?: "Bat Cave Road Farm"],
     "description" => mb_substr(trim(preg_replace('/\s+/', ' ', strip_tags((string)$post['article']))), 0, 160),
-    "publisher" => ["@id" => "https://batcaveroadfarm.com/#business"],
+    "publisher" => ["@id" => (bcrf_farm_url() . "/#business")],
 ], fn($v) => $v !== null && $v !== '' && $v !== []);
 if (!empty($post['date_published'])) { $__articleSchema['datePublished'] = date('c', strtotime($post['date_published'])); }
 echo '<script type="application/ld+json">' . json_encode($__articleSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . '</script>';

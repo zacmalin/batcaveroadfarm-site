@@ -1,8 +1,9 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 	$pageTitle    = "Terms of Service - Bat Cave Road Farm";
-	$metaDesc     = "The terms for using batcaveroadfarm.com and for visiting Bat Cave Road Farm in Old Fort, NC, including website use, purchases, and farm-visit safety.";
-	$canonicalUrl = "https://batcaveroadfarm.com/terms/";
-	$pageCSS      = "https://batcaveroadfarm.com/css/min.legal.css";
+	$metaDesc     = ("The terms for using " . bcrf_farm_domain() . " and for visiting Bat Cave Road Farm in Old Fort, NC, including website use, purchases, and farm-visit safety.");
+	$canonicalUrl = (bcrf_farm_url() . "/terms/");
+	$pageCSS      = (bcrf_farm_url() . "/css/min.legal.css");
 	$breadcrumbs  = [['label' => 'Terms of Service']];
 	require('../includes/head.php');
 	include('../includes/header.php');
@@ -21,7 +22,7 @@
             <article class="legal-doc reveal">
               <p class="legal-updated">Last updated: November 3, 2026</p>
               <p class="legal-intro">Welcome to Bat Cave Road Farm. These Terms of Service ("Terms") govern your
-                use of <strong>batcaveroadfarm.com</strong> (the "Site") and your visit to our farm in Old Fort,
+                use of <strong><?= bcrf_farm_domain() ?></strong> (the "Site") and your visit to our farm in Old Fort,
                 North Carolina. By using the Site or visiting the farm, you agree to these Terms. If you don't
                 agree, please don't use the Site.</p>
 
@@ -112,7 +113,7 @@
 
               <h2 id="copyright">Copyright complaints</h2>
               <p>If you believe something on the Site (including a visitor comment or photo) infringes your
-                copyright, email <a href="mailto:support@batcaveroadfarm.com">support@batcaveroadfarm.com</a> with:
+                copyright, email <a href="mailto:<?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?>"><?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?></a> with:
                 your contact details; the work you believe is infringed; the page address of the material; a
                 statement that you have a good-faith belief the use isn't authorized by the owner, its agent, or the
                 law; a statement, under penalty of perjury, that your notice is accurate and that you are the owner
@@ -134,7 +135,7 @@
                 <?php
                     $__name = function_exists('site') ? site('business_name', 'Bat Cave Road Farm') : 'Bat Cave Road Farm';
                     $__addr = (function_exists('site_address') && site_address() !== '') ? site_address() : '4132 Bat Cave Road, Old Fort, NC 28762';
-                    $__em   = function_exists('site_email') ? site_email('general') : 'support@batcaveroadfarm.com';
+                    $__em   = function_exists('site_email') ? site_email('general') : (bcrf_farm_email('support'));
                     $__ph   = function_exists('site_phone_display') ? site_phone_display('general') : '(828) 216-5488';
                     $__tel  = function_exists('site_tel') ? site_tel('general') : '+18282165488';
                 ?>

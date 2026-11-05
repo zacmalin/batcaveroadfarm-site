@@ -1,5 +1,6 @@
 <?php
 // booking/success.php — post-payment confirmation (paid + free bookings).
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // session_id is NOT in the URL (ModSecurity blocks it). Payment status is
 // checked from the DB; if still pending, we verify via the stored payment_reference.
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
@@ -88,10 +89,10 @@ if ($booking && $paid) bcrf_ga_purchase($pdo, 'bookings', (int)$booking['id']);
     <br><strong>Paid: $<?= number_format((float)$booking['amount_total'], 2) ?></strong>
     <?php endif; ?>
   </div>
-  <a class="btn" href="https://batcaveroadfarm.com/">Visit the farm site</a>
-  <p class="note">Questions? Call (828) 216-5488 or email support@batcaveroadfarm.com</p>
+  <a class="btn" href="<?= bcrf_farm_url() ?>/">Visit the farm site</a>
+  <p class="note">Questions? Call (828) 216-5488 or email <?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?></p>
   <p class="note" style="margin-top:10px;padding-top:10px;border-top:1px solid #e8d5b0">
-    🪪 Plan to visit again? Our <a href="https://batcaveroadfarm.com/passes/" style="color:#5c3317;font-weight:bold">annual passes</a> give you unlimited visits for a year.
+    🪪 Plan to visit again? Our <a href="<?= bcrf_farm_url() ?>/passes/" style="color:#5c3317;font-weight:bold">annual passes</a> give you unlimited visits for a year.
   </p>
 
 <?php else: ?>
@@ -99,7 +100,7 @@ if ($booking && $paid) bcrf_ga_purchase($pdo, 'bookings', (int)$booking['id']);
   <h1>Almost there!</h1>
   <p>We're confirming your payment — this usually takes just a moment. You'll receive a confirmation email at <strong><?= htmlspecialchars($booking['email'] ?? '') ?></strong> once everything is verified.</p>
   <p>If you don't hear from us within 15 minutes, please call (828) 216-5488.</p>
-  <a class="btn" href="https://batcaveroadfarm.com/">Back to the farm</a>
+  <a class="btn" href="<?= bcrf_farm_url() ?>/">Back to the farm</a>
 <?php endif; ?>
 </div>
 </body></html>

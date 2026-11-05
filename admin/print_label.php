@@ -1,5 +1,6 @@
 <?php
 // admin/print_label.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // PLS451 — 3"×3" labels, 6 per letter sheet (2 cols × 3 rows)
 // Positions match standard 2×3 label sheet layout.
 
@@ -269,7 +270,7 @@ for ($p = 0; $p < $total_pages; $p++) {
     <div class="label" style="left:<?= $pos['x'] ?>;top:<?= $pos['y'] ?>;">
 
         <div class="l-logo">
-            <img src="https://batcaveroadfarm.com/img/logos/print_square_logo.png"
+            <img src="<?= bcrf_farm_url() ?>/img/logos/print_square_logo.png"
                  alt="Bat Cave Road Farm">
         </div>
 
@@ -278,7 +279,7 @@ for ($p = 0; $p < $total_pages; $p++) {
         <div class="l-right">
             <div class="l-info-wrap">
                 <div class="l-info-inner">
-                    <div class="l-url">batcaveroadfarm.com</div>
+                    <div class="l-url"><?= bcrf_farm_domain() ?></div>
                     <div class="l-ing">
                         <strong>Ingredients:</strong><?= $ing_str ?>
                     </div>

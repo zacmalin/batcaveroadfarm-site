@@ -1,5 +1,6 @@
 <?php
 // private-events/submit.php — handles private event inquiry form submission.
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/rate_limit.php';   // server-side limits (Nov 2026)
@@ -117,10 +118,10 @@ if (function_exists('bcf_send_mail')) {
     $notifInner = '<h1 style="font-family:Rye,Georgia,serif;color:#e8b84b;font-size:1.4rem;margin:0 0 16px">New private event inquiry from ' . htmlspecialchars($name) . '</h1>'
         . '<table style="border-collapse:collapse;margin:0 0 16px">' . $rows($details) . '</table>';
 
-    @bcf_send_mail('support@batcaveroadfarm.com',
+    @bcf_send_mail((bcrf_farm_email('support')),
         'Private event inquiry — ' . $typeLabel . ' from ' . $name,
         $notifInner,
-        ['subtitle' => 'Private Event Inquiry', 'from_email' => 'support@batcaveroadfarm.com', 'reply_to' => $email]
+        ['subtitle' => 'Private Event Inquiry', 'from_email' => (bcrf_farm_email('support')), 'reply_to' => $email]
     );
 
     // Auto-reply to visitor
@@ -136,7 +137,7 @@ if (function_exists('bcf_send_mail')) {
     @bcf_send_mail($email,
         'We received your private event inquiry — Bat Cave Road Farm',
         $replyInner,
-        ['subtitle' => 'Event Inquiry Received', 'from_email' => 'support@batcaveroadfarm.com']
+        ['subtitle' => 'Event Inquiry Received', 'from_email' => (bcrf_farm_email('support'))]
     );
 }
 

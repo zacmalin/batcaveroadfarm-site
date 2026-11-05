@@ -1,8 +1,9 @@
 <?php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 ob_start();
 require_once './config.php';
 
-$pageCSS         = "https://batcaveroadfarm.com/css/min.contactus.css";
+$pageCSS         = (bcrf_farm_url() . "/css/min.contactus.css");
 $pageTitle       = "Join Our Farm Mailing List | Bat Cave Road Farm";
 $pageDescription = "Sign up for Bat Cave Road Farm updates. Customize notifications for new arrivals at our petting zoo or fresh harvest alerts at our farm stand.";
 
@@ -84,7 +85,7 @@ require_once './includes/header.php';
                         <button type="submit" class="form-submit cta-btn">Save Subscription</button>
                     </div>
                 </form>
-                <p><a href="https://batcaveroadfarm.com/unsubscribe.php">Opt out or change preferences here &rarr;</a></p>
+                <p><a href="<?= bcrf_farm_url() ?>/unsubscribe.php">Opt out or change preferences here &rarr;</a></p>
             </div>
           </div>
         </div>

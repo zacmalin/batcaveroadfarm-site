@@ -1,5 +1,6 @@
 <?php
 // includes/jobs/emails.php
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 // Hiring emails service (Jobs pack P5): template catalog + merge-tag lists,
 // sample values for previews/test sends, template save/reset, and the
 // approval queue (send, edit, cancel). Used by admin/handlers/jobs_emails.php
@@ -48,18 +49,18 @@ if (!function_exists('jobs_template_catalog')) {
     {
         $v = jobs_merge_vars(['id' => 0, 'first_name' => 'Sam', 'last_name' => 'Sample'], ['title' => 'Farmstand Associate', 'category_name' => 'Farmstand']);
         return array_merge($v, [
-            'application_link'   => 'https://batcaveroadfarm.com/admin/admin.php?view=jobs',
+            'application_link'   => (bcrf_farm_url() . '/admin/admin.php?view=jobs'),
             'flags'              => '<ul style="margin:0;padding-left:18px;"><li>Under 18 (16–17) — guardian: Pat Sample</li></ul>',
             'interview_datetime' => jobs_fmt_interview_sample(),
             'interview_location' => $v['farm_address'],
             'offer_details'      => '$12.00/hr<br>Saturdays and Sundays, 10am to 4pm<br>Start date: next Saturday',
             'start_date'         => date('l, F j', strtotime('next saturday')),
-            'set_password_link'  => 'https://batcaveroadfarm.com/admin/login.php',
-            'confirm_link'       => 'https://batcaveroadfarm.com/jobs/',
+            'set_password_link'  => (bcrf_farm_url() . '/admin/login.php'),
+            'confirm_link'       => (bcrf_farm_url() . '/jobs/'),
             'pay_summary'        => '$12.00–$14.00/hr',
             'closes_date'        => date('F j', strtotime('+3 weeks')),
-            'job_link'           => 'https://batcaveroadfarm.com/jobs/',
-            'unsubscribe_link'   => 'https://batcaveroadfarm.com/jobs/',
+            'job_link'           => (bcrf_farm_url() . '/jobs/'),
+            'unsubscribe_link'   => (bcrf_farm_url() . '/jobs/'),
         ]);
     }
 
