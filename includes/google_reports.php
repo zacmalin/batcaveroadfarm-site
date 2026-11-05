@@ -22,7 +22,8 @@ if (!function_exists('bcrf_greports_config')) {
 function bcrf_greports_config(): array {
     $s = $GLOBALS['bcrf'] ?? [];
     return [
-        'key_file'    => (string)($s['GOOGLE_SA_KEY_FILE'] ?? (dirname(__DIR__, 2) . '/bcrf-google-sa.json')),
+        // Default: next to bcrf-secrets.php in the home folder (/home2/<user>/), one level above public_html
+        'key_file'    => (string)($s['GOOGLE_SA_KEY_FILE'] ?? ((defined('BCRF_SECRETS_PATH') && BCRF_SECRETS_PATH !== '' ? dirname(BCRF_SECRETS_PATH) : dirname(__DIR__, 3)) . '/bcrf-google-sa.json')),
         'property_id' => preg_replace('/\D/', '', (string)($s['GA4_PROPERTY_ID'] ?? '')),
         'gsc_site'    => (string)($s['GSC_SITE'] ?? 'sc-domain:batcaveroadfarm.com'),
     ];
