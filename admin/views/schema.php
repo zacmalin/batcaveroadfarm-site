@@ -410,9 +410,18 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
             </p>
         <?php else: ?>
 
+        <?php
+            // Device drafts (admin-ui.js): kept until the server confirms the save. After a failed save the
+            // handler (handlers/schema_record.php) asks for the typed values to be put back; after a good
+            // save it names the draft to drop (a new record's draft is keyed :0:, not by its new id).
+            $__dKey     = 'schema:' . $target_table . ':' . (int)($edit_data['id'] ?? 0) . ':' . (int)($current_user_id ?? 0);
+            $__dClear   = (string)($_SESSION['autosave_clear'] ?? '');
+            $__dRestore = ($_SESSION['autosave_restore'] ?? '') === $__dKey;
+            unset($_SESSION['autosave_clear'], $_SESSION['autosave_restore']);
+        ?>
         <!-- Fix 10: dirty-form unsaved changes warning -->
         <form method="POST" class="space-y-4 text-xs" id="schemaEditForm" data-dirty="false"
-              <?php if (!in_array($target_table, ['users', 'mailing_list'], true)): /* no personal data in device drafts */ ?>data-autosave="schema:<?= htmlspecialchars($target_table, ENT_QUOTES) ?>:<?= (int)($edit_data['id'] ?? 0) ?>:<?= (int)($current_user_id ?? 0) ?>"<?php endif; ?>>
+              <?php if (!in_array($target_table, ['users', 'mailing_list'], true)): /* no personal data in device drafts */ ?>data-autosave="<?= htmlspecialchars($__dKey, ENT_QUOTES) ?>" data-autosave-confirm<?= $__dClear !== '' ? ' data-autosave-clear="' . htmlspecialchars($__dClear, ENT_QUOTES) . '"' : '' ?><?= $__dRestore ? ' data-autosave-restore' : '' ?><?php endif; ?>>
             <input type="hidden" name="csrf_token"        value="<?= $_SESSION['csrf_token'] ?>">
             <input type="hidden" name="save_schema_record" value="1">
             <input type="hidden" name="id"                value="<?= (int)($edit_data['id'] ?? 0) ?>">

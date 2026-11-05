@@ -5,6 +5,9 @@
 // ── AUDIT LOG HELPER (shared) ───────────────────────────────────────────────
 require_once __DIR__ . '/../includes/audit.php';
 
+$record_id = 0;   // set once the row is saved; the redirect below needs it even when the save fails
+$__draftKey = 'schema:' . (string)$target_table . ':' . (int)($_POST['id'] ?? 0) . ':' . (int)($current_user_id ?? 0);   // the form's device-draft key (admin-ui.js)
+
 try {
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         $_SESSION['toast_msg']  = 'Security token expired. Please try again.';
@@ -306,38 +309,8 @@ try {
     // ── ANIMALS: Save Draft / Publish = hidden from / shown on the petting zoo pages ──
     if ($target_table === 'animals' && isset($_POST['post_status'])) {
         $pdo->prepare("UPDATE animals SET is_active = ? WHERE id = ?")->execute([$_POST['post_status'] === 'published' ? 1 : 0, $record_id]);
-        // Marker so an animal is only announced on Facebook/Instagram once (added on first use).
-        try {
-            $__has = $pdo->query("SHOW COLUMNS FROM animals LIKE 'social_shared_at'")->fetch();
-            if (!$__has) $pdo->exec("ALTER TABLE animals ADD COLUMN social_shared_at DATETIME NULL");
-        } catch (Throwable $e) { error_log('[ERP] animals.social_shared_at: ' . $e->getMessage()); }
-    }
-
-    // ── FIRST-PUBLISH SOCIAL SHARE (recipes + blog + animals) — queue the admin-approved post ─
-    if (in_array($target_table, ['blog_posts', 'recipes', 'animals'], true)
-        && ($_POST['post_status'] ?? '') === 'published'
-        && !empty($_POST['social_share'])) {
-        $__sf = dirname(__DIR__, 2) . '/includes/social.php';
-        if (file_exists($__sf)) require_once $__sf;
-        if (function_exists('social_enqueue') && social_tables_ready($pdo)) {
-            $__shared = false;
-            try {
-                $__c = $pdo->prepare("SELECT social_shared_at FROM {$target_table} WHERE id = ?");
-                $__c->execute([$record_id]);
-                $__shared = (bool)$__c->fetchColumn();
-            } catch (Throwable $e) { /* marker column missing -> treat as not yet shared */ }
-            if (!$__shared) {
-                $__gbp = !empty($_POST['social_gbp_on']) ? trim((string)($_POST['social_gbp'] ?? '')) : '';
-                social_enqueue($pdo, (['recipes' => 'recipe', 'animals' => 'animal'][$target_table] ?? 'blog'), (int)$record_id, [
-                    'platforms' => 'facebook,instagram' . ($__gbp !== '' ? ',google' : ''),
-                    'gbp'      => $__gbp,
-                    'fb'       => trim((string)($_POST['social_fb']   ?? '')),
-                    'ig'       => trim((string)($_POST['social_ig']   ?? '')),
-                    'hashtags' => trim((string)($_POST['social_tags'] ?? '')),
-                ]);
-                try { $pdo->prepare("UPDATE {$target_table} SET social_shared_at = NOW() WHERE id = ?")->execute([$record_id]); } catch (Throwable $e) {}
-            }
-        }
+        // animals.social_shared_at (announce an animal only once) comes from migration 0001. No ALTER here:
+        // a structure change inside the transaction would commit the save early (Nov 5 fix).
     }
 
     // ── BLOG POSTS: CATEGORIES ───────────────────────────────────────────────────
@@ -379,20 +352,96 @@ try {
         }
     }
 
-    $pdo->commit();
+    if ($pdo->inTransaction()) {
+        $pdo->commit();
+    } else {
+        // Something above changed the database structure, which made MySQL commit early. The data is saved.
+        error_log('[ERP] schema_record: transaction ended before commit (a CREATE/ALTER ran inside the save); data was saved');
+    }
 
     // Audit trail (after commit, so only successful saves are logged)
     erp_audit($pdo, $id ? 'update' : 'create', (string)$target_table, (int)$record_id, erp_audit_label($fields));
 
-    $_SESSION['toast_msg']  = "Record saved successfully.";
-    $_SESSION['toast_type'] = 'success';
+    // ── FIRST-PUBLISH SOCIAL SHARE (recipes + blog + animals) — queue the admin-approved post ─
+    // Runs after commit (Nov 5 fix): queueing is a side effect, and anything in it that changes the
+    // database structure would end the save's transaction early. If it fails, the record is still saved.
+    $__socialWarn = '';
+    try {
+    if (in_array($target_table, ['blog_posts', 'recipes', 'animals'], true)
+        && ($_POST['post_status'] ?? '') === 'published'
+        && !empty($_POST['social_share'])) {
+        $__sf = dirname(__DIR__, 2) . '/includes/social.php';
+        if (file_exists($__sf)) require_once $__sf;
+        if (function_exists('social_enqueue') && social_tables_ready($pdo)) {
+            $__shared = false;
+            try {
+                $__c = $pdo->prepare("SELECT social_shared_at FROM {$target_table} WHERE id = ?");
+                $__c->execute([$record_id]);
+                $__shared = (bool)$__c->fetchColumn();
+            } catch (Throwable $e) { /* marker column missing -> treat as not yet shared */ }
+            if (!$__shared) {
+                $__gbp = !empty($_POST['social_gbp_on']) ? trim((string)($_POST['social_gbp'] ?? '')) : '';
+                social_enqueue($pdo, (['recipes' => 'recipe', 'animals' => 'animal'][$target_table] ?? 'blog'), (int)$record_id, [
+                    'platforms' => 'facebook,instagram' . ($__gbp !== '' ? ',google' : ''),
+                    'gbp'      => $__gbp,
+                    'fb'       => trim((string)($_POST['social_fb']   ?? '')),
+                    'ig'       => trim((string)($_POST['social_ig']   ?? '')),
+                    'hashtags' => trim((string)($_POST['social_tags'] ?? '')),
+                ]);
+                try { $pdo->prepare("UPDATE {$target_table} SET social_shared_at = NOW() WHERE id = ?")->execute([$record_id]); } catch (Throwable $e) {}
+            }
+        }
+    }
+    } catch (Throwable $e) {
+        error_log('[ERP] social share queue failed: ' . $e->getMessage());
+        $__socialWarn = ' The social post was not queued: ' . $e->getMessage();
+    }
+
+    $_SESSION['toast_msg']  = "Record saved successfully." . $__socialWarn;
+    $_SESSION['toast_type'] = $__socialWarn === '' ? 'success' : 'warning';
+    $_SESSION['autosave_clear'] = $__draftKey;   // the save worked: drop this form's device draft
 
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
+    $record_id = (int)($id ?? 0);   // a new row that failed was rolled back: there is nothing to open
     error_log('[ERP] Schema record save failed: ' . $e->getMessage());
-    $_SESSION['toast_msg']  = "Save error: " . $e->getMessage();
+    $_SESSION['toast_msg']  = schema_record_error_message($pdo, (string)$target_table, $e);
     $_SESSION['toast_type'] = 'error';
+    $_SESSION['autosave_restore'] = $__draftKey;   // put the typed values back in the form (admin-ui.js)
 }
 
-header("Location: /admin/admin.php?view=schema&table=" . urlencode($target_table) . "&edit_id=" . $record_id);
+header("Location: /admin/admin.php?view=schema&table=" . urlencode($target_table)
+     . ($record_id ? "&edit_id=" . $record_id : "&new=1"));
 exit;
+
+/**
+ * Plain-language save error. A duplicate (MySQL 1062) names the field, the value and the existing record,
+ * e.g. 'An ingredient with Singular name "Butter" already exists (#12). Edit that one or use a different name.'
+ */
+function schema_record_error_message(PDO $pdo, string $table, Throwable $e): string {
+    $msg = $e->getMessage();
+    $info = $e instanceof PDOException ? ($e->errorInfo ?? []) : [];
+    if ((int)($info[1] ?? 0) === 1062 && preg_match("/Duplicate entry '(.*)' for key '(?:[^'.]+\\.)?([^']+)'/s", $msg, $m)) {
+        [$all, $value, $key] = $m;
+        $col = $key;
+        try {
+            $st = $pdo->prepare("SHOW INDEX FROM `{$table}` WHERE Key_name = ?");
+            $st->execute([$key]);
+            $cols = array_column($st->fetchAll(PDO::FETCH_ASSOC), 'Column_name');
+            if (count($cols) === 1) $col = $cols[0];
+        } catch (Throwable $e2) { /* fall back to the key name */ }
+        $existing = '';
+        try {
+            if (preg_match('/^[A-Za-z0-9_]+$/', $col)) {
+                $st = $pdo->prepare("SELECT id FROM `{$table}` WHERE `{$col}` = ? LIMIT 1");
+                $st->execute([$value]);
+                if ($exId = (int)$st->fetchColumn()) $existing = ' (#' . $exId . ')';
+            }
+        } catch (Throwable $e3) {}
+        $thing = preg_replace(['/ies$/', '/s$/'], ['y', ''], str_replace('_', ' ', $table));
+        $a     = preg_match('/^[aeiou]/i', $thing) ? 'An' : 'A';
+        $label = ucfirst(str_replace('_', ' ', $col));
+        return "{$a} {$thing} with {$label} \"{$value}\" already exists{$existing}. Edit that one or use a different " . strtolower($label) . ". Your changes are still in the form.";
+    }
+    return 'Save error: ' . rtrim($msg, '. ') . '. Your changes are still in the form.';
+}
