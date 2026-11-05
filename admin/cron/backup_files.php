@@ -36,7 +36,7 @@ bcrf_cron_begin('backup_files');   // heartbeat for the admin System Health page
 
 @set_time_limit(0);
 @ini_set('memory_limit', '512M');
-date_default_timezone_set('America/New_York');
+date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');   // farm time zone setting (Phase 0, C-03)
 
 const BCRF_FILES_KEEP_LOCAL = 4;
 const BCRF_FILES_KEEP_DRIVE = 4;

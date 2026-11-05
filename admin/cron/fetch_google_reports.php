@@ -19,7 +19,7 @@ if (ob_get_level() > 0) { ob_end_clean(); }
 require_once dirname($bcrf_cfg) . '/includes/cron_health.php';
 bcrf_cron_begin('fetch_google_reports');   // heartbeat for System Health
 require_once dirname($bcrf_cfg) . '/includes/google_reports.php';
-date_default_timezone_set('America/New_York');
+date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');   // farm time zone setting (Phase 0, C-03)
 
 $res = bcrf_greports_refresh($pdo);
 echo '[' . date('Y-m-d H:i:s') . '] search console: ' . $res['gsc'] . ' | analytics: ' . $res['ga'] . "\n";

@@ -15,7 +15,7 @@ if (empty($_SESSION['user_id']) || !in_array($_SESSION['user_role'], ['administr
     header('Location: /admin/admin.php?view=newsletter'); exit;
 }
 
-date_default_timezone_set('America/New_York');
+date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');   // farm time zone setting (Phase 0, C-03)
 
 // ── CSRF ──────────────────────────────────────────────────────────────────────
 if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {

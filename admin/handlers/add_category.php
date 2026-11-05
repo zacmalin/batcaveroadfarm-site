@@ -31,7 +31,7 @@ if (!in_array($_SESSION['user_role'], $allowed_roles)) {
 require_once __DIR__ . '/../includes/permission_checks.php';   // audit #8: same Permissions Matrix rules as the console
 require_permission([['table', 'categories', 'edit'], ['table', 'blog_categories', 'edit']], true);
 
-date_default_timezone_set('America/New_York');
+date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');   // farm time zone setting (Phase 0, C-03)
 
 // ── CSRF ──────────────────────────────────────────────────────────────────────
 $posted_token = $_POST['csrf_token'] ?? '';

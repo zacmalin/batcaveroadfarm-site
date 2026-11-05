@@ -169,6 +169,26 @@ try {
     die("A secure system connection interface fault occurred.");
 }
 
+// ── FARM TIME ZONE (Farm OS Phase 0, C-03, Nov 5, 2026) ──────────────────────
+// One setting (admin → Settings → Hours & Contacts → Timezone, site_settings.timezone) sets the
+// time zone for every page and cron. Before this, pages that didn't set it themselves ran on the
+// server's zone (America/Boise). New tables store UTC and convert for display.
+function bcrf_farm_tz(): string {
+    static $tz = null;
+    if ($tz !== null) return $tz;
+    $tz = 'America/New_York';
+    global $pdo;
+    try {
+        if ($pdo instanceof PDO) {
+            $st = $pdo->query("SELECT setting_value FROM site_settings WHERE setting_key = 'timezone' LIMIT 1");
+            $v  = trim((string)($st ? $st->fetchColumn() : ''));
+            if ($v !== '' && in_array($v, timezone_identifiers_list(), true)) $tz = $v;
+        }
+    } catch (Throwable $e) { /* settings table missing: keep the default */ }
+    return $tz;
+}
+date_default_timezone_set(bcrf_farm_tz());
+
 function check_admin() {
     // Console access is for staff roles; the per-view permission matrix
     // (admin/includes/permissions.php) governs what each role sees inside.

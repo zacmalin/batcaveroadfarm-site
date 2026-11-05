@@ -12,7 +12,7 @@ check_admin();
 if (($_SESSION['user_role'] ?? '') !== 'administrator') { http_response_code(403); exit('Administrators only.'); }
 require_once __DIR__ . '/../includes/gbp.php';
 require_once __DIR__ . '/includes/audit.php';
-date_default_timezone_set('America/New_York');
+date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');   // farm time zone setting (Phase 0, C-03)
 gbp_schema($pdo);
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));

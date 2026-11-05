@@ -36,7 +36,7 @@ require_once dirname($bcrf_cfg) . '/includes/cron_health.php';
 bcrf_cron_begin('backup_db');   // heartbeat for the admin System Health page
 
 @set_time_limit(0);
-date_default_timezone_set('America/New_York');
+date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');   // farm time zone setting (Phase 0, C-03)
 
 const BCRF_BACKUP_KEEP_DAYS = 30;   // Farm OS Phase 0 / C-08 (Nov 5, 2026): was 14; ~85 KB a night, so ~3 MB for 30 days
 const BCRF_BACKUP_KEEP_MIN  = 3;     // never delete below this many files

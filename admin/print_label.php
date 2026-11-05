@@ -9,7 +9,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) session_start();   // config.php us
 if (empty($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['administrator', 'moderator', 'Shopkeep', 'Media'], true)) { http_response_code(403); exit('Access denied.'); }
 require_once __DIR__ . '/includes/permission_checks.php';   // audit #8: same Permissions Matrix rules as the console
 require_permission([['view', 'inventory_update'], ['view', 'pos']]);
-date_default_timezone_set('America/New_York');
+date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');   // farm time zone setting (Phase 0, C-03)
 
 $item_id   = filter_input(INPUT_GET, 'item_id',   FILTER_VALIDATE_INT);
 $copies    = max(1, min(60, (int)($_GET['copies']    ?? 1)));
