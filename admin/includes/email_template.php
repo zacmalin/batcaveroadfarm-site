@@ -229,6 +229,11 @@ function bcf_send_mail(string $to, string $subject, string $innerHtml, array $op
     $fromEmail   = $opts['from_email']  ?? 'no-reply@batcaveroadfarm.com';
     $replyTo     = $opts['reply_to']    ?? $fromEmail;
 
+    // Optional GA campaign tags on links to our site: 'utm_campaign' => 'job-alert' (+ 'utm_source', default 'email')
+    if (!empty($opts['utm_campaign'])) {
+        if (!function_exists('bcrf_utm_html')) require_once dirname(__DIR__, 2) . '/includes/ga.php';
+        $innerHtml = bcrf_utm_html($innerHtml, (string)($opts['utm_source'] ?? 'email'), 'email', (string)$opts['utm_campaign']);
+    }
     $html = bcf_email_header($subtitle) . $innerHtml . bcf_email_footer($unsubscribe);
 
     // Newsletters: give each recipient their own signed unsubscribe link + one-click headers.

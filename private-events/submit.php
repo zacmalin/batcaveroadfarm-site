@@ -128,4 +128,6 @@ if (function_exists('bcf_send_mail')) {
     );
 }
 
+require_once __DIR__ . '/../includes/ga.php';
+bcrf_ga_flash('generate_lead', 'private_event');   // GA lead on the success page (bots that trip the honeypot skip this)
 header('Location: /private-events/success.php'); exit;

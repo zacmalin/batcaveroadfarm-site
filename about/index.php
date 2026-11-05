@@ -88,7 +88,7 @@
           </div>
                            <div class="ctaDiv" style="text-align:center;padding-bottom:48px">
                                     
-                    <a href="https://batcaveroadfarm.com/contact-us/" class="cta-btn" data-ga="get_directions">
+                    <a href="https://batcaveroadfarm.com/directions/" class="cta-btn" data-ga="get_directions">
                             Get directions to the farm
                     </a>
 

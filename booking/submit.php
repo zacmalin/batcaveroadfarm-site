@@ -20,6 +20,7 @@ if ($method !== 'POST') {
 $isError   = false;
 $errMsg    = '';
 $isQuote   = false; // private event (request-a-quote) vs. confirmable booking
+$gaLead    = false; // true only when a real request was saved (GA generate_lead)
 
 if (!empty($_POST['website'])) {
     // honeypot tripped — pretend success, do nothing
@@ -129,6 +130,7 @@ if (!empty($_POST['website'])) {
             }
             if (function_exists('booking_send_ack'))         booking_send_ack($b, $type);
             if (function_exists('booking_send_admin_alert')) booking_send_admin_alert($b, $type);
+            $gaLead = true;
         } catch (Throwable $e) {
             error_log('[BCRF booking submit] ' . $e->getMessage());
             $isError = true; $errMsg = "Something went wrong saving your request.";
@@ -140,6 +142,8 @@ if (!empty($_POST['website'])) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?php echo $isError ? "That didn't go through" : "Request Received"; ?> &mdash; Bat Cave Road Farm</title>
+<meta name="robots" content="noindex, nofollow">
+<?php require_once __DIR__ . '/../includes/ga.php'; echo bcrf_ga_tags_html(); ?>
 <link href="https://fonts.googleapis.com/css2?family=Rye&family=Lora:wght@400;600&display=swap" rel="stylesheet">
 <style>
   body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
@@ -153,7 +157,7 @@ if (!empty($_POST['website'])) {
     padding:12px 26px;border-radius:8px;border:2px solid #c9923a}
   a.btn:hover{background:#3b2010}
 </style></head>
-<body>
+<body<?= $gaLead ? ' data-ga-event="generate_lead" data-ga-form="booking"' : '' ?>>
   <div class="card">
     <div class="emoji"><?php echo $isError ? '🌾' : ($isQuote ? '🎈' : '🐐'); ?></div>
     <h1><?php echo $isError ? "That didn't go through" : "Request Received!"; ?></h1>

@@ -226,7 +226,7 @@ if (!function_exists('jobs_alert_sig')) {
                         $unsub = jobs_alert_unsub_url($s['email']);
                         $vars  = array_merge(jobs_merge_vars([], $job), $jobVars, ['unsubscribe_link' => $unsub]);
                         $ok = jobs_mail_send($pdo, $s['email'], jobs_alert_subject($pdo, $job), jobs_render($tpl['body_html'], $vars, true), [
-                            'template_key' => 'alert_new_job', 'unsubscribe' => true, 'list_unsubscribe' => $unsub,
+                            'template_key' => 'alert_new_job', 'unsubscribe' => true, 'utm_source' => 'job_alerts', 'utm_campaign' => 'new-job', 'list_unsubscribe' => $unsub,
                         ]);
                         // The email_log row (sent or failed) keeps them out of this round's list,
                         // so a bad address can't be retried forever. last_sent_at is for the Alerts screen.

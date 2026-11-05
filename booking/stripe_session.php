@@ -38,6 +38,9 @@ try {
 }
 
 if (!$booking)                               _stripe_bail('Booking not found or cancelled.', $token);
+// Remember the visitor's GA IDs so the purchase sent after payment is credited to this visit
+require_once __DIR__ . '/../includes/ga.php';
+if (!empty($booking['id'])) bcrf_ga_store_ids($pdo, 'bookings', (int)$booking['id']);
 if ($booking['payment_status'] === 'paid') { header('Location: /booking/success.php?token=' . rawurlencode($token)); exit; }
 if ((float)($booking['amount_total'] ?? 0) <= 0) _stripe_bail('No payment amount set on this booking.', $token);
 

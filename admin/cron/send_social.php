@@ -150,6 +150,10 @@ foreach ($pending as $q) {
     $img       = social_image_url($row, $BASEURL);
     $permalink = social_permalink($type, $row, $BASEURL);
     $fbCaption = (string)$q['fb_caption'];
+    // GA campaign tags on the Facebook link (Instagram captions can't hold clickable links)
+    if (!function_exists('bcrf_utm_url')) require_once __DIR__ . '/../../includes/ga.php';
+    $fbLink    = bcrf_utm_url($permalink, 'facebook', 'social', 'autoshare-' . $type);
+    $fbCaption = str_replace($permalink, $fbLink, $fbCaption);
     $igCaption = trim((string)$q['ig_caption'] . (trim((string)$q['ig_hashtags']) !== '' ? "\n\n" . $q['ig_hashtags'] : ''));
 
     $fbId = null; $igId = null; $errors = [];
@@ -162,7 +166,7 @@ foreach ($pending as $q) {
         $fbId = $r['json']['post_id'] ?? $r['json']['id'] ?? null;
     } else {
         $r = social_http('POST', "{$GRAPH}/" . FB_PAGE_ID . "/feed", [
-            'message' => $fbCaption, 'link' => $permalink, 'access_token' => FB_PAGE_TOKEN,
+            'message' => $fbCaption, 'link' => $fbLink, 'access_token' => FB_PAGE_TOKEN,
         ]);
         $fbId = $r['json']['id'] ?? null;
     }

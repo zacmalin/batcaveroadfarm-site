@@ -115,6 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $current_role !== 'administrator') 
         'bookings_action'          => ['view', 'bookings'],
         'inquiry_action'           => ['view', 'event_inquiries'],
         'pass_action'              => ['view', 'passes'],
+        'google_reports_action'    => ['view', 'search_analytics'],
         'jobs_setup_action'        => ['admin', ''],
         'jobs_pipeline_action'     => ['admin', ''],
         'jobs_emails_action'       => ['admin', ''],
@@ -294,6 +295,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: /admin/admin.php?view=jobs_staff'); exit;
         }
     }
+    if (isset($_POST['google_reports_action'])) {
+        try { require __DIR__ . '/handlers/google_reports_action.php'; }
+        catch (Throwable $e) {
+            error_log('[ERP] Google reports refresh failed: ' . $e->getMessage());
+            $_SESSION['toast_msg'] = 'Refresh failed: ' . $e->getMessage();
+            $_SESSION['toast_type'] = 'error';
+            header('Location: /admin/admin.php?view=search_analytics'); exit;
+        }
+    }
     if (isset($_POST['pass_action'])) {
         try { require __DIR__ . '/handlers/pass_action.php'; }
         catch (Throwable $e) {
@@ -370,6 +380,7 @@ $view_map = [
     'audit_log'          => __DIR__ . '/views/audit_log.php',
     'site_info'          => __DIR__ . '/views/site_info.php',
     'sales_analytics'    => __DIR__ . '/views/sales_analytics.php',
+    'search_analytics'   => __DIR__ . '/views/search_analytics.php',
     'events'           => __DIR__ . '/views/events.php',
     'bookings'         => __DIR__ . '/views/bookings.php',
     'event_inquiries'  => __DIR__ . '/views/event_inquiries.php',

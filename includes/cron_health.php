@@ -29,6 +29,7 @@ function bcrf_cron_jobs(): array {
         'backup_db'              => ['Database backup',            26 * 60,     'daily, 3:15 AM'],
         'purge_job_records'      => ['Hiring records cleanup',     26 * 60,     'daily, 3:20 AM'],
         'backup_files'           => ['Website files backup',       8 * 24 * 60, 'weekly, Sunday 3:40 AM'],
+        'fetch_google_reports'   => ['Search & Analytics refresh', 26 * 60,     'daily, 6:10 AM'],
     ];
 }
 

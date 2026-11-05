@@ -10,6 +10,33 @@ $base  = 'https://batcaveroadfarm.com';
 $today = date('Y-m-d');
 $urls  = [];
 
+// lastmod (Nov 2026): real change dates, never "today". Google ignores lastmod on sites where it's
+// always today. Static pages use their PHP file's modified date; database pages use the row's
+// updated/created column when the table has one; otherwise lastmod is left out (better than wrong).
+$__lmCols = [];
+function sitemapLmCol(PDO $pdo, string $table): string {
+    global $__lmCols;
+    if (!isset($__lmCols[$table])) {
+        $__lmCols[$table] = '';
+        try {
+            $cols = $pdo->query("SHOW COLUMNS FROM `$table`")->fetchAll(PDO::FETCH_COLUMN);
+            foreach (['updated_at', 'modified_at', 'last_updated', 'date_modified', 'created_at'] as $c) {
+                if (in_array($c, $cols, true)) { $__lmCols[$table] = $c; break; }
+            }
+        } catch (Throwable $e) {}
+    }
+    return $__lmCols[$table];
+}
+function sitemapDate($v): string {
+    $t = $v ? strtotime((string)$v) : false;
+    return ($t && $t > 0 && $t <= time() + 86400) ? date('Y-m-d', $t) : '';
+}
+function sitemapFileDate(string $path): string {
+    $f = __DIR__ . rtrim($path, '/') . (substr($path, -1) === '/' ? '/index.php' : '');
+    if ($path === '/') $f = __DIR__ . '/index.php';
+    return is_file($f) ? date('Y-m-d', filemtime($f)) : '';
+}
+
 function addUrl(&$urls, $loc, $lastmod, $freq, $prio, $images = []) {
     $urls[] = ['loc' => $loc, 'lastmod' => $lastmod, 'freq' => $freq, 'prio' => $prio, 'images' => $images];
 }
@@ -42,7 +69,7 @@ $static = [
     ['/accessibility/', 'yearly', '0.3', []],
 ];
 foreach ($static as $sp) {
-    addUrl($urls, $base . $sp[0], $today, $sp[1], $sp[2], $sp[3]);
+    addUrl($urls, $base . $sp[0], sitemapFileDate($sp[0]), $sp[1], $sp[2], $sp[3]);
 }
 // Catalog pages only when they have something in them (empty ones are noindex).
 $__catHas = function (string $where) use ($pdo): bool {
@@ -51,15 +78,16 @@ $__catHas = function (string $where) use ($pdo): bool {
                                    WHERE i.is_active = 1 AND i.stock_quantity > 0 AND ($where) LIMIT 1")->fetchColumn();
     } catch (Throwable $e) { return false; }
 };
-if ($__catHas("ic.slug = 'thrift' OR LOWER(ic.name) = 'thrift'"))   addUrl($urls, $base . '/thrift-shop/items/', $today, 'weekly', '0.6');
-if ($__catHas("LOWER(ic.slug) IN ('merchandise','merch') OR LOWER(ic.name) IN ('merchandise','merch')")) addUrl($urls, $base . '/shop/', $today, 'weekly', '0.7');
+if ($__catHas("ic.slug = 'thrift' OR LOWER(ic.name) = 'thrift'"))   addUrl($urls, $base . '/thrift-shop/items/', '', 'weekly', '0.6');
+if ($__catHas("LOWER(ic.slug) IN ('merchandise','merch') OR LOWER(ic.name) IN ('merchandise','merch')")) addUrl($urls, $base . '/shop/', '', 'weekly', '0.7');
 
 // ── Dynamic pages ─────────────────────────────────────────────────────────────
 // Each section has its own try/catch so one failing query can't drop the rest.
 try {
     // Recipes (with featured image)
-    foreach ($pdo->query("SELECT slug, date_published, title, featured_image FROM recipes WHERE status = 'published' AND slug IS NOT NULL AND slug <> ''") as $r) {
-        $lm = (!empty($r['date_published']) && $r['date_published'] !== '0000-00-00') ? $r['date_published'] : $today;
+    $rc = sitemapLmCol($pdo, 'recipes'); $rcSel = ($rc !== '' && $rc !== 'created_at') ? ", `$rc` AS lm_col" : '';
+    foreach ($pdo->query("SELECT slug, date_published, title, featured_image$rcSel FROM recipes WHERE status = 'published' AND slug IS NOT NULL AND slug <> ''") as $r) {
+        $lm = max(sitemapDate($r['lm_col'] ?? ''), sitemapDate(($r['date_published'] ?? '') !== '0000-00-00' ? $r['date_published'] : ''));
         $imgs = [];
         if (!empty($r['featured_image'])) {
             $imgs[] = sitemapImg($base, $r['featured_image'], htmlspecialchars($r['title'], ENT_XML1) . ' — Farmhouse Recipe from Bat Cave Road Farm');
@@ -71,8 +99,9 @@ try {
 }
 try {
     // Blog posts
-    foreach ($pdo->query("SELECT slug, date_published FROM blog_posts WHERE status = 'published' AND slug IS NOT NULL AND slug <> ''") as $b) {
-        $lm = !empty($b['date_published']) ? date('Y-m-d', strtotime($b['date_published'])) : $today;
+    $bc = sitemapLmCol($pdo, 'blog_posts'); $bcSel = ($bc !== '' && $bc !== 'created_at') ? ", `$bc` AS lm_col" : '';
+    foreach ($pdo->query("SELECT slug, date_published$bcSel FROM blog_posts WHERE status = 'published' AND slug IS NOT NULL AND slug <> ''") as $b) {
+        $lm = max(sitemapDate($b['lm_col'] ?? ''), sitemapDate($b['date_published'] ?? ''));
         addUrl($urls, $base . '/blog/' . rawurlencode($b['slug']) . '/', $lm, 'monthly', '0.6');
     }
 } catch (Throwable $e) {
@@ -80,54 +109,59 @@ try {
 }
 try {
     // Farm-stand products
-    foreach ($pdo->query("SELECT i.id, i.name, i.image_url FROM inventory i JOIN inventory_categories ic ON i.category_id = ic.id WHERE i.is_active = 1 AND i.stock_quantity > 0 AND (LOWER(ic.slug) IN ('produce','bakery','baked-goods','pantry') OR LOWER(ic.name) IN ('produce','bakery','baked goods','pantry'))") as $row) {
+    $ic = sitemapLmCol($pdo, 'inventory'); $icSel = $ic !== '' ? ", i.`$ic` AS lm_col" : '';
+    foreach ($pdo->query("SELECT i.id, i.name, i.image_url$icSel FROM inventory i JOIN inventory_categories ic ON i.category_id = ic.id WHERE i.is_active = 1 AND i.stock_quantity > 0 AND (LOWER(ic.slug) IN ('produce','bakery','baked-goods','pantry') OR LOWER(ic.name) IN ('produce','bakery','baked goods','pantry'))") as $row) {
         $imgs = [];
         if (!empty($row['image_url'])) {
             $imgs[] = sitemapImg($base, $row['image_url'], htmlspecialchars($row['name'], ENT_XML1) . ' — Bat Cave Road Farm Farmstand');
         }
-        addUrl($urls, $base . '/farm-stand/items/' . (int)$row['id'] . '/' . (createSlug($row['name']) ?: 'item') . '/', $today, 'weekly', '0.5', $imgs);
+        addUrl($urls, $base . '/farm-stand/items/' . (int)$row['id'] . '/' . (createSlug($row['name']) ?: 'item') . '/', sitemapDate($row['lm_col'] ?? ''), 'weekly', '0.5', $imgs);
     }
 } catch (Throwable $e) {
     error_log('sitemap.php [Farm-stand products]: ' . $e->getMessage());
 }
 try {
     // Merchandise
-    foreach ($pdo->query("SELECT i.id, i.name, i.image_url FROM inventory i JOIN inventory_categories ic ON i.category_id = ic.id WHERE i.is_active = 1 AND i.stock_quantity > 0 AND (LOWER(ic.slug) IN ('merchandise','merch') OR LOWER(ic.name) IN ('merchandise','merch'))") as $row) {
+    $ic = sitemapLmCol($pdo, 'inventory'); $icSel = $ic !== '' ? ", i.`$ic` AS lm_col" : '';
+    foreach ($pdo->query("SELECT i.id, i.name, i.image_url$icSel FROM inventory i JOIN inventory_categories ic ON i.category_id = ic.id WHERE i.is_active = 1 AND i.stock_quantity > 0 AND (LOWER(ic.slug) IN ('merchandise','merch') OR LOWER(ic.name) IN ('merchandise','merch'))") as $row) {
         $imgs = [];
         if (!empty($row['image_url'])) {
             $imgs[] = sitemapImg($base, $row['image_url'], htmlspecialchars($row['name'], ENT_XML1) . ' — Bat Cave Road Farm Shop');
         }
-        addUrl($urls, $base . '/farm-stand/items/' . (int)$row['id'] . '/' . (createSlug($row['name']) ?: 'item') . '/', $today, 'weekly', '0.6', $imgs);
+        addUrl($urls, $base . '/farm-stand/items/' . (int)$row['id'] . '/' . (createSlug($row['name']) ?: 'item') . '/', sitemapDate($row['lm_col'] ?? ''), 'weekly', '0.6', $imgs);
     }
 } catch (Throwable $e) {
     error_log('sitemap.php [Merchandise]: ' . $e->getMessage());
 }
 try {
     // Animals (with profile photo)
-    foreach ($pdo->query("SELECT id, name, photo_url AS image_url, tagline FROM animals WHERE is_active = 1") as $a) {
+    $ac = sitemapLmCol($pdo, 'animals'); $acSel = $ac !== '' ? ", `$ac` AS lm_col" : '';
+    foreach ($pdo->query("SELECT id, name, photo_url AS image_url, tagline$acSel FROM animals WHERE is_active = 1") as $a) {
         $imgs = [];
         if (!empty($a['image_url'])) {
             $cap = !empty($a['tagline']) ? htmlspecialchars($a['tagline'], ENT_XML1) : '';
             $imgs[] = sitemapImg($base, $a['image_url'], htmlspecialchars($a['name'], ENT_XML1) . ' — Bat Cave Road Farm Petting Zoo in Old Fort, NC', $cap);
         }
-        addUrl($urls, $base . '/petting-zoo/animals/' . (int)$a['id'] . '/' . createSlug((string)$a['name']) . '/', $today, 'monthly', '0.6', $imgs);
+        addUrl($urls, $base . '/petting-zoo/animals/' . (int)$a['id'] . '/' . createSlug((string)$a['name']) . '/', sitemapDate($a['lm_col'] ?? ''), 'monthly', '0.6', $imgs);
     }
 } catch (Throwable $e) {
     error_log('sitemap.php [Animals (with profile photo)]: ' . $e->getMessage());
 }
 try {
     // Breeds
-    foreach ($pdo->query("SELECT id, slug, breed_name FROM breeds WHERE is_active = 1") as $b) {
+    $brc = sitemapLmCol($pdo, 'breeds'); $brSel = $brc !== '' ? ", `$brc` AS lm_col" : '';
+    foreach ($pdo->query("SELECT id, slug, breed_name$brSel FROM breeds WHERE is_active = 1") as $b) {
         $bslug = trim((string)($b['slug'] ?? '')) !== '' ? $b['slug'] : createSlug((string)$b['breed_name']);
-        addUrl($urls, $base . '/petting-zoo/breeds/' . (int)$b['id'] . '/' . $bslug . '/', $today, 'monthly', '0.6');
+        addUrl($urls, $base . '/petting-zoo/breeds/' . (int)$b['id'] . '/' . $bslug . '/', sitemapDate($b['lm_col'] ?? ''), 'monthly', '0.6');
     }
 } catch (Throwable $e) {
     error_log('sitemap.php [Breeds]: ' . $e->getMessage());
 }
 try {
     // Thrift items
-    foreach ($pdo->query("SELECT i.id, i.name FROM inventory i JOIN inventory_categories ic ON i.category_id = ic.id WHERE i.is_active = 1 AND i.stock_quantity > 0 AND (ic.slug = 'thrift' OR LOWER(ic.name) = 'thrift')") as $row) {
-        addUrl($urls, $base . '/thrift-shop/items/' . (int)$row['id'] . '/' . (createSlug($row['name']) ?: 'item') . '/', $today, 'weekly', '0.4');
+    $ic = sitemapLmCol($pdo, 'inventory'); $icSel = $ic !== '' ? ", i.`$ic` AS lm_col" : '';
+    foreach ($pdo->query("SELECT i.id, i.name$icSel FROM inventory i JOIN inventory_categories ic ON i.category_id = ic.id WHERE i.is_active = 1 AND i.stock_quantity > 0 AND (ic.slug = 'thrift' OR LOWER(ic.name) = 'thrift')") as $row) {
+        addUrl($urls, $base . '/thrift-shop/items/' . (int)$row['id'] . '/' . (createSlug($row['name']) ?: 'item') . '/', sitemapDate($row['lm_col'] ?? ''), 'weekly', '0.4');
     }
 } catch (Throwable $e) {
     error_log('sitemap.php [Thrift items]: ' . $e->getMessage());
@@ -137,7 +171,7 @@ try {
     require_once __DIR__ . '/includes/jobs/repo.php';
     $openJobs = jobs_public_open($pdo);
     if ($openJobs) {
-        addUrl($urls, $base . '/jobs/', $today, 'weekly', '0.6');
+        addUrl($urls, $base . '/jobs/', max(array_map(fn($j) => sitemapDate($j['opened_at'] ?? ''), $openJobs)), 'weekly', '0.6');
         foreach ($openJobs as $j) {
             addUrl($urls, $base . '/jobs/' . rawurlencode($j['slug']) . '/', substr((string)$j['opened_at'], 0, 10), 'weekly', '0.6');
         }
@@ -153,7 +187,7 @@ echo '        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">' . 
 foreach ($urls as $u) {
     echo "  <url>\n";
     echo "    <loc>" . htmlspecialchars($u['loc'], ENT_XML1) . "</loc>\n";
-    echo "    <lastmod>" . htmlspecialchars($u['lastmod'], ENT_XML1) . "</lastmod>\n";
+    if ($u['lastmod'] !== '') echo "    <lastmod>" . htmlspecialchars($u['lastmod'], ENT_XML1) . "</lastmod>\n";
     echo "    <changefreq>" . $u['freq'] . "</changefreq>\n";
     echo "    <priority>" . $u['prio'] . "</priority>\n";
     foreach ($u['images'] ?? [] as $img) {

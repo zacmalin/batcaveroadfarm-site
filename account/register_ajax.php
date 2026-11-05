@@ -18,5 +18,5 @@ if (!empty($in['website'])) { echo json_encode(['ok' => false, 'error' => 'Somet
 if (throttle_hit('register', 5, 1800)) { echo json_encode(['ok' => false, 'error' => 'Too many sign-up attempts. Please wait a little while.']); exit; }
 
 $r = auth_attempt_register($pdo, $in);
-if ($r['ok']) { auth_login_user($r['user']); @evf_issue($pdo, (int)$r['user']['id'], strtolower(trim((string)($in['email'] ?? ''))), (string)($r['user']['first_name'] ?? '')); echo json_encode(['ok' => true]); }
+if ($r['ok']) { require_once __DIR__ . '/../includes/ga.php'; auth_login_user($r['user']); bcrf_ga_flash('sign_up', 'account'); @evf_issue($pdo, (int)$r['user']['id'], strtolower(trim((string)($in['email'] ?? ''))), (string)($r['user']['first_name'] ?? '')); echo json_encode(['ok' => true]); }
 else { echo json_encode(['ok' => false, 'error' => $r['error']]); }

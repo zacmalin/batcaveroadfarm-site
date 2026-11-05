@@ -45,6 +45,8 @@ $csrf = $_SESSION['csrf_token'];
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Complete Your Booking — Bat Cave Road Farm</title>
+<meta name="robots" content="noindex, nofollow">
+<?php require_once __DIR__ . '/../includes/ga.php'; echo bcrf_ga_tags_html(); ?>
 <link href="https://fonts.googleapis.com/css2?family=Rye&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box}
@@ -71,7 +73,7 @@ $csrf = $_SESSION['csrf_token'];
   .error-msg{background:#fde8e8;border:1px solid #f5c6c6;border-radius:8px;padding:14px;color:#b91c1c;font-size:.9rem;text-align:center}
   .note{font-size:.78rem;color:#8b5c2a;text-align:center;margin-top:12px;line-height:1.5}
 </style>
-</head><body>
+</head><body<?= ($booking ?? null) ? ' data-ga-event="begin_checkout"' : '' ?>>
 <div class="wrap">
   <div class="logo">
     <div class="logo-title">🐐 Bat Cave Road Farm</div>

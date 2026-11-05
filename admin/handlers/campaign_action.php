@@ -198,7 +198,8 @@ function sendEmail(string $to, string $toName, string $subject, string $htmlBody
             $mail->addCustomHeader('List-Unsubscribe', '<' . $unsubUrl . '>, <mailto:support@batcaveroadfarm.com?subject=unsubscribe>');
             if (str_contains($unsubUrl, '&t=')) $mail->addCustomHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
         }
-        $mail->Body     = bcf_email_header() . $personalised . $footer;
+        if (!function_exists('bcrf_utm_html')) require_once __DIR__ . '/../../includes/ga.php';
+        $mail->Body     = bcrf_utm_html(bcf_email_header() . $personalised, 'newsletter', 'email', $subject) . $footer;   // GA campaign tags
         $mail->AltBody  = strip_tags(html_entity_decode(strip_tags($personalised)))
                         . ($unsubUrl !== '' ? "\n\n---\nUnsubscribe: " . $unsubUrl : '');
 

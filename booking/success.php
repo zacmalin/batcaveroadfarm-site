@@ -39,10 +39,14 @@ if ($booking && !$paid && !$free && !empty($booking['payment_reference'])) {
         }
     } catch (Throwable $e) { /* non-fatal — webhook will handle it */ }
 }
+// GA: purchase, if the webhook hasn't already sent it (sends at most once); GA tags for this standalone page
+require_once __DIR__ . '/../includes/ga.php';
+if ($booking && $paid) bcrf_ga_purchase($pdo, 'bookings', (int)$booking['id']);
 ?><!doctype html>
-<html lang="en"><head>
+<html lang="en"<?= bcrf_ga_html_attrs() ?>><head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<?= bcrf_ga_tags_html() ?><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Booking Confirmed — Bat Cave Road Farm</title>
 <link href="https://fonts.googleapis.com/css2?family=Rye&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>

@@ -91,6 +91,8 @@ if ($passId > 0) {
         $amt = isset($session['amount_total']) ? ' $' . number_format(((int)$session['amount_total']) / 100, 2) : '';
         erp_audit($pdo, 'update', 'passes', $passId, ($pass['holder_name'] ?? 'Pass') . ' - ' . ($pass['label'] ?? '') . ' paid online' . $amt . ', active until ' . ($pass['valid_until'] ?? '?'), 'Stripe (automatic)');
         error_log('[BCRF stripe webhook] Pass #' . $passId . ' activated.');
+        require_once __DIR__ . '/../../includes/ga.php';
+        bcrf_ga_purchase($pdo, 'passes', $passId, isset($session['amount_total']) ? (int)$session['amount_total'] : null);
         http_response_code(200); echo 'ok'; exit;
     } catch (Throwable $e) {
         error_log('[BCRF stripe webhook] Pass error: ' . $e->getMessage());
@@ -134,6 +136,8 @@ try {
     $amt = isset($session['amount_total']) ? ' $' . number_format(((int)$session['amount_total']) / 100, 2) : '';
     erp_audit($pdo, 'update', 'bookings', $bookingId, trim(($booking['customer_name'] ?? 'Booking') . ' (' . ($booking['booking_date'] ?? '') . ')') . ' - paid online' . $amt, 'Stripe (automatic)');
     error_log('[BCRF stripe webhook] Booking #' . $bookingId . ' marked paid, confirmation sent.');
+    require_once __DIR__ . '/../../includes/ga.php';
+    bcrf_ga_purchase($pdo, 'bookings', $bookingId, isset($session['amount_total']) ? (int)$session['amount_total'] : null);
     http_response_code(200); echo 'ok'; exit;
 
 } catch (Throwable $e) {

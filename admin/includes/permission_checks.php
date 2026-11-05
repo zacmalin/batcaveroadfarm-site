@@ -21,6 +21,7 @@ $admin_view_registry = [
     'comment_moderation'  => ['label' => 'Comment Moderation',        'icon' => '💬', 'admin_only' => false],
     'audit_log'           => ['label' => 'Audit Log',                  'icon' => '📜', 'admin_only' => true],
     'sales_analytics'     => ['label' => 'Sales Analytics',            'icon' => '📈', 'admin_only' => false],
+    'search_analytics'    => ['label' => 'Search & Analytics',         'icon' => '🔎', 'admin_only' => false],
     'schema'           => ['label' => 'Schema Table Editor',     'icon' => '🗄️', 'admin_only' => true],
     'permissions'      => ['label' => 'Permissions Matrix',      'icon' => '🔒', 'admin_only' => true],
     'theme_scheduler'     => ['label' => 'Seasonal Themes',           'icon' => '🎨', 'admin_only' => true],

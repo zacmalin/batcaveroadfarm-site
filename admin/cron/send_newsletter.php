@@ -112,12 +112,13 @@ try {
         $content .= '<h1 style="font-family:Rye,Georgia,serif;color:#e8b84b;font-size:24px;line-height:1.25;margin:0 0 14px;">' . htmlspecialchars($post['title']) . '</h1>';
         $content .= '<p style="font-family:Lora,Georgia,serif;color:#f5ead6;font-size:16px;line-height:1.7;margin:0 0 24px;">' . htmlspecialchars($excerpt) . '</p>';
         $content .= '<p style="margin:0;"><a href="' . htmlspecialchars($url, ENT_QUOTES) . '" style="display:inline-block;background:#c9923a;color:#3b2010;font-family:Lora,Georgia,serif;font-weight:bold;text-decoration:none;padding:13px 28px;border-radius:8px;">Read the full post &#8594;</a></p>';
-        $html = bcf_email_header() . $content . bcf_email_footer();
+        if (!function_exists('bcrf_utm_html')) require_once __DIR__ . '/../../includes/ga.php';
+        $html = bcrf_utm_html(bcf_email_header() . $content, 'newsletter', 'email', 'new-post-' . $post['title']) . bcf_email_footer();   // GA campaign tags
         // Tokenize the template's own built-in unsubscribe link (one-click, per recipient)
         $html = str_replace('https://batcaveroadfarm.com/unsubscribe.php', htmlspecialchars($unsub, ENT_QUOTES), $html);
 
         // Plain-text alternative
-        $text = $post['title'] . "\n\n" . $excerpt . "\n\nRead it here: " . $url
+        $text = $post['title'] . "\n\n" . $excerpt . "\n\nRead it here: " . bcrf_utm_url($url, 'newsletter', 'email', 'new-post-' . $post['title'])
               . "\n\n---\nYou joined the Bat Cave Road Farm mailing list. Unsubscribe: " . $unsub . "\n";
 
         // MIME multipart/alternative

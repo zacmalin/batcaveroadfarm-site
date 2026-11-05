@@ -57,6 +57,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                     jobs_apply_notify($pdo, $app, $job);
                     unset($_SESSION[$tsKey]);
                     $_SESSION['jobs_thanks'] = ['slug' => $job['slug'], 'first' => $data['first_name'], 'minor' => $data['age_bracket'] !== '18_plus'];
+                    require_once __DIR__ . '/../includes/ga.php';
+                    bcrf_ga_flash('job_application', 'job_' . $job['slug']);
                     header('Location: /jobs/thanks/?j=' . rawurlencode($job['slug']), true, 303);
                     exit;
                 } catch (Throwable $e) {

@@ -1,6 +1,7 @@
 <?php
 // passes/success.php — shown after successful Stripe payment for a pass.
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('X-Robots-Tag: noindex, nofollow');   // private pass link (the token is the gate QR)
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/stripe.php';
 
@@ -41,6 +42,9 @@ if ($pass && $pass['status'] === 'pending_payment' && !empty($pass['payment_refe
         }
     } catch (Throwable $e) {}
 }
+
+// GA purchase, if the webhook hasn't already sent it (sends at most once)
+if ($pass && $pass['status'] === 'active') { require_once __DIR__ . '/../includes/ga.php'; bcrf_ga_purchase($pdo, 'passes', (int)$pass['id']); }
 
 $verifyUrl = 'https://batcaveroadfarm.com/passes/verify.php?token=' . rawurlencode($token);
 $active = $pass && $pass['status'] === 'active';

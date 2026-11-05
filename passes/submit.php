@@ -57,6 +57,8 @@ try {
         VALUES (?,?,?,?,?, 'pending_payment','pending',?)
     ")->execute([$typeId, $name, $email, $phone ?: null, $token, (float)$pt['price']]);
     $passId = (int)$pdo->lastInsertId();
+    require_once __DIR__ . '/../includes/ga.php';
+    bcrf_ga_store_ids($pdo, 'passes', $passId);   // so the GA purchase is credited to this visit
 } catch (Throwable $e) {
     error_log('[BCRF passes/submit] DB insert failed: ' . $e->getMessage());
     _pass_bail('db');

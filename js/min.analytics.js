@@ -9,6 +9,8 @@
       ev('get_directions');
     } else if(dga==='recipe_to_stand'){
       ev('recipe_to_stand',{content_type:'recipe_ingredient'});
+    } else if(dga==='recipe_to_subrecipe'){
+      ev('recipe_to_subrecipe',{content_type:'recipe'});
     } else if(href.indexOf('tel:')===0){
       ev('click_to_call');
     }

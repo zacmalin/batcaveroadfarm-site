@@ -53,6 +53,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                          'first_name' => $old['first_name'], 'last_name' => $old['last_name']];
                 auth_login_user($user);
                 @evf_issue($pdo, (int)$user['id'], $email, $old['first_name']);
+                require_once __DIR__ . '/../includes/ga.php';
+                bcrf_ga_flash('sign_up', 'account');
                 ob_end_clean();
                 header('Location: ' . $next);
                 exit;

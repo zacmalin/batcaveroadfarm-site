@@ -24,7 +24,7 @@
     }
 ?>
     </head>
-    <body class="<?= $bcrfTheme !== '' ? 'theme-' . htmlspecialchars($bcrfTheme) : '' ?>">
+    <body class="<?= $bcrfTheme !== '' ? 'theme-' . htmlspecialchars($bcrfTheme) : '' ?>"<?= function_exists('bcrf_ga_body_attrs') ? bcrf_ga_body_attrs((string)($gaEvent ?? ''), (string)($gaForm ?? '')) : '' ?>>
         <a href="#main-content" class="skip-link">Skip to main content</a>
 <?php if (function_exists('bcrf_theme_banner_html') && $bcrfTheme !== ''): ?>
         <?= bcrf_theme_banner_html($bcrfTheme) ?>

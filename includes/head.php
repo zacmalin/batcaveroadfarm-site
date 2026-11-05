@@ -20,9 +20,10 @@ if (!isset($metaDesc) && isset($pageDescription)) { $metaDesc = $pageDescription
 require_once __DIR__ . '/themes.php';
 $bcrfTheme      = bcrf_active_theme($pdo ?? null);
 $bcrfThemeGlyph = $bcrfTheme !== '' ? bcrf_theme_glyph($bcrfTheme) : '';
+require_once __DIR__ . '/ga.php';   // GA4: staff visits tagged internal, queued lead events (Nov 2026)
 ?>
  <!doctype html>
-<html lang="en">
+<html lang="en"<?= bcrf_ga_html_attrs() ?>>
 
     <head>
         <!-- Google tag (gtag.js) -->
