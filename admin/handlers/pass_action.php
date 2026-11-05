@@ -1,6 +1,6 @@
 <?php
-// Included by admin/admin.php only (which checks login, CSRF and permissions first).
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
+// Included by admin/admin.php only (which checks login, CSRF and permissions first).
 if (!isset($pdo, $current_role)) { http_response_code(404); exit; }
 // admin/handlers/pass_action.php — admin pass management actions.
 require_once dirname(__DIR__, 2) . '/admin/includes/email_template.php';

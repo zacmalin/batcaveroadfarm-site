@@ -1,6 +1,6 @@
 <?php
-// farm-stand/recipe_detail.php - Overhauled Multiplier Matrix Card
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
+// farm-stand/recipe_detail.php - Overhauled Multiplier Matrix Card
 require_once '../config.php';
 require_once '../includes/units.php';
 require_once '../includes/ingredient_match.php';

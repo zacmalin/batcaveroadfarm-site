@@ -1,6 +1,6 @@
 <?php
-// Determine the current top-level section from the request path so we can
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
+// Determine the current top-level section from the request path so we can
 // mark the active nav item server-side (adds .active + aria-current="page").
 $navPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $navPath = '/' . trim($navPath, '/');

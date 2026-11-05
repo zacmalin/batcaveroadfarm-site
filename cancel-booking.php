@@ -1,6 +1,6 @@
 <?php
-// Self-contained tokenized booking cancellation for batcaveroadfarm.com.
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
+// Self-contained tokenized booking cancellation for batcaveroadfarm.com.
 // GET ?id=&t=  -> verify token, show a confirm button (prevents mail-scanner
 //                prefetch from auto-cancelling via a bare link).
 // POST id,t    -> verify token again, cancel, notify the farm.

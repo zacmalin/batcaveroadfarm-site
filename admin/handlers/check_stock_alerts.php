@@ -1,6 +1,6 @@
 <?php
-// Cron/command-line only — block web visitors from triggering alert emails
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
+// Cron/command-line only — block web visitors from triggering alert emails
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 chdir(__DIR__);
 // admin/handlers/check_stock_alerts.php

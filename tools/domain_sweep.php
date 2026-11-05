@@ -85,7 +85,9 @@ foreach ($files as $rel) {
     $req = "if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '" . str_repeat('/..', $depth) . "/includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)";
     if ($rel === 'includes/farm.php') continue;
     if (str_starts_with($rel, 'includes/') && $depth === 1) $req = str_replace("'/../includes/farm.php'", "'/farm.php'", $req);
-    if (preg_match('/^<\?php[^\n]*\n(?:[ \t]*\/\/[^\n]*\n)?/', $new, $m)) {   // after the path comment line, if any
+    // After the opening tag, or after the path comment on line 2 (one that names this file).
+    $pathLine = '(?:[ \t]*\/\/ ' . preg_quote($rel, '/') . '\b[^\n]*\n)?';
+    if (preg_match('/^<\?php[^\n]*\n' . $pathLine . '/', $new, $m)) {
         $new = $m[0] . $req . "\n" . substr($new, strlen($m[0]));
     } else {
         $new = "<?php $req ?>" . $new;

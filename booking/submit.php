@@ -1,6 +1,6 @@
 <?php
-// Self-contained booking request handler for batcaveroadfarm.com.
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
+// Self-contained booking request handler for batcaveroadfarm.com.
 // Renders its OWN result page (no header() redirect) so a stray BOM / broken
 // target page can't turn this into a white screen. Mirrors send-message.php.
 

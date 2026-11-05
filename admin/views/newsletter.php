@@ -1,6 +1,6 @@
 <?php
-// Fix 12: Segment counts passed to JS for live display
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
+// Fix 12: Segment counts passed to JS for live display
 $segment_counts_json = json_encode($nl_segment_counts);
 
 // Subscriber totals

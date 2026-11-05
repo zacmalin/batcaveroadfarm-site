@@ -1,6 +1,6 @@
 <?php
-    // Hours + admission are loaded BEFORE head.php so the search snippet (title + meta description) can
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
+    // Hours + admission are loaded BEFORE head.php so the search snippet (title + meta description) can
     // show them: people searching for this page want hours and prices (Search & Analytics, Nov 2026).
     require_once __DIR__ . '/../config.php';
     require_once __DIR__ . '/../includes/site_info.php';
