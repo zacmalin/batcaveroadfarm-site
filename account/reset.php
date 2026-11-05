@@ -45,12 +45,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $error === '') {
         $error = 'The two passwords do not match.';
     } else {
         try {
-            // Which table the reset is for (Farm OS Phase 0, C-02): staff (users) or customer (customers).
-            // Before migration 0006 there's no realm column and everyone is in users.
-            require_once __DIR__ . '/../includes/customer_auth.php';
-            $hasRealm = array_key_exists('realm', $reset);
-            $isStaff  = !$hasRealm || ($reset['realm'] ?? '') === 'staff' || ($reset['purpose'] ?? '') === 'invite';
-            $pdo->beginTransaction();
             if ($isStaff) {
                 // A new hire who never used their welcome link becomes active here too (Jobs pack P6).
                 $pdo->prepare("UPDATE users SET password = ?, account_status = IF(account_status = 'invited', 'active', account_status) WHERE id = ?")
