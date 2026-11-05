@@ -7,7 +7,7 @@ Everything needed to rebuild the site lives in three places:
 | What | Where | How often |
 |---|---|---|
 | Code | GitHub: `zacmalin/batcaveroadfarm-site` (`main`) | every change |
-| Database | `/home2/ddailnmy/bcrf-backups/bcrf-db-*.sql.gz` (14 days) and Google Drive → **BCRF Backups** `bcrf-db-*.sql.gz.zip` (30 copies) | nightly, 3:15 AM |
+| Database | `/home2/ddailnmy/bcrf-backups/bcrf-db-*.sql.gz` (30 days) and Google Drive → **BCRF Backups** `bcrf-db-*.sql.gz.zip` (30 copies) | nightly, 3:15 AM |
 | Photos, résumés, secrets | `/home2/ddailnmy/bcrf-backups/bcrf-files-*.zip` (4 copies) and the same Drive folder (4 copies) | weekly, Sunday 3:40 AM |
 
 The `.zip` files are AES-256 encrypted with **BACKUP_PASSWORD** (in `bcrf-secrets.php` and in your password manager).

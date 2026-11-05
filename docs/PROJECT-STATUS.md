@@ -122,7 +122,7 @@ Updated: 2026-10-23 (code review done)
 - Visitor login: +10 fails/IP/15 min, 20/email/hour. forgot.php: 3 emails/address/hour, 10/IP/hour.
 - Mailing list double opt-in: subscribe.php emails signed link (HMAC with LIST_SECRET, 7 days); subscribe-confirm.php GET shows button, POST subscribes. 5 signups/IP/hour, 3 confirm emails/address/day.
 - Contact: 3/10 min + 10/day per IP; auto-reply no longer echoes message, max 2/address/day.
-- admin/cron/backup_db.php: CLI only; mysqldump (defaults-extra-file) else PHP exporter; /home2/ddailnmy/bcrf-backups/, keep 14 days (min 3), failure email to STOCK_ALERT_TO. Cron: daily 3:15 server time, log to /home2/ddailnmy/backup_db.log.
+- admin/cron/backup_db.php: CLI only; mysqldump (defaults-extra-file) else PHP exporter; /home2/ddailnmy/bcrf-backups/, keep 30 days (min 3; was 14 until Nov 5, 2026), failure email to STOCK_ALERT_TO. Cron: daily 3:15 server time, log to /home2/ddailnmy/backup_db.log.
 - Asset version 20261023k; min.subscribe.js popup stays 6 s.
 - Tested on PHP 8.5.8 + MariaDB 11.8.3 (both backup modes restore identically). All 168 PHP files pass php -l.
 - Waiting on: Zac to install, test contact form + staff login + signup, add backup cron, check first backup on 2026-10-24 (same day as stock-alert check).

@@ -3,7 +3,7 @@
  * admin/cron/backup_db.php — nightly database backup (fix pack K).
  *
  * Saves a compressed copy of the whole database to a folder OUTSIDE the web
- * root, keeps the last 14 days, and emails you if a backup fails.
+ * root, keeps the last 30 days, and emails you if a backup fails.
  *
  *   Backups go to:  /home2/<user>/bcrf-backups/bcrf-db-YYYYMMDD-HHMMSS.sql.gz
  *
@@ -38,7 +38,7 @@ bcrf_cron_begin('backup_db');   // heartbeat for the admin System Health page
 @set_time_limit(0);
 date_default_timezone_set('America/New_York');
 
-const BCRF_BACKUP_KEEP_DAYS = 14;
+const BCRF_BACKUP_KEEP_DAYS = 30;   // Farm OS Phase 0 / C-08 (Nov 5, 2026): was 14; ~85 KB a night, so ~3 MB for 30 days
 const BCRF_BACKUP_KEEP_MIN  = 3;     // never delete below this many files
 
 $dir = getenv('BCRF_BACKUP_DIR') ?: (dirname($bcrf_docroot, 2) . '/bcrf-backups');
@@ -183,7 +183,7 @@ if ($size < 200 || stripos($head, 'CREATE TABLE') === false) {
     bcrf_backup_fail("backup file looks empty or broken ({$size} bytes): {$file}");
 }
 
-// ── Retention: delete backups older than 14 days, always keep the newest 3 ──
+// ── Retention: delete backups older than 30 days, always keep the newest 3 ──
 $all = glob($dir . '/bcrf-db-*.sql.gz') ?: [];
 rsort($all);   // names sort by date, newest first
 $removed = 0;
