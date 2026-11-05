@@ -1,9 +1,13 @@
 <?php
 // passes/verify.php — staff gate verification page.
 // Opened when staff scans a passholder's QR code.
-// No auth required — security is the unguessable 48-char token.
+// Anyone with the link sees whether the pass is valid (the unguessable 48-char token is the key).
+// Only signed-in staff (includes/pass_staff.php) see the "Log this visit" button (Nov 2026).
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../admin/includes/permission_checks.php';
+require_once __DIR__ . '/../includes/pass_staff.php';
+$canLog = bcrf_pass_can_log();
 
 $token = trim((string)($_GET['token'] ?? ''));
 $pass  = null; $pt = null; $visitCount = 0; $lastVisit = null;
@@ -37,8 +41,19 @@ $cardClass = $isValid ? 'valid' : ($isPending ? 'pending' : 'invalid');
 $emoji     = $isValid ? '✅' : ($isPending ? '⏳' : '❌');
 $verdict   = $isValid ? 'VALID PASS' : ($isPending ? 'PAYMENT PENDING' : strtoupper($pass ? $pass['status'] : 'NOT FOUND'));
 
-// CSRF for log visit
-$logCsrf = $_SESSION['pass_log_csrf'] ?? ($_SESSION['pass_log_csrf'] = bin2hex(random_bytes(16)));
+// CSRF for log visit (staff only)
+$logCsrf = $canLog ? ($_SESSION['pass_log_csrf'] ?? ($_SESSION['pass_log_csrf'] = bin2hex(random_bytes(16)))) : '';
+
+// Result of the last "Log this visit" tap
+$notice = null;
+if (!empty($_GET['logged'])) $notice = ['ok', 'Visit logged.'];
+else switch ((string)($_GET['msg'] ?? '')) {
+    case 'already':  $notice = ['warn', 'Already logged in the last 5 minutes, so it wasn\'t logged again.']; break;
+    case 'signin':   $notice = ['warn', 'Sign in as staff to log visits.']; break;
+    case 'csrf':     $notice = ['warn', 'That page was out of date. Tap Log this visit again.']; break;
+    case 'inactive': $notice = ['warn', 'This pass isn\'t active, so no visit was logged.']; break;
+    case 'error':    $notice = ['warn', 'Something went wrong; the visit wasn\'t logged. Try again.']; break;
+}
 ?><!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8">
@@ -50,6 +65,9 @@ $logCsrf = $_SESSION['pass_log_csrf'] ?? ($_SESSION['pass_log_csrf'] = bin2hex(r
 </head><body style="background:#f5ead6;margin:0;padding:16px">
 
 <div class="verify-wrap">
+    <?php if ($notice): ?>
+    <p role="status" style="font-family:'Lora',serif;font-size:.9rem;text-align:center;margin:0 0 12px;padding:10px 12px;border-radius:10px;<?= $notice[0] === 'ok' ? 'background:#e3f0dc;color:#2f5a22' : 'background:#fbefd2;color:#7a5200' ?>"><?= htmlspecialchars($notice[1]) ?></p>
+    <?php endif; ?>
     <?php if (!$pass): ?>
     <div class="verify-card invalid">
         <div class="verify-status">❌</div>
@@ -73,11 +91,15 @@ $logCsrf = $_SESSION['pass_log_csrf'] ?? ($_SESSION['pass_log_csrf'] = bin2hex(r
         <?php if ($isValid): ?>
         <div class="verify-guests">Up to <?= (int)$pass['max_guests'] ?> guest<?= $pass['max_guests'] > 1 ? 's' : '' ?> this visit</div>
 
+        <?php if ($canLog): ?>
         <form method="POST" action="/passes/log_visit.php">
             <input type="hidden" name="token"     value="<?= htmlspecialchars($token, ENT_QUOTES) ?>">
             <input type="hidden" name="log_csrf"  value="<?= htmlspecialchars($logCsrf, ENT_QUOTES) ?>">
             <button type="submit" class="verify-log-btn">✓ Log this visit</button>
         </form>
+        <?php else: ?>
+        <p style="font-family:'Lora',serif;font-size:.85rem;color:#6b5a48;margin:12px 0 0">Staff: <a href="/admin/login.php" style="color:#8b5c2a">sign in</a> to log this visit, then scan the pass again.</p>
+        <?php endif; ?>
         <?php endif; ?>
 
         <div class="verify-visits">

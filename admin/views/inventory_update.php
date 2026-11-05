@@ -213,6 +213,9 @@ async function openLabelModal(itemId, itemName) {
     document.getElementById('labelBestBy').value  = '';
     document.getElementById('labelPreviewBestBy').textContent = '';
     document.getElementById('labelPreviewIngredients').textContent = 'Loading...';
+    labelIngs = []; labelAllIngs = []; labelIngDirty = false; labelIngOrderSet = true;
+    document.getElementById('labelIngList').replaceChildren();
+    document.getElementById('labelIngStatus').textContent = '';
 
     // Fetch item data
     try {
@@ -221,13 +224,104 @@ async function openLabelModal(itemId, itemName) {
         if (data.ok) {
             labelItemData = data;
             document.getElementById('labelPreviewSize').textContent = data.size_label || '—';
-            const ings = data.ingredients.length > 0 ? data.ingredients.join(', ') : data.name;
-            document.getElementById('labelPreviewIngredients').textContent = ings;
+            document.getElementById('labelPreviewMadeBy').textContent = data.made_by || '';
+            labelIngs     = (data.ingredient_rows || []).map(r => ({ id: r.id, name: r.name }));
+            labelAllIngs  = data.all_ingredients || [];
+            labelIngDirty = false;
+            labelIngOrderSet = data.order_set !== false;
+            renderLabelIngs();
         } else {
             document.getElementById('labelPreviewIngredients').textContent = itemName;
         }
     } catch (err) {
         document.getElementById('labelPreviewIngredients').textContent = itemName;
+    }
+}
+
+// ── LABEL INGREDIENTS: order heaviest first (food labels list ingredients by weight) ──
+let labelIngs = [], labelAllIngs = [], labelIngDirty = false, labelIngOrderSet = true;
+
+function renderLabelIngs() {
+    const list = document.getElementById('labelIngList');
+    list.replaceChildren();
+    labelIngs.forEach((ing, i) => {
+        const row = document.createElement('li');
+        row.className = 'flex items-center gap-2 py-1.5 border-b border-stone-200 last:border-0';
+        const num = document.createElement('span');
+        num.className = 'w-5 text-right font-mono text-stone-400';
+        num.textContent = (i + 1) + '.';
+        const name = document.createElement('span');
+        name.className = 'flex-1 font-medium text-stone-800';
+        name.textContent = ing.name;
+        row.append(num, name);
+        [['▲', 'Move up', () => moveLabelIng(i, -1), i === 0],
+         ['▼', 'Move down', () => moveLabelIng(i, 1), i === labelIngs.length - 1],
+         ['✕', 'Remove', () => removeLabelIng(i), false]].forEach(([txt, title, fn, off]) => {
+            const b = document.createElement('button');
+            b.type = 'button'; b.textContent = txt; b.title = title; b.setAttribute('aria-label', title + ': ' + ing.name);
+            b.className = 'w-9 h-9 border rounded bg-white text-stone-700 hover:bg-stone-100 disabled:opacity-30';
+            b.disabled = off;
+            b.addEventListener('click', fn);
+            row.append(b);
+        });
+        list.append(row);
+    });
+    document.getElementById('labelIngEmpty').classList.toggle('hidden', labelIngs.length > 0);
+
+    // Picker: only ingredients not already on the list
+    const sel = document.getElementById('labelIngAdd');
+    sel.replaceChildren(new Option('Add an ingredient…', ''));
+    const used = new Set(labelIngs.map(x => x.id));
+    labelAllIngs.filter(x => !used.has(x.id)).forEach(x => sel.append(new Option(x.name, x.id)));
+
+    // Warning + save state
+    const warn = document.getElementById('labelIngWarn');
+    warn.classList.toggle('hidden', labelIngOrderSet || labelIngDirty || labelIngs.length < 2);
+    document.getElementById('labelIngSave').disabled = !labelIngDirty;
+    document.getElementById('labelIngStatus').textContent = labelIngDirty ? 'Not saved yet' : '';
+
+    // Preview
+    document.getElementById('labelPreviewIngredients').textContent =
+        labelIngs.length ? labelIngs.map(x => x.name).join(', ') : (labelItemData ? labelItemData.name : '—');
+}
+
+function moveLabelIng(i, d) {
+    const j = i + d;
+    if (j < 0 || j >= labelIngs.length) return;
+    [labelIngs[i], labelIngs[j]] = [labelIngs[j], labelIngs[i]];
+    labelIngDirty = true; renderLabelIngs();
+}
+function removeLabelIng(i) { labelIngs.splice(i, 1); labelIngDirty = true; renderLabelIngs(); }
+function addLabelIng() {
+    const sel = document.getElementById('labelIngAdd');
+    const id = parseInt(sel.value, 10);
+    const found = labelAllIngs.find(x => x.id === id);
+    if (!found) return;
+    labelIngs.push({ id: found.id, name: found.name });
+    labelIngDirty = true; renderLabelIngs();
+}
+
+async function saveLabelIngs() {
+    if (!labelItemId) return;
+    const status = document.getElementById('labelIngStatus');
+    const btn = document.getElementById('labelIngSave');
+    btn.disabled = true; status.textContent = 'Saving…';
+    const body = new URLSearchParams({ csrf_token: LABEL_CSRF, item_id: labelItemId });
+    labelIngs.forEach(x => body.append('ingredient_ids[]', x.id));
+    try {
+        const res  = await fetch('/admin/handlers/label_ingredients_save.php', { method: 'POST', body });
+        const data = await res.json();
+        if (data.ok) {
+            labelIngDirty = false; labelIngOrderSet = true;
+            renderLabelIngs();
+            status.textContent = 'Saved ✓';
+        } else {
+            status.textContent = data.message || 'Could not save.';
+            btn.disabled = false;
+        }
+    } catch (err) {
+        status.textContent = 'Could not save — check your connection.';
+        btn.disabled = false;
     }
 }
 
@@ -251,6 +345,10 @@ function updateLabelPreview() {
 
 function printLabel() {
     if (!labelItemId) return;
+    if (labelIngDirty) {
+        document.getElementById('labelIngStatus').textContent = 'Save the ingredient order before printing.';
+        return;
+    }
     const copies   = document.getElementById('labelCopies').value;
     const startPos = document.getElementById('labelStartPos').value;
     const bestBy   = document.getElementById('labelBestBy').value;
@@ -288,7 +386,7 @@ function showInvToast(msg, isError = false) {
 
 <!-- ── LABEL PRINT MODAL ── -->
 <div id="labelModal" class="fixed inset-0 bg-stone-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg shadow-2xl w-full max-w-lg">
+    <div class="bg-white rounded-lg shadow-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto">
         <div class="flex justify-between items-center px-6 py-4 border-b">
             <div>
                 <h3 class="font-bold text-stone-800 font-serif text-lg">Print Product Label</h3>
@@ -353,6 +451,7 @@ function showInvToast(msg, isError = false) {
                             <div style="position:absolute;left:1in;top:0;width:2in;transform:rotate(90deg);transform-origin:top left;padding:5pt 4pt;font-family:Arial,sans-serif;font-size:5.5pt;line-height:1.4;color:#111;">
                                 <div style="font-size:6.5pt;font-weight:bold;color:#322016;margin-bottom:2pt;">batcaveroadfarm.com</div>
                                 <div style="font-size:5pt;"><strong style="font-size:5.5pt;display:block;margin-bottom:1pt;">Ingredients:</strong><span id="labelPreviewIngredients">—</span></div>
+                                <div id="labelPreviewMadeBy" style="font-size:4.5pt;line-height:1.3;margin-top:2pt;color:#222;"></div>
                                 <div id="labelPreviewBestBy" style="font-size:5.5pt;font-weight:bold;margin-top:3pt;"></div>
                             </div>
                         </div>
@@ -361,13 +460,31 @@ function showInvToast(msg, isError = false) {
                         <div style="position:absolute;left:0;top:2in;width:1in;border-top:0.5pt solid #bbb;"></div>
 
                         <!-- Size 1"×1" -->
-                        <div style="position:absolute;bottom:0;left:0;width:1in;height:1in;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:Arial,sans-serif;font-size:8pt;font-weight:bold;color:#222;padding:4px;line-height:1.3;">
+                        <div style="position:absolute;bottom:0;left:0;width:1in;height:1in;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:Arial,sans-serif;font-size:6.5pt;font-weight:bold;color:#222;padding:4px;line-height:1.25;">
                             <span id="labelPreviewSize">—</span>
                         </div>
                     </div>
                 </div>
             </div>
 
+        </div>
+
+        <!-- Ingredients, heaviest first -->
+        <div class="px-6 pb-4 text-xs font-sans">
+            <label class="block font-bold text-stone-600 mb-0.5">Ingredients — heaviest first</label>
+            <p class="text-[11px] text-stone-500 mb-2">Food labels must list ingredients by weight, the ingredient there is most of first. Use ▲ ▼ to set the order, then Save.</p>
+            <p id="labelIngWarn" class="hidden mb-2 p-2 rounded border border-amber-300 bg-amber-50 text-amber-900 text-[11px] font-semibold">This order hasn't been set yet (it's alphabetical). Put the heaviest ingredient first and tap Save.</p>
+            <ol id="labelIngList" class="border rounded bg-stone-50 px-3 max-h-56 overflow-y-auto"></ol>
+            <p id="labelIngEmpty" class="hidden text-[11px] text-stone-500 py-2">No ingredients linked. The label will show the product name as its only ingredient.</p>
+            <div class="flex gap-2 mt-2">
+                <select id="labelIngAdd" class="flex-1 min-w-0 p-2 border rounded bg-white"></select>
+                <button type="button" onclick="addLabelIng()" class="border font-bold px-3 rounded text-stone-700 hover:bg-stone-100">Add</button>
+            </div>
+            <div class="flex items-center gap-3 mt-2">
+                <button type="button" id="labelIngSave" onclick="saveLabelIngs()" disabled
+                    class="bg-green-700 text-white font-bold px-4 py-2 rounded hover:bg-green-800 disabled:opacity-40">Save order</button>
+                <span id="labelIngStatus" class="text-[11px] text-stone-600" role="status" aria-live="polite"></span>
+            </div>
         </div>
 
         <div class="px-6 pb-5 flex justify-between items-center border-t pt-4">

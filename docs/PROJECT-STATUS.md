@@ -185,3 +185,10 @@ Updated: 2026-10-23 (code review done)
 - CONFIRMED 2026-10-24: Zac installed Pack O, looks good. pack-o merged into main; Google Task marked complete.
 
 - CONFIRMED 2026-10-24: stock-alert cron ran with no new error_log in admin/handlers/ (June bug fixed).
+
+## Label ingredient order + staff-only pass visits (2026-11-04)
+- Found in Farm OS Step R (conflicts C-11, C-13). Website tasks, separate from Farm OS (D-18). Edited live via the farm connector, same files committed here.
+- Labels: product_ingredients.sort_order (added on first use by admin/includes/label_ingredients.php; Phase 0 moves it into a migration). Print Label window (admin/views/inventory_update.php) has "Ingredients — heaviest first": add/remove, ▲▼ order, Save (admin/handlers/label_ingredients_save.php, audited). Lists never ordered show an amber "not set yet" note and fall back to alphabetical. print_label.php + get_label_data.php use the saved order.
+- Labels also now print the NCDA&CS-required maker line "Made by: <business_name>, <address>" from Site Info, and net quantity with metric ("Net Wt. 8 oz (227 g)", "Net 16 fl oz (473 mL)").
+- NCDA&CS Home Processor application, Section 4: product name; maker's name + physical address (website doesn't count); net quantity oz/lb + grams (or fl oz + mL); ingredients by weight, sub-ingredients in parentheses. Still missing: sub-ingredients and a "Contains:" allergen statement (federal FALCPA) — follow-up task.
+- Pass visits: includes/pass_staff.php bcrf_pass_can_log() (signed-in administrator, or moderator/Shopkeep/Media with Passes or POS access in the matrix). verify.php shows the button only to them (others get "Staff: sign in"); log_visit.php checks again, blocks repeats within 5 minutes, writes audit_log ("Visit logged - holder (type, pass #id)").

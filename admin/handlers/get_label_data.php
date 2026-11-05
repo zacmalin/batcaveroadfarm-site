@@ -37,29 +37,24 @@ try {
 
     if (!$item) json_exit(false, 'Item not found.', [], 404);
 
-    // Ingredients linked to this inventory item
-    $ing_stmt = $pdo->prepare("
-        SELECT ing.singular_name
-        FROM   product_ingredients pi
-        JOIN   ingredients ing ON pi.ingredient_id = ing.id
-        WHERE  pi.product_type = 'inventory' AND pi.product_id = ?
-        ORDER  BY ing.singular_name ASC
-    ");
-    $ing_stmt->execute([$item_id]);
-    $ingredients = $ing_stmt->fetchAll(PDO::FETCH_COLUMN);
+    // Ingredients linked to this inventory item, in label order (heaviest first)
+    require_once __DIR__ . '/../includes/label_ingredients.php';
+    $lab         = bcrf_label_ingredients($pdo, (int)$item_id);
+    $ingredients = array_column($lab['rows'], 'name');
 
-    $size_label = '';
-    if (!empty($item['size_value'])) {
-        $size_label = (float)$item['size_value'];
-        if (!empty($item['unit_name'])) $size_label .= ' ' . $item['unit_name'];
-    }
+    // Net quantity with metric equivalent, as printed on the label
+    $size_label = !empty($item['size_value']) ? bcrf_label_net_qty($item['size_value'], (string)$item['unit_name']) : '';
 
     json_exit(true, 'OK', [
         'id'          => (int)$item['id'],
         'name'        => $item['name'],
         'category'    => $item['category'],
         'size_label'  => $size_label,
+        'made_by'     => bcrf_label_made_by(),
         'ingredients' => $ingredients,
+        'ingredient_rows' => $lab['rows'],      // [{id, name}] in label order
+        'order_set'   => $lab['order_set'],     // false = never put in order (old alphabetical list)
+        'all_ingredients' => bcrf_all_ingredients($pdo),
     ]);
 
 } catch (Throwable $e) {

@@ -51,28 +51,20 @@ if (empty($item['sku'])) {
     }
 }
 
-// ── FETCH INGREDIENTS ─────────────────────────────────────────────────────────
-$ingredients = [];
-try {
-    $stmt = $pdo->prepare("
-        SELECT ing.singular_name
-        FROM   product_ingredients pi
-        JOIN   ingredients ing ON pi.ingredient_id = ing.id
-        WHERE  pi.product_type = 'inventory' AND pi.product_id = ?
-        ORDER  BY ing.singular_name ASC
-    ");
-    $stmt->execute([$item_id]);
-    $ingredients = $stmt->fetchAll(PDO::FETCH_COLUMN);
-} catch (Throwable $e) {}
+// ── FETCH INGREDIENTS (label order: heaviest first, set in the Print Label window) ──
+require_once __DIR__ . '/includes/label_ingredients.php';
+$ingredients = array_column(bcrf_label_ingredients($pdo, (int)$item_id)['rows'], 'name');
 
 // ── BUILD DISPLAY STRINGS ─────────────────────────────────────────────────────
 $name_esc  = htmlspecialchars($item['name'], ENT_QUOTES);
 $sku_esc   = htmlspecialchars($item['sku'] ?? '', ENT_QUOTES);
 $size_num  = $item['size_value'] ? (float)$item['size_value'] : '';
 $size_unit = $item['unit_name'] ?? '';
-// Build a single "8 oz" string so no flex/span issues
-$size_str  = trim(($size_num !== '' ? $size_num : '') . ($size_unit ? ' ' . $size_unit : ''));
+// Net quantity in US units + metric equivalent ("Net Wt. 8 oz (227 g)"), as NC labels require
+$size_str  = $size_num !== '' ? bcrf_label_net_qty($size_num, $size_unit) : '';
 $size_esc  = htmlspecialchars($size_str ?: '—', ENT_QUOTES);
+// Maker's name and physical address from Site Info (required; a website doesn't count)
+$made_esc  = htmlspecialchars(bcrf_label_made_by(), ENT_QUOTES);
 $ing_str   = !empty($ingredients)
     ? htmlspecialchars(implode(', ', $ingredients), ENT_QUOTES)
     : $name_esc;
@@ -209,6 +201,7 @@ for ($p = 0; $p < $total_pages; $p++) {
         .l-ing  { font-size: 5pt; line-height: 1.4; word-break: break-word; }
         .l-ing strong { font-size: 5.5pt; display: block; margin-bottom: 1pt; }
         .l-bestby { font-size: 5.5pt; font-weight: bold; margin-top: 3pt; }
+        .l-madeby { font-size: 4.5pt; line-height: 1.3; margin-top: 2pt; color: #222; }
 
         /* Divider */
         .l-div {
@@ -234,10 +227,10 @@ for ($p = 0; $p < $total_pages; $p++) {
         }
         .l-bottom-size {
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 8pt;
+            font-size: 6.5pt;
+            line-height: 1.25;
             font-weight: bold;
             color: #222;
-            white-space: nowrap;
             flex-shrink: 0;
         }
         .l-bottom-barcode {
@@ -279,6 +272,9 @@ for ($p = 0; $p < $total_pages; $p++) {
                     <div class="l-ing">
                         <strong>Ingredients:</strong><?= $ing_str ?>
                     </div>
+                    <?php if ($made_esc): ?>
+                    <div class="l-madeby"><?= $made_esc ?></div>
+                    <?php endif; ?>
                     <?php if ($best_str): ?>
                     <div class="l-bestby">Best By: <?= htmlspecialchars($best_str) ?></div>
                     <?php endif; ?>
