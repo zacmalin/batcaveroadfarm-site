@@ -266,6 +266,14 @@ function bcrf_pinapi_boards(PDO $pdo): array {
     return $st->fetchAll(PDO::FETCH_KEY_PAIR);
 }
 
+/** Create a board on the connected account (needed in Sandbox, where boards are separate). Returns its id. Throws. */
+function bcrf_pinapi_create_board(PDO $pdo, string $name, string $description = ''): string {
+    $r = bcrf_pinapi_request($pdo, 'POST', '/boards', ['json' => ['name' => mb_substr($name, 0, 180), 'description' => mb_substr($description, 0, 500), 'privacy' => 'PUBLIC']]);
+    if ($r['status'] < 200 || $r['status'] >= 300 || empty($r['json']['id'])) throw new RuntimeException(bcrf_pinapi_error($r));
+    bcrf_pinapi_sync_boards($pdo);
+    return (string)$r['json']['id'];
+}
+
 /** Create an image Pin from a local JPEG (sent as base64, so hotlink/CDN rules never matter). */
 function bcrf_pinapi_create_pin(PDO $pdo, string $boardId, array $f, string $jpegFile): array {
     $data = @file_get_contents($jpegFile);

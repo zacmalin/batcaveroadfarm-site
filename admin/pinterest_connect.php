@@ -91,6 +91,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tables) {
         try { $b = bcrf_pinapi_sync_boards($pdo); $autoPick(); $go('Synced ' . count($b) . ' board' . (count($b) === 1 ? '' : 's') . '.'); }
         catch (Throwable $e) { $go('Board sync failed: ' . $e->getMessage()); }
     }
+    if ($do === 'create_board') {
+        $k = ($_POST['key'] ?? '') === 'animals' ? 'animals' : 'recipes';
+        $name = bcrf_pin_board_names($pdo)[$k];
+        $desc = $k === 'recipes' ? 'Farmhouse recipes from Bat Cave Road Farm in Old Fort, NC.' : 'Meet the animals at the Bat Cave Road Farm petting zoo in Old Fort, NC.';
+        try {
+            if (in_array($name, bcrf_pinapi_boards($pdo), true)) $go('A board called ' . $name . ' already exists.');
+            $id = bcrf_pinapi_create_board($pdo, $name, $desc);
+            if (bcrf_pin_setting($pdo, 'pinterest_board_id_' . $k) === '') bcrf_pin_setting_save($pdo, 'pinterest_board_id_' . $k, $id);
+            $log('Created Pinterest board ' . $name);
+            $go('Created the board ' . $name . '.');
+        } catch (Throwable $e) { $go('Could not create the board: ' . $e->getMessage()); }
+    }
     if ($do === 'settings') {
         $boards = bcrf_pinapi_boards($pdo);
         $after = [];
@@ -188,8 +200,12 @@ label.row{display:block;margin:10px 0}code{background:#f1ebe0;padding:1px 5px;bo
 <div class="card">
   <h2>Boards and auto-posting</h2>
   <form method="post" style="display:inline"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="sync"><button class="ghost">Sync boards from Pinterest</button></form>
+  <?php foreach (['recipes', 'animals'] as $k): if (in_array($names[$k] ?? '', $boards, true)) continue; ?>
+    <form method="post" style="display:inline"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="create_board"><input type="hidden" name="key" value="<?= $k ?>"><button class="ghost">Create “<?= $h($names[$k] ?? '') ?>”</button></form>
+  <?php endforeach; ?>
+  <?php if ($env === 'sandbox'): ?><p class="meta" style="margin:6px 0 0">Sandbox has its own boards, separate from the ones you see on Pinterest: create them here.</p><?php endif; ?>
   <?php if (!$boards): ?>
-    <p class="meta">No boards found yet. Create <strong><?= $h($names['recipes'] ?? 'Farmhouse Recipes') ?></strong> and <strong><?= $h($names['animals'] ?? 'Meet Our Farm Animals') ?></strong> on Pinterest (in this environment), then sync.</p>
+    <p class="meta">No boards found yet. Create <strong><?= $h($names['recipes'] ?? 'Farmhouse Recipes') ?></strong> and <strong><?= $h($names['animals'] ?? 'Meet Our Farm Animals') ?></strong> with the buttons above (or on Pinterest, in Production), then sync.</p>
   <?php else: ?>
     <form method="post"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="settings">
       <?php foreach (['recipes' => '🍴 Recipes go to', 'animals' => '🐐 Animals go to'] as $k => $lbl): ?>
