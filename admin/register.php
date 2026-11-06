@@ -65,9 +65,16 @@ if ($api !== '') {
                              LEFT JOIN tax_categories tc ON tc.id = i.tax_category_id
                              WHERE i.is_active = 1
                              ORDER BY cat_sort, cat, i.name")->fetchAll(PDO::FETCH_ASSOC);
+        $here = null;   // slice 8: stock at this register's location
+        if (bcrf_stock_ready($pdo)) {
+            $here = [];
+            $ls = $pdo->prepare("SELECT product_id, quantity FROM inventory_levels WHERE location_id = ?");
+            $ls->execute([bcrf_location_for_register($pdo, (int)($_GET['register_id'] ?? 0) ?: null)]);
+            foreach ($ls->fetchAll(PDO::FETCH_ASSOC) as $l) $here[(int)$l['product_id']] = (float)$l['quantity'];
+        }
         $items = array_map(fn($r) => [
             'id' => (int)$r['id'], 'name' => $r['name'], 'price_cents' => (int)round((float)$r['price'] * 100),
-            'stock' => (int)$r['track_inventory'] ? (float)$r['stock_quantity'] : null, 'sku' => (string)$r['sku'],
+            'stock' => (int)$r['track_inventory'] ? ($here === null ? (float)$r['stock_quantity'] : ($here[(int)$r['id']] ?? 0.0)) : null, 'sku' => (string)$r['sku'],
             'img' => (string)$r['image_url'], 'mode' => $r['pricing_mode'], 'unit' => $r['unit'], 'type' => $r['product_type'],
             'cat' => $r['cat'], 'rate_bp' => $r['rate_bp'] === null ? $general : (int)$r['rate_bp'],   // no tax category = general (as the server does)
         ], $rows);
@@ -347,6 +354,7 @@ $boot = [
     'gate'    => $refundsReady && bcrf_admission_ready($pdo),
     'holds'     => bcrf_holds_ready($pdo),               // slice 7: migration 0014
     'lineDisc'  => bcrf_sales_line_disc_ready($pdo),
+    'stock'     => bcrf_stock_ready($pdo),                // slice 8: migration 0015
     'customers' => bcrf_customers_ready($pdo),
 ];
 ?><!DOCTYPE html>
@@ -624,6 +632,6 @@ $boot = [
 <!-- Printed receipt (only visible when printing) -->
 <section id="receipt" class="receipt" aria-hidden="true"></section>
 
-<script src="assets/register.js?v=6"></script>
+<script src="assets/register.js?v=7"></script>
 </body>
 </html>

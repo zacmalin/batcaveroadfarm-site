@@ -157,11 +157,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['archive_pos_receipt']
         $receipt_id = (int)$pdo->lastInsertId();   // capture before other inserts
 
         $up_stmt = $pdo->prepare("UPDATE inventory SET stock_quantity = GREATEST(0, stock_quantity - ?) WHERE id = ?");
+        require_once __DIR__ . '/../includes/stock.php';
+        $stockReady = bcrf_stock_ready($pdo);
         $h_stmt  = $pdo->prepare("INSERT INTO sales_history (inventory_id, quantity_sold) VALUES (?, ?)");
         foreach ($cart as $item) {
             $table = $item['tbl'] ?? $item['table'] ?? 'inventory';
             if ($table === 'inventory') {
-                $up_stmt->execute([(float)$item['qty'], (int)$item['id']]);
+                if ($stockReady && (int)$item['id'] > 0) {   // Farm OS slice 8: stocked items come off the default location, with a ledger row
+                    $tk = $pdo->prepare("SELECT track_inventory FROM inventory WHERE id = ?"); $tk->execute([(int)$item['id']]);
+                    if ((int)$tk->fetchColumn() === 1) bcrf_stock_move($pdo, (int)$item['id'], bcrf_location_default($pdo), -(float)$item['qty'], 'sale', 'pos_receipt', $receipt_id ?: null, 'Old register ' . $receipt_no, (int)($_SESSION['user_id'] ?? 0) ?: null, 'clamp');
+                    else $up_stmt->execute([(float)$item['qty'], (int)$item['id']]);
+                } else $up_stmt->execute([(float)$item['qty'], (int)$item['id']]);
                 try { $h_stmt->execute([(int)$item['id'], (float)$item['qty']]); } catch (Throwable $ignored) {}
             }
         }

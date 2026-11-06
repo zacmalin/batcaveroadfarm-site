@@ -56,6 +56,33 @@ if ($clean_value < 0) {
 }
 
 // ── UPDATE ────────────────────────────────────────────────────────────────────
+// -- STOCK BY LOCATION (Farm OS slice 8, migration 0015) --
+// The number typed is the count for the item's one location. Items kept in more than one place are counted in Stock › Counts.
+require_once __DIR__ . '/../../includes/stock.php';
+if (bcrf_stock_ready($pdo)) {
+    try {
+        $pdo->beginTransaction();
+        $L = bcrf_stock_lock($pdo, (int)$id, (int)($_SESSION['user_id'] ?? 0) ?: null);
+        if (!(int)$L['p']['track_inventory']) { $pdo->rollBack(); json_exit(false, 'This item is not counted (stock is not tracked for it).', 400); }
+        $held = array_keys(array_filter($L['lv'], fn($q) => $q !== 0));
+        if (count($held) > 1) { $pdo->rollBack(); json_exit(false, 'This item is kept in more than one place. Count it in Stock › Counts.', 409); }
+        $loc = $held ? $held[0] : (count($L['lv']) === 1 ? (int)array_key_first($L['lv']) : bcrf_location_default($pdo));
+        $r = bcrf_stock_set_count($pdo, (int)$id, $loc, (float)$clean_value, null, (int)($_SESSION['user_id'] ?? 0) ?: null, $L);
+        $pdo->commit();
+        $ln = bcrf_location($pdo, $loc);
+        erp_audit($pdo, 'update', 'inventory', $id, $L['p']['name'] . ' - stock at ' . ($ln['name'] ?? '?') . ' ' . bcrf_qtxt($r['before']) . ' -> ' . bcrf_qtxt($r['after']));
+        json_exit(true, 'Saved.');
+    } catch (BcrfStockError $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        json_exit(false, $e->getMessage(), 400);
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        error_log('[ERP] update_inventory (stock) failed: ' . $e->getMessage());
+        json_exit(false, 'Database error — check server logs.', 500);
+    }
+}
+
+// -- UPDATE (before migration 0015) --
 try {
     $oldQty = null; $invName = '';
     try { $o = $pdo->prepare("SELECT name, stock_quantity FROM inventory WHERE id = ?"); $o->execute([$id]); if ($r = $o->fetch(PDO::FETCH_ASSOC)) { $oldQty = $r['stock_quantity']; $invName = (string)$r['name']; } } catch (Throwable $e) {}

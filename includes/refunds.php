@@ -7,6 +7,8 @@
  *   bcrf_refund_complete($pdo, $input)        save a refund (idempotent, like sales)
  *   bcrf_sale_void($pdo, $saleId, $reason)     cancel today's sale before its drawer closes
  *
+ * Slice 8 (Nov 6): with migration 0015, restocked items and voids go back to the location the sale came from.
+ *
  * Rules (05 › Refunds and voids, 03 › Refunds and voids):
  *   - A reason is required for every refund and void.
  *   - Refund by line, all or part of a line. A partial line gives back its share of what was actually paid
@@ -281,6 +283,7 @@ function bcrf_refund_complete(PDO $pdo, array $in): array {
             throw $e;
         }
         $rid = (int)$pdo->lastInsertId();
+        $restockLoc = bcrf_stock_ready($pdo) ? ((int)($sale['location_id'] ?? 0) ?: bcrf_location_for_register($pdo, (int)$sale['register_id'] ?: null)) : 0;   // slice 8
         $insL = $pdo->prepare("INSERT INTO refund_lines (refund_id, sale_line_id, product_id, quantity, net_cents, tax_cents, total_cents, restock) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
         $updL = $pdo->prepare("UPDATE sale_lines SET refunded_quantity = refunded_quantity + ?, refunded_net_cents = refunded_net_cents + ?, refunded_tax_cents = refunded_tax_cents + ? WHERE id = ?");
         $getStock = $pdo->prepare("SELECT stock_quantity FROM inventory WHERE id = ? FOR UPDATE");
@@ -290,7 +293,9 @@ function bcrf_refund_complete(PDO $pdo, array $in): array {
         foreach ($q['lines'] as $l) {
             $insL->execute([$rid, $l['sale_line_id'], $l['product_id'], $l['quantity'], $l['net_cents'], $l['tax_cents'], $l['total_cents'], $l['restock'] ? 1 : 0]);
             $updL->execute([$l['quantity'], $l['net_cents'], $l['tax_cents'], $l['sale_line_id']]);
-            if ($l['restock']) {
+            if ($l['restock'] && bcrf_stock_ready($pdo)) {   // slice 8: back to the location the sale came from
+                bcrf_stock_move($pdo, (int)$l['product_id'], $restockLoc, (float)$l['quantity'], 'refund_restock', 'refund', $rid, 'Refund ' . $number, $uid);
+            } elseif ($l['restock']) {
                 $getStock->execute([$l['product_id']]);
                 $before = round((float)$getStock->fetchColumn(), 3);
                 $after = round($before + $l['quantity'], 3);
@@ -341,8 +346,13 @@ function bcrf_sale_void(PDO $pdo, int $saleId, string $reason): array {
         $setStock = $pdo->prepare("UPDATE inventory SET stock_quantity = ? WHERE id = ?");
         $ledger = $pdo->prepare("INSERT INTO inventory_adjustments (product_id, quantity_change, quantity_before, quantity_after, reason, source_type, source_id, note, created_at, created_by)
                                  VALUES (?, ?, ?, ?, 'void', 'sale', ?, ?, UTC_TIMESTAMP(3), ?)");
+        $restockLoc = bcrf_stock_ready($pdo) ? ((int)($s['location_id'] ?? 0) ?: bcrf_location_for_register($pdo, (int)$s['register_id'] ?: null)) : 0;
         foreach (bcrf_sale_lines_locked($pdo, $saleId, true) as $l) {
             if (!$l['product_id'] || (int)$l['track_inventory'] !== 1) continue;
+            if ($restockLoc) {   // slice 8
+                bcrf_stock_move($pdo, (int)$l['product_id'], $restockLoc, (float)$l['quantity'], 'void', 'sale', $saleId, 'Void ' . $s['sale_number'], $uid);
+                continue;
+            }
             $getStock->execute([$l['product_id']]);
             $before = round((float)$getStock->fetchColumn(), 3);
             $after = round($before + (float)$l['quantity'], 3);

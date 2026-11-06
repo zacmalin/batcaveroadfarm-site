@@ -39,3 +39,28 @@
 .p2pflags{display:flex;flex-direction:column;gap:.3rem;margin-top:.35rem}
 .p2pflags .btn{color:var(--bad);border-color:#fecaca;justify-content:flex-start}
 .p2prow > div:first-child{min-width:0;overflow-wrap:anywhere}
+/* Stock (admin/stock.php, Farm OS slice 8) */
+.rform select{font:inherit;min-height:38px;padding:.3rem .5rem;border:1px solid var(--line);border-radius:10px;background:#fff;max-width:100%}
+.rform label.check,.stackf label.check{display:flex;gap:.45rem;align-items:center;font-weight:500}
+.rform label.check input,.stackf label.check input{width:auto;min-height:0;margin:0}
+.stackf{display:flex;flex-direction:column;gap:.55rem;margin:0}
+.stackf > label{display:flex;flex-direction:column;gap:.2rem;font-weight:600;font-size:.92em}
+.stackf input[type=text],.stackf input[type=number],.stackf select{font:inherit;font-weight:400;padding:.55rem .65rem;border:1px solid var(--line);border-radius:10px;min-height:44px;background:#fff;box-sizing:border-box;width:100%}
+.stackf .btn{align-self:flex-start}
+.seg{border:0;padding:0;margin:0;display:flex;gap:1rem;align-items:center;flex-wrap:wrap}
+.seg legend{font-weight:600;font-size:.92em;float:left;margin-right:.5rem}
+h2 + p.muted{margin-top:.2rem}
+.cardlink{color:var(--ink);text-decoration:none;align-items:center}
+.cardlink:active{background:#f5f5f4}
+.cnt{padding:.25rem 1rem}
+.cntcat{font-size:.78em;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:.7rem 0 .2rem}
+.cntrow{display:flex;justify-content:space-between;align-items:center;gap:.75rem;padding:.55rem 0;border-bottom:1px solid var(--line);margin:0}
+.cntrow > span{min-width:0;overflow-wrap:anywhere}
+.cntrow input{flex:0 0 6.5rem;width:6.5rem;font:inherit;font-size:1.1em;text-align:center;padding:.5rem;border:1px solid var(--line);border-radius:10px;min-height:48px;background:#fafaf9;box-sizing:border-box}
+.cntrow.done input{background:#f0fdf4;border-color:#bbf7d0}
+.cntrow.flag input{background:var(--badbg);border-color:#fecaca}
+.rbar.sticky{position:sticky;bottom:0;background:var(--bg, #fafaf9);padding:.6rem 0;margin:0;border-top:1px solid var(--line);z-index:2}
+.rbar.sticky .btn{flex:1}
+.hist{padding:.25rem 1rem}
+.hist .lrow > div:first-child{min-width:0;overflow-wrap:anywhere}
+.hist .lrow .r{text-align:right}

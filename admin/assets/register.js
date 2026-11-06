@@ -9,6 +9,7 @@
 // Slice 4a (Nov 6): admission sold here checks the party in; when the farm is full an Owner or Manager can override.
 // Slice 7 (Nov 6): tap an item for its own % off and a note; attach a customer (search, pass link, or add new);
 // hold a cart and take it back later on any device. Item discounts come off first, then the whole-sale discount.
+// Slice 8 (Nov 6): with stock kept by location, the stock badges show what this register's location holds.
 (function () {
   'use strict';
   var BOOT = JSON.parse(document.getElementById('regBoot').textContent);
@@ -92,7 +93,8 @@
   function loadCatalog(quiet) {
     if (!BOOT.ready) { $('grid').replaceChildren(el('p', { class: 'empty', text: 'Waiting for migration 0009.' })); return; }
     if (!quiet) $('grid').replaceChildren(el('p', { class: 'empty', text: 'Loading products…' }));
-    api('catalog').then(function (j) {
+    var rid = S.regId; if (!rid) { try { rid = +localStorage.getItem(REGKEY) || 0; } catch (e) { rid = 0; } }
+    api('catalog&register_id=' + (rid || 0)).then(function (j) {   // slice 8: stock shown is what this register's location holds
       if (!j.ok) throw new Error(j.message);
       S.items = j.items; S.customRate = j.custom_rate_bp; S.byId = {};
       j.items.forEach(function (it) { S.byId[it.id] = it; });
@@ -673,7 +675,7 @@
       renderDrawer();
     }, function () {});
   }
-  function setReg(id) { S.regId = id; try { localStorage.setItem(REGKEY, String(id)); } catch (e) {} loadDrawer(); }
+  function setReg(id) { var changed = S.regId !== id; S.regId = id; try { localStorage.setItem(REGKEY, String(id)); } catch (e) {} loadDrawer(); if (changed && BOOT.stock) loadCatalog(true); }
   function chooseReg(regs) {
     $('regChips').replaceChildren.apply($('regChips'), Object.keys(regs).map(function (id) {
       return el('button', { type: 'button', text: regs[id], onclick: function () { $('dlgRegister').close(); setReg(+id); } });

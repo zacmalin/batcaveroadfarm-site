@@ -14,7 +14,10 @@
  * (includes/drawers.php); with no open drawer the sale is refused.
  * Slice 4a (Nov 6): admission products sold here check the party in (includes/admission.php). If the farm is
  * full the sale is refused with BcrfCapacityError, unless an Owner or Manager gives capacity_override (a reason).
+ * Slice 8 (Nov 6): once migration 0015 has run, stock comes off the register's location (includes/stock.php) and the
+ * sale records that location, so refunds and voids put it back in the same place.
  */
+require_once __DIR__ . '/stock.php';
 
 if (!function_exists('bcrf_sale_complete')) {
 
@@ -311,13 +314,14 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
         }
 
         $number = sprintf('R-%d-%06d', $year, bcrf_next_number($pdo, 'receipt', $year));
+        $stockLoc = bcrf_stock_ready($pdo) ? bcrf_location_for_register($pdo, $v['register_id'] ?: null) : null;   // slice 8
         $completedUtc = $now->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s.v');
         try {
-            $pdo->prepare("INSERT INTO sales (sale_number, channel, register_id, drawer_session_id, customer_id, status, subtotal_cents, discount_cents, tax_cents, total_cents, discount_bp,
+            $pdo->prepare("INSERT INTO sales (sale_number, channel, register_id, " . ($stockLoc ? "location_id, " : "") . "drawer_session_id, customer_id, status, subtotal_cents, discount_cents, tax_cents, total_cents, discount_bp,
                                               tax_exempt, business_date, completed_at, idempotency_key, receipt_delivery, created_at, created_by)
-                           VALUES (?, 'pos', ?, ?, ?, 'completed', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), ?)")
-                ->execute([$number, $v['register_id'] ?: null, $drawerId, $v['customer_id'], $priced['subtotal'], $priced['discount'], $priced['tax'], $priced['total'], $v['discount_bp'],
-                           $v['tax_exempt'] ? 1 : 0, $bdate, $completedUtc, $v['key'], $v['printed'] ? 'print' : 'none', $uid]);
+                           VALUES (?, 'pos', ?, " . ($stockLoc ? "?, " : "") . "?, ?, 'completed', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), ?)")
+                ->execute(array_merge([$number, $v['register_id'] ?: null], $stockLoc ? [$stockLoc] : [], [$drawerId, $v['customer_id'], $priced['subtotal'], $priced['discount'], $priced['tax'], $priced['total'], $v['discount_bp'],
+                           $v['tax_exempt'] ? 1 : 0, $bdate, $completedUtc, $v['key'], $v['printed'] ? 'print' : 'none', $uid]));
         } catch (PDOException $e) {
             // Same key saved a moment ago by a parallel request: hand back that sale.
             if ($e->getCode() === '23000' && str_contains($e->getMessage(), 'uq_idem')) {
@@ -344,7 +348,13 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
                                $l['unit_price_cents'], $l['gross_cents'], $l['discount_cents'], $l['tax_category_id'], $l['tax_rate_bp'],
                                $l['tax_cents'], $l['line_total_cents'], $l['product_type'], mb_substr($l['category_label'], 0, 100), $l['note']],
                                $lineDiscCol ? [$l['line_discount_bp']] : []));
-            if ($l['product_id'] && $l['track']) {
+            if ($l['product_id'] && $l['track'] && $stockLoc) {   // slice 8: off the register's location; stops at zero there, as before
+                $mv = bcrf_stock_move($pdo, (int)$l['product_id'], $stockLoc, -$l['quantity'], 'sale', 'sale', $saleId, null, $uid, 'clamp');
+                if ($mv['short'] > 0) {
+                    $pdo->prepare("UPDATE inventory_adjustments SET note = ? WHERE id = ?")
+                        ->execute(["Sold {$l['quantity']} with " . bcrf_qtxt($mv['before']) . " on hand here (short by " . bcrf_qtxt($mv['short']) . ")", $mv['id']]);
+                }
+            } elseif ($l['product_id'] && $l['track']) {
                 $p = &$products[$l['product_id']];
                 $before = round((float)$p['stock_quantity'], 3);
                 $after  = max(0, round($before - $l['quantity'], 3));   // stock never goes below zero (as before); the ledger notes a shortfall

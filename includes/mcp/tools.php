@@ -123,10 +123,10 @@ function mcp_tools(): array {
 
     // ── Write ───────────────────────────────────────────────────────────────
     'adjust_stock' => [
-        'Change an inventory item\'s stock. Give set_to (new count) OR change_by (e.g. -3 or +12). Logged in the audit log.',
+        'Change an inventory item\'s stock. Give set_to (new count) OR change_by (e.g. -3 or +12). Stock is kept by location (Farmstand, Thrift Shop, Kitchen, Feed Room...): give location (its name) for items kept in more than one place; otherwise the item\'s only location (or the default) is used. Written to the stock history and the audit log.',
         ['type' => 'object', 'properties' => [
             'item_id' => ['type' => 'integer'], 'set_to' => ['type' => 'number'], 'change_by' => ['type' => 'number'],
-            'reason' => ['type' => 'string']], 'required' => ['item_id']], $W, 'mcp_t_adjust_stock'],
+            'location' => ['type' => 'string'], 'reason' => ['type' => 'string']], 'required' => ['item_id']], $W, 'mcp_t_adjust_stock'],
     'create_blog_draft' => [
         'Create a blog post as a DRAFT (not published, not scheduled). Zac publishes it from the admin. body_html is the article HTML.',
         ['type' => 'object', 'properties' => [
@@ -367,6 +367,8 @@ function mcp_t_adjust_stock(PDO $pdo, array $a): array {
     $hasSet = isset($a['set_to']) && $a['set_to'] !== '';
     $hasBy  = isset($a['change_by']) && $a['change_by'] !== '';
     if ($hasSet === $hasBy) throw new McpToolError('Give exactly one of set_to or change_by.');
+    require_once dirname(__DIR__) . '/stock.php';
+    if (bcrf_stock_ready($pdo)) return mcp_t_adjust_stock_by_location($pdo, $a, $id, $hasSet);
     $pdo->beginTransaction();
     try {
         $st = $pdo->prepare("SELECT id, name, stock_quantity FROM inventory WHERE id = ? FOR UPDATE");
@@ -384,6 +386,46 @@ function mcp_t_adjust_stock(PDO $pdo, array $a): array {
     $reason = trim((string)($a['reason'] ?? ''));
     mcp_audit($pdo, 'update', 'inventory', $id, $it['name'] . ' - stock ' . $fmt($old) . ' -> ' . $fmt($new) . ($reason !== '' ? ' (' . mb_substr($reason, 0, 80) . ')' : ''));
     return ['item_id' => $id, 'name' => $it['name'], 'old_stock' => $old, 'new_stock' => $new];
+}
+
+/** adjust_stock once stock is kept by location (Farm OS slice 8, migration 0015). */
+function mcp_t_adjust_stock_by_location(PDO $pdo, array $a, int $id, bool $hasSet): array {
+    $reason = trim((string)($a['reason'] ?? ''));
+    $uid = null;
+    $locName = trim((string)($a['location'] ?? ''));
+    $locs = bcrf_locations($pdo);
+    $locId = null;
+    if ($locName !== '') {
+        foreach ($locs as $l) if (strcasecmp($l['name'], $locName) === 0 || strcasecmp($l['code'], $locName) === 0) $locId = (int)$l['id'];
+        if (!$locId) throw new McpToolError('No location called "' . $locName . '". Locations: ' . implode(', ', array_column($locs, 'name')) . '.');
+    }
+    $pdo->beginTransaction();
+    try {
+        $L = bcrf_stock_lock($pdo, $id, $uid);
+        if ((int)$L['p']['track_inventory'] !== 1) throw new McpToolError('"' . $L['p']['name'] . '" is not a stocked item, so it has no count.');
+        if (!$locId) {
+            $held = array_keys(array_filter($L['lv'], fn($q) => $q !== 0));
+            if (count($held) > 1) {
+                $names = [];
+                foreach ($locs as $l) if (in_array((int)$l['id'], $held, true)) $names[] = $l['name'] . ' ' . bcrf_qtxt(bcrf_qf($L['lv'][(int)$l['id']]));
+                throw new McpToolError('"' . $L['p']['name'] . '" is kept in more than one place (' . implode(', ', $names) . '). Give location.');
+            }
+            $locId = $held ? $held[0] : (count($L['lv']) === 1 ? (int)array_key_first($L['lv']) : bcrf_location_default($pdo));
+        }
+        $before = bcrf_qf($L['lv'][$locId] ?? 0);
+        $new = $hasSet ? (float)$a['set_to'] : $before + (float)$a['change_by'];
+        if ($new < 0) throw new McpToolError("That would make stock negative ($new).");
+        if ($new > 100000) throw new McpToolError('That number looks wrong (over 100,000).');
+        $r = $hasSet ? bcrf_stock_set_count($pdo, $id, $locId, $new, null, $uid, $L)
+                     : bcrf_stock_move($pdo, $id, $locId, $new - $before, 'correction', 'connector', null, $reason !== '' ? mb_substr($reason, 0, 200) : 'Changed through the connector', $uid, 'strict', $L);
+        if ($hasSet && $r['id'] && $reason !== '') $pdo->prepare("UPDATE inventory_adjustments SET note = ? WHERE id = ?")->execute([mb_substr($reason, 0, 200), $r['id']]);
+        $pdo->commit();
+    } catch (BcrfStockError $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw new McpToolError($e->getMessage()); }
+    catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
+    $loc = bcrf_location($pdo, $locId);
+    mcp_audit($pdo, 'update', 'inventory', $id, $L['p']['name'] . ' - stock at ' . $loc['name'] . ' ' . bcrf_qtxt($r['before']) . ' -> ' . bcrf_qtxt($r['after']) . ($reason !== '' ? ' (' . mb_substr($reason, 0, 80) . ')' : ''));
+    return ['item_id' => $id, 'name' => $L['p']['name'], 'location' => $loc['name'], 'old_stock' => $r['before'], 'new_stock' => $r['after'],
+            'total_all_locations' => bcrf_qf(array_sum($L['lv']) - bcrf_qm($r['before']) + bcrf_qm($r['after']))];
 }
 
 function mcp_t_blog_draft(PDO $pdo, array $a): array {

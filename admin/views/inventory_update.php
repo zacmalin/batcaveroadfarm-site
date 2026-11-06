@@ -17,6 +17,9 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
     <div>
         <h1 class="text-xl font-bold font-serif text-stone-800">Inventory Counts</h1>
         <p class="text-xs text-stone-500">Type the count you see on the shelf. It saves when you leave the box; on a phone, − and + save right away.</p>
+        <?php if (isset($pdo) && (require_once __DIR__ . '/../../includes/stock.php') && bcrf_stock_ready($pdo)): ?>
+        <p class="text-xs text-stone-500 mt-1">Quick count for items kept in one place. For counts by location, moves, spoilage and history, open <a class="underline font-bold" href="/admin/stock.php">Stock</a>.</p>
+        <?php endif; ?>
     </div>
     <span class="text-[10px] font-mono text-stone-500 bg-stone-100 border px-2 py-1 rounded">
         <?= array_sum(array_map('count', $grouped)) ?> active items &bull; <?= count($grouped) ?> categories

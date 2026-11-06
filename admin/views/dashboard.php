@@ -187,13 +187,25 @@ if ($canV('event_inquiries')) {
 // Low stock + reorder forecast
 $canInv = $canV('inventory_update') || $canT('inventory');
 if ($canInv) {
+    // Count differences over 20% or $25 in the last 7 days (Farm OS slice 8; 06 › Alerts)
+    try {
+        require_once dirname(__DIR__, 2) . '/includes/stock.php';
+        if ($cf = bcrf_count_flags_recent($pdo, 7)) {
+            $add(['id' => 'count_flags', 'priority' => 'today', 'icon' => '🔎',
+                  'title' => count($cf) . ' big count difference' . (count($cf) === 1 ? '' : 's') . ' this week',
+                  'items' => array_map(fn($r) => $r['name'] . ' at ' . $r['location_name'] . ': expected ' . bcrf_qtxt($r['expected_qty']) . ', counted ' . bcrf_qtxt($r['counted_qty']), array_slice($cf, 0, 5)),
+                  'detail' => 'Over 20% or $25 off. Recount, or check for missed sales, spoilage or theft.', 'count' => count($cf),
+                  'actions' => [['Open count', '/admin/stock.php?tab=count&id=' . (int)$cf[0]['count_id'], true], ['Stock history', '/admin/stock.php?tab=history&reason=count', false]]]);
+        }
+    } catch (Throwable $e) { /* stock tables not installed */ }
     $ls = $low_stock_items ?? [];
     if ($ls) {
         $add(['id' => 'low_stock', 'priority' => 'today', 'icon' => '📦',
               'title' => count($ls) . ' item' . (count($ls) === 1 ? ' is' : 's are') . ' low on stock',
               'items' => array_map(fn($i) => $i['name'] . ' — ' . (float)$i['stock_quantity'] . ' left', array_slice($ls, 0, 5)),
               'detail' => count($ls) > 5 ? '…and ' . (count($ls) - 5) . ' more' : '', 'count' => count($ls),
-              'actions' => [['Count inventory', "$A?view=inventory_update", true], ['Open catalog', "$A?view=schema&table=inventory", false]]]);
+              'actions' => [function_exists('bcrf_stock_ready') && bcrf_stock_ready($pdo) ? ['See stock', '/admin/stock.php?low=1', true] : ['Count inventory', "$A?view=inventory_update", true],
+                            ['Open catalog', "$A?view=schema&table=inventory", false]]]);
     }
     $fc = [];
     foreach (($forecast_items ?? []) as $fi) {

@@ -14,6 +14,7 @@ $_sections = [
     'storefront' => ['label'=>'Storefront','icon'=>'🏪','items'=>[
         ['label'=>'POS','icon'=>'💳','tabs'=>[['POS','/admin/pos.php','view','pos']]],
         ['label'=>'Products & Inventory','short'=>'Inventory','icon'=>'📦','tabs'=>[
+            ['Stock',      '/admin/stock.php',                        'view',  'inventory_update'],   // Farm OS slice 8: by location, counts, history
             ['Counts',     '?view=inventory_update',                  'view',  'inventory_update'],
             ['Catalog',    '?view=schema&table=inventory',            'table', 'inventory'],
             ['Categories', '?view=schema&table=inventory_categories', 'table', 'inventory_categories'],
