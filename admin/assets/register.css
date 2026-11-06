@@ -172,3 +172,26 @@ a.drawerbtn{text-decoration:none;display:inline-flex;align-items:center}
   .receipt td{padding:1px 0;vertical-align:top}.receipt td.r{text-align:right;white-space:nowrap}
   .receipt .note{border:1px solid #000;padding:4px;margin-top:6px;font-size:10px;text-align:center}
 }
+/* Slice 7 (Nov 6, 2026): item sheet, customer, held carts */
+.line .lnbtn{display:block;text-align:left;font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;min-width:0}
+.line .ldisc{color:var(--ok);font-size:.82em;font-weight:700}
+.line .lnote{color:var(--muted);font-size:.82em;font-style:italic}
+.line .amt .was{display:block;color:var(--muted);font-weight:400;font-size:.8em}
+.custchip{display:flex;align-items:center;gap:.25rem;width:100%;text-align:left;font:inherit;font-weight:600;background:var(--okbg);border:1px solid #a7f3d0;border-radius:10px;padding:.45rem .7rem;margin:0 0 .4rem;cursor:pointer;color:var(--ink)}
+.custchip .x{margin-left:auto;color:var(--muted);font-weight:800}
+.custchip small{font-weight:600}
+small.ok{color:var(--ok)}small.warn{color:var(--amber)}
+.custlist{display:flex;flex-direction:column;gap:.35rem;margin:.5rem 0}
+.custrow{display:flex;flex-direction:column;align-items:flex-start;gap:.1rem;text-align:left;font:inherit;background:#fff;border:1px solid var(--line);border-radius:10px;padding:.55rem .75rem;cursor:pointer;color:var(--ink);min-height:48px}
+.custrow small{font-size:.82em}
+#dlgCustomer input[type=search]{width:100%;font:inherit;padding:.6rem .75rem;border:1px solid var(--line);border-radius:10px;min-height:44px;box-sizing:border-box}
+#custNewWrap summary{list-style:none;display:inline-flex;cursor:pointer}
+#custNewWrap summary::-webkit-details-marker{display:none}
+.custnew{display:flex;flex-direction:column;gap:.4rem;margin-top:.5rem}
+.holdrow{display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:.5rem 0;border-bottom:1px solid var(--line)}
+.holdrow > div:first-child{display:flex;flex-direction:column;min-width:0}
+.holdact{display:flex;gap:.35rem}.holdact .btn{min-width:0}.holdact .btn.primary{margin-left:0}
+#holdNewWrap{display:flex;flex-direction:column;gap:.4rem}
+#holdNewWrap .btn.primary{margin-left:0}
+.lbl{font-weight:700;margin:.5rem 0 .1rem}
+h3.mt{margin-top:1rem}

@@ -7,12 +7,14 @@
 // Slice 2 (Nov 6): cash drawers. Each device remembers its register; sales need that register's drawer open.
 // Slice 3 (Nov 6): Sales screen: find a sale, reprint, refund by line, or void it (includes/refunds.php).
 // Slice 4a (Nov 6): admission sold here checks the party in; when the farm is full an Owner or Manager can override.
+// Slice 7 (Nov 6): tap an item for its own % off and a note; attach a customer (search, pass link, or add new);
+// hold a cart and take it back later on any device. Item discounts come off first, then the whole-sale discount.
 (function () {
   'use strict';
   var BOOT = JSON.parse(document.getElementById('regBoot').textContent);
   var STORE = 'bcrf.register.v1';
   var $ = function (id) { return document.getElementById(id); };
-  var S = { items: [], byId: {}, customRate: 0, cat: null, q: '', cart: [], discPct: 0, exempt: false,
+  var S = { items: [], byId: {}, customRate: 0, cat: null, q: '', cart: [], discPct: 0, exempt: false, customer: null, holds: [],
             payments: [], key: null, tender: null, lastSale: null, saving: false,
             regId: null, drawer: null, dinfo: null };
   var REGKEY = 'bcrf.register.reg';
@@ -39,12 +41,12 @@
     return Array.prototype.map.call(a, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
   }
   function save() {
-    try { localStorage.setItem(STORE, JSON.stringify({ cart: S.cart, discPct: S.discPct, exempt: S.exempt, payments: S.payments, key: S.key, last: S.lastSale })); } catch (e) {}
+    try { localStorage.setItem(STORE, JSON.stringify({ cart: S.cart, discPct: S.discPct, exempt: S.exempt, payments: S.payments, key: S.key, last: S.lastSale, customer: S.customer })); } catch (e) {}
   }
   function load() {
     try {
       var d = JSON.parse(localStorage.getItem(STORE) || 'null');
-      if (d) { S.cart = d.cart || []; S.discPct = d.discPct || 0; S.exempt = !!d.exempt; S.payments = d.payments || []; S.key = d.key || null; S.lastSale = d.last || null; }
+      if (d) { S.cart = d.cart || []; S.discPct = d.discPct || 0; S.exempt = !!d.exempt; S.payments = d.payments || []; S.key = d.key || null; S.lastSale = d.last || null; S.customer = d.customer || null; }
     } catch (e) {}
   }
   function api(path, opts) {
@@ -61,25 +63,28 @@
   }
 
   // ── pricing: same rules as bcrf_sale_price() ─────────────────────────────
+  function lineBp(l) { return Math.max(0, Math.min(10000, Math.round((l.disc_pct || 0) * 100))); }
   function price() {
     var lines = S.cart.map(function (l) {
       var gross = muldiv(Math.round(l.qty * 1000), l.unit_price_cents, 1000);
-      return { gross: gross, rate: S.exempt ? 0 : l.rate_bp };
+      return { gross: gross, item: muldiv(gross, lineBp(l), 10000), rate: S.exempt ? 0 : l.rate_bp };
     });
     var sub = lines.reduce(function (s, l) { return s + l.gross; }, 0);
-    var disc = muldiv(sub, Math.round(S.discPct * 100), 10000);
+    var itemDisc = lines.reduce(function (s, l) { return s + l.item; }, 0);
+    var base = sub - itemDisc;                                  // item discounts first, then the whole-sale discount on what's left
+    var receipt = muldiv(base, Math.round(S.discPct * 100), 10000);
     var alloc = [], rem = [], given = 0;
     lines.forEach(function (l, i) {
-      var exact = sub > 0 ? l.gross * disc : 0;
-      alloc[i] = sub > 0 ? Math.floor(exact / sub) : 0;
-      rem.push([i, sub > 0 ? exact % sub : 0]);
+      var exact = base > 0 ? (l.gross - l.item) * receipt : 0;
+      alloc[i] = base > 0 ? Math.floor(exact / base) : 0;
+      rem.push([i, base > 0 ? exact % base : 0]);
       given += alloc[i];
     });
-    rem.sort(function (a, b) { return b[1] - a[1]; });
-    for (var k = 0; k < rem.length && given < disc; k++) { alloc[rem[k][0]]++; given++; }
+    rem.sort(function (a, b) { return b[1] - a[1] || a[0] - b[0]; });
+    for (var k = 0; k < rem.length && given < receipt; k++) { alloc[rem[k][0]]++; given++; }
     var tax = 0;
-    lines.forEach(function (l, i) { tax += muldiv(l.gross - alloc[i], l.rate, 10000); });
-    return { sub: sub, disc: disc, tax: tax, total: sub - disc + tax };
+    lines.forEach(function (l, i) { tax += muldiv(l.gross - l.item - alloc[i], l.rate, 10000); });
+    return { sub: sub, item: itemDisc, receipt: receipt, disc: itemDisc + receipt, tax: tax, total: sub - itemDisc - receipt + tax, lines: lines };
   }
   function paid() { return S.payments.reduce(function (s, p) { return s + p.amount_cents; }, 0); }
 
@@ -158,9 +163,14 @@
         el('span', { class: 'sub', text: l.unit !== 'each' ? l.unit : '' }),
         el('button', { type: 'button', class: 'rm', text: '×', 'aria-label': 'Remove ' + l.name, onclick: function () { S.cart.splice(i, 1); changed(); } })
       ]);
+      var gross = muldiv(Math.round(l.qty * 1000), l.unit_price_cents, 1000), off = muldiv(gross, lineBp(l), 10000);
       return el('div', { class: 'line' }, [
-        el('div', {}, [el('div', { class: 'nm', text: l.name }), el('div', { class: 'sub', text: money(l.unit_price_cents) + (l.unit !== 'each' ? ' / ' + l.unit : ' each') })]),
-        el('div', { class: 'amt', text: money(muldiv(Math.round(l.qty * 1000), l.unit_price_cents, 1000)) }),
+        el('button', { type: 'button', class: 'lnbtn', 'aria-label': 'Discount or note for ' + l.name, onclick: function () { lineDialog(i); } }, [
+          el('div', { class: 'nm', text: l.name }),
+          el('div', { class: 'sub', text: money(l.unit_price_cents) + (l.unit !== 'each' ? ' / ' + l.unit : ' each') + (BOOT.lineDisc ? ' · tap for discount' : '') }),
+          l.disc_pct ? el('div', { class: 'ldisc', text: l.disc_pct + '% off (' + money(-off) + ')' }) : null,
+          l.note ? el('div', { class: 'lnote', text: l.note }) : null]),
+        el('div', { class: 'amt' }, [l.disc_pct ? el('s', { class: 'was', text: money(gross) }) : null, document.createTextNode(money(gross - off))]),
         qtyBox,
         (st !== null && l.qty > st) ? el('div', { class: 'warn', text: 'Only ' + qtyText(Math.max(0, st)) + ' in stock' }) : null
       ]);
@@ -168,8 +178,9 @@
     var p = price(), n = S.cart.reduce(function (s, l) { return s + (l.mode === 'each' ? l.qty : 1); }, 0);
     $('tSub').textContent = money(p.sub);
     $('rowDisc').hidden = !p.disc;
-    $('tDiscLbl').textContent = 'Discount (' + S.discPct + '%)';
+    $('tDiscLbl').textContent = p.item && p.receipt ? 'Discounts (items + ' + S.discPct + '%)' : (p.item ? 'Item discounts' : 'Discount (' + S.discPct + '%)');
     $('tDisc').textContent = money(-p.disc);
+    renderCustomer();
     $('tTaxLbl').textContent = S.exempt ? 'Tax (exempt)' : 'Tax';
     $('tTax').textContent = money(p.tax);
     $('tTot').textContent = money(p.total);
@@ -185,7 +196,7 @@
     changed();
   }
   function clearSale() {
-    S.cart = []; S.payments = []; S.discPct = 0; S.exempt = false; S.key = null; S.tender = null;
+    S.cart = []; S.payments = []; S.discPct = 0; S.exempt = false; S.key = null; S.tender = null; S.customer = null;
     save(); renderCart();
   }
   var flashT;
@@ -259,6 +270,142 @@
     $('dlgConfirm').showModal();
     if (askReason) $('confReason').focus();
   }
+
+  // -- slice 7: item sheet (discount + note) --
+  var lineIdx = null;
+  [10, 20, 25, 50, 100].forEach(function (p) {
+    $('lineChips').appendChild(el('button', { type: 'button', text: p === 100 ? 'Free' : p + '%', onclick: function () { $('linePct').value = p; } }));
+  });
+  function lineDialog(i) {
+    var l = S.cart[i]; if (!l) return;
+    lineIdx = i;
+    $('lineTitle').textContent = l.name;
+    $('lineSub').textContent = qtyText(l.qty) + (l.unit !== 'each' ? ' ' + l.unit : '') + ' × ' + money(l.unit_price_cents);
+    $('linePct').value = l.disc_pct || '';
+    $('lineNote').value = l.note || '';
+    $('lineErr').hidden = true;
+    var canDisc = !!BOOT.lineDisc;
+    $('lineChips').hidden = !canDisc; $('linePct').closest('label').hidden = !canDisc;
+    $('lineSub').textContent += canDisc ? '' : ' · item discounts need migration 0014';
+    $('dlgLine').showModal();
+  }
+  $('lineOk').addEventListener('click', function () {
+    var l = S.cart[lineIdx]; if (!l) return $('dlgLine').close();
+    var raw = $('linePct').value.trim(), p = raw === '' ? 0 : parseFloat(raw);
+    if (!(p >= 0 && p <= 100)) { $('lineErr').textContent = 'Enter a % from 0 to 100.'; $('lineErr').hidden = false; return; }
+    l.disc_pct = BOOT.lineDisc ? Math.round(p * 100) / 100 : 0;
+    l.note = $('lineNote').value.trim().slice(0, 120);
+    $('dlgLine').close(); changed();
+  });
+  $('lineCancel').addEventListener('click', function () { $('dlgLine').close(); });
+
+  // -- slice 7: customer --
+  function renderCustomer() {
+    var c = S.customer;
+    $('custChip').hidden = !c;
+    if (c) $('custChip').replaceChildren.apply($('custChip'), [el('span', { text: '👤 ' + c.name }),
+      c.pass ? el('small', { class: c.pass.active ? 'ok' : 'warn', text: ' · ' + c.pass.label + (c.pass.active ? '' : ' (expired)') }) : null,
+      el('span', { class: 'x', text: ' ×', 'aria-hidden': 'true' })].filter(Boolean));
+    $('custChip').setAttribute('aria-label', c ? 'Remove customer ' + c.name : '');
+    $('btnCustomer').textContent = c ? 'Change customer' : 'Customer';
+  }
+  $('custChip').addEventListener('click', function () { S.customer = null; save(); renderCart(); flash('Customer removed'); });
+  function attach(c) { S.customer = { id: c.id, name: c.name, pass: c.pass || null }; save(); renderCart(); $('dlgCustomer').close(); flash('Customer: ' + c.name); }
+  var custT = null, custSeq = 0;
+  function custSearch() {
+    var q = $('custQ').value.trim(), seq = ++custSeq;
+    $('custErr').hidden = true;
+    if (q.length < 2) { $('custResults').replaceChildren(); return; }
+    api('customers&q=' + encodeURIComponent(q)).then(function (j) {
+      if (seq !== custSeq) return;
+      if (!j.ok) { $('custErr').textContent = j.message || 'Search failed.'; $('custErr').hidden = false; return; }
+      if (!j.results.length) { $('custResults').replaceChildren(el('p', { class: 'muted', text: 'No one found. Add them below.' })); return; }
+      $('custResults').replaceChildren.apply($('custResults'), j.results.map(function (r) {
+        return el('button', { type: 'button', class: 'custrow', onclick: function () { pickCustomer(r); } }, [
+          el('b', { text: r.name }),
+          el('small', { class: 'muted', text: [r.email, r.phone].filter(Boolean).join(' · ') }),
+          r.pass ? el('small', { class: r.pass.active ? 'ok' : 'warn', text: r.pass.label + (r.pass.active ? ' · valid to ' + r.pass.valid_until : ' · expired') + (r.type === 'pass' ? ' · new account' : '') }) : null]);
+      }));
+    }, function () { if (seq === custSeq) { $('custErr').textContent = 'No connection.'; $('custErr').hidden = false; } });
+  }
+  function pickCustomer(r) {
+    if (r.type === 'customer') return attach(r);
+    post('customer_pass', { pass_id: r.pass_id }).then(function (j) {   // a pass holder without an account: make one from the pass
+      if (j.ok) attach(j.customer); else { $('custErr').textContent = j.message; $('custErr').hidden = false; }
+    }, function () { $('custErr').textContent = 'No connection.'; $('custErr').hidden = false; });
+  }
+  $('custQ').addEventListener('input', function () { clearTimeout(custT); custT = setTimeout(custSearch, 250); });
+  $('custQ').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); clearTimeout(custT); custSearch(); } });
+  $('custAdd').addEventListener('click', function () {
+    $('custErr').hidden = true;
+    post('customer_new', { first: $('custFirst').value, last: $('custLast').value, email: $('custEmail').value, phone: $('custPhone').value }).then(function (j) {
+      if (j.ok) { attach(j.customer); if (j.customer.existing) flash('Already a customer: ' + j.customer.name); }
+      else { $('custErr').textContent = j.message; $('custErr').hidden = false; }
+    }, function () { $('custErr').textContent = 'No connection.'; $('custErr').hidden = false; });
+  });
+  $('btnCustomer').addEventListener('click', function () {
+    $('custQ').value = ''; $('custResults').replaceChildren(); $('custErr').hidden = true; $('custNewWrap').open = false;
+    ['custFirst', 'custLast', 'custEmail', 'custPhone'].forEach(function (id) { $(id).value = ''; });
+    $('dlgCustomer').showModal(); $('custQ').focus();
+  });
+  $('custClose').addEventListener('click', function () { $('dlgCustomer').close(); });
+
+  // -- slice 7: held carts --
+  function renderHoldsBtn() { $('btnHold').textContent = S.holds.length ? 'Hold · ' + S.holds.length + ' waiting' : 'Hold'; }
+  function loadHolds() {
+    if (!BOOT.holds) return;
+    post('holds_list', {}).then(function (j) { if (j.ok) { S.holds = j.holds; renderHoldsBtn(); if ($('dlgHolds').open) renderHolds(); } }, function () {});
+  }
+  function holdErr(m) { $('holdErr').textContent = m; $('holdErr').hidden = !m; }
+  function renderHolds() {
+    var busy = S.cart.length > 0;
+    $('holdNewWrap').hidden = !busy;
+    $('holdTitle').textContent = busy ? 'Hold a cart' : 'Held carts';
+    $('holdWaiting').hidden = !busy;
+    $('holdList').replaceChildren.apply($('holdList'), S.holds.length ? S.holds.map(function (h) {
+      return el('div', { class: 'holdrow' }, [
+        el('div', {}, [el('b', { text: h.label }), el('small', { class: 'muted', text: h.lines + (h.lines === 1 ? ' item · ' : ' items · ') + money(h.total_cents) + ' · ' + h.when + (h.by ? ' · ' + h.by : '') })]),
+        el('div', { class: 'holdact' }, [
+          el('button', { type: 'button', class: 'btn sm primary', text: 'Take back', onclick: function () { recall(h); } }),
+          el('button', { type: 'button', class: 'btn sm danger', text: 'Remove', onclick: function () {
+            confirmBox('Remove "' + h.label + '"?', 'The held cart is thrown away. Nothing was charged.', function () {
+              post('hold_discard', { id: h.id }).then(function (j) { if (j.ok) { S.holds = j.holds; renderHoldsBtn(); renderHolds(); } else holdErr(j.message); });
+            });
+          } })])]);
+    }) : [el('p', { class: 'muted', text: 'No carts waiting.' })]);
+  }
+  function recall(h) {
+    holdErr('');
+    if (S.cart.length) return holdErr('Finish or hold the cart you have open first.');
+    post('recall', { id: h.id }).then(function (j) {
+      if (!j.ok) { holdErr(j.message); loadHolds(); return; }
+      var st = j.state || {};
+      S.cart = (st.cart || []).map(function (l) {   // keep today's price and tax rate for stocked items (the server checks again anyway)
+        var it = l.product_id && S.byId[l.product_id];
+        if (it) { l.rate_bp = it.rate_bp; if (it.mode !== 'open_price') l.unit_price_cents = it.price_cents; }
+        else if (!l.product_id) l.rate_bp = S.customRate;
+        return l;
+      });
+      S.discPct = st.discPct || 0; S.exempt = !!st.exempt; S.customer = st.customer || null;
+      S.payments = []; S.key = null; S.holds = j.holds;
+      changed(); renderHoldsBtn();
+      $('dlgHolds').close(); flash('Took back: ' + h.label);
+    }, function () { holdErr('No connection. Try again.'); });
+  }
+  $('holdSave').addEventListener('click', function () {
+    holdErr('');
+    if (!S.cart.length) return;
+    if (S.payments.length) return holdErr('This cart has payments entered. Remove them (Back to cart → Remove) or finish the sale first.');
+    post('hold', { register_id: S.regId, label: $('holdLabel').value, total_cents: price().total,
+                   state: { cart: S.cart, discPct: S.discPct, exempt: S.exempt, customer: S.customer } }).then(function (j) {
+      if (!j.ok) return holdErr(j.message);
+      S.holds = j.holds;
+      S.cart = []; S.payments = []; S.discPct = 0; S.exempt = false; S.key = null; S.tender = null; S.customer = null;
+      save(); renderCart(); renderHoldsBtn(); $('dlgHolds').close(); flash('Cart held');
+    }, function () { holdErr('No connection. The cart is still here; try again.'); });
+  });
+  $('btnHold').addEventListener('click', function () { $('holdLabel').value = S.customer ? S.customer.name : ''; holdErr(''); renderHolds(); $('dlgHolds').showModal(); loadHolds(); });
+  $('holdClose').addEventListener('click', function () { $('dlgHolds').close(); });
 
   // ── cart sheet on phones ─────────────────────────────────────────────────
   $('btnCartOpen').addEventListener('click', function () { $('cart').classList.add('open'); });
@@ -422,7 +569,8 @@
     var printIt = $('chkPrint').checked;
     var body = {
       idempotency_key: S.key, register_id: S.regId, discount_pct: S.discPct, tax_exempt: S.exempt, printed: printIt,
-      lines: S.cart.map(function (l) { return { product_id: l.product_id, name: l.name, qty: l.qty, unit_price_cents: l.unit_price_cents }; }),
+      customer_id: S.customer ? S.customer.id : null,
+      lines: S.cart.map(function (l) { return { product_id: l.product_id, name: l.name, qty: l.qty, unit_price_cents: l.unit_price_cents, disc_pct: l.disc_pct || 0, note: l.note || '' }; }),
       payments: S.payments
     };
     if (capOverride) body.capacity_override = capOverride;
@@ -443,7 +591,7 @@
   }
   function saved(sale, printIt) {
     S.lastSale = sale;
-    S.cart = []; S.payments = []; S.discPct = 0; S.exempt = false; S.key = null; S.tender = null;
+    S.cart = []; S.payments = []; S.discPct = 0; S.exempt = false; S.key = null; S.tender = null; S.customer = null;
     save(); renderCart();
     $('dlgPay').close();
     var change = sale.payments.reduce(function (s, p) { return s + (+p.change_cents || 0); }, 0);
@@ -464,9 +612,14 @@
       var q = parseFloat(l.quantity), each = l.unit === 'each';
       rows.push(el('tr', {}, [el('td', { text: l.description }), el('td', { class: 'r', text: money(l.gross_cents) })]));
       if (q !== 1 || !each) rows.push(el('tr', {}, [el('td', { text: '  ' + qtyText(q) + (each ? ' × ' : ' ' + l.unit + ' × ') + money(l.unit_price_cents) }), el('td')]));
+      var lb = +l.line_discount_bp || 0;
+      if (lb) rows.push(el('tr', {}, [el('td', { text: '  ' + (lb / 100) + '% off' }), el('td', { class: 'r', text: money(-muldiv(+l.gross_cents, lb, 10000)) })]));
+      if (l.note) rows.push(el('tr', {}, [el('td', { text: '  ' + l.note }), el('td')]));
     });
     var tot = [['Subtotal', s.subtotal_cents]];
-    if (s.discount_cents) tot.push(['Discount (' + (s.discount_bp / 100) + '%)', -s.discount_cents]);
+    var itemOff = s.lines.reduce(function (a, l) { return a + (+l.line_discount_bp ? muldiv(+l.gross_cents, +l.line_discount_bp, 10000) : 0); }, 0);
+    if (itemOff) tot.push(['Item discounts', -itemOff]);
+    if (s.discount_cents - itemOff) tot.push(['Discount (' + (s.discount_bp / 100) + '%)', -(s.discount_cents - itemOff)]);
     if (s.tax_exempt) tot.push(['Tax (exempt)', 0]);
     else Object.keys(s.tax_by_rate).forEach(function (r) { if (+r > 0) tot.push(['Tax ' + (r / 100) + '%', s.tax_by_rate[r]]); });
     var pays = s.payments.map(function (p) {
@@ -477,13 +630,14 @@
       }
       return r;
     }).reduce(function (a, b) { return a.concat(b); }, []);
-    $('receipt').replaceChildren(
+    $('receipt').replaceChildren.apply($('receipt'), [   // optional parts are null: filter them out (replaceChildren would print "null")
       el('div', { class: 'c b', text: f.name }),
       f.address ? el('div', { class: 'c', text: f.address }) : null,
       f.phone ? el('div', { class: 'c', text: f.phone }) : null,
       el('hr'),
       el('div', { text: 'Receipt ' + s.sale_number }),
       el('div', { text: s.completed_local + ' · ' + BOOT.staff }),
+      s.customer_name ? el('div', { text: 'Customer: ' + s.customer_name }) : null,
       el('hr'),
       el('table', {}, rows),
       el('hr'),
@@ -496,7 +650,7 @@
       thrift ? el('div', { class: 'note', text: 'Thrift shop items are sold as-is.' }) : null,
       f.policy ? el('p', { class: 'c', text: f.policy }) : null,
       el('p', { class: 'c', text: 'Thank you! ' + f.domain })
-    );
+    ].filter(Boolean));
     setTimeout(function () { window.print(); }, 50);
   }
 
@@ -797,7 +951,12 @@
 
   // ── start ────────────────────────────────────────────────────────────────
   load();
+  $('btnCustomer').hidden = !BOOT.customers || !BOOT.ready;
+  $('btnHold').hidden = !BOOT.holds || !BOOT.ready;
+  if (!BOOT.lineDisc) S.cart.forEach(function (l) { l.disc_pct = 0; });
   renderCart();
+  loadHolds();
+  setInterval(loadHolds, 60000);
   loadCatalog();
   loadToday();
   loadDrawer();

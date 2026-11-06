@@ -18,6 +18,10 @@
 //   POST register.php?api=refund_quote | refund | void            (JSON, X-CSRF-Token)
 // Slice 4a (Nov 6, 2026): admission sold here checks the party in (includes/admission.php); a full farm returns
 // 409 code=capacity and an Owner or Manager can resend with capacity_override (a reason). Gate screen: admin/gate.php.
+// Slice 7 (Nov 6, 2026): item discounts (disc_pct per line), a customer on the sale (customer_id), held carts
+// (includes/register_extras.php):
+//   GET  register.php?api=customers&q=...          find customers / pass holders (name, email, phone, pass link)
+//   POST register.php?api=customer_new | customer_pass | holds_list | hold | recall | hold_discard   (JSON, X-CSRF-Token)
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
 check_admin();
@@ -31,6 +35,7 @@ require_once __DIR__ . '/../includes/sales.php';
 require_once __DIR__ . '/../includes/drawers.php';
 require_once __DIR__ . '/../includes/refunds.php';
 require_once __DIR__ . '/../includes/admission.php';
+require_once __DIR__ . '/../includes/register_extras.php';
 require_once __DIR__ . '/../includes/site_info.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -160,6 +165,31 @@ if ($api !== '') {
             $out(500, ['ok' => false, 'message' => 'The server could not save that. Nothing was changed; try again.']);
         }
     }
+    // -- Customers and held carts (slice 7) --
+    if (in_array($api, ['customers', 'customer_new', 'customer_pass', 'holds_list', 'hold', 'recall', 'hold_discard'], true)) {
+        if ($api === 'customers') $out(200, ['ok' => true, 'results' => bcrf_pos_customer_search($pdo, (string)($_GET['q'] ?? ''))]);
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') $out(405, ['ok' => false, 'message' => 'POST only.']);
+        if (!hash_equals($csrf, (string)($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''))) $out(403, ['ok' => false, 'message' => 'Your session expired. Reload the register (the cart is kept).']);
+        $in = json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($in)) $out(400, ['ok' => false, 'message' => 'The request could not be read. Try again.']);
+        try {
+            if ($api === 'customer_new')  $out(200, ['ok' => true, 'customer' => bcrf_pos_customer_create($pdo, (string)($in['first'] ?? ''), (string)($in['last'] ?? ''), (string)($in['email'] ?? ''), (string)($in['phone'] ?? ''))]);
+            if ($api === 'customer_pass') $out(200, ['ok' => true, 'customer' => bcrf_pos_customer_from_pass($pdo, (int)($in['pass_id'] ?? 0))]);
+            if ($api === 'holds_list')    $out(200, ['ok' => true, 'holds' => bcrf_holds_list($pdo)]);
+            if ($api === 'hold') {
+                $id = bcrf_hold_save($pdo, (int)($in['register_id'] ?? 0) ?: null, (string)($in['label'] ?? ''), (array)($in['state'] ?? []), (int)($in['total_cents'] ?? 0));
+                $out(200, ['ok' => true, 'id' => $id, 'holds' => bcrf_holds_list($pdo)]);
+            }
+            if ($api === 'recall') $out(200, ['ok' => true, 'state' => bcrf_hold_recall($pdo, (int)($in['id'] ?? 0)), 'holds' => bcrf_holds_list($pdo)]);
+            bcrf_hold_discard($pdo, (int)($in['id'] ?? 0));
+            $out(200, ['ok' => true, 'holds' => bcrf_holds_list($pdo)]);
+        } catch (BcrfRegisterError $e) {
+            $out(422, ['ok' => false, 'message' => $e->getMessage()]);
+        } catch (Throwable $e) {
+            error_log('[register] ' . $api . ': ' . $e->getMessage());
+            $out(500, ['ok' => false, 'message' => 'The server could not do that. Try again.']);
+        }
+    }
     $out(404, ['ok' => false, 'message' => 'Unknown request.']);
 }
 
@@ -190,7 +220,7 @@ if ($view === 'tax') {
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self'; base-uri 'self'; form-action 'self'">
 <title>Tax rates — Register</title><meta name="robots" content="noindex">
-<link rel="stylesheet" href="assets/register.css?v=5"></head>
+<link rel="stylesheet" href="assets/register.css?v=6"></head>
 <body class="page"><main class="narrow">
 <p><a href="register.php">← Register</a></p>
 <h1>Tax rates</h1>
@@ -217,7 +247,7 @@ if ($view === 'drawer' || $view === 'drawers') {
     $tenders = bcrf_tenders();
     $head = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
           . '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">'
-          . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=5">';
+          . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=6">';
     if (!$drawersReady) { echo $head, '<title>Drawers</title></head><body class="page"><main class="narrow"><p class="flash err">Run migration 0010 in Settings › Database first.</p></main></body></html>'; exit; }
     if ($view === 'drawers') {
         $rows = $pdo->query("SELECT d.id FROM drawer_sessions d ORDER BY d.opened_at DESC LIMIT 60")->fetchAll(PDO::FETCH_COLUMN);
@@ -315,6 +345,9 @@ $boot = [
     'drawers' => $drawersReady,
     'refunds' => $refundsReady,
     'gate'    => $refundsReady && bcrf_admission_ready($pdo),
+    'holds'     => bcrf_holds_ready($pdo),               // slice 7: migration 0014
+    'lineDisc'  => bcrf_sales_line_disc_ready($pdo),
+    'customers' => bcrf_customers_ready($pdo),
 ];
 ?><!DOCTYPE html>
 <html lang="en">
@@ -324,7 +357,7 @@ $boot = [
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self'; base-uri 'self'; form-action 'self'">
 <meta name="robots" content="noindex">
 <title>Register — <?= $h(bcrf_farm_name()) ?></title>
-<link rel="stylesheet" href="assets/register.css?v=5">
+<link rel="stylesheet" href="assets/register.css?v=6">
 </head>
 <body>
 <script type="application/json" id="regBoot"><?= json_encode($boot, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
@@ -356,8 +389,11 @@ $boot = [
 
   <aside class="cart" id="cart" aria-label="Cart">
     <div class="cart-head"><h2>Cart</h2><button type="button" class="link" id="btnCartClose">Close</button></div>
+    <button type="button" class="custchip" id="custChip" hidden></button>
     <div class="lines" id="lines"></div>
     <div class="adjust">
+      <button type="button" class="btn sm" id="btnCustomer" hidden>Customer</button>
+      <button type="button" class="btn sm" id="btnHold" hidden>Hold</button>
       <button type="button" class="btn sm" id="btnDiscount">Discount</button>
       <button type="button" class="btn sm" id="btnExempt" aria-pressed="false">Tax exempt</button>
       <button type="button" class="btn sm danger" id="btnClear">Clear</button>
@@ -447,6 +483,50 @@ $boot = [
   <p class="muted" id="scanMsg">A barcode scanner works anywhere on this screen. Or type the SKU:</p>
   <form id="formSku"><input type="text" id="skuInput" autocomplete="off" placeholder="SKU"><button class="btn primary">Add</button></form>
   <button type="button" class="link" id="scanClose">Done</button>
+</dialog>
+
+<!-- Slice 7: item sheet, customer, held carts -->
+<dialog id="dlgLine" class="sheet">
+  <h3 id="lineTitle">Item</h3>
+  <p class="muted" id="lineSub"></p>
+  <p class="lbl">Discount on this item</p>
+  <div class="chips" id="lineChips"></div>
+  <label>Other %<input type="number" inputmode="decimal" min="0" max="100" step="0.5" id="linePct"></label>
+  <label>Note (prints on the receipt)<input type="text" id="lineNote" maxlength="120" autocomplete="off" placeholder="e.g. dented lid"></label>
+  <p class="err" id="lineErr" hidden></p>
+  <div class="row"><button type="button" class="btn" id="lineCancel">Cancel</button><button type="button" class="btn primary" id="lineOk">Save</button></div>
+</dialog>
+
+<dialog id="dlgCustomer" class="sheet">
+  <h3>Customer</h3>
+  <p class="muted">Name, email, phone, or scan/paste their pass link.</p>
+  <input type="search" id="custQ" placeholder="Search customers" autocomplete="off" aria-label="Search customers">
+  <div id="custResults" class="custlist" aria-live="polite"></div>
+  <p class="err" id="custErr" hidden></p>
+  <details id="custNewWrap">
+    <summary class="btn sm">New customer</summary>
+    <div class="custnew">
+      <label>First name<input type="text" id="custFirst" maxlength="50" autocomplete="off"></label>
+      <label>Last name<input type="text" id="custLast" maxlength="50" autocomplete="off"></label>
+      <label>Email<input type="email" id="custEmail" maxlength="100" autocomplete="off"></label>
+      <label>Phone (optional)<input type="tel" id="custPhone" maxlength="20" autocomplete="off"></label>
+      <button type="button" class="btn primary" id="custAdd">Add and attach</button>
+    </div>
+  </details>
+  <div class="row"><button type="button" class="btn" id="custClose">Close</button></div>
+</dialog>
+
+<dialog id="dlgHolds" class="sheet">
+  <h3 id="holdTitle">Hold a cart</h3>
+  <div id="holdNewWrap">
+    <p class="muted">Park this cart while the customer steps away. Take it back from here on any device.</p>
+    <label>Who is it for?<input type="text" id="holdLabel" maxlength="80" autocomplete="off" placeholder="e.g. Lady in the blue hat"></label>
+    <button type="button" class="btn primary" id="holdSave">Hold this cart</button>
+  </div>
+  <p class="err" id="holdErr" hidden></p>
+  <h3 class="mt" id="holdWaiting">Waiting</h3>
+  <div id="holdList" class="custlist"></div>
+  <div class="row"><button type="button" class="btn" id="holdClose">Close</button></div>
 </dialog>
 
 <dialog id="dlgConfirm" class="sheet">
@@ -544,6 +624,6 @@ $boot = [
 <!-- Printed receipt (only visible when printing) -->
 <section id="receipt" class="receipt" aria-hidden="true"></section>
 
-<script src="assets/register.js?v=5"></script>
+<script src="assets/register.js?v=6"></script>
 </body>
 </html>

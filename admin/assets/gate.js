@@ -82,12 +82,12 @@
         if (j.ok) { renderState(j.state); $('results').replaceChildren(); $('q').value = ''; $('findMsg').textContent = ''; toast(body.n + ' admitted: ' + r.name); return; }
         if (j.code === 'capacity') {
           var reason = el('input', { type: 'text', maxlength: '255', placeholder: 'Reason (e.g. family of passholders, short visit)' });
-          cap.replaceChildren(el('p', { class: 'err', text: j.message }),
+          cap.replaceChildren.apply(cap, [el('p', { class: 'err', text: j.message }),   // nulls filtered (replaceChildren would print "null")
             j.can_override ? el('label', {}, ['Let them in anyway', reason]) : null,
             j.can_override ? el('button', { type: 'button', class: 'btn danger', text: 'Override and admit', onclick: function () {
               if (!reason.value.trim()) { reason.focus(); return; }
               admit(reason.value.trim());
-            } }) : null);
+            } }) : null].filter(Boolean));
           cap.hidden = false;
           return;
         }

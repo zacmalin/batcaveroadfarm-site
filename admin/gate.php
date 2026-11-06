@@ -107,6 +107,6 @@ $boot = ['ready' => $ready, 'csrf' => $csrf];
   <ul class="onsite" id="onsite"></ul>
 </main>
 <div class="toast" id="toast" role="status" hidden></div>
-<script src="assets/gate.js?v=1"></script>
+<script src="assets/gate.js?v=2"></script>
 </body>
 </html>

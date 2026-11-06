@@ -39,6 +39,26 @@ function bcrf_sales_ready(PDO $pdo): bool {
     } catch (Throwable $e) { return $ready = false; }
 }
 
+/** True once migration 0014 has run: item discounts can be stored (slice 7). Cached per request. */
+function bcrf_sales_line_disc_ready(PDO $pdo): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    try {
+        $ready = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE()
+                                   AND table_name = 'sale_lines' AND column_name = 'line_discount_bp'")->fetchColumn() === 1;
+    } catch (Throwable $e) { $ready = false; }
+    return $ready;
+}
+
+/** Customer accounts table exists (migration 0006). */
+function bcrf_customers_ready(PDO $pdo): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    try { $ready = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'customers'")->fetchColumn() === 1; }
+    catch (Throwable $e) { $ready = false; }
+    return $ready;
+}
+
 /** Active tax categories, id => row. */
 function bcrf_tax_categories(PDO $pdo): array {
     $out = [];
@@ -96,29 +116,36 @@ function bcrf_sale_price(array $cart, array $products, array $taxCats, int $disc
                       'category_label' => 'Custom', 'track' => false];
         }
         $gross = bcrf_muldiv($qtyMilli, $price, 1000);
+        $lineBp = max(0, min(10000, (int)($c['disc_bp'] ?? 0)));
         $lines[] = $line + ['line_no' => $i + 1, 'quantity' => $qtyMilli / 1000, 'unit_price_cents' => $price, 'gross_cents' => $gross,
+                            'line_discount_bp' => $lineBp, 'item_discount_cents' => bcrf_muldiv($gross, $lineBp, 10000),
                             'tax_category_id' => $taxId, 'tax_rate_bp' => $taxExempt ? 0 : (int)($taxCats[$taxId]['rate_bp'] ?? 0),
                             'note' => $c['note'] ?? null];
     }
     $subtotal = array_sum(array_column($lines, 'gross_cents'));
-    $discount = bcrf_muldiv($subtotal, $discountBp, 10000);
+    // Item discounts first (slice 7); the receipt discount then applies to what's left.
+    $itemDisc = array_sum(array_column($lines, 'item_discount_cents'));
+    $base     = $subtotal - $itemDisc;
+    $receipt  = bcrf_muldiv($base, $discountBp, 10000);
+    $discount = $itemDisc + $receipt;
 
-    // Spread the receipt discount across lines in proportion to their value (largest remainder),
+    // Spread the receipt discount across lines in proportion to their value after item discounts (largest remainder),
     // so tax is worked out on what each line actually costs and the pieces add up exactly.
     $alloc = []; $rem = []; $given = 0;
     foreach ($lines as $k => $l) {
-        $exact = $subtotal > 0 ? $l['gross_cents'] * $discount : 0;
-        $alloc[$k] = $subtotal > 0 ? intdiv($exact, $subtotal) : 0;
-        $rem[$k]   = $subtotal > 0 ? $exact % $subtotal : 0;
+        $after = $l['gross_cents'] - $l['item_discount_cents'];
+        $exact = $base > 0 ? $after * $receipt : 0;
+        $alloc[$k] = $base > 0 ? intdiv($exact, $base) : 0;
+        $rem[$k]   = $base > 0 ? $exact % $base : 0;
         $given    += $alloc[$k];
     }
     arsort($rem);
-    foreach (array_keys($rem) as $k) { if ($given >= $discount) break; $alloc[$k]++; $given++; }
+    foreach (array_keys($rem) as $k) { if ($given >= $receipt) break; $alloc[$k]++; $given++; }
 
     $tax = 0;
     foreach ($lines as $k => &$l) {
-        $l['discount_cents']   = $alloc[$k];
-        $net                   = $l['gross_cents'] - $alloc[$k];
+        $l['discount_cents']   = $l['item_discount_cents'] + $alloc[$k];
+        $net                   = $l['gross_cents'] - $l['discount_cents'];
         $l['tax_cents']        = bcrf_muldiv($net, $l['tax_rate_bp'], 10000);
         $l['line_total_cents'] = $net + $l['tax_cents'];
         $tax += $l['tax_cents'];
@@ -139,6 +166,9 @@ function bcrf_sale_validate(array $in): array {
         $row = ['product_id' => $pid > 0 ? $pid : null, 'qty' => $qty,
                 'unit_price_cents' => max(0, min(10000000, (int)($l['unit_price_cents'] ?? 0))),
                 'note' => mb_substr(trim((string)($l['note'] ?? '')), 0, 255) ?: null];
+        $lp = (float)($l['disc_pct'] ?? 0);
+        if ($lp < 0 || $lp > 100) throw new BcrfSaleError('An item discount must be between 0 and 100%.');
+        $row['disc_bp'] = (int)round($lp * 100);
         if (!$row['product_id']) {
             $row['name'] = mb_substr(trim((string)($l['name'] ?? '')), 0, 120);
             if ($row['name'] === '') throw new BcrfSaleError('A custom item needs a name.');
@@ -175,7 +205,8 @@ function bcrf_sale_validate(array $in): array {
     $pct = (float)($in['discount_pct'] ?? 0);
     if ($pct < 0 || $pct > 100) throw new BcrfSaleError('Discount must be between 0 and 100%.');
     return ['key' => $key, 'cart' => $cart, 'payments' => $pays, 'discount_bp' => (int)round($pct * 100), 'register_id' => max(0, (int)($in['register_id'] ?? 0)), 'capacity_override' => mb_substr(trim((string)($in['capacity_override'] ?? '')), 0, 255),
-            'tax_exempt' => !empty($in['tax_exempt']), 'printed' => !empty($in['printed'])];
+            'tax_exempt' => !empty($in['tax_exempt']), 'printed' => !empty($in['printed']),
+            'customer_id' => max(0, (int)($in['customer_id'] ?? 0)) ?: null];
 }
 
 /** One sale with its lines and payments, by id or idempotency key; null if not found. */
@@ -185,7 +216,8 @@ function bcrf_sale_get(PDO $pdo, ?int $id, ?string $key = null): ?array {
     $s = $st->fetch(PDO::FETCH_ASSOC);
     if (!$s) return null;
     $l = $pdo->prepare("SELECT line_no, product_id, description, quantity, unit, unit_price_cents, gross_cents, discount_cents,
-                               tax_rate_bp, tax_cents, line_total_cents, product_type, category_label, note
+                               tax_rate_bp, tax_cents, line_total_cents, product_type, category_label, note"
+                               . (bcrf_sales_line_disc_ready($pdo) ? ", line_discount_bp" : ", 0 AS line_discount_bp") . "
                         FROM sale_lines WHERE sale_id = ? ORDER BY line_no");
     $l->execute([$s['id']]);
     $p = $pdo->prepare("SELECT tender, amount_cents, tendered_cents, change_cents, payer_handle, reference FROM payments WHERE sale_id = ? ORDER BY id");
@@ -193,6 +225,12 @@ function bcrf_sale_get(PDO $pdo, ?int $id, ?string $key = null): ?array {
     $s['lines'] = $l->fetchAll(PDO::FETCH_ASSOC);
     $s['payments'] = $p->fetchAll(PDO::FETCH_ASSOC);
     foreach (['id', 'subtotal_cents', 'discount_cents', 'tax_cents', 'total_cents', 'discount_bp', 'tax_exempt'] as $k) $s[$k] = (int)$s[$k];
+    $s['customer_name'] = null;
+    if ($s['customer_id'] && bcrf_customers_ready($pdo)) {
+        $cn = $pdo->prepare("SELECT TRIM(CONCAT(first_name, ' ', last_name)) FROM customers WHERE id = ?");
+        $cn->execute([$s['customer_id']]);
+        $s['customer_name'] = $cn->fetchColumn() ?: null;
+    }
     // Tax by rate, for the receipt
     $byRate = [];
     foreach ($s['lines'] as $ln) { $r = (int)$ln['tax_rate_bp']; $byRate[$r] = ($byRate[$r] ?? 0) + (int)$ln['tax_cents']; }
@@ -248,6 +286,18 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
             }
         }
 
+        // Item discounts need migration 0014; a customer must exist (slice 7).
+        if (array_filter(array_column($v['cart'], 'disc_bp')) && !bcrf_sales_line_disc_ready($pdo)) {
+            throw new BcrfSaleError('Item discounts need migration 0014 (Settings › Database). Use a discount on the whole sale for now.');
+        }
+        $customerName = null;
+        if ($v['customer_id']) {
+            if (!bcrf_customers_ready($pdo)) throw new BcrfSaleError('Customer accounts are not set up yet. Remove the customer and try again.');
+            $cs = $pdo->prepare("SELECT TRIM(CONCAT(first_name, ' ', last_name)) FROM customers WHERE id = ?");
+            $cs->execute([$v['customer_id']]);
+            $customerName = $cs->fetchColumn();
+            if ($customerName === false) throw new BcrfSaleError('That customer no longer exists. Remove them from the sale and try again.');
+        }
         $priced = bcrf_sale_price($v['cart'], $products, $taxCats, $v['discount_bp'], $v['tax_exempt'], $customTax);
         $admission = [0, 0, []]; $ov = [null, null];
         if ($adm) {
@@ -263,10 +313,10 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
         $number = sprintf('R-%d-%06d', $year, bcrf_next_number($pdo, 'receipt', $year));
         $completedUtc = $now->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s.v');
         try {
-            $pdo->prepare("INSERT INTO sales (sale_number, channel, register_id, drawer_session_id, status, subtotal_cents, discount_cents, tax_cents, total_cents, discount_bp,
+            $pdo->prepare("INSERT INTO sales (sale_number, channel, register_id, drawer_session_id, customer_id, status, subtotal_cents, discount_cents, tax_cents, total_cents, discount_bp,
                                               tax_exempt, business_date, completed_at, idempotency_key, receipt_delivery, created_at, created_by)
-                           VALUES (?, 'pos', ?, ?, 'completed', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), ?)")
-                ->execute([$number, $v['register_id'] ?: null, $drawerId, $priced['subtotal'], $priced['discount'], $priced['tax'], $priced['total'], $v['discount_bp'],
+                           VALUES (?, 'pos', ?, ?, ?, 'completed', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), ?)")
+                ->execute([$number, $v['register_id'] ?: null, $drawerId, $v['customer_id'], $priced['subtotal'], $priced['discount'], $priced['tax'], $priced['total'], $v['discount_bp'],
                            $v['tax_exempt'] ? 1 : 0, $bdate, $completedUtc, $v['key'], $v['printed'] ? 'print' : 'none', $uid]);
         } catch (PDOException $e) {
             // Same key saved a moment ago by a parallel request: hand back that sale.
@@ -278,9 +328,11 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
         }
         $saleId = (int)$pdo->lastInsertId();
 
+        $lineDiscCol = bcrf_sales_line_disc_ready($pdo);
         $insLine = $pdo->prepare("INSERT INTO sale_lines (sale_id, line_no, product_id, description, quantity, unit, unit_price_cents, gross_cents,
-                                         discount_cents, tax_category_id, tax_rate_bp, tax_cents, line_total_cents, product_type, category_label, note)
-                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                                         discount_cents, tax_category_id, tax_rate_bp, tax_cents, line_total_cents, product_type, category_label, note"
+                                         . ($lineDiscCol ? ", line_discount_bp" : "") . ")
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?" . ($lineDiscCol ? ", ?" : "") . ")");
         $setStock = $pdo->prepare("UPDATE inventory SET stock_quantity = ? WHERE id = ?");
         $ledger   = $pdo->prepare("INSERT INTO inventory_adjustments (product_id, quantity_change, quantity_before, quantity_after, reason,
                                           source_type, source_id, note, created_at, created_by)
@@ -288,9 +340,10 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
         $history  = $pdo->prepare("INSERT INTO sales_history (inventory_id, quantity_sold) VALUES (?, ?)");
         $legacyCart = [];
         foreach ($priced['lines'] as $l) {
-            $insLine->execute([$saleId, $l['line_no'], $l['product_id'], mb_substr($l['description'], 0, 255), $l['quantity'], $l['unit'],
+            $insLine->execute(array_merge([$saleId, $l['line_no'], $l['product_id'], mb_substr($l['description'], 0, 255), $l['quantity'], $l['unit'],
                                $l['unit_price_cents'], $l['gross_cents'], $l['discount_cents'], $l['tax_category_id'], $l['tax_rate_bp'],
-                               $l['tax_cents'], $l['line_total_cents'], $l['product_type'], mb_substr($l['category_label'], 0, 100), $l['note']]);
+                               $l['tax_cents'], $l['line_total_cents'], $l['product_type'], mb_substr($l['category_label'], 0, 100), $l['note']],
+                               $lineDiscCol ? [$l['line_discount_bp']] : []));
             if ($l['product_id'] && $l['track']) {
                 $p = &$products[$l['product_id']];
                 $before = round((float)$p['stock_quantity'], 3);
@@ -310,6 +363,7 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
         if ($admission[0] > 0) {
             $admCents = array_sum(array_map(fn($l) => $l['product_type'] === 'admission' ? $l['line_total_cents'] : 0, $priced['lines']));
             bcrf_admission_for_sale($pdo, $saleId, $admission[0], $admission[1], $admission[2], $admCents, $ov[0], $ov[1]);
+            if ($v['customer_id']) $pdo->prepare("UPDATE tickets SET customer_id = ? WHERE sale_id = ?")->execute([$v['customer_id'], $saleId]);
         }
 
         $insPay = $pdo->prepare("INSERT INTO payments (sale_id, tender, amount_cents, tendered_cents, change_cents, payer_handle, reference,
@@ -346,6 +400,7 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
         erp_audit($pdo, 'create', 'sales', $saleId, sprintf('Sale %s - $%s %s (%d lines%s%s)', $number, number_format($priced['total'] / 100, 2),
             implode(' + ', array_map(fn($t) => $labels[$t], $tenders)), count($priced['lines']),
             $v['discount_bp'] ? ', ' . ($v['discount_bp'] / 100) . '% off' : '', $v['tax_exempt'] ? ', tax exempt' : '')
+            . (array_filter(array_column($v['cart'], 'disc_bp')) ? ', item discounts' : '') . ($customerName ? ', customer ' . $customerName : '')
             . ($admission[0] ? ', ' . $admission[0] . ' admitted' . ($ov[0] ? ' - capacity override: ' . $ov[0] : '') : ''));
     }
     return ['replayed' => false, 'sale' => bcrf_sale_get($pdo, $saleId)];

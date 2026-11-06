@@ -169,12 +169,14 @@ function bcrf_rpt_log(PDO $pdo, string $from, string $to): array {
         $out[] = ['at' => $s['voided_at'] ?: $s['completed_at'], 'date' => $s['business_date'], 'type' => 'Void', 'number' => $s['sale_number'], 'sale' => $s['sale_number'],
                   'by' => bcrf_staff_name($pdo, $s['voided_by']), 'approved_by' => '', 'reason' => (string)$s['void_reason'], 'how' => '', 'amount' => -(int)$s['total_cents']];
     }
-    $st = $pdo->prepare("SELECT s.id, s.sale_number, s.business_date, s.completed_at, s.created_by, s.discount_bp, SUM(l.discount_cents) dc
+    $items = function_exists('bcrf_sales_line_disc_ready') && bcrf_sales_line_disc_ready($pdo) ? "SUM(l.line_discount_bp > 0)" : "0";   // slice 7
+    $st = $pdo->prepare("SELECT s.id, s.sale_number, s.business_date, s.completed_at, s.created_by, s.discount_bp, SUM(l.discount_cents) dc, $items item_lines
                          FROM sales s JOIN sale_lines l ON l.sale_id = s.id
                          WHERE s.status <> 'voided' AND s.business_date BETWEEN ? AND ? GROUP BY s.id HAVING dc > 0");
     $st->execute([$from, $to]);
     foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $s) {
-        $pct = (int)$s['discount_bp'] ? rtrim(rtrim(number_format($s['discount_bp'] / 100, 2), '0'), '.') . '% off' : '';
+        $pct = implode(' + ', array_filter([(int)$s['item_lines'] ? (int)$s['item_lines'] . ' item discount' . ((int)$s['item_lines'] === 1 ? '' : 's') : '',
+                                            (int)$s['discount_bp'] ? rtrim(rtrim(number_format($s['discount_bp'] / 100, 2), '0'), '.') . '% off the sale' : '']));
         $out[] = ['at' => $s['completed_at'], 'date' => $s['business_date'], 'type' => 'Discount', 'number' => $s['sale_number'], 'sale' => $s['sale_number'],
                   'by' => bcrf_staff_name($pdo, $s['created_by']), 'approved_by' => '', 'reason' => $pct, 'how' => '', 'amount' => -(int)$s['dc']];
     }
