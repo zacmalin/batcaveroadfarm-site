@@ -11,6 +11,7 @@ if ($current_role !== 'administrator' && !hasViewAccess($current_role, 'social')
     return;
 }
 require_once dirname(__DIR__, 2) . '/includes/pinterest.php';
+require_once dirname(__DIR__, 2) . '/includes/adapter_pinterest.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pinterest_action'])) {
     try { require dirname(__DIR__) . '/handlers/pinterest_action.php'; }   // redirects when done
     catch (Throwable $ex) {
@@ -53,7 +54,12 @@ if ($ready) {
     foreach (['recipe', 'animal'] as $ty) { try { $elig[$ty] = bcrf_pin_count_sources($pdo, $ty); } catch (Throwable $ex) {} }
 }
 $boards = $ready ? bcrf_pin_board_names($pdo) : [];
-$appOk  = defined('PINTEREST_APP_ID') && PINTEREST_APP_ID !== '' && defined('PINTEREST_APP_SECRET') && PINTEREST_APP_SECRET !== '';
+$appOk  = bcrf_pinapi_configured();
+$pAuth  = bcrf_pinapi_auth($pdo);
+$pOn    = bcrf_pinapi_ready($pdo);
+$pBoards = $pOn ? bcrf_pinapi_boards($pdo) : [];
+$defBoard = ['recipes' => bcrf_pin_setting($pdo, 'pinterest_board_id_recipes'), 'animals' => bcrf_pin_setting($pdo, 'pinterest_board_id_animals')];
+$isAdmin = $current_role === 'administrator';
 $url    = fn(array $q) => '/admin/admin.php?' . http_build_query(['view' => 'social', 'tab' => 'pinterest'] + $q);
 $hidden = function () use ($csrf, $f, $tsel, $e): string {
     return '<input type="hidden" name="csrf_token" value="' . $e($csrf) . '"><input type="hidden" name="back" value="' . $e($f) . '"><input type="hidden" name="back_type" value="' . $e($tsel) . '">';
@@ -70,7 +76,7 @@ $btn  = 'px-3 py-2 rounded border text-[11px] font-bold';
 ?>
 <div class="max-w-6xl">
   <h1 class="text-lg font-serif font-black text-stone-800 mb-1">📌 Pinterest</h1>
-  <p class="text-[11px] text-stone-500 mb-4">Drafts made from published recipes and public animals. Nothing here posts to Pinterest: approved Pins go out once the Pinterest connection is set up. Until then you can download an image, pin it by hand and record the link.</p>
+  <p class="text-[11px] text-stone-500 mb-4">Drafts made from published recipes and public animals. Bulk drafts never post on their own: approving a draft queues it, and it posts once Pinterest is connected. You can also download an image, pin it by hand and record the link.</p>
 
   <?php if (!$ready): ?>
     <div class="bg-amber-50 border border-amber-200 rounded p-4 text-sm text-amber-900">
@@ -79,9 +85,17 @@ $btn  = 'px-3 py-2 rounded border text-[11px] font-bold';
   </div>
   <?php return; endif; ?>
 
-  <div class="border rounded p-3 mb-4 text-xs <?= $appOk ? 'bg-stone-50 border-stone-200 text-stone-700' : 'bg-amber-50 border-amber-200 text-amber-900' ?>">
-    <span class="font-black"><?= $appOk ? '⚪ Pinterest app approved (Trial)' : '⚠️ Pinterest app keys missing' ?></span>
-    <span class="ml-1"><?= $appOk ? 'Connecting your account and posting come next. Trial Pins are visible only to you until Standard access is granted.' : 'Add PINTEREST_APP_ID and PINTEREST_APP_SECRET to bcrf-secrets.php.' ?></span>
+  <?php $pEnv = (string)($pAuth['env'] ?? ''); $pNeeds = !empty($pAuth['refresh_token_enc']) && (int)$pAuth['needs_reconnect']; ?>
+  <div class="border rounded p-3 mb-4 text-xs <?= $pOn ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : ($pNeeds || !$appOk ? 'bg-red-50 border-red-200 text-red-900' : 'bg-stone-50 border-stone-200 text-stone-700') ?>">
+    <span class="font-black"><?= $pOn ? '✅ Pinterest connected' : ($pNeeds ? '⛔ Pinterest needs reconnecting' : ($appOk ? '⚪ Pinterest not connected' : '⚠️ Pinterest app keys missing')) ?></span>
+    <span class="ml-1"><?php if ($pOn): ?>as <?= $e($pAuth['username'] ?? '?') ?> · <?= $pEnv === 'production' ? 'Production (public Pins)' : 'Sandbox (Pins visible only to you)' ?>. Approved Pins post automatically.<?php
+      elseif ($pNeeds): ?><?= $e(mb_substr((string)$pAuth['last_error'], 0, 160)) ?><?php
+      elseif ($appOk): ?>Approved Pins wait here until it is connected.<?php
+      else: ?>Add PINTEREST_APP_ID and PINTEREST_APP_SECRET to bcrf-secrets.php.<?php endif; ?></span>
+    <?php if ($isAdmin && $appOk): ?><a class="underline font-bold ml-2" href="/admin/pinterest_connect.php"><?= $pOn ? 'Settings' : 'Connect' ?></a><?php endif; ?>
+    <?php if ($pOn && $canPub && ($counts['approved'] ?? 0) > 0): ?>
+      <form method="post" class="inline ml-2"><?= $hidden() ?><button name="pinterest_action" value="send_all" class="underline font-bold">Send all approved</button></form>
+    <?php endif; ?>
   </div>
 
   <!-- Bulk generator -->
@@ -153,7 +167,8 @@ $btn  = 'px-3 py-2 rounded border text-[11px] font-bold';
           </div>
           <div class="text-[12px] font-bold text-stone-800 leading-snug"><?= $e($r['title']) ?></div>
           <div class="text-[11px] text-stone-600 mt-1 line-clamp-4"><?= $e($r['description']) ?></div>
-          <div class="text-[10px] text-stone-400 mt-1">Board: <?= $e($r['board_id'] ?: ($boards[$r['board_key']] ?? $r['board_key'])) ?> · <a class="underline" href="<?= $e($page_url) ?>" target="_blank" rel="noopener">page</a></div>
+          <?php $bId = $r['board_id'] ?: ($defBoard[$r['board_key']] ?? ''); $bName = $bId !== '' && isset($pBoards[$bId]) ? $pBoards[$bId] : ($boards[$r['board_key']] ?? $r['board_key']); ?>
+          <div class="text-[10px] text-stone-400 mt-1">Board: <?= $e($bName) ?><?= $r['board_id'] ? ' (this Pin only)' : '' ?> · <a class="underline" href="<?= $e($page_url) ?>" target="_blank" rel="noopener">page</a></div>
           <?php if ($r['last_error']): ?><div class="text-[10px] text-red-700 mt-1">⚠ <?= $e(mb_substr((string)$r['last_error'], 0, 200)) ?></div><?php endif; ?>
           <?php if ($r['status'] === 'sent' && $r['external_url']): ?><div class="text-[10px] mt-1"><a class="underline text-emerald-700 font-bold" href="<?= $e($r['external_url']) ?>" target="_blank" rel="noopener">View on Pinterest</a></div><?php endif; ?>
         </div>
@@ -163,8 +178,17 @@ $btn  = 'px-3 py-2 rounded border text-[11px] font-bold';
         <?php if ($r['status'] === 'draft' && $canPub): ?>
           <form method="post"><?= $hidden() ?><input type="hidden" name="id" value="<?= $rid ?>"><button name="pinterest_action" value="approve" class="<?= $btn ?> bg-emerald-700 text-white border-emerald-700">Approve</button></form>
         <?php endif; ?>
-        <?php if ($r['status'] === 'approved' && $canPub): ?>
+        <?php if ($r['status'] === 'approved' && $canPub && $pOn): ?>
+          <form method="post"><?= $hidden() ?><input type="hidden" name="id" value="<?= $rid ?>"><button name="pinterest_action" value="send" class="<?= $btn ?> bg-emerald-700 text-white border-emerald-700">Send now</button></form>
+        <?php endif; ?>
+        <?php if (in_array($r['status'], ['approved', 'scheduled'], true) && $canPub): ?>
           <form method="post"><?= $hidden() ?><input type="hidden" name="id" value="<?= $rid ?>"><button name="pinterest_action" value="unapprove" class="<?= $btn ?> bg-white text-stone-700 border-stone-300">Back to draft</button></form>
+        <?php endif; ?>
+        <?php $stuck = $r['status'] === 'sending' && strtotime($r['updated_at'] . ' UTC') < time() - 900;
+              if ($canPub && $pOn && ($r['status'] === 'failed' || $stuck)): $careful = $stuck || $r['last_error_code'] === 'ambiguous'; ?>
+          <form method="post" class="flex items-center gap-1.5 flex-wrap"><?= $hidden() ?><input type="hidden" name="id" value="<?= $rid ?>">
+            <?php if ($careful): ?><label class="text-[10px] text-stone-600 flex items-center gap-1"><input type="checkbox" name="checked" value="1" required> Checked Pinterest: it's not there</label><?php endif; ?>
+            <button name="pinterest_action" value="retry" class="<?= $btn ?> bg-white text-stone-700 border-stone-300">Retry</button></form>
         <?php endif; ?>
         <?php if ($editable): ?>
           <form method="post"><?= $hidden() ?><input type="hidden" name="id" value="<?= $rid ?>"><button name="pinterest_action" value="regenerate" class="<?= $btn ?> bg-white text-stone-700 border-stone-300">Regenerate</button></form>
@@ -196,7 +220,21 @@ $btn  = 'px-3 py-2 rounded border text-[11px] font-bold';
         </details>
       <?php endif; ?>
 
-      <?php if ($canPub && in_array($r['status'], ['draft', 'approved'], true)): ?>
+      <?php if ($canPub && $pBoards && in_array($r['status'], ['draft', 'approved', 'failed'], true)): ?>
+        <details class="border-t border-stone-100 px-2.5 py-2">
+          <summary class="text-[11px] font-bold text-stone-600 cursor-pointer">Board for this Pin</summary>
+          <form method="post" class="mt-2 flex gap-1.5">
+            <?= $hidden() ?><input type="hidden" name="id" value="<?= $rid ?>"><input type="hidden" name="pinterest_action" value="set_board">
+            <select name="board_id" class="flex-1 min-w-0 border border-stone-300 rounded px-2 py-1.5 text-[12px] bg-white">
+              <option value="">Default for <?= $e($r['board_key']) ?><?= ($defBoard[$r['board_key']] ?? '') !== '' && isset($pBoards[$defBoard[$r['board_key']]]) ? ' (' . $e($pBoards[$defBoard[$r['board_key']]]) . ')' : '' ?></option>
+              <?php foreach ($pBoards as $bid => $bn): ?><option value="<?= $e($bid) ?>"<?= (string)$r['board_id'] === (string)$bid ? ' selected' : '' ?>><?= $e($bn) ?></option><?php endforeach; ?>
+            </select>
+            <button class="<?= $btn ?> bg-stone-800 text-white border-stone-800">Save</button>
+          </form>
+        </details>
+      <?php endif; ?>
+
+      <?php if ($canPub && in_array($r['status'], ['draft', 'approved', 'failed'], true)): ?>
         <details class="border-t border-stone-100 px-2.5 py-2">
           <summary class="text-[11px] font-bold text-stone-600 cursor-pointer">Posted it by hand? Record the Pin</summary>
           <form method="post" class="mt-2 flex gap-1.5">

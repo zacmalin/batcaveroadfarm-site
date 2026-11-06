@@ -103,6 +103,29 @@ if ($canV('social')) {
     } catch (Throwable $e) { /* social tools not installed */ }
 }
 
+// Pinterest (Nov 2026): reconnect needed, Pins that failed, approved Pins held back
+if ($canV('social')) {
+    try {
+        require_once dirname(__DIR__, 2) . '/includes/adapter_pinterest.php';
+        if (bcrf_pinapi_tables($pdo)) {
+            $pa = bcrf_pinapi_auth($pdo);
+            $pr = !empty($pa['refresh_token_enc']) && (int)$pa['needs_reconnect'];
+            $pf = (int)$pdo->query("SELECT COUNT(*) FROM social_queue_targets WHERE platform = 'pinterest' AND status = 'failed' AND updated_at >= UTC_TIMESTAMP() - INTERVAL 14 DAY")->fetchColumn();
+            $ph = (int)$pdo->query("SELECT COUNT(*) FROM social_queue_targets WHERE platform = 'pinterest' AND status = 'approved' AND last_error_code IS NOT NULL")->fetchColumn();
+            if ($pr || $pf || $ph) {
+                $items = [];
+                if ($pr) $items[] = 'Pinterest sign-in stopped working' . (!empty($pa['last_error']) ? ': ' . mb_substr((string)$pa['last_error'], 0, 140) : '') . '. Reconnect in Settings › Pinterest.';
+                if ($pf) $items[] = $pf . ' Pin' . ($pf === 1 ? '' : 's') . ' failed in the last 14 days.';
+                if ($ph) $items[] = $ph . ' approved Pin' . ($ph === 1 ? ' is' : 's are') . ' waiting on a fix (board or sign-in).';
+                $add(['id' => 'pinterest', 'priority' => $pr ? 'urgent' : 'today', 'icon' => $pr ? '⛔' : '📌', 'title' => 'Pinterest posting needs attention',
+                      'items' => $items, 'count' => ($pr ? 'r' : '') . $pf . '-' . $ph,
+                      'actions' => array_merge([['Pinterest drafts', "$A?view=social&tab=pinterest&f=" . ($pf ? 'drafts' : 'approved'), false]],
+                                               $role === 'administrator' ? [['Settings', '/admin/pinterest_connect.php', false]] : [])]);
+            }
+        }
+    } catch (Throwable $e) { /* Pinterest tables not installed */ }
+}
+
 // Booking requests waiting for confirmation
 if ($canV('bookings')) {
     try {

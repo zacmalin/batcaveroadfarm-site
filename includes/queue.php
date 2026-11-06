@@ -48,6 +48,18 @@ function bcrf_queue_handlers(): array {
                 bcrf_queue_push('pinterest.batch', ['batch_id' => $id], ['dedupe' => 'pinterest.batch:' . $id, 'delay' => $r['worked'] ? 0 : 60]);
             }
         },
+        // Pinterest Part B (Nov 2026): post one approved Pin (includes/pinterest_send.php). Throwing makes the queue
+        // retry with backoff; that only happens for rate limits and outages, never after an ambiguous timeout.
+        'pinterest.send' => function (array $p, PDO $pdo): void {
+            require_once __DIR__ . '/pinterest_send.php';
+            $r = bcrf_pin_send($pdo, (int)($p['target_id'] ?? 0));
+            if ($r['result'] === 'retry') throw new RuntimeException($r['msg']);
+        },
+        // First publication of a recipe or animal: make the Pin and queue it, if auto-posting is on for that type.
+        'pinterest.autopost' => function (array $p, PDO $pdo): void {
+            require_once __DIR__ . '/pinterest_send.php';
+            bcrf_pin_autopost($pdo, (string)($p['table'] ?? ''), (int)($p['id'] ?? 0), (int)($p['event_id'] ?? 0));
+        },
     ];
 }
 
@@ -55,7 +67,12 @@ function bcrf_queue_handlers(): array {
 function bcrf_event_subscribers(): array {
     return [
         // New or newly published content: clear the CDN cache so listing pages show it.
-        'content.published' => [['cdn.purge', fn(array $e) => [], ['dedupe' => 'cdn.purge:all']]],
+        // Recipes and animals also go to Pinterest on their first publication when auto-posting is on (it checks).
+        'content.published' => [
+            ['cdn.purge', fn(array $e) => [], ['dedupe' => 'cdn.purge:all']],
+            ['pinterest.autopost', fn(array $e) => ['table' => (string)$e['object_type'], 'id' => (int)$e['object_id'], 'event_id' => (int)$e['id']],
+             ['max_attempts' => 3]],
+        ],
         // site_info.changed: Site Info purges right away itself (and queues a retry if that fails).
     ];
 }

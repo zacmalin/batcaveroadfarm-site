@@ -3,11 +3,12 @@
 // Included by admin/views/pinterest.php (Social Queue › Pinterest) for POST pinterest_action. admin.php has
 // already checked the CSRF token and the "social" screen permission.
 // Anyone who can open Social Queue can generate, edit, regenerate and skip drafts. Approving, un-approving
-// and recording a Pin you posted by hand need administrator or moderator (spec: publish permission).
-// Nothing here posts to Pinterest.
+// and recording a Pin you posted by hand need administrator or moderator (spec: publish permission), and so do
+// sending, retrying and choosing a board (Part B). Posting itself happens in the job pinterest.send.
 
 require_once dirname(__DIR__, 2) . '/includes/pinterest.php';
 require_once dirname(__DIR__, 2) . '/includes/queue.php';
+require_once dirname(__DIR__, 2) . '/includes/pinterest_send.php';
 require_once __DIR__ . '/../includes/audit.php';
 
 $pinBack = function (string $msg, string $type = 'success'): void {
@@ -97,15 +98,57 @@ switch ($act) {
         $st = $pdo->prepare("UPDATE social_queue_targets SET status = 'approved', approved_at = UTC_TIMESTAMP(), approved_by = ?, updated_at = UTC_TIMESTAMP()
                              WHERE id = ? AND status = 'draft'");
         $st->execute([$uid, $id]);
-        if ($st->rowCount()) $audit('approve', $id, $label);
-        $pinBack($st->rowCount() ? 'Approved. It will post once Pinterest is connected (or pin it by hand and record the link).' : 'Only drafts can be approved.', $st->rowCount() ? 'success' : 'error');
+        if (!$st->rowCount()) $pinBack('Only drafts can be approved.', 'error');
+        $audit('approve', $id, $label);
+        if (!bcrf_pinapi_ready($pdo)) $pinBack('Approved. It will post once Pinterest is connected (or pin it by hand and record the link).');
+        $why = bcrf_pin_queue_send($pdo, $id);
+        if ($why !== '') {
+            $pdo->prepare("UPDATE social_queue_targets SET last_error_code = 'paused', last_error = ? WHERE id = ? AND status = 'approved'")->execute([$why, $id]);
+            $pinBack('Approved, but not sent yet: ' . $why, 'error');
+        }
+        $pinBack('Approved and queued. It posts within a few minutes.');
+    }
+    case 'send': {
+        if (!$canPub) $pinBack('Only administrators and moderators can send Pins.', 'error');
+        $why = bcrf_pin_queue_send($pdo, $id);
+        if ($why === '') $audit('update', $id, $label . ' (sent to queue)');
+        $pinBack($why === '' ? 'Queued. It posts within a few minutes.' : $why, $why === '' ? 'success' : 'error');
+    }
+    case 'send_all': {
+        if (!$canPub) $pinBack('Only administrators and moderators can send Pins.', 'error');
+        $ids = $pdo->query("SELECT id FROM social_queue_targets WHERE platform = 'pinterest' AND status = 'approved' ORDER BY approved_at, id")->fetchAll(PDO::FETCH_COLUMN);
+        $n = 0; $why = '';
+        foreach ($ids as $tid) { $w = bcrf_pin_queue_send($pdo, (int)$tid); if ($w === '') $n++; else $why = $w; }
+        if ($n) $audit('update', 0, 'Pinterest: ' . $n . ' approved Pins sent to queue');
+        $pinBack($n ? "Queued {$n} Pin" . ($n === 1 ? '' : 's') . '. They post a few at a time over the next minutes.' . ($why ? ' Some were held: ' . $why : '') : ($why ?: 'Nothing approved to send.'), $n ? 'success' : 'error');
+    }
+    case 'retry': {
+        if (!$canPub) $pinBack('Only administrators and moderators can retry Pins.', 'error');
+        $stuck = $row['status'] === 'sending' && strtotime($row['updated_at'] . ' UTC') < time() - 900;
+        if ($row['status'] !== 'failed' && !$stuck) $pinBack('Only failed (or stuck) Pins can be retried.', 'error');
+        if (($stuck || $row['last_error_code'] === 'ambiguous') && empty($_POST['checked'])) {
+            $pinBack('First check the board on Pinterest: if the Pin is already there, record its link instead. Then tick the box and retry.', 'error');
+        }
+        if ($stuck) $pdo->prepare("UPDATE social_queue_targets SET status = 'failed' WHERE id = ? AND status = 'sending'")->execute([$id]);
+        $why = bcrf_pin_queue_send($pdo, $id);
+        if ($why === '') $audit('update', $id, $label . ' (retry)');
+        $pinBack($why === '' ? 'Queued again.' : $why, $why === '' ? 'success' : 'error');
+    }
+    case 'set_board': {
+        if (!$canPub) $pinBack('Only administrators and moderators can choose boards.', 'error');
+        if (!in_array($row['status'], ['draft', 'approved', 'failed'], true)) $pinBack('The board can only change before the Pin is sent.', 'error');
+        $b = trim((string)($_POST['board_id'] ?? ''));
+        if ($b !== '' && !isset(bcrf_pinapi_boards($pdo)[$b])) $pinBack('That board is not on the connected account. Sync boards in Settings › Pinterest.', 'error');
+        $pdo->prepare("UPDATE social_queue_targets SET board_id = ?, updated_at = UTC_TIMESTAMP() WHERE id = ?")->execute([$b === '' ? null : $b, $id]);
+        $audit('update', $id, $label . ' (board)', ['board_id' => $b]);
+        $pinBack($b === '' ? 'Using the default board for this type.' : 'Board saved for this Pin.');
     }
     case 'unapprove': {
         if (!$canPub) $pinBack('Only administrators and moderators can do that.', 'error');
-        $st = $pdo->prepare("UPDATE social_queue_targets SET status = 'draft', approved_at = NULL, approved_by = NULL, updated_at = UTC_TIMESTAMP() WHERE id = ? AND status = 'approved'");
+        $st = $pdo->prepare("UPDATE social_queue_targets SET status = 'draft', approved_at = NULL, approved_by = NULL, updated_at = UTC_TIMESTAMP() WHERE id = ? AND status IN ('approved', 'scheduled')");
         $st->execute([$id]);
         if ($st->rowCount()) $audit('update', $id, $label . ' (back to draft)');
-        $pinBack($st->rowCount() ? 'Moved back to drafts.' : 'Only approved Pins can be moved back.', $st->rowCount() ? 'success' : 'error');
+        $pinBack($st->rowCount() ? 'Moved back to drafts.' : 'Only approved or queued Pins can be moved back.', $st->rowCount() ? 'success' : 'error');
     }
     case 'skip':
     case 'unskip': {
@@ -124,14 +167,14 @@ switch ($act) {
         try {
             $st = $pdo->prepare("UPDATE social_queue_targets SET status = 'sent', external_id = ?, external_url = ?, sent_at = UTC_TIMESTAMP(),
                                      approved_at = COALESCE(approved_at, UTC_TIMESTAMP()), approved_by = COALESCE(approved_by, ?), updated_at = UTC_TIMESTAMP()
-                                 WHERE id = ? AND status IN ('draft','approved')");
+                                 WHERE id = ? AND status IN ('draft','approved','failed')");
             $st->execute([$m[3], 'https://www.pinterest.com/pin/' . $m[3] . '/', $uid, $id]);
         } catch (PDOException $e) {
             if ($e->getCode() === '23000') $pinBack('That Pin is already recorded on another draft.', 'error');
             throw $e;
         }
         if ($st->rowCount()) $audit('update', $id, $label . ' (posted by hand)', ['external_id' => $m[3]]);
-        $pinBack($st->rowCount() ? 'Recorded as posted. It won’t be posted again.' : 'Only drafts or approved Pins can be recorded.', $st->rowCount() ? 'success' : 'error');
+        $pinBack($st->rowCount() ? 'Recorded as posted. It won’t be posted again.' : 'Only drafts, approved or failed Pins can be recorded.', $st->rowCount() ? 'success' : 'error');
     }
 }
 $pinBack('Unknown action.', 'error');
