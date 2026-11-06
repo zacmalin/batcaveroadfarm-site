@@ -78,12 +78,12 @@ $boot = ['ready' => $ready, 'csrf' => $csrf];
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; base-uri 'self'; form-action 'self'">
 <meta name="robots" content="noindex">
 <title>Gate — <?= $h(bcrf_farm_name()) ?></title>
-<link rel="stylesheet" href="assets/register.css?v=5">
+<link rel="stylesheet" href="assets/register.css?v=8">
 </head>
 <body class="gate">
 <script type="application/json" id="gateBoot"><?= json_encode($boot, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
 <header class="top">
-  <a class="back" href="/admin/admin.php">← Console</a>
+  <a class="back drawerbtn" href="/admin/admin.php"><span aria-hidden="true">←</span>&nbsp;Console</a>
   <a class="drawerbtn" href="register.php">Register</a>
 </header>
 <main class="gatewrap">

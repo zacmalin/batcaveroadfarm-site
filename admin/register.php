@@ -247,7 +247,7 @@ if ($view === 'tax') {
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self'; base-uri 'self'; form-action 'self'">
 <title>Tax rates — Register</title><meta name="robots" content="noindex">
-<link rel="stylesheet" href="assets/register.css?v=7"></head>
+<link rel="stylesheet" href="assets/register.css?v=8"></head>
 <body class="page"><main class="narrow">
 <p><a href="register.php">← Register</a> · <a href="register.php?view=settings">Settings</a></p>
 <h1>Tax rates</h1>
@@ -285,7 +285,7 @@ if ($view === 'settings') {
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self'">
 <title>Settings — Register</title><meta name="robots" content="noindex">
-<link rel="stylesheet" href="assets/register.css?v=7"></head>
+<link rel="stylesheet" href="assets/register.css?v=8"></head>
 <body class="page"><main class="narrow">
 <p><a href="register.php">← Register</a> · <a href="register.php?view=tax">Tax rates</a></p>
 <h1>Register settings</h1>
@@ -314,7 +314,7 @@ if ($view === 'drawer' || $view === 'drawers') {
     $tenders = bcrf_tenders();
     $head = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
           . '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">'
-          . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=7">';
+          . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=8">';
     if (!$drawersReady) { echo $head, '<title>Drawers</title></head><body class="page"><main class="narrow"><p class="flash err">Run migration 0010 in Settings › Database first.</p></main></body></html>'; exit; }
     if ($view === 'drawers') {
         $rows = $pdo->query("SELECT d.id FROM drawer_sessions d ORDER BY d.opened_at DESC LIMIT 60")->fetchAll(PDO::FETCH_COLUMN);
@@ -426,19 +426,20 @@ $boot = [
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self'; base-uri 'self'; form-action 'self'">
 <meta name="robots" content="noindex">
 <title>Register — <?= $h(bcrf_farm_name()) ?></title>
-<link rel="stylesheet" href="assets/register.css?v=7">
+<link rel="stylesheet" href="assets/register.css?v=8">
 </head>
 <body>
 <script type="application/json" id="regBoot"><?= json_encode($boot, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
 
 <div id="app" class="app">
   <header class="top">
-    <a class="back" href="/admin/admin.php">← Console</a>
+    <a class="back drawerbtn" href="/admin/admin.php"><span aria-hidden="true">←</span>&nbsp;Console</a>
     <div class="today" id="today" aria-live="polite">Today: …</div>
     <?php if ($refundsReady && bcrf_admission_ready($pdo)): ?><a class="drawerbtn" href="gate.php">Gate</a><?php endif; ?>
     <button type="button" class="drawerbtn" id="btnSales" hidden>Sales</button>
     <button type="button" class="drawerbtn" id="btnDrawer" hidden>Drawer</button>
-    <div class="who"><?= $h($me) ?><?php if ($isAdmin): ?> · <a href="register.php?view=settings">Settings</a><?php endif; ?></div>
+    <?php if ($isAdmin): ?><a class="drawerbtn setbtn" href="register.php?view=settings" aria-label="Register settings"><span aria-hidden="true">⚙</span><span class="lbl">&nbsp;Settings</span></a><?php endif; ?>
+    <div class="who"><?= $h($me) ?></div>
   </header>
 
   <?php if (!$ready): ?>
