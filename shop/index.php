@@ -182,20 +182,15 @@ include('../includes/header.php');
                 <li>Available at the farmstand and during farm visits</li>
                 <li>We accept cash, card, CashApp, PayPal, and Venmo</li>
                 <li>Designs &amp; stock rotate — follow us for new drops</li>
-                <li>
-                    <?php $fsoc = function_exists('site_socials') ? array_values(array_filter(site_socials(), fn($x) => !empty($x['url']))) : [];
-                    if ($fsoc): foreach ($fsoc as $soc): ?>
-                    <a href="<?= htmlspecialchars($soc['url'], ENT_QUOTES) ?>" target="_blank" rel="noopener">
-                        <?php if (!empty($soc['image'])): ?><img class="socialicon" src="<?= htmlspecialchars($soc['image'], ENT_QUOTES) ?>" alt="Bat Cave Road Farm on <?= htmlspecialchars($soc['name']) ?>" width="64" height="64" decoding="async" loading="lazy"> <?php endif; ?><?= htmlspecialchars($soc['name']) ?>
+                <li class="li-social">
+                    <span class="social-links">
+<?php if (!function_exists('site_socials_display')) require_once __DIR__ . '/../includes/site_info.php';
+      foreach (site_socials_display() as $__s):   // from Admin → Site Info (Nov 2026) ?>
+                    <a class="social-link" href="<?= htmlspecialchars($__s['url'], ENT_QUOTES) ?>" target="_blank" rel="noopener">
+                        <?php if ($__s['image'] !== ''): ?><img class="socialicon" src="<?= htmlspecialchars($__s['image'], ENT_QUOTES) ?>" alt="" width="50" height="50" decoding="async" loading="lazy"><?php endif; ?><span><?= htmlspecialchars($__s['name'], ENT_QUOTES) ?></span>
                     </a>
-                    <?php endforeach; else: ?>
-                    <a href="https://www.facebook.com/batcaveroadfarm" target="_blank" rel="noopener">
-                        <img class="socialicon" src="<?= bcrf_farm_url() ?>/img/facebook.png" alt="Bat Cave Road Farm on Facebook" width="64" height="64" decoding="async" loading="lazy"> Facebook
-                    </a>
-                    <a href="https://www.instagram.com/batcaveroadfarm" target="_blank" rel="noopener">
-                        <img class="socialicon" src="<?= bcrf_farm_url() ?>/img/instagram.png" alt="Bat Cave Road Farm on Instagram" width="64" height="64" decoding="async" loading="lazy"> Instagram
-                    </a>
-                    <?php endif; ?>
+<?php endforeach; ?>
+                    </span>
                 </li>
               </ul>
             </div>
