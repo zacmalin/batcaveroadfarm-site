@@ -18,7 +18,8 @@ $_sections = [
             ['Catalog',    '?view=schema&table=inventory',            'table', 'inventory'],
             ['Categories', '?view=schema&table=inventory_categories', 'table', 'inventory_categories'],
         ]],
-        ['label'=>'Sales & Drawers','short'=>'Sales','icon'=>'🧾','tabs'=>[['Receipts','?view=receipts','view','receipts']]],
+        ['label'=>'Sales & Drawers','short'=>'Sales','icon'=>'🧾','tabs'=>[['Receipts','?view=receipts','view','receipts'],
+                                                                         ['P2P matching','/admin/reconcile.php','view','p2p_reconcile']]],   // Farm OS slice 6
     ]],
     'visitors' => ['label'=>'Visitors & Events','icon'=>'🎟','items'=>[
         ['label'=>'Bookings',       'icon'=>'📋','tabs'=>[['Bookings','?view=bookings','view','bookings']]],

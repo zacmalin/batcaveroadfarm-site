@@ -33,7 +33,7 @@ $csv = (string)($_GET['csv'] ?? '');
 
 $head = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
       . '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">'
-      . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=5"><link rel="stylesheet" href="assets/reports.css?v=1">'
+      . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=5"><link rel="stylesheet" href="assets/reports.css?v=2">'
       . '<script src="assets/report.js?v=1" defer></script>';
 
 if (!bcrf_sales_ready($pdo) || !bcrf_refunds_ready($pdo)) {
@@ -136,6 +136,19 @@ if ($r === 'daily') {
     }
     if (!$any) echo '<tr><td class="muted">No payments</td><td></td></tr>';
     echo '</table><p class="muted">After refunds paid back that day.</p>';
+
+    // P2P matching status (05: flagged payments appear in the daily sales report; 13: reconciled vs not, by app and day)
+    require_once __DIR__ . '/../includes/reconcile.php';
+    $p2p = bcrf_p2p_day($pdo, $date);
+    if ($p2p) {
+        echo '<h2>PayPal, Venmo, Cash App matching</h2><table class="rt">';
+        foreach ($p2p as $t => $x) {
+            echo $row($h(bcrf_p2p_tenders()[$t]) . ' <small class="muted">· ' . $x['n'] . ' payment' . ($x['n'] === 1 ? '' : 's') . ', ' . $m($x['cents']) . '</small>',
+                      $x['matched'] . ' matched' . ($x['open'] ? ', <b>' . $x['open'] . ' to check</b>' : '') . ($x['flagged'] ? ', <span class="off">' . count($x['flagged']) . ' problem' . (count($x['flagged']) === 1 ? '' : 's') . '</span>' : ''));
+            foreach ($x['flagged'] as $f) echo $row('<small class="off">' . $h(bcrf_p2p_flags()[$f['reconcile_flag']] ?? $f['reconcile_flag']) . '</small> <small>' . $h($f['payer_handle'] ?: '?') . ($f['reference'] ? ' #' . $h($f['reference']) : '') . ' · ' . $h($f['sale_number']) . '</small>', '<small>' . $m($f['amount_cents']) . '</small>');
+        }
+        echo '</table><p class="noprint"><a href="reconcile.php">Match payments →</a></p>';
+    }
 
     $cats = bcrf_rpt_breakdown($pdo, $date, $date, 'category');
     echo '<h2>By category</h2>';

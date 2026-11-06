@@ -22,3 +22,20 @@
 .hours td:last-child{width:55%;padding-left:.75rem}
 @media print{.rtabs,.rbar,.rform{display:none !important}.scroll{overflow:visible}.scroll .rt{min-width:0}}
 .rt td.r + td.r{padding-left:.9rem}
+/* P2P matching (admin/reconcile.php) */
+.p2p{padding:.75rem 1rem}
+.p2p.old{border-color:#fca5a5}
+.p2phead{display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding-bottom:.4rem;border-bottom:1px solid var(--line)}
+.p2phead form{margin:0}
+.p2prow{display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem;padding:.6rem 0;border-bottom:1px solid var(--line)}
+.p2prow:last-child{border-bottom:0}
+.p2pact{display:flex;flex-wrap:wrap;gap:.35rem;justify-content:flex-end;align-items:flex-start}
+.p2pact form{margin:0}
+.p2pact .btn{min-width:0}
+.p2pact .btn.primary{margin-left:0}
+.p2pflag summary{list-style:none;cursor:pointer}
+.p2pflag summary::-webkit-details-marker{display:none}
+.p2pflag[open] summary{background:var(--badbg);border-color:#fecaca}
+.p2pflags{display:flex;flex-direction:column;gap:.3rem;margin-top:.35rem}
+.p2pflags .btn{color:var(--bad);border-color:#fecaca;justify-content:flex-start}
+.p2prow > div:first-child{min-width:0;overflow-wrap:anywhere}

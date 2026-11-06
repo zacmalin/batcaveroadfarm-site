@@ -126,6 +126,34 @@ if ($canV('social')) {
     } catch (Throwable $e) { /* Pinterest tables not installed */ }
 }
 
+// PayPal / Venmo / Cash App payments to match (Farm OS Phase 1, slice 6; 05 › Peer-to-peer reconciliation)
+if ($canV('p2p_reconcile')) {
+    try {
+        require_once dirname(__DIR__, 2) . '/includes/reconcile.php';
+        if (bcrf_sales_ready($pdo)) {
+            $pc = bcrf_p2p_counts($pdo);
+            $p2pM = fn($c) => '$' . number_format($c / 100, 2);
+            if ($pc['flagged']) {
+                $add(['id' => 'p2p_flagged', 'priority' => 'today', 'icon' => '⚠️',
+                      'title' => $pc['flagged'] . ' PayPal/Venmo/Cash App payment' . ($pc['flagged'] === 1 ? '' : 's') . ' flagged as a problem',
+                      'detail' => $p2pM($pc['flagged_cents']) . ' — missing, wrong amount or reversed. Settle with the customer.',
+                      'count' => $pc['flagged'], 'actions' => [['Review problems', '/admin/reconcile.php?tab=flagged', true]]]);
+            }
+            if ($pc['stale']) {
+                $add(['id' => 'p2p_stale', 'priority' => 'today', 'icon' => '🤝',
+                      'title' => $pc['stale'] . ' P2P payment' . ($pc['stale'] === 1 ? '' : 's') . ' not checked for over ' . bcrf_p2p_stale_days() . ' days',
+                      'detail' => $p2pM($pc['stale_cents']) . ' waiting. Match them against the apps on the farm phone.',
+                      'count' => $pc['stale'], 'actions' => [['Match payments', '/admin/reconcile.php', true]]]);
+            } elseif ($pc['open']) {
+                $add(['id' => 'p2p_open', 'priority' => 'fyi', 'icon' => '🤝',
+                      'title' => $pc['open'] . ' P2P payment' . ($pc['open'] === 1 ? '' : 's') . ' to match',
+                      'detail' => $p2pM($pc['open_cents']) . ' since ' . date('M j', strtotime($pc['oldest_open'])) . '. Check them weekly.',
+                      'count' => $pc['open'], 'actions' => [['Match payments', '/admin/reconcile.php', true]]]);
+            }
+        }
+    } catch (Throwable $e) { /* sales tables not installed */ }
+}
+
 // Booking requests waiting for confirmation
 if ($canV('bookings')) {
     try {

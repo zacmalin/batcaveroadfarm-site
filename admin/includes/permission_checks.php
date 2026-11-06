@@ -42,6 +42,7 @@ $admin_view_registry = [
     'jobs_posts'       => ['label' => 'Hiring: Jobs',         'icon' => '🧑‍🌾', 'admin_only' => true],
     'jobs_questions'   => ['label' => 'Hiring: Question Bank', 'icon' => '❓', 'admin_only' => true],
     'jobs_categories'  => ['label' => 'Hiring: Categories',   'icon' => '🏷️', 'admin_only' => true],
+    'p2p_reconcile'    => ['label' => 'P2P Reconcile (PayPal, Venmo, Cash App)', 'icon' => '🤝', 'admin_only' => false],   // Farm OS Phase 1, slice 6 (admin/reconcile.php)
     
 ];
 
