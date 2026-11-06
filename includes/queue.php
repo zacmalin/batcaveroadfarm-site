@@ -36,6 +36,18 @@ function bcrf_queue_handlers(): array {
                 throw new RuntimeException('The mail server did not accept the message.');
             }
         },
+        // Pinterest bulk drafts (Nov 2026): one checkpointed chunk of a batch, then queue the next chunk.
+        // Only ever makes drafts (includes/pinterest.php); nothing is posted.
+        'pinterest.batch' => function (array $p, PDO $pdo): void {
+            require_once __DIR__ . '/pinterest.php';
+            $id = (int)($p['batch_id'] ?? 0);
+            if ($id <= 0) throw new InvalidArgumentException('pinterest.batch needs batch_id');
+            $r = bcrf_pin_batch_step($pdo, $id);
+            if (!$r['done']) {
+                // worked 0 = someone else holds the batch (the "process now" button): look again in a minute
+                bcrf_queue_push('pinterest.batch', ['batch_id' => $id], ['dedupe' => 'pinterest.batch:' . $id, 'delay' => $r['worked'] ? 0 : 60]);
+            }
+        },
     ];
 }
 

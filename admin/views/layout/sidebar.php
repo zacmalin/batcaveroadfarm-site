@@ -48,7 +48,7 @@ $_sections = [
         ['label'=>'Blog',            'icon'=>'✍️','tabs'=>[['Blog','?view=schema&table=blog_posts','table','blog_posts']]],
         ['label'=>'Public Events',   'short'=>'Events','icon'=>'📅','tabs'=>[['Public Events','?view=events','view','events']]],
         ['label'=>'Newsletter',      'icon'=>'📧','tabs'=>[['Newsletter','?view=newsletter','view','newsletter']]],
-        ['label'=>'Social Queue',    'short'=>'Social','icon'=>'📣','tabs'=>[['Social Queue','?view=social','view','social']]],
+        ['label'=>'Social Queue',    'short'=>'Social','icon'=>'📣','tabs'=>[['Social Queue','?view=social','view','social'], ['Pinterest','?view=social&tab=pinterest','view','social']]],
         ['label'=>'Comments',        'icon'=>'💬','tabs'=>[['Comments','?view=comment_moderation','view','comment_moderation']]],
         ['label'=>'Subscribers',     'short'=>'Subs','icon'=>'💌','tabs'=>[['Subscribers','?view=schema&table=mailing_list','table','mailing_list']]],
         ['label'=>'Media Library',   'short'=>'Media','icon'=>'🖼️','tabs'=>[['Media Library','?view=media','view','media']]],
@@ -115,6 +115,8 @@ $_active = function(string $href) use ($_tv, $_tt): bool {
     if (str_starts_with($href, '/')) return false;   // standalone pages (POS, Backups…) have no sidebar state
     parse_str(parse_url($href, PHP_URL_QUERY) ?: '', $p);
     $v = $p['view'] ?? ''; $t = $p['table'] ?? '';
+    // Social Queue has a Pinterest tab on the same view (?view=social&tab=pinterest, Nov 2026)
+    if ($v === 'social') return $_tv === 'social' && (string)($p['tab'] ?? '') === (string)($_GET['tab'] ?? '');
     return $v === 'schema' ? ($_tv === 'schema' && $_tt === $t) : ($_tv === $v && $v !== '');
 };
 

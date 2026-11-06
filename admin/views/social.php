@@ -3,6 +3,9 @@
 // Included by admin.php at global scope ($pdo available). No writes here;
 // the cron layer (added later) is what sends + updates these rows.
 
+// Pinterest tab (Nov 2026): ?view=social&tab=pinterest shows the Pinterest drafts screen instead.
+if ((string)($_GET['tab'] ?? '') === 'pinterest') { require __DIR__ . '/pinterest.php'; return; }
+
 $social_ready = false;
 try { $pdo->query("SELECT 1 FROM social_queue LIMIT 1"); $social_ready = true; }
 catch (Throwable $e) { $social_ready = false; }
