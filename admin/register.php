@@ -251,7 +251,7 @@ if ($view === 'tax') {
 <body class="page"><main class="narrow">
 <p><a href="register.php">← Register</a> · <a href="register.php?view=settings">Settings</a></p>
 <h1>Tax rates</h1>
-<p class="muted">Each product has a tax category (set on the product in the inventory editor). Sales work out tax per line from these rates. Past sales keep the rate they were sold at.</p>
+<p class="muted">Each product has a tax category (set on the product in <a href="products.php">Products</a>). Sales work out tax per line from these rates. Past sales keep the rate they were sold at.</p>
 <?php if ($flash): ?><p class="flash"><?= $h($flash) ?></p><?php endif; ?>
 <?php if (!$ready): ?><p class="flash err">Run migration 0009 in Settings › Database first.</p><?php else: ?>
 <form method="POST" class="card">
