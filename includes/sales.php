@@ -10,11 +10,13 @@
  * discount, and how it was paid. Money is integer cents; tax is per line, rounded half-up (05 › Tax).
  * One transaction writes the sale, its lines and payments, the stock ledger, a domain event, and a
  * pos_receipts row so the existing Sales Log and dashboard keep working unchanged.
+ * Slice 2 (Nov 6): once migration 0010 has run, every sale belongs to the open drawer of its register
+ * (includes/drawers.php); with no open drawer the sale is refused.
  */
 
 if (!function_exists('bcrf_sale_complete')) {
 
-class BcrfSaleError extends RuntimeException {}
+if (!class_exists('BcrfSaleError')) { class BcrfSaleError extends RuntimeException {} }
 
 /** In-person tenders the register offers (D-06). Online card, gift card and store credit come later. */
 function bcrf_tenders(): array {
@@ -170,7 +172,7 @@ function bcrf_sale_validate(array $in): array {
 
     $pct = (float)($in['discount_pct'] ?? 0);
     if ($pct < 0 || $pct > 100) throw new BcrfSaleError('Discount must be between 0 and 100%.');
-    return ['key' => $key, 'cart' => $cart, 'payments' => $pays, 'discount_bp' => (int)round($pct * 100),
+    return ['key' => $key, 'cart' => $cart, 'payments' => $pays, 'discount_bp' => (int)round($pct * 100), 'register_id' => max(0, (int)($in['register_id'] ?? 0)),
             'tax_exempt' => !empty($in['tax_exempt']), 'printed' => !empty($in['printed'])];
 }
 
@@ -214,6 +216,15 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
 
     $pdo->beginTransaction();
     try {
+        // The register's open drawer, locked so it can't close while this sale is being written.
+        $drawerId = null;
+        if (function_exists('bcrf_drawers_ready') && bcrf_drawers_ready($pdo)) {
+            if (!$v['register_id']) throw new BcrfSaleError('Choose a register first.');
+            $drawer = bcrf_drawer_current($pdo, $v['register_id'], true);
+            if (!$drawer) throw new BcrfSaleError('The drawer is closed. Open it before taking payment.');
+            $drawerId = (int)$drawer['id'];
+        }
+
         // Lock the products being sold so two registers can't both take the last one unseen.
         $ids = array_values(array_unique(array_filter(array_column($v['cart'], 'product_id'))));
         $products = [];
@@ -241,10 +252,10 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
         $number = sprintf('R-%d-%06d', $year, bcrf_next_number($pdo, 'receipt', $year));
         $completedUtc = $now->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s.v');
         try {
-            $pdo->prepare("INSERT INTO sales (sale_number, channel, status, subtotal_cents, discount_cents, tax_cents, total_cents, discount_bp,
+            $pdo->prepare("INSERT INTO sales (sale_number, channel, register_id, drawer_session_id, status, subtotal_cents, discount_cents, tax_cents, total_cents, discount_bp,
                                               tax_exempt, business_date, completed_at, idempotency_key, receipt_delivery, created_at, created_by)
-                           VALUES (?, 'pos', 'completed', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), ?)")
-                ->execute([$number, $priced['subtotal'], $priced['discount'], $priced['tax'], $priced['total'], $v['discount_bp'],
+                           VALUES (?, 'pos', ?, ?, 'completed', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), ?)")
+                ->execute([$number, $v['register_id'] ?: null, $drawerId, $priced['subtotal'], $priced['discount'], $priced['tax'], $priced['total'], $v['discount_bp'],
                            $v['tax_exempt'] ? 1 : 0, $bdate, $completedUtc, $v['key'], $v['printed'] ? 'print' : 'none', $uid]);
         } catch (PDOException $e) {
             // Same key saved a moment ago by a parallel request: hand back that sale.

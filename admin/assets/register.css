@@ -8,6 +8,7 @@ h1{font-size:1.4rem;margin:.2rem 0 .4rem}h2{font-size:1rem;margin:0}h3{font-size
 .muted{color:var(--muted);font-size:.9em}
 .btn{font:inherit;font-weight:600;min-height:44px;padding:.55rem .9rem;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
 .btn:disabled{opacity:.45;cursor:not-allowed}
+a.btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
 .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
 .btn.danger{color:var(--bad);border-color:#fecaca}
 .btn.sm{min-height:38px;padding:.35rem .7rem;font-size:.9em}
@@ -100,6 +101,20 @@ dialog label.check input{width:auto;min-height:0;margin:0}
 .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);z-index:30;background:var(--ink);color:#fff;padding:.5rem .9rem;border-radius:999px;font-weight:700;font-size:.9em;max-width:90vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
 @media (min-width:900px){.toast{bottom:24px}}
 
+/* Drawers */
+.drawerbtn{font:inherit;font-size:.85em;font-weight:700;border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;border-radius:999px;padding:.3rem .7rem;min-height:34px;cursor:pointer;white-space:nowrap}
+.drawerbtn.closed{background:#fde68a;color:var(--brand);border-color:#fde68a}
+.banner.warn{display:flex;gap:.6rem;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:0 0 .5rem;background:#fffbeb;border:1px solid #fde68a}
+.count{display:grid;grid-template-columns:1fr 1fr;gap:.35rem .75rem}
+.count label{display:flex;align-items:center;gap:.5rem;margin:0;font-size:.95em}
+.count label span{flex:0 0 3.2rem;text-align:right}
+.count label input{margin:0;min-height:42px;padding:.4rem .5rem;font-size:1rem;text-align:center}
+.off{color:var(--bad);font-weight:800}.even{color:var(--ok);font-weight:700}
+.drow{display:flex;justify-content:space-between;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--line);color:inherit;text-decoration:none}
+.rt{width:100%;border-collapse:collapse;margin:.25rem 0 .75rem}.rt td{padding:.3rem 0;border-bottom:1px solid var(--line);vertical-align:top}.rt td.r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.rt tr.b td{font-weight:800}
+.report h2{font-size:1rem;margin:1rem 0 .25rem}
+
 /* Tax page */
 .page{padding:1rem}.narrow{max-width:640px;margin:0 auto}
 .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:1rem;margin:1rem 0}
@@ -111,7 +126,9 @@ dialog label.check input{width:auto;min-height:0;margin:0}
 .receipt{display:none}
 @media print{
   @page{size:auto;margin:6mm}
-  body > *:not(#receipt){display:none !important}
+  body:not(.report) > *:not(#receipt){display:none !important}
+  .noprint{display:none !important}
+  .report{padding:0}.report h1{font-size:16px}.report h2{font-size:13px;margin:10px 0 4px}
   html,body{background:#fff}
   .receipt{display:block;font:12px/1.35 "Courier New",monospace;color:#000;max-width:3.2in;margin:0 auto}
   .receipt .c{text-align:center}.receipt .b{font-weight:700}

@@ -8,6 +8,10 @@
 //   GET  register.php?api=today     today's count and total
 //   POST register.php?api=complete  JSON sale → includes/sales.php bcrf_sale_complete()
 //   GET/POST register.php?view=tax  tax rates (administrators)
+// Slice 2 (Nov 6, 2026), cash drawers (includes/drawers.php):
+//   GET  register.php?api=drawer&register_id=N   registers + the open drawer's summary
+//   POST register.php?api=drawer_open | drawer_move | drawer_close   (JSON, X-CSRF-Token)
+//   GET  register.php?view=drawer&id=N            printable drawer report;  ?view=drawers  recent drawers
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
 check_admin();
@@ -18,6 +22,7 @@ require_permission([['view', 'pos']], $api !== '');
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/queue.php';
 require_once __DIR__ . '/../includes/sales.php';
+require_once __DIR__ . '/../includes/drawers.php';
 require_once __DIR__ . '/../includes/site_info.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -25,6 +30,7 @@ if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_byt
 $csrf    = $_SESSION['csrf_token'];
 $isAdmin = ($_SESSION['user_role'] ?? '') === 'administrator';
 $ready   = bcrf_sales_ready($pdo);
+$drawersReady = $ready && bcrf_drawers_ready($pdo);
 $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
 
 // ── JSON API ──────────────────────────────────────────────────────────────────
@@ -77,6 +83,45 @@ if ($api !== '') {
             $out(500, ['ok' => false, 'message' => 'The server could not save the sale. Nothing was charged twice; tap Retry.']);
         }
     }
+    // ── Drawers ──
+    if (in_array($api, ['drawer', 'drawer_open', 'drawer_move', 'drawer_close'], true)) {
+        if (!$drawersReady) $out(503, ['ok' => false, 'message' => 'Cash drawers are waiting for migration 0010 (Settings › Database).']);
+        if ($api === 'drawer') {
+            $regs = bcrf_registers($pdo);
+            $rid = (int)($_GET['register_id'] ?? 0);
+            $cur = isset($regs[$rid]) ? bcrf_drawer_current($pdo, $rid) : null;
+            $last = null;
+            if (isset($regs[$rid])) {
+                $st = $pdo->prepare("SELECT id FROM drawer_sessions WHERE register_id = ? AND status = 'closed' ORDER BY closed_at DESC LIMIT 1");
+                $st->execute([$rid]);
+                $last = (int)$st->fetchColumn() ?: null;
+            }
+            $out(200, ['ok' => true, 'registers' => (object)$regs, 'session' => $cur ? bcrf_drawer_summary($pdo, (int)$cur['id']) : null,
+                       'last_closed_id' => $last, 'denominations' => (object)bcrf_denominations(), 'movement_types' => bcrf_movement_types(),
+                       'threshold_cents' => bcrf_variance_threshold($pdo), 'can_approve' => bcrf_can_approve_variance()]);
+        }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') $out(405, ['ok' => false, 'message' => 'POST only.']);
+        if (!hash_equals($csrf, (string)($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''))) $out(403, ['ok' => false, 'message' => 'Your session expired. Reload the register.']);
+        $in = json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($in)) $out(400, ['ok' => false, 'message' => 'The request could not be read. Try again.']);
+        try {
+            if ($api === 'drawer_open') {
+                $id = bcrf_drawer_open($pdo, (int)($in['register_id'] ?? 0), (array)($in['counts'] ?? []));
+                $out(200, ['ok' => true, 'session' => bcrf_drawer_summary($pdo, $id)]);
+            }
+            $sid = (int)($in['session_id'] ?? 0);
+            if ($api === 'drawer_move') {
+                bcrf_drawer_move($pdo, $sid, (string)($in['type'] ?? ''), (int)($in['amount_cents'] ?? 0), (string)($in['reason'] ?? ''));
+                $out(200, ['ok' => true, 'session' => bcrf_drawer_summary($pdo, $sid)]);
+            }
+            $out(200, ['ok' => true, 'session' => bcrf_drawer_close($pdo, $sid, (array)($in['counts'] ?? []), (string)($in['note'] ?? ''))]);
+        } catch (BcrfSaleError $e) {
+            $out(422, ['ok' => false, 'message' => $e->getMessage()]);
+        } catch (Throwable $e) {
+            error_log('[register] ' . $api . ': ' . $e->getMessage());
+            $out(500, ['ok' => false, 'message' => 'The server could not save that. Try again.']);
+        }
+    }
     $out(404, ['ok' => false, 'message' => 'Unknown request.']);
 }
 
@@ -107,7 +152,7 @@ if ($view === 'tax') {
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self'; base-uri 'self'; form-action 'self'">
 <title>Tax rates — Register</title><meta name="robots" content="noindex">
-<link rel="stylesheet" href="assets/register.css?v=2"></head>
+<link rel="stylesheet" href="assets/register.css?v=3"></head>
 <body class="page"><main class="narrow">
 <p><a href="register.php">← Register</a></p>
 <h1>Tax rates</h1>
@@ -128,6 +173,78 @@ if ($view === 'tax') {
     exit;
 }
 
+// ── Drawer report and recent drawers ────────────────────────────────────────
+if ($view === 'drawer' || $view === 'drawers') {
+    $m = fn($c) => ($c < 0 ? '−$' : '$') . number_format(abs((int)$c) / 100, 2);
+    $tenders = bcrf_tenders();
+    $head = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
+          . '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">'
+          . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=3">';
+    if (!$drawersReady) { echo $head, '<title>Drawers</title></head><body class="page"><main class="narrow"><p class="flash err">Run migration 0010 in Settings › Database first.</p></main></body></html>'; exit; }
+    if ($view === 'drawers') {
+        $rows = $pdo->query("SELECT d.id FROM drawer_sessions d ORDER BY d.opened_at DESC LIMIT 60")->fetchAll(PDO::FETCH_COLUMN);
+        echo $head, '<title>Drawers — Register</title></head><body class="page"><main class="narrow"><p class="noprint"><a href="register.php">← Register</a></p><h1>Drawers</h1>';
+        if (!$rows) echo '<p class="muted">No drawers yet.</p>';
+        else {
+            echo '<div class="card">';
+            foreach ($rows as $id) {
+                $d = bcrf_drawer_summary($pdo, (int)$id);
+                $v = $d['variance_cents'];
+                echo '<a class="drow" href="register.php?view=drawer&amp;id=', (int)$id, '"><span><b>', $h($d['register']), '</b> · ', $h($d['opened']),
+                     '<br><small class="muted">', $d['status'] === 'open' ? 'Open' : 'Closed ' . $h($d['closed']), ' · ', (int)$d['sales']['n'], ' sales · ', $m($d['sales']['tot']), '</small></span><span class="',
+                     $v === null ? 'muted' : ($v === 0 ? 'even' : 'off'), '">', $v === null ? 'open' : ($v === 0 ? 'even' : ($v < 0 ? 'short ' : 'over ') . $m(abs($v))), '</span></a>';
+            }
+            echo '</div>';
+        }
+        echo '</main></body></html>'; exit;
+    }
+    $d = bcrf_drawer_summary($pdo, (int)($_GET['id'] ?? 0));
+    if (!$d) { http_response_code(404); echo $head, '<title>Not found</title></head><body class="page"><main class="narrow"><p>No such drawer. <a href="register.php?view=drawers">All drawers</a></p></main></body></html>'; exit; }
+    $row = fn($label, $val, $cls = '') => '<tr' . ($cls ? ' class="' . $cls . '"' : '') . '><td>' . $label . '</td><td class="r">' . $val . '</td></tr>';
+    echo $head, '<title>Drawer report — ', $h($d['register']), '</title><script src="assets/report.js?v=1" defer></script></head><body class="page report"><main class="narrow">';
+    echo '<p class="noprint"><a href="register.php">← Register</a> · <a href="register.php?view=drawers">All drawers</a> · <button type="button" class="btn sm" id="btnPrint">Print</button></p>';
+    echo '<h1>Drawer report</h1><p><b>', $h(bcrf_farm_name()), ' · ', $h($d['register']), '</b><br>Opened ', $h($d['opened']), ' by ', $h($d['opened_by']),
+         $d['status'] === 'closed' ? '<br>Closed ' . $h($d['closed']) . ' by ' . $h($d['closed_by']) : '<br><b>Still open</b> (figures so far)', '</p>';
+    echo '<h2>Cash</h2><table class="rt">', $row('Starting float', $m($d['float_cents'])), $row('Cash sales', $m($d['cash_sales_cents'])),
+         $row('Cash refunds', $m(-$d['refunds_cents'])), $row('Paid in', $m($d['paid_in_cents'])), $row('Paid out', $m(-$d['paid_out_cents'])),
+         $row('Cash drops', $m(-$d['drops_cents'])), $row('Expected in drawer', $m($d['expected_cents']), 'b');
+    if ($d['status'] === 'closed') {
+        $v = $d['variance_cents'];
+        echo $row('Counted', $m($d['counted_cents']), 'b'),
+             $row($v < 0 ? 'Short' : ($v > 0 ? 'Over' : 'Variance'), $m($v), abs($v) > $d['threshold_cents'] ? 'b off' : 'b');
+    }
+    echo '</table>';
+    if ($d['status'] === 'closed' && ($d['close_note'] || $d['variance_approved_by'])) {
+        echo '<p>', $d['close_note'] ? 'Note: ' . $h($d['close_note']) : '', $d['variance_approved_by'] ? '<br>Variance approved by ' . $h($d['variance_approved_by']) : '', '</p>';
+    }
+    if ($d['closing_count']) {
+        echo '<h2>Closing count</h2><table class="rt">';
+        foreach (bcrf_denominations() as $c => $label) if (!empty($d['closing_count'][$c])) echo $row($label . ' × ' . (int)$d['closing_count'][$c], $m($c * (int)$d['closing_count'][$c]));
+        echo '</table>';
+    }
+    echo '<h2>Sales</h2><table class="rt">', $row('Sales', (int)$d['sales']['n']), $row('Before discounts', $m($d['sales']['sub'])),
+         $row('Discounts', $m(-$d['sales']['disc'])), $row('Tax', $m($d['sales']['tax'])), $row('Total', $m($d['sales']['tot']), 'b'), '</table>';
+    echo '<h2>By payment type</h2><table class="rt">';
+    if (!$d['by_tender']) echo '<tr><td class="muted">No payments</td><td></td></tr>';
+    foreach ($d['by_tender'] as $t => $x) echo $row($h($tenders[$t] ?? $t) . ' (' . $x['count'] . ')', $m($x['cents']));
+    echo '</table><h2>Refunds and voids</h2><p class="muted">None (refunds and voids come in the next update).</p>';
+    if ($d['movements']) {
+        echo '<h2>Cash in and out</h2><table class="rt">';
+        foreach ($d['movements'] as $mv) echo $row($h(bcrf_movement_types()[$mv['type']]) . ' · ' . $h($mv['time']) . ' · ' . $h($mv['by']) . '<br><small>' . $h($mv['reason']) . '</small>',
+                                               $m($mv['type'] === 'paid_in' ? $mv['amount_cents'] : -$mv['amount_cents']));
+        echo '</table>';
+    }
+    echo '<h2>PayPal, Venmo, Cash App not yet matched</h2>';
+    if (!$d['p2p_unreconciled']) echo '<p class="muted">None.</p>';
+    else {
+        echo '<p class="muted">Check each against the app on the farm phone.</p><table class="rt">';
+        foreach ($d['p2p_unreconciled'] as $p) echo $row($h($tenders[$p['tender']]) . ' · ' . $h($p['payer']) . ($p['reference'] ? ' · #' . $h($p['reference']) : '') . '<br><small>' . $h($p['sale_number'] . ' · ' . $p['time']) . '</small>', $m($p['amount_cents']));
+        echo '</table>';
+    }
+    echo '</main></body></html>';
+    exit;
+}
+
 // ── The register ─────────────────────────────────────────────────────────────
 $me = 'Staff';
 try {
@@ -144,6 +261,7 @@ $boot = [
                   'domain' => bcrf_farm_domain(), 'policy' => site_setting('receipt_return_policy')],
     'tenders' => bcrf_tenders(),
     'isAdmin' => $isAdmin,
+    'drawers' => $drawersReady,
 ];
 ?><!DOCTYPE html>
 <html lang="en">
@@ -153,7 +271,7 @@ $boot = [
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self'; base-uri 'self'; form-action 'self'">
 <meta name="robots" content="noindex">
 <title>Register — <?= $h(bcrf_farm_name()) ?></title>
-<link rel="stylesheet" href="assets/register.css?v=2">
+<link rel="stylesheet" href="assets/register.css?v=3">
 </head>
 <body>
 <script type="application/json" id="regBoot"><?= json_encode($boot, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
@@ -162,6 +280,7 @@ $boot = [
   <header class="top">
     <a class="back" href="/admin/admin.php">← Console</a>
     <div class="today" id="today" aria-live="polite">Today: …</div>
+    <button type="button" class="drawerbtn" id="btnDrawer" hidden>Drawer</button>
     <div class="who"><?= $h($me) ?><?php if ($isAdmin): ?> · <a href="register.php?view=tax">Tax</a><?php endif; ?></div>
   </header>
 
@@ -170,6 +289,7 @@ $boot = [
   <?php endif; ?>
 
   <section class="shop">
+    <div class="banner warn" id="drawerBanner" hidden><span id="drawerBannerText">The drawer is closed.</span> <button type="button" class="btn sm primary" id="btnOpenDrawer">Open drawer</button></div>
     <div class="tools">
       <input type="search" id="search" placeholder="Search or type SKU" autocomplete="off" aria-label="Search products">
       <button type="button" class="btn" id="btnScan">Scan</button>
@@ -278,9 +398,51 @@ $boot = [
 
 <div class="toast" id="toast" role="status" hidden></div>
 
+<dialog id="dlgRegister" class="sheet">
+  <h3>Which register is this?</h3>
+  <p class="muted">This phone or tablet remembers the choice.</p>
+  <div class="chips" id="regChips"></div>
+</dialog>
+
+<dialog id="dlgDrawer" class="sheet tall">
+  <h3 id="drTitle">Drawer</h3>
+  <p class="muted" id="drOpened"></p>
+  <dl class="totals" id="drRows"></dl>
+  <div class="tenders" id="drMoves"></div>
+  <button type="button" class="btn primary big" id="btnCloseDrawer">Count and close drawer</button>
+  <p class="row"><a class="btn" id="drReport" href="#">Report so far</a><a class="btn" href="register.php?view=drawers">All drawers</a></p>
+  <button type="button" class="link" id="drClose">Back</button>
+</dialog>
+
+<dialog id="dlgMove" class="sheet">
+  <form id="formMove">
+    <h3 id="mvTitle">Paid out</h3>
+    <label>Amount ($)<input type="number" inputmode="decimal" step="0.01" min="0" id="mvAmt"></label>
+    <label>What for<input type="text" id="mvReason" maxlength="255" autocomplete="off" placeholder="e.g. ice for the cooler"></label>
+    <p class="err" id="mvErr" hidden></p>
+    <div class="row"><button type="button" class="btn" id="mvCancel">Cancel</button><button class="btn primary" id="mvOk">Save</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgCount" class="sheet tall">
+  <form id="formCount">
+    <h3 id="cnTitle">Count the drawer</h3>
+    <p class="muted" id="cnHint"></p>
+    <div class="count" id="cnRows"></div>
+    <dl class="totals">
+      <div class="grand"><dt>Counted</dt><dd id="cnTotal">$0.00</dd></div>
+      <div id="cnExpRow" hidden><dt>Expected</dt><dd id="cnExp">$0.00</dd></div>
+      <div id="cnVarRow" hidden><dt id="cnVarLbl">Variance</dt><dd id="cnVar">$0.00</dd></div>
+    </dl>
+    <label id="cnNoteWrap" hidden>Note<input type="text" id="cnNote" maxlength="500" autocomplete="off" placeholder="Why is it over or short?"></label>
+    <p class="err" id="cnErr" hidden></p>
+    <div class="row"><button type="button" class="btn" id="cnCancel">Cancel</button><button class="btn primary" id="cnOk">Open drawer</button></div>
+  </form>
+</dialog>
+
 <!-- Printed receipt (only visible when printing) -->
 <section id="receipt" class="receipt" aria-hidden="true"></section>
 
-<script src="assets/register.js?v=2"></script>
+<script src="assets/register.js?v=3"></script>
 </body>
 </html>

@@ -4,13 +4,16 @@
 // amounts match the server exactly. A sale is only shown as saved after the server says so; until then
 // the cart, payments and save code stay in this browser (localStorage) and Retry sends the same save
 // code, so a double tap or a dropped connection can never make two sales.
+// Slice 2 (Nov 6): cash drawers. Each device remembers its register; sales need that register's drawer open.
 (function () {
   'use strict';
   var BOOT = JSON.parse(document.getElementById('regBoot').textContent);
   var STORE = 'bcrf.register.v1';
   var $ = function (id) { return document.getElementById(id); };
   var S = { items: [], byId: {}, customRate: 0, cat: null, q: '', cart: [], discPct: 0, exempt: false,
-            payments: [], key: null, tender: null, lastSale: null, saving: false };
+            payments: [], key: null, tender: null, lastSale: null, saving: false,
+            regId: null, drawer: null, dinfo: null };
+  var REGKEY = 'bcrf.register.reg';
 
   // ── helpers ───────────────────────────────────────────────────────────────
   function el(tag, attrs, kids) {
@@ -170,7 +173,7 @@
     $('tTot').textContent = money(p.total);
     $('barCount').textContent = qtyText(n) + (n === 1 ? ' item' : ' items');
     $('barTotal').textContent = money(p.total);
-    $('btnPay').disabled = $('btnPay2').disabled = !S.cart.length || !BOOT.ready;
+    $('btnPay').disabled = $('btnPay2').disabled = !S.cart.length || !BOOT.ready || (BOOT.drawers && !S.drawer);
     $('btnExempt').setAttribute('aria-pressed', S.exempt ? 'true' : 'false');
     $('btnDiscount').textContent = S.discPct ? 'Discount ' + S.discPct + '%' : 'Discount';
   }
@@ -404,7 +407,7 @@
     status('Saving… (not saved yet)');
     var printIt = $('chkPrint').checked;
     var body = {
-      idempotency_key: S.key, discount_pct: S.discPct, tax_exempt: S.exempt, printed: printIt,
+      idempotency_key: S.key, register_id: S.regId, discount_pct: S.discPct, tax_exempt: S.exempt, printed: printIt,
       lines: S.cart.map(function (l) { return { product_id: l.product_id, name: l.name, qty: l.qty, unit_price_cents: l.unit_price_cents }; }),
       payments: S.payments
     };
@@ -413,6 +416,7 @@
         S.saving = false;
         if (j.ok) return saved(j.sale, printIt);
         status('Not saved: ' + (j.message || 'unknown problem.'), true);
+        if (/drawer|register/i.test(j.message || '')) loadDrawer();
         $('btnRetry').hidden = j.status === 422;   // a problem with the sale itself needs fixing, not retrying
         renderPay();
       }, function () {
@@ -431,7 +435,7 @@
     $('doneChange').hidden = !change; $('doneChange').textContent = 'Change ' + money(change);
     $('dlgDone').showModal();
     if (printIt) printReceipt(sale);
-    loadCatalog(true); loadToday();
+    loadCatalog(true); loadToday(); loadDrawer();
   }
   $('btnNew').addEventListener('click', function () { $('dlgDone').close(); $('search').focus(); });
   $('btnReprint').addEventListener('click', function () { if (S.lastSale) printReceipt(S.lastSale); });
@@ -478,6 +482,143 @@
     setTimeout(function () { window.print(); }, 50);
   }
 
+  // ── cash drawer ──────────────────────────────────────────────────────────
+  function post(path, body) {
+    return api(path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': BOOT.csrf }, body: JSON.stringify(body) });
+  }
+  function loadDrawer() {
+    if (!BOOT.drawers) return;
+    try { S.regId = +localStorage.getItem(REGKEY) || null; } catch (e) {}
+    api('drawer&register_id=' + (S.regId || 0)).then(function (j) {
+      if (!j.ok) return;
+      S.dinfo = j;
+      var ids = Object.keys(j.registers).map(Number);
+      if (!S.regId || ids.indexOf(S.regId) < 0) {
+        if (ids.length === 1) { setReg(ids[0]); return; }
+        return chooseReg(j.registers);
+      }
+      S.drawer = j.session;
+      renderDrawer();
+    }, function () {});
+  }
+  function setReg(id) { S.regId = id; try { localStorage.setItem(REGKEY, String(id)); } catch (e) {} loadDrawer(); }
+  function chooseReg(regs) {
+    $('regChips').replaceChildren.apply($('regChips'), Object.keys(regs).map(function (id) {
+      return el('button', { type: 'button', text: regs[id], onclick: function () { $('dlgRegister').close(); setReg(+id); } });
+    }));
+    if (!$('dlgRegister').open) $('dlgRegister').showModal();
+  }
+  function regName() { return S.dinfo && S.regId ? S.dinfo.registers[S.regId] : 'Register'; }
+  function renderDrawer() {
+    var b = $('btnDrawer'), d = S.drawer;
+    b.hidden = false;
+    b.textContent = d ? 'Drawer open' : 'Drawer closed';
+    b.classList.toggle('closed', !d);
+    $('drawerBanner').hidden = !!d;
+    $('drawerBannerText').textContent = 'The ' + regName() + ' drawer is closed. Open it before taking payment.';
+    renderCart();
+    if (d && $('dlgDrawer').open) fillDrawerSheet();
+  }
+  function fillDrawerSheet() {
+    var d = S.drawer;
+    $('drTitle').textContent = regName() + ' drawer';
+    $('drOpened').textContent = 'Opened ' + d.opened + ' by ' + d.opened_by + ' · ' + d.sales.n + (d.sales.n === 1 ? ' sale · ' : ' sales · ') + money(d.sales.tot);
+    var rows = [['Starting float', d.float_cents], ['Cash sales', d.cash_sales_cents], ['Paid in', d.paid_in_cents], ['Paid out', -d.paid_out_cents], ['Cash drops', -d.drops_cents]];
+    $('drRows').replaceChildren.apply($('drRows'), rows.filter(function (r, i) { return i < 2 || r[1]; }).map(function (r) {
+      return el('div', {}, [el('dt', { text: r[0] }), el('dd', { text: money(r[1]) })]);
+    }).concat([el('div', { class: 'grand' }, [el('dt', { text: 'Should be in drawer' }), el('dd', { text: money(d.expected_cents) })])]));
+    $('drReport').href = 'register.php?view=drawer&id=' + d.id;
+  }
+  $('btnDrawer').addEventListener('click', function () {
+    if (!S.drawer) return openCount('open');
+    fillDrawerSheet(); $('dlgDrawer').showModal();
+    api('drawer&register_id=' + S.regId).then(function (j) { if (j.ok) { S.dinfo = j; S.drawer = j.session; if (S.drawer) fillDrawerSheet(); else { $('dlgDrawer').close(); renderDrawer(); } } }, function () {});
+  });
+  $('btnOpenDrawer').addEventListener('click', function () { openCount('open'); });
+  $('drClose').addEventListener('click', function () { $('dlgDrawer').close(); });
+  [['paid_in', 'Paid in'], ['paid_out', 'Paid out'], ['drop', 'Cash drop']].forEach(function (t) {
+    $('drMoves').appendChild(el('button', { type: 'button', class: 'btn', text: t[1], onclick: function () { openMove(t[0], t[1]); } }));
+  });
+
+  var moveType = null;
+  function openMove(type, label) {
+    moveType = type;
+    $('mvTitle').textContent = label;
+    $('mvAmt').value = ''; $('mvReason').value = ''; $('mvErr').hidden = true;
+    $('mvReason').placeholder = type === 'paid_out' ? 'e.g. ice for the cooler' : type === 'drop' ? 'e.g. to the safe' : 'e.g. more change';
+    $('dlgMove').showModal(); $('mvAmt').focus();
+  }
+  $('mvCancel').addEventListener('click', function () { $('dlgMove').close(); });
+  $('formMove').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var a = cents($('mvAmt').value), r = $('mvReason').value.trim(), err = function (m) { $('mvErr').textContent = m; $('mvErr').hidden = false; };
+    if (!(a > 0)) return err('Enter the amount.');
+    if (!r) return err('Say what the cash was for.');
+    $('mvOk').disabled = true;
+    post('drawer_move', { session_id: S.drawer.id, type: moveType, amount_cents: a, reason: r }).then(function (j) {
+      $('mvOk').disabled = false;
+      if (!j.ok) return err(j.message);
+      S.drawer = j.session; $('dlgMove').close(); fillDrawerSheet(); flash('Saved');
+    }, function () { $('mvOk').disabled = false; err('No connection. Try again.'); });
+  });
+
+  // Count dialog: opening float or closing count, by denomination
+  var countMode = 'open';
+  function countTotal() {
+    var t = 0;
+    Array.prototype.forEach.call($('cnRows').querySelectorAll('input'), function (i) { t += (+i.dataset.c) * Math.max(0, parseInt(i.value, 10) || 0); });
+    return t;
+  }
+  function countChanged() {
+    var t = countTotal();
+    $('cnTotal').textContent = money(t);
+    if (countMode !== 'close') return;
+    var v = t - S.drawer.expected_cents, over = Math.abs(v) > S.dinfo.threshold_cents;
+    $('cnVarLbl').textContent = v < 0 ? 'Short' : v > 0 ? 'Over' : 'Variance';
+    $('cnVar').textContent = money(v);
+    $('cnVarRow').className = over ? 'off' : (v === 0 ? 'even' : '');
+    $('cnNoteWrap').hidden = v === 0;
+    $('cnNote').required = over;
+  }
+  function openCount(mode) {
+    if (!S.dinfo) return;
+    countMode = mode;
+    var closing = mode === 'close';
+    $('cnTitle').textContent = (closing ? 'Close the ' : 'Open the ') + regName() + ' drawer';
+    $('cnHint').textContent = closing ? 'Count every bill and coin in the drawer.' : 'Count the starting cash (float) going into the drawer.';
+    $('cnOk').textContent = closing ? 'Close drawer' : 'Open drawer';
+    $('cnRows').replaceChildren.apply($('cnRows'), Object.keys(S.dinfo.denominations).map(Number).sort(function (a, b) { return b - a; }).map(function (c) {
+      return el('label', {}, [el('span', { text: S.dinfo.denominations[c] }), el('input', { type: 'number', inputmode: 'numeric', min: '0', step: '1', 'data-c': c, placeholder: '0', 'aria-label': S.dinfo.denominations[c] + ' count', oninput: countChanged })]);
+    }));
+    $('cnExpRow').hidden = $('cnVarRow').hidden = !closing;
+    if (closing) $('cnExp').textContent = money(S.drawer.expected_cents);
+    $('cnNote').value = ''; $('cnNoteWrap').hidden = true; $('cnErr').hidden = true; $('cnOk').disabled = false;
+    countChanged();
+    if ($('dlgDrawer').open) $('dlgDrawer').close();
+    $('dlgCount').showModal();
+  }
+  $('btnCloseDrawer').addEventListener('click', function () {
+    // refresh expected cash first, so a sale on another device a moment ago is included
+    api('drawer&register_id=' + S.regId).then(function (j) { if (j.ok && j.session) { S.dinfo = j; S.drawer = j.session; openCount('close'); } }, function () { openCount('close'); });
+  });
+  $('cnCancel').addEventListener('click', function () { $('dlgCount').close(); });
+  $('formCount').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var counts = {}, err = function (m) { $('cnErr').textContent = m; $('cnErr').hidden = false; };
+    Array.prototype.forEach.call($('cnRows').querySelectorAll('input'), function (i) { var q = parseInt(i.value, 10) || 0; if (q > 0) counts[i.dataset.c] = q; });
+    $('cnOk').disabled = true;
+    var req = countMode === 'close'
+      ? post('drawer_close', { session_id: S.drawer.id, counts: counts, note: $('cnNote').value.trim() })
+      : post('drawer_open', { register_id: S.regId, counts: counts });
+    req.then(function (j) {
+      $('cnOk').disabled = false;
+      if (!j.ok) return err(j.message);
+      $('dlgCount').close();
+      if (countMode === 'close') { location.href = 'register.php?view=drawer&id=' + j.session.id; return; }
+      S.drawer = j.session; renderDrawer(); flash('Drawer open with ' + money(j.session.float_cents));
+    }, function () { $('cnOk').disabled = false; err('No connection. Try again.'); });
+  });
+
   // ── today's total ────────────────────────────────────────────────────────
   function loadToday() {
     if (!BOOT.ready) { $('today').textContent = 'Register not set up'; return; }
@@ -491,6 +632,7 @@
   renderCart();
   loadCatalog();
   loadToday();
+  loadDrawer();
   setInterval(loadToday, 60000);
   if (S.payments.length && S.cart.length) setTimeout(function () { if (BOOT.ready) openPay(); }, 300);   // an unsaved sale was waiting: pick it back up
   window.addEventListener('beforeunload', function (e) { if (S.saving) { e.preventDefault(); e.returnValue = ''; } });
