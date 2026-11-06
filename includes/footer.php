@@ -1,4 +1,5 @@
-<?php if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // farm website + emails from Settings (Farm OS Phase 0) ?>        </main>
+<?php if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
+      if (!function_exists('site_socials_display')) require_once __DIR__ . '/site_info.php';   // social links from Admin → Site Info (Nov 2026) ?>        </main>
  	<footer>
         <div class="footer-inner">
             <div class="footer-cols">
@@ -19,13 +20,12 @@
                             <h2 class="chalk chalk-title">Follow us on social media!</h2>
                             <hr class="chalk-rule">
 
-                            <p class="chalk chalk-body">
-                                <a href="https://www.facebook.com/batcaveroadfarm" target="_blank" rel="noopener">
-                                    <img class="socialicon" src="<?= bcrf_farm_url() ?>/img/facebook.png" alt="" width="64" height="64" decoding="async" loading="lazy"> Facebook
+                            <p class="chalk chalk-body social-links">
+<?php foreach (site_socials_display() as $__s): ?>
+                                <a class="social-link" href="<?= htmlspecialchars($__s['url'], ENT_QUOTES) ?>" target="_blank" rel="noopener">
+                                    <?php if ($__s['image'] !== ''): ?><img class="socialicon" src="<?= htmlspecialchars($__s['image'], ENT_QUOTES) ?>" alt="" width="50" height="50" decoding="async" loading="lazy"><?php endif; ?><span><?= htmlspecialchars($__s['name'], ENT_QUOTES) ?></span>
                                 </a>
-                                <a href="https://www.instagram.com/batcaveroadfarm" target="_blank" rel="noopener">
-                                    <img class="socialicon" src="<?= bcrf_farm_url() ?>/img/instagram.png" alt="" width="64" height="64" decoding="async" loading="lazy"> Instagram
-                                </a>    
+<?php endforeach; ?>
                             </p>
 
                             <p class="chalk chalk-small">…or get farm news by email</p>

@@ -4,6 +4,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // 
 // Ensure a DB handle (and session) exist so the seasonal theme resolves on EVERY page,
 // including static pages (gallery, about, faq, legal) that don't open the DB themselves.
 require_once __DIR__ . '/../config.php';
+if (!function_exists('site_sameas')) require_once __DIR__ . '/site_info.php';   // social links for schema sameAs (Nov 2026)
 // Asset ?v= values are now automatic (bcrf_asset_v() in config.php, file modified time).
 // BCRF_ASSET_V is only the fallback for a file that can't be found — no need to bump it.
 if (!defined('BCRF_ASSET_V')) define('BCRF_ASSET_V', '20261103c');
@@ -135,10 +136,7 @@ require_once __DIR__ . '/ga.php';   // GA4: staff visits tagged internal, queued
       "currenciesAccepted": "USD",
       "paymentAccepted": "Cash, Credit Card, Debit Card, Venmo, PayPal, CashApp",
       "priceRange": "$",
-      "sameAs": [
-        "https://www.facebook.com/batcaveroadfarm",
-        "https://www.instagram.com/batcaveroadfarm"
-      ],
+      "sameAs": <?= json_encode(array_values(site_sameas()), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>,
       "hasMap": "https://maps.google.com/?q=4132+Bat+Cave+Road,+Old+Fort,+NC+28762",
       "foundingDate": "2023",
       "keywords": "petting zoo, farmstand, thrift shop, family farm, Old Fort NC, Asheville area farm, farm fresh eggs, farm animals",

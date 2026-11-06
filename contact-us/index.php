@@ -98,15 +98,13 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
             <div class="feature-band reveal" style="margin-top:50px">
               <h2><span aria-hidden="true">📱</span> Follow Along</h2>
               <p>We share daily farm updates, new farmstand arrivals, animal moments, and thrift shop highlights on our social channels. Come say hello — we love our online community just as much as our in-person visitors!</p>
-              <p style="margin-top:16px;font-size:1.1rem;">
-                <a href="https://www.facebook.com/batcaveroadfarm" target="_blank" rel="noopener">
-                    <img class="socialicon" src="<?= bcrf_farm_url() ?>/img/facebook.png" alt="Bat Cave Road Farm on Facebook" width="64" height="64" decoding="async" loading="lazy"> Facebook:
+              <p class="social-links social-links-center" style="margin-top:16px;font-size:1.1rem;">
+<?php if (!function_exists('site_socials_display')) require_once __DIR__ . '/../includes/site_info.php';
+      foreach (site_socials_display() as $__s):   // from Admin → Site Info (Nov 2026) ?>
+                <a class="social-link" href="<?= htmlspecialchars($__s['url'], ENT_QUOTES) ?>" target="_blank" rel="noopener">
+                    <?php if ($__s['image'] !== ''): ?><img class="socialicon" src="<?= htmlspecialchars($__s['image'], ENT_QUOTES) ?>" alt="" width="50" height="50" decoding="async" loading="lazy"><?php endif; ?><span><?= htmlspecialchars($__s['name'], ENT_QUOTES) ?></span>
                 </a>
-                @BatCaveRoadFarm &nbsp;|&nbsp; 
-                <a href="https://www.instagram.com/batcaveroadfarm" target="_blank" rel="noopener">
-                    <img class="socialicon" src="<?= bcrf_farm_url() ?>/img/instagram.png" alt="Bat Cave Road Farm on Instagram" width="64" height="64" decoding="async" loading="lazy"> Instagram:
-                </a>
-                @batcaveroadfarm
+<?php endforeach; ?>
               </p>
             </div>
           </div>
