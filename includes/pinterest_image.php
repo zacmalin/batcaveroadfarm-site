@@ -5,8 +5,9 @@
 //   bcrf_pin_render($srcFile, $dstFile, ['title' => …, 'kicker' => …, 'focus_y' => 0.4])
 //       → ['ok' => bool, 'bytes' => int, 'error' => string]
 //
-// Template v1 (BCRF_PIN_TEMPLATE_VERSION): the farm photo fills the top 1000 × 960 (cover crop, never
-// stretched; small or very wide photos are framed whole over a blurred fill instead), a Wheat Gold rule, then a Cream panel with a Barn Red script kicker, the title in Young Serif
+// Template v2 (BCRF_PIN_TEMPLATE_VERSION): the farm photo fills the top 1000 × 960 (cover crop, never
+// stretched; small or very wide photos are framed whole over a blurred fill instead), a Wheat Gold rule
+// with the farm logo (img/logo.png) in a round cream seal on its right end, then a Cream panel with a Barn Red script kicker, the title in Young Serif
 // (shrinks to fit, at most 3 lines) and the website in Lora. Brand colours from the farm brand settings.
 // The original photo is only read, never changed. Photos must be local files under the site root (no
 // remote fetching, so no SSRF), JPEG/PNG/WebP/GIF, at least 400 × 200 and at most 40 megapixels. Uses GD (FreeType checked on
@@ -15,7 +16,7 @@
 
 if (!function_exists('bcrf_pin_render')) {
 
-define('BCRF_PIN_TEMPLATE_VERSION', 1);
+define('BCRF_PIN_TEMPLATE_VERSION', 2);   // 2: logo seal (Nov 5, 2026)
 define('BCRF_PIN_W', 1000);
 define('BCRF_PIN_H', 1500);
 
@@ -70,6 +71,36 @@ function bcrf_pin_open(string $file) {
         if ($rot) { $r = imagerotate($im, $rot, 0); if ($r) $im = $r; }
     }
     return $im;
+}
+
+/**
+ * Farm logo seal: a cream disc with a Wheat Gold ring, centred at ($cx, $cy), the logo fitted inside with its
+ * transparency kept. Skipped quietly when the logo file is missing or unreadable.
+ */
+function bcrf_pin_seal($im, int $cx, int $cy, int $d, int $cream, int $wheat, ?string $logo = null): void {
+    $logo = $logo ?? dirname(__DIR__) . '/img/logo.png';
+    imagefilledellipse($im, $cx, $cy, $d + 14, $d + 14, $wheat);
+    imagefilledellipse($im, $cx, $cy, $d, $d, $cream);
+    $info = is_file($logo) ? @getimagesize($logo) : false;
+    if (!$info) return;
+    $src = match ($info[2]) {
+        IMAGETYPE_PNG  => @imagecreatefrompng($logo),
+        IMAGETYPE_WEBP => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($logo) : false,
+        IMAGETYPE_JPEG => @imagecreatefromjpeg($logo),
+        default        => false,
+    };
+    if (!$src) return;
+    if (!imageistruecolor($src)) imagepalettetotruecolor($src);
+    $box = (int)round($d * 0.72);   // fits inside the circle with a margin
+    $s   = min($box / imagesx($src), $box / imagesy($src));
+    $lw  = max(1, (int)round(imagesx($src) * $s)); $lh = max(1, (int)round(imagesy($src) * $s));
+    $tmp = imagecreatetruecolor($lw, $lh);
+    imagealphablending($tmp, false); imagesavealpha($tmp, true);
+    imagefill($tmp, 0, 0, imagecolorallocatealpha($tmp, 0, 0, 0, 127));
+    imagecopyresampled($tmp, $src, 0, 0, 0, 0, $lw, $lh, imagesx($src), imagesy($src));
+    imagealphablending($im, true);
+    imagecopy($im, $tmp, (int)($cx - $lw / 2), (int)($cy - $lh / 2), 0, 0, $lw, $lh);
+    unset($src, $tmp);
 }
 
 /** Word-wrap $text to $maxW px at $size; returns lines. Long single words are kept whole. */
@@ -146,8 +177,9 @@ function bcrf_pin_render(string $src, string $dst, array $o): array {
         }
         unset($photo);
 
-        // Wheat Gold rule under the photo
+        // Wheat Gold rule under the photo, with the logo seal on its right end (clear of the centred text)
         imagefilledrectangle($im, 0, $photoH, $W, $photoH + 9, $wheat);
+        if (($o['logo'] ?? true) !== false) bcrf_pin_seal($im, $W - 100, $photoH - 24, 150, $cream, $wheat, is_string($o['logo'] ?? null) ? $o['logo'] : null);
 
         // Kicker (script, Barn Red)
         $y = $photoH + 92;
