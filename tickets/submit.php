@@ -1,7 +1,8 @@
 <?php
 // tickets/submit.php — processes the day-admission ticket form.
-// POST only. Validates quantities + date, inserts a booking record,
-// then routes to Stripe checkout (or success for free-only orders).
+// POST only. Farm OS 4b (Nov 6, 2026): once migration 0013 has run, the order is saved as a ticket
+// (includes/tickets_online.php, C-04) and goes to tickets/pay.php → Stripe, or straight to the ticket page
+// if free. Before that it still writes a booking record and uses the booking checkout (code below).
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
 require_once __DIR__ . '/../config.php';
@@ -21,7 +22,27 @@ if (empty($_SESSION['csrf_token']) || $csrf === '' || !hash_equals($_SESSION['cs
     _tix_bail('csrf');
 }
 
-// ── Load ticket types from inventory ────────────────────────────────────────
+// -- Farm OS 4b: tickets, not bookings --
+require_once __DIR__ . '/../includes/queue.php';
+require_once __DIR__ . '/../admin/includes/audit.php';
+require_once __DIR__ . '/../includes/tickets_online.php';
+if (bcrf_online_tickets_ready($pdo)) {
+    try {
+        $t = bcrf_online_ticket_create($pdo, $_POST);
+    } catch (BcrfTicketFormError $e) {
+        _tix_bail($e->getMessage());
+    } catch (Throwable $e) {
+        error_log('[BCRF tickets/submit] ' . $e->getMessage());
+        _tix_bail('db');
+    }
+    require_once __DIR__ . '/../includes/ga.php';
+    bcrf_ga_store_ids($pdo, 'tickets', (int)$t['id']);
+    $c = rawurlencode($t['public_code']);
+    header('Location: ' . ($t['payment_status'] === 'pending' ? '/tickets/pay.php?c=' . $c : '/tickets/ticket.php?c=' . $c)); exit;
+}
+
+// -- Before migration 0013: booking record (old path) --
+// -- Load ticket types from inventory --
 $ticketTypes = [];
 try {
     $ticketTypes = $pdo->query("
@@ -35,7 +56,7 @@ try {
     _tix_bail('db');
 }
 
-// ── Build ticket breakdown + totals ─────────────────────────────────────────
+// -- Build ticket breakdown + totals --
 $breakdown   = [];
 $totalPeople = 0;
 $amountTotal = 0.0;
@@ -54,7 +75,7 @@ foreach ($ticketTypes as $tt) {
 if ($totalPeople < 1)  _tix_bail('no_tickets');
 if ($totalPeople >= 6) _tix_bail('too_many');   // 6+ → booking form
 
-// ── Validate date ────────────────────────────────────────────────────────────
+// -- Validate date --
 // Optional (Nov 2026): tickets are good any open day. No date = "any day" ticket,
 // stored under today's date with date_flexible = 1 (see includes/booking.php).
 $visitDate    = trim((string)($_POST['visit_date'] ?? ''));
@@ -87,14 +108,14 @@ if (in_array((int)date('w', strtotime($visitDate)), $closedDays)) {
 // No blackout check: admission tickets are not blacked out for private events
 // (policy, Nov 2026). Blackouts still apply to group/party bookings.
 
-// ── Visitor details ──────────────────────────────────────────────────────────
+// -- Visitor details --
 $name  = trim(strip_tags((string)($_POST['customer_name'] ?? '')));
 $email = filter_var(trim((string)($_POST['email'] ?? '')), FILTER_VALIDATE_EMAIL);
 $phone = preg_replace('/[^0-9+\-() ]/', '', (string)($_POST['phone'] ?? ''));
 
 if ($name === '' || !$email) _tix_bail('missing_info');
 
-// ── Get the day_admission booking type ───────────────────────────────────────
+// -- Get the day_admission booking type --
 $type = null;
 try {
     $ts = $pdo->prepare("SELECT * FROM booking_types WHERE type_key = 'day_admission' AND is_active = 1 LIMIT 1");
@@ -104,7 +125,7 @@ try {
 
 if (!$type) _tix_bail('no_type');
 
-// ── Insert booking ────────────────────────────────────────────────────────────
+// -- Insert booking --
 $token = function_exists('booking_make_token') ? booking_make_token() : bin2hex(random_bytes(24));
 $start = '10:00:00';
 $end   = '16:00:00';   // full-day farm hours

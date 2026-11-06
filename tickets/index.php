@@ -164,7 +164,8 @@ $errMsg = $errMap[$errKey] ?? '';
             </div>
         </section>
 
-        <p class="purchase-policy">Tickets are <strong>non-refundable</strong> and good for any day we're open, including days when a private event is booked. <a href="<?= bcrf_farm_url() ?>/terms/#purchases">Full policy</a></p>
+        <p class="purchase-policy">Tickets are <strong>non-refundable</strong> and good for any day we're open for a year, including days when a private event is booked. <a href="<?= bcrf_farm_url() ?>/terms/#purchases">Full policy</a></p>
+        <p class="purchase-policy">Online tickets <strong>don't reserve a time</strong>. We limit how many guests are on the farm at once, so on a busy day you may wait a little at the gate. Groups of 6 or more, please <a href="/booking/">book ahead</a>.</p>
         <?php require_once __DIR__ . '/../includes/nc_warning.php'; echo bcrf_nc_warning_html(true); ?>
         <div class="tickets-actions">
             <button type="submit" id="tickets-submit" class="cta-btn tickets-buy-btn" disabled>

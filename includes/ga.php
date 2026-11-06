@@ -85,7 +85,7 @@ function bcrf_ga_capture_ids(): array {
 /** Columns that hold GA IDs and the "purchase sent" marker. Added on first use (Phase 0 moves this to a migration). */
 function bcrf_ga_schema(PDO $pdo, string $table): void {
     static $done = [];
-    if (isset($done[$table]) || !in_array($table, ['bookings', 'passes'], true)) return;
+    if (isset($done[$table]) || !in_array($table, ['bookings', 'passes', 'tickets'], true)) return;
     $done[$table] = true;
     try {
         $cols = $pdo->query("SHOW COLUMNS FROM `$table`")->fetchAll(PDO::FETCH_COLUMN);
@@ -115,7 +115,7 @@ function bcrf_ga_store_ids(PDO $pdo, string $table, int $id): void {
  */
 function bcrf_ga_purchase(PDO $pdo, string $table, int $id, ?int $amountCents = null): void {
     $secret = bcrf_ga_api_secret();
-    if ($secret === '' || $id <= 0 || !in_array($table, ['bookings', 'passes'], true)) return;
+    if ($secret === '' || $id <= 0 || !in_array($table, ['bookings', 'passes', 'tickets'], true)) return;   // tickets: online admission (Farm OS 4b)
     bcrf_ga_schema($pdo, $table);
     try {
         // Claim it first so two callers (webhook + success page) can't both send.
@@ -123,7 +123,9 @@ function bcrf_ga_purchase(PDO $pdo, string $table, int $id, ?int $amountCents = 
         $claim->execute([$id]);
         if ($claim->rowCount() === 0) return;
 
-        if ($table === 'bookings') {
+        if ($table === 'tickets') {
+            $st = $pdo->prepare("SELECT id, amount_cents / 100 AS amount_paid, ga_client_id, ga_session_id, 'Admission tickets' AS label FROM tickets WHERE id = ?");
+        } elseif ($table === 'bookings') {
             $st = $pdo->prepare("SELECT b.id, b.amount_total, b.party_size, b.ga_client_id, b.ga_session_id, t.type_key, t.label
                                  FROM bookings b LEFT JOIN booking_types t ON t.id = b.type_id WHERE b.id = ?");
         } else {
@@ -136,16 +138,16 @@ function bcrf_ga_purchase(PDO $pdo, string $table, int $id, ?int $amountCents = 
 
         $value = $amountCents !== null ? $amountCents / 100 : (float)($table === 'bookings' ? $r['amount_total'] : $r['amount_paid']);
         if ($value <= 0) return;
-        $isTicket = $table === 'bookings' && ($r['type_key'] ?? '') === 'day_admission';
+        $isTicket = $table === 'tickets' || ($table === 'bookings' && ($r['type_key'] ?? '') === 'day_admission');
         $item = [
-            'item_id'       => $table === 'passes' ? 'pass' : ($isTicket ? 'admission' : 'booking-' . ($r['type_key'] ?: 'other')),
+            'item_id'       => $table === 'passes' ? 'pass' : ($isTicket ? 'admission' : 'booking-' . (($r['type_key'] ?? '') ?: 'other')),
             'item_name'     => (string)($r['label'] ?: ($table === 'passes' ? 'Annual pass' : 'Booking')),
             'item_category' => $table === 'passes' ? 'Annual passes' : ($isTicket ? 'Admission tickets' : 'Bookings'),
             'price'         => round($value, 2),
             'quantity'      => 1,
         ];
         $params = [
-            'transaction_id' => ($table === 'passes' ? 'P-' : 'B-') . $r['id'],
+            'transaction_id' => ($table === 'passes' ? 'P-' : ($table === 'tickets' ? 'T-' : 'B-')) . $r['id'],
             'currency'       => 'USD',
             'value'          => round($value, 2),
             'items'          => [$item],

@@ -53,7 +53,22 @@ if (!in_array($event['data']['object']['payment_status'] ?? 'paid', ['paid', 'no
 }
 $bookingId = (int)($session['metadata']['booking_id'] ?? 0);
 $passId    = (int)($session['metadata']['pass_id']    ?? 0);
+$ticketId  = (int)($session['metadata']['ticket_id']  ?? 0);   // online admission tickets (Farm OS 4b)
 $sessionId = (string)($session['id'] ?? '');
+
+// ── ONLINE TICKETS (Farm OS Phase 1, slice 4b): includes/tickets_online.php issues, emails, audits, GA ──
+if ($ticketId > 0) {
+    try {
+        require_once __DIR__ . '/../../includes/queue.php';
+        require_once __DIR__ . '/../../includes/tickets_online.php';
+        $done = bcrf_online_ticket_mark_paid($pdo, $ticketId, $sessionId, isset($session['amount_total']) ? (int)$session['amount_total'] : null);
+        error_log('[BCRF stripe webhook] Ticket #' . $ticketId . ($done ? ' paid and emailed.' : ' already processed.'));
+        http_response_code(200); echo $done ? 'ok' : 'Ticket already processed'; exit;
+    } catch (Throwable $e) {
+        error_log('[BCRF stripe webhook] Ticket error: ' . $e->getMessage());
+        http_response_code(500); echo 'Server error'; exit;
+    }
+}
 
 if ($bookingId <= 0 && $passId <= 0) {
     error_log('[BCRF stripe webhook] No booking_id or pass_id in session metadata');
