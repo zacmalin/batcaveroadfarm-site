@@ -1,0 +1,286 @@
+<?php
+// admin/register.php — Farm OS register (Phase 1, slice 1, Nov 6, 2026)
+// Replaces admin/pos.php once tested. Server-assigned receipt numbers and idempotent saves (C-12),
+// per-line tax by tax category, split tender, P2P payer + reference. Strict CSP (C-09): no inline
+// script or style; behaviour in admin/assets/register.js, looks in admin/assets/register.css.
+//   GET  register.php               the register
+//   GET  register.php?api=catalog   products for the tiles
+//   GET  register.php?api=today     today's count and total
+//   POST register.php?api=complete  JSON sale → includes/sales.php bcrf_sale_complete()
+//   GET/POST register.php?view=tax  tax rates (administrators)
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
+require_once '../config.php';
+check_admin();
+require_once __DIR__ . '/includes/permission_checks.php';
+if (($_SESSION['user_role'] ?? '') === 'Media') { http_response_code(403); exit('Media accounts cannot use the register.'); }
+$api = (string)($_GET['api'] ?? '');
+require_permission([['view', 'pos']], $api !== '');
+require_once __DIR__ . '/includes/audit.php';
+require_once __DIR__ . '/../includes/queue.php';
+require_once __DIR__ . '/../includes/sales.php';
+require_once __DIR__ . '/../includes/site_info.php';
+date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
+
+if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+$csrf    = $_SESSION['csrf_token'];
+$isAdmin = ($_SESSION['user_role'] ?? '') === 'administrator';
+$ready   = bcrf_sales_ready($pdo);
+$h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
+
+// ── JSON API ──────────────────────────────────────────────────────────────────
+if ($api !== '') {
+    header('Content-Type: application/json');
+    header('Cache-Control: no-store');
+    $out = function (int $code, array $body) { http_response_code($code); echo json_encode($body, JSON_UNESCAPED_UNICODE); exit; };
+    if (!$ready) $out(503, ['ok' => false, 'message' => 'The register is waiting for migration 0009 (Settings › Database).']);
+
+    if ($api === 'catalog') {
+        $general = 0;
+        foreach (bcrf_tax_categories($pdo) as $tc) if ($tc['code'] === 'general') $general = $tc['rate_bp'];
+        $rows = $pdo->query("SELECT i.id, i.name, i.price, i.stock_quantity, i.sku, i.image_url, i.pricing_mode, i.unit, i.track_inventory,
+                                    i.product_type, COALESCE(ic.name, i.category, 'Other') AS cat, COALESCE(ic.sort_order, 999) AS cat_sort,
+                                    tc.rate_bp
+                             FROM inventory i
+                             LEFT JOIN inventory_categories ic ON ic.id = i.category_id
+                             LEFT JOIN tax_categories tc ON tc.id = i.tax_category_id
+                             WHERE i.is_active = 1
+                             ORDER BY cat_sort, cat, i.name")->fetchAll(PDO::FETCH_ASSOC);
+        $items = array_map(fn($r) => [
+            'id' => (int)$r['id'], 'name' => $r['name'], 'price_cents' => (int)round((float)$r['price'] * 100),
+            'stock' => (int)$r['track_inventory'] ? (float)$r['stock_quantity'] : null, 'sku' => (string)$r['sku'],
+            'img' => (string)$r['image_url'], 'mode' => $r['pricing_mode'], 'unit' => $r['unit'], 'type' => $r['product_type'],
+            'cat' => $r['cat'], 'rate_bp' => $r['rate_bp'] === null ? $general : (int)$r['rate_bp'],   // no tax category = general (as the server does)
+        ], $rows);
+        $out(200, ['ok' => true, 'items' => $items, 'custom_rate_bp' => $general]);
+    }
+
+    if ($api === 'today') {
+        [, $bdate] = bcrf_farm_now();
+        $st = $pdo->prepare("SELECT COUNT(*) n, COALESCE(SUM(total_cents), 0) t FROM sales WHERE business_date = ? AND status <> 'voided'");
+        $st->execute([$bdate]);
+        $r = $st->fetch(PDO::FETCH_ASSOC);
+        $out(200, ['ok' => true, 'count' => (int)$r['n'], 'total_cents' => (int)$r['t']]);
+    }
+
+    if ($api === 'complete') {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') $out(405, ['ok' => false, 'message' => 'POST only.']);
+        if (!hash_equals($csrf, (string)($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''))) $out(403, ['ok' => false, 'message' => 'Your session expired. Reload the register (the cart is kept).']);
+        $in = json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($in)) $out(400, ['ok' => false, 'message' => 'The sale could not be read. Try again.']);
+        try {
+            $r = bcrf_sale_complete($pdo, $in);
+            $out(200, ['ok' => true, 'replayed' => $r['replayed'], 'sale' => $r['sale']]);
+        } catch (BcrfSaleError $e) {
+            $out(422, ['ok' => false, 'message' => $e->getMessage()]);
+        } catch (Throwable $e) {
+            error_log('[register] complete: ' . $e->getMessage());
+            $out(500, ['ok' => false, 'message' => 'The server could not save the sale. Nothing was charged twice; tap Retry.']);
+        }
+    }
+    $out(404, ['ok' => false, 'message' => 'Unknown request.']);
+}
+
+// ── Tax rates (administrators) ───────────────────────────────────────────────
+$view = (string)($_GET['view'] ?? '');
+if ($view === 'tax') {
+    if (!$isAdmin) { http_response_code(403); exit('Administrators only.'); }
+    $flash = $_SESSION['register_flash'] ?? null; unset($_SESSION['register_flash']);
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ready) {
+        if (!hash_equals($csrf, (string)($_POST['csrf_token'] ?? ''))) { $_SESSION['register_flash'] = 'Security token expired; try again.'; header('Location: register.php?view=tax'); exit; }
+        $cats = bcrf_tax_categories($pdo);
+        $up = $pdo->prepare("UPDATE tax_categories SET rate_bp = ?, updated_at = UTC_TIMESTAMP(), updated_by = ? WHERE id = ?");
+        $changed = [];
+        foreach ((array)($_POST['rate'] ?? []) as $id => $pct) {
+            $id = (int)$id; $bp = (int)round((float)$pct * 100);
+            if (!isset($cats[$id]) || $bp < 0 || $bp > 3000 || $bp === $cats[$id]['rate_bp']) continue;
+            $up->execute([$bp, (int)$_SESSION['user_id'], $id]);
+            bcrf_audit_event($pdo, ['actor_type' => 'staff', 'actor_id' => (int)$_SESSION['user_id'], 'actor_label' => bcrf_audit_actor()[2],
+                'ip' => bcrf_audit_actor()[3], 'action' => 'update', 'object_type' => 'tax_categories', 'object_id' => $id,
+                'object_label' => $cats[$id]['name'], 'before' => ['rate_bp' => $cats[$id]['rate_bp']], 'after' => ['rate_bp' => $bp]]);
+            $changed[] = $cats[$id]['name'] . ' ' . ($bp / 100) . '%';
+        }
+        $_SESSION['register_flash'] = $changed ? 'Saved: ' . implode(', ', $changed) . '. New sales use these rates.' : 'No changes.';
+        header('Location: register.php?view=tax'); exit;
+    }
+    $cats = $ready ? bcrf_tax_categories($pdo) : [];
+    ?><!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self'; base-uri 'self'; form-action 'self'">
+<title>Tax rates — Register</title><meta name="robots" content="noindex">
+<link rel="stylesheet" href="assets/register.css?v=2"></head>
+<body class="page"><main class="narrow">
+<p><a href="register.php">← Register</a></p>
+<h1>Tax rates</h1>
+<p class="muted">Each product has a tax category (set on the product in the inventory editor). Sales work out tax per line from these rates. Past sales keep the rate they were sold at.</p>
+<?php if ($flash): ?><p class="flash"><?= $h($flash) ?></p><?php endif; ?>
+<?php if (!$ready): ?><p class="flash err">Run migration 0009 in Settings › Database first.</p><?php else: ?>
+<form method="POST" class="card">
+  <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
+  <?php foreach ($cats as $c): ?>
+    <label class="taxrow"><span><b><?= $h($c['name']) ?></b><?php if ($c['notes']): ?><br><small class="muted"><?= $h($c['notes']) ?></small><?php endif; ?></span>
+      <span class="pct"><input type="number" inputmode="decimal" step="0.01" min="0" max="30" name="rate[<?= (int)$c['id'] ?>]" value="<?= $h(rtrim(rtrim(number_format($c['rate_bp'] / 100, 2, '.', ''), '0'), '.')) ?>"> %</span></label>
+  <?php endforeach; ?>
+  <button class="btn primary" type="submit">Save rates</button>
+</form>
+<p class="muted">Tax on food, admission and thrift differs by state and item. Confirm categories and rates with the NC Department of Revenue or an accountant.</p>
+<?php endif; ?>
+</main></body></html><?php
+    exit;
+}
+
+// ── The register ─────────────────────────────────────────────────────────────
+$me = 'Staff';
+try {
+    $st = $pdo->prepare("SELECT first_name, last_name FROM users WHERE id = ?");
+    $st->execute([(int)$_SESSION['user_id']]);
+    if ($u = $st->fetch(PDO::FETCH_ASSOC)) $me = trim($u['first_name'] . ' ' . mb_substr((string)$u['last_name'], 0, 1) . '.');
+} catch (Throwable $e) {}
+
+$boot = [
+    'ready'   => $ready,
+    'csrf'    => $csrf,
+    'staff'   => $me,
+    'farm'    => ['name' => bcrf_farm_name(), 'address' => site_address(), 'phone' => site_phone_display(),
+                  'domain' => bcrf_farm_domain(), 'policy' => site_setting('receipt_return_policy')],
+    'tenders' => bcrf_tenders(),
+    'isAdmin' => $isAdmin,
+];
+?><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self'; base-uri 'self'; form-action 'self'">
+<meta name="robots" content="noindex">
+<title>Register — <?= $h(bcrf_farm_name()) ?></title>
+<link rel="stylesheet" href="assets/register.css?v=2">
+</head>
+<body>
+<script type="application/json" id="regBoot"><?= json_encode($boot, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
+
+<div id="app" class="app">
+  <header class="top">
+    <a class="back" href="/admin/admin.php">← Console</a>
+    <div class="today" id="today" aria-live="polite">Today: …</div>
+    <div class="who"><?= $h($me) ?><?php if ($isAdmin): ?> · <a href="register.php?view=tax">Tax</a><?php endif; ?></div>
+  </header>
+
+  <?php if (!$ready): ?>
+  <div class="banner err">The new register needs migration 0009. An administrator can run it in Settings › Database. Until then keep using the <a href="pos.php">old register</a>.</div>
+  <?php endif; ?>
+
+  <section class="shop">
+    <div class="tools">
+      <input type="search" id="search" placeholder="Search or type SKU" autocomplete="off" aria-label="Search products">
+      <button type="button" class="btn" id="btnScan">Scan</button>
+      <button type="button" class="btn" id="btnCustom">Custom</button>
+    </div>
+    <nav class="cats" id="cats" aria-label="Categories"></nav>
+    <div class="grid" id="grid" aria-live="polite"></div>
+  </section>
+
+  <aside class="cart" id="cart" aria-label="Cart">
+    <div class="cart-head"><h2>Cart</h2><button type="button" class="link" id="btnCartClose">Close</button></div>
+    <div class="lines" id="lines"></div>
+    <div class="adjust">
+      <button type="button" class="btn sm" id="btnDiscount">Discount</button>
+      <button type="button" class="btn sm" id="btnExempt" aria-pressed="false">Tax exempt</button>
+      <button type="button" class="btn sm danger" id="btnClear">Clear</button>
+    </div>
+    <dl class="totals">
+      <div><dt>Subtotal</dt><dd id="tSub">$0.00</dd></div>
+      <div id="rowDisc" hidden><dt id="tDiscLbl">Discount</dt><dd id="tDisc">−$0.00</dd></div>
+      <div><dt id="tTaxLbl">Tax</dt><dd id="tTax">$0.00</dd></div>
+      <div class="grand"><dt>Total</dt><dd id="tTot">$0.00</dd></div>
+    </dl>
+    <button type="button" class="btn primary big" id="btnPay" disabled>Take payment</button>
+  </aside>
+
+  <div class="bar" id="bar">
+    <button type="button" class="barcart" id="btnCartOpen"><span id="barCount">0 items</span> · <b id="barTotal">$0.00</b></button>
+    <button type="button" class="btn primary" id="btnPay2" disabled>Pay</button>
+  </div>
+</div>
+
+<!-- Sheets (dialogs) -->
+<dialog id="dlgItem" class="sheet">
+  <form method="dialog" id="formItem">
+    <h3 id="itemTitle">Item</h3>
+    <label id="itemQtyWrap">Quantity <span id="itemUnit"></span><input type="number" inputmode="decimal" step="any" min="0" id="itemQty"></label>
+    <label id="itemPriceWrap">Price ($)<input type="number" inputmode="decimal" step="0.01" min="0" id="itemPrice"></label>
+    <label id="itemNameWrap">Name<input type="text" id="itemName" maxlength="120"></label>
+    <p class="err" id="itemErr" hidden></p>
+    <div class="row"><button type="button" class="btn" value="cancel" id="itemCancel">Cancel</button><button class="btn primary" id="itemOk" value="ok">Add</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgDiscount" class="sheet">
+  <form method="dialog">
+    <h3>Discount on the whole sale</h3>
+    <div class="chips" id="discChips"></div>
+    <label>Other %<input type="number" inputmode="decimal" min="0" max="100" step="0.5" id="discPct"></label>
+    <div class="row"><button type="button" class="btn" id="discNone">No discount</button><button type="button" class="btn primary" id="discOk">Apply</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgPay" class="sheet tall">
+  <div class="payhead">
+    <div><small>Total</small><b id="pTotal">$0.00</b></div>
+    <div><small>Paid</small><b id="pPaid">$0.00</b></div>
+    <div><small>Left</small><b id="pLeft">$0.00</b></div>
+  </div>
+  <ul class="paylist" id="payList"></ul>
+  <div id="payAdd">
+    <div class="tenders" id="tenderBtns"></div>
+    <div id="payCash" hidden>
+      <label>Cash handed over ($)<input type="number" inputmode="decimal" step="0.01" min="0" id="cashGiven"></label>
+      <div class="chips" id="cashQuick"></div>
+      <p class="change" id="cashChange"></p>
+    </div>
+    <div id="payOther" hidden>
+      <label>Amount ($)<input type="number" inputmode="decimal" step="0.01" min="0" id="payAmt"></label>
+      <label id="payerWrap">Payer name or handle<input type="text" id="payer" maxlength="120" autocomplete="off"></label>
+      <label id="refWrap"><span id="refLbl">Last characters of the transaction ID</span><input type="text" id="payRef" maxlength="80" autocomplete="off"></label>
+      <p class="muted" id="p2pHint">Check the payment arrived on the farm phone before adding it.</p>
+    </div>
+    <p class="err" id="payErr" hidden></p>
+    <button type="button" class="btn primary big" id="btnAddPay" hidden>Add payment</button>
+  </div>
+  <div id="payDone" hidden>
+    <label class="check"><input type="checkbox" id="chkPrint" checked> Print receipt</label>
+    <button type="button" class="btn primary big" id="btnComplete">Complete sale</button>
+  </div>
+  <div class="status" id="saveStatus" hidden role="status"></div>
+  <button type="button" class="btn big" id="btnRetry" hidden>Retry saving</button>
+  <button type="button" class="link" id="payClose">Back to cart</button>
+</dialog>
+
+<dialog id="dlgDone" class="sheet">
+  <h3>Sale saved</h3>
+  <p class="saleno" id="doneNo"></p>
+  <p class="bigchange" id="doneChange" hidden></p>
+  <div class="row"><button type="button" class="btn" id="btnReprint">Print receipt</button><button type="button" class="btn primary" id="btnNew">New sale</button></div>
+</dialog>
+
+<dialog id="dlgScan" class="sheet">
+  <h3>Scan</h3>
+  <video id="scanVideo" playsinline muted hidden></video>
+  <p class="muted" id="scanMsg">A barcode scanner works anywhere on this screen. Or type the SKU:</p>
+  <form id="formSku"><input type="text" id="skuInput" autocomplete="off" placeholder="SKU"><button class="btn primary">Add</button></form>
+  <button type="button" class="link" id="scanClose">Done</button>
+</dialog>
+
+<dialog id="dlgConfirm" class="sheet">
+  <h3 id="confTitle">Are you sure?</h3>
+  <p id="confText"></p>
+  <div class="row"><button type="button" class="btn" id="confNo">Cancel</button><button type="button" class="btn danger" id="confYes">Yes</button></div>
+</dialog>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<!-- Printed receipt (only visible when printing) -->
+<section id="receipt" class="receipt" aria-hidden="true"></section>
+
+<script src="assets/register.js?v=2"></script>
+</body>
+</html>
