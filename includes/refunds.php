@@ -19,6 +19,8 @@
  *   - refund_approval_threshold_cents (0 = off): refunds above it need an Owner or Manager.
  *   - Voids: same business date, the sale's drawer still open, nothing refunded yet. Stock comes back,
  *     the sale drops out of the drawer's expected cash. Money taken by app is sent back in the app.
+ *   - Slice 4a: admission sold at the gate was used on the spot, so refunding it needs an Owner or Manager
+ *     (05: redeemed tickets can't be refunded without a Manager). A void cancels its ticket and checks the party out.
  */
 
 if (!function_exists('bcrf_refund_complete')) {
@@ -248,6 +250,12 @@ function bcrf_refund_complete(PDO $pdo, array $in): array {
         }
         $th = bcrf_refund_threshold($pdo);
         $approved = null;
+        foreach ($q['lines'] as $ql) {
+            if (($lines[$ql['sale_line_id']]['product_type'] ?? '') === 'admission') {
+                if (!bcrf_is_approver()) throw new BcrfSaleError('"' . $ql['description'] . '" was used at the gate. An Owner or Manager has to refund admission.');
+                $approved = $uid;
+            }
+        }
         if ($th > 0 && $q['total'] > $th) {
             if (!bcrf_is_approver()) throw new BcrfSaleError(sprintf('Refunds over $%s need an Owner or Manager.', number_format($th / 100, 2)));
             $approved = $uid;
@@ -344,6 +352,10 @@ function bcrf_sale_void(PDO $pdo, int $saleId, string $reason): array {
         $pdo->prepare("UPDATE sales SET status = 'voided', voided_at = UTC_TIMESTAMP(3), voided_by = ?, void_reason = ?, updated_at = UTC_TIMESTAMP(), updated_by = ? WHERE id = ?")
             ->execute([$uid, $reason, $uid, $saleId]);
         $pdo->prepare("UPDATE payments SET status = 'voided' WHERE sale_id = ?")->execute([$saleId]);
+        if (function_exists('bcrf_admission_ready') && bcrf_admission_ready($pdo)) {   // admission sold on this sale: cancel the ticket, the party leaves the count
+            $pdo->prepare("UPDATE tickets SET status = 'void', updated_at = UTC_TIMESTAMP() WHERE sale_id = ?")->execute([$saleId]);
+            $pdo->prepare("UPDATE check_ins SET checked_out_at = UTC_TIMESTAMP(), note = 'Sale voided' WHERE sale_id = ? AND checked_out_at IS NULL")->execute([$saleId]);
+        }
         if ($s['legacy_receipt_id']) {   // Sales Log / dashboard: show it as voided and stop counting it
             $pdo->prepare("UPDATE pos_receipts SET payment_method = 'VOIDED', subtotal = 0, discount = 0, tax = 0, total = 0 WHERE id = ?")->execute([$s['legacy_receipt_id']]);
         }

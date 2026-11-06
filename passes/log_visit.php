@@ -8,6 +8,7 @@ require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../admin/includes/permission_checks.php';
 require_once __DIR__ . '/../admin/includes/audit.php';
 require_once __DIR__ . '/../includes/pass_staff.php';
+require_once __DIR__ . '/../includes/admission.php';   // Farm OS 4a: a logged visit is also a check-in (counts toward capacity)
 
 $token   = trim((string)($_POST['token']    ?? ''));
 $logCsrf = trim((string)($_POST['log_csrf'] ?? ''));
@@ -39,6 +40,7 @@ try {
 
     $pdo->prepare("INSERT INTO pass_visits (pass_id, visited_at) VALUES (?, NOW())")->execute([$pass['id']]);
     $visitId = (int)$pdo->lastInsertId();
+    bcrf_pass_visit_to_check_in($pdo, (int)$pass['id'], $visitId, 1);
     erp_audit($pdo, 'create', 'pass_visits', $visitId ?: null,
         'Visit logged - ' . $pass['holder_name'] . ' (' . $pass['label'] . ', pass #' . $pass['id'] . ')');
 } catch (Throwable $e) {

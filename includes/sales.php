@@ -12,6 +12,8 @@
  * pos_receipts row so the existing Sales Log and dashboard keep working unchanged.
  * Slice 2 (Nov 6): once migration 0010 has run, every sale belongs to the open drawer of its register
  * (includes/drawers.php); with no open drawer the sale is refused.
+ * Slice 4a (Nov 6): admission products sold here check the party in (includes/admission.php). If the farm is
+ * full the sale is refused with BcrfCapacityError, unless an Owner or Manager gives capacity_override (a reason).
  */
 
 if (!function_exists('bcrf_sale_complete')) {
@@ -172,7 +174,7 @@ function bcrf_sale_validate(array $in): array {
 
     $pct = (float)($in['discount_pct'] ?? 0);
     if ($pct < 0 || $pct > 100) throw new BcrfSaleError('Discount must be between 0 and 100%.');
-    return ['key' => $key, 'cart' => $cart, 'payments' => $pays, 'discount_bp' => (int)round($pct * 100), 'register_id' => max(0, (int)($in['register_id'] ?? 0)),
+    return ['key' => $key, 'cart' => $cart, 'payments' => $pays, 'discount_bp' => (int)round($pct * 100), 'register_id' => max(0, (int)($in['register_id'] ?? 0)), 'capacity_override' => mb_substr(trim((string)($in['capacity_override'] ?? '')), 0, 255),
             'tax_exempt' => !empty($in['tax_exempt']), 'printed' => !empty($in['printed'])];
 }
 
@@ -214,6 +216,10 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
     $customTax = null;
     foreach ($taxCats as $tc) if ($tc['code'] === 'general') $customTax = $tc['id'];
 
+    // Admission sales add guests: one device at a time (released in the finally below).
+    $adm = function_exists('bcrf_admission_ready') && bcrf_admission_ready($pdo);
+    if ($adm) bcrf_capacity_lock($pdo);
+    try {
     $pdo->beginTransaction();
     try {
         // The register's open drawer, locked so it can't close while this sale is being written.
@@ -243,6 +249,11 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
         }
 
         $priced = bcrf_sale_price($v['cart'], $products, $taxCats, $v['discount_bp'], $v['tax_exempt'], $customTax);
+        $admission = [0, 0, []]; $ov = [null, null];
+        if ($adm) {
+            $admission = bcrf_admission_guests($pdo, $priced['lines']);
+            if ($admission[0] > 0) $ov = bcrf_capacity_check($pdo, $admission[1], $v['capacity_override']);
+        }
         $paid = array_sum(array_column($v['payments'], 'amount_cents'));
         if ($paid !== $priced['total']) {
             throw new BcrfSaleError(sprintf('Payments add up to $%s but the total is $%s. Check the payments and try again.',
@@ -296,6 +307,11 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
                              'qty' => $l['quantity'], 'category' => $l['category_label'], 'tbl' => $l['product_id'] ? 'inventory' : 'VIRTUAL_CUSTOM_ITEM'];
         }
 
+        if ($admission[0] > 0) {
+            $admCents = array_sum(array_map(fn($l) => $l['product_type'] === 'admission' ? $l['line_total_cents'] : 0, $priced['lines']));
+            bcrf_admission_for_sale($pdo, $saleId, $admission[0], $admission[1], $admission[2], $admCents, $ov[0], $ov[1]);
+        }
+
         $insPay = $pdo->prepare("INSERT INTO payments (sale_id, tender, amount_cents, tendered_cents, change_cents, payer_handle, reference,
                                         status, business_date, created_at, created_by)
                                  VALUES (?, ?, ?, ?, ?, ?, ?, 'completed', ?, UTC_TIMESTAMP(3), ?)");
@@ -321,12 +337,16 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
         if ($pdo->inTransaction()) $pdo->rollBack();
         throw $e;
     }
+    } finally {
+        if ($adm) bcrf_capacity_unlock($pdo);
+    }
 
     if (function_exists('erp_audit')) {
         $labels = bcrf_tenders();
         erp_audit($pdo, 'create', 'sales', $saleId, sprintf('Sale %s - $%s %s (%d lines%s%s)', $number, number_format($priced['total'] / 100, 2),
             implode(' + ', array_map(fn($t) => $labels[$t], $tenders)), count($priced['lines']),
-            $v['discount_bp'] ? ', ' . ($v['discount_bp'] / 100) . '% off' : '', $v['tax_exempt'] ? ', tax exempt' : ''));
+            $v['discount_bp'] ? ', ' . ($v['discount_bp'] / 100) . '% off' : '', $v['tax_exempt'] ? ', tax exempt' : '')
+            . ($admission[0] ? ', ' . $admission[0] . ' admitted' . ($ov[0] ? ' - capacity override: ' . $ov[0] : '') : ''));
     }
     return ['replayed' => false, 'sale' => bcrf_sale_get($pdo, $saleId)];
 }

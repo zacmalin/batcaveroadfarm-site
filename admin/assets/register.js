@@ -6,6 +6,7 @@
 // code, so a double tap or a dropped connection can never make two sales.
 // Slice 2 (Nov 6): cash drawers. Each device remembers its register; sales need that register's drawer open.
 // Slice 3 (Nov 6): Sales screen: find a sale, reprint, refund by line, or void it (includes/refunds.php).
+// Slice 4a (Nov 6): admission sold here checks the party in; when the farm is full an Owner or Manager can override.
 (function () {
   'use strict';
   var BOOT = JSON.parse(document.getElementById('regBoot').textContent);
@@ -329,7 +330,7 @@
   function openPay() {
     if (!S.cart.length) return;
     if (!S.key) S.key = newKey();
-    S.tender = null; $('saveStatus').hidden = true; $('btnRetry').hidden = true; $('payErr').hidden = true;
+    S.tender = null; $('saveStatus').hidden = true; $('btnRetry').hidden = true; $('payErr').hidden = true; $('capBox').hidden = true;
     renderPay();
     $('cart').classList.remove('open');
     $('dlgPay').showModal();
@@ -405,13 +406,18 @@
     S.tender = null; $('payErr').hidden = true; save(); renderPay();
   }
 
-  $('btnComplete').addEventListener('click', complete);
-  $('btnRetry').addEventListener('click', complete);
+  $('btnComplete').addEventListener('click', function () { complete(); });
+  $('btnRetry').addEventListener('click', function () { complete(); });
+  $('btnCapOverride').addEventListener('click', function () {
+    var r = $('capReason').value.trim();
+    if (!r) { $('capReason').focus(); return; }
+    complete(r);
+  });
   function status(msg, bad) { var s = $('saveStatus'); s.textContent = msg; s.className = 'status ' + (bad ? 'bad' : 'saving'); s.hidden = false; }
-  function complete() {
+  function complete(capOverride) {
     if (S.saving) return;
     if (left() !== 0) return;
-    S.saving = true; $('btnRetry').hidden = true; renderPay();
+    S.saving = true; $('btnRetry').hidden = true; $('capBox').hidden = true; renderPay();
     status('Saving… (not saved yet)');
     var printIt = $('chkPrint').checked;
     var body = {
@@ -419,13 +425,15 @@
       lines: S.cart.map(function (l) { return { product_id: l.product_id, name: l.name, qty: l.qty, unit_price_cents: l.unit_price_cents }; }),
       payments: S.payments
     };
+    if (capOverride) body.capacity_override = capOverride;
     api('complete', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': BOOT.csrf }, body: JSON.stringify(body) })
       .then(function (j) {
         S.saving = false;
         if (j.ok) return saved(j.sale, printIt);
         status('Not saved: ' + (j.message || 'unknown problem.'), true);
         if (/drawer|register/i.test(j.message || '')) loadDrawer();
-        $('btnRetry').hidden = j.status === 422;   // a problem with the sale itself needs fixing, not retrying
+        $('btnRetry').hidden = j.status === 422 || j.status === 409;   // a problem with the sale itself needs fixing, not retrying
+        if (j.code === 'capacity') { $('capBox').hidden = !j.can_override; $('capReason').value = ''; }
         renderPay();
       }, function () {
         S.saving = false;

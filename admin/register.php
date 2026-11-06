@@ -16,6 +16,8 @@
 //   GET  register.php?api=sales&register_id=N[&q=R-2026-000012]   today's sales, or one by number
 //   GET  register.php?api=sale&id=N                               one sale with refund/void state
 //   POST register.php?api=refund_quote | refund | void            (JSON, X-CSRF-Token)
+// Slice 4a (Nov 6, 2026): admission sold here checks the party in (includes/admission.php); a full farm returns
+// 409 code=capacity and an Owner or Manager can resend with capacity_override (a reason). Gate screen: admin/gate.php.
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
 check_admin();
@@ -28,6 +30,7 @@ require_once __DIR__ . '/../includes/queue.php';
 require_once __DIR__ . '/../includes/sales.php';
 require_once __DIR__ . '/../includes/drawers.php';
 require_once __DIR__ . '/../includes/refunds.php';
+require_once __DIR__ . '/../includes/admission.php';
 require_once __DIR__ . '/../includes/site_info.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -82,6 +85,8 @@ if ($api !== '') {
         try {
             $r = bcrf_sale_complete($pdo, $in);
             $out(200, ['ok' => true, 'replayed' => $r['replayed'], 'sale' => $r['sale']]);
+        } catch (BcrfCapacityError $e) {
+            $out(409, ['ok' => false, 'code' => 'capacity', 'message' => $e->getMessage(), 'can_override' => bcrf_can_override_capacity()]);
         } catch (BcrfSaleError $e) {
             $out(422, ['ok' => false, 'message' => $e->getMessage()]);
         } catch (Throwable $e) {
@@ -185,7 +190,7 @@ if ($view === 'tax') {
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self'; base-uri 'self'; form-action 'self'">
 <title>Tax rates — Register</title><meta name="robots" content="noindex">
-<link rel="stylesheet" href="assets/register.css?v=4"></head>
+<link rel="stylesheet" href="assets/register.css?v=5"></head>
 <body class="page"><main class="narrow">
 <p><a href="register.php">← Register</a></p>
 <h1>Tax rates</h1>
@@ -212,7 +217,7 @@ if ($view === 'drawer' || $view === 'drawers') {
     $tenders = bcrf_tenders();
     $head = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
           . '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">'
-          . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=4">';
+          . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=5">';
     if (!$drawersReady) { echo $head, '<title>Drawers</title></head><body class="page"><main class="narrow"><p class="flash err">Run migration 0010 in Settings › Database first.</p></main></body></html>'; exit; }
     if ($view === 'drawers') {
         $rows = $pdo->query("SELECT d.id FROM drawer_sessions d ORDER BY d.opened_at DESC LIMIT 60")->fetchAll(PDO::FETCH_COLUMN);
@@ -309,6 +314,7 @@ $boot = [
     'isAdmin' => $isAdmin,
     'drawers' => $drawersReady,
     'refunds' => $refundsReady,
+    'gate'    => $refundsReady && bcrf_admission_ready($pdo),
 ];
 ?><!DOCTYPE html>
 <html lang="en">
@@ -318,7 +324,7 @@ $boot = [
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self'; base-uri 'self'; form-action 'self'">
 <meta name="robots" content="noindex">
 <title>Register — <?= $h(bcrf_farm_name()) ?></title>
-<link rel="stylesheet" href="assets/register.css?v=4">
+<link rel="stylesheet" href="assets/register.css?v=5">
 </head>
 <body>
 <script type="application/json" id="regBoot"><?= json_encode($boot, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
@@ -327,6 +333,7 @@ $boot = [
   <header class="top">
     <a class="back" href="/admin/admin.php">← Console</a>
     <div class="today" id="today" aria-live="polite">Today: …</div>
+    <?php if ($refundsReady && bcrf_admission_ready($pdo)): ?><a class="drawerbtn" href="gate.php">Gate</a><?php endif; ?>
     <button type="button" class="drawerbtn" id="btnSales" hidden>Sales</button>
     <button type="button" class="drawerbtn" id="btnDrawer" hidden>Drawer</button>
     <div class="who"><?= $h($me) ?><?php if ($isAdmin): ?> · <a href="register.php?view=tax">Tax</a><?php endif; ?></div>
@@ -419,6 +426,10 @@ $boot = [
     <button type="button" class="btn primary big" id="btnComplete">Complete sale</button>
   </div>
   <div class="status" id="saveStatus" hidden role="status"></div>
+  <div class="capbox" id="capBox" hidden>
+    <label>Reason to let them in anyway<input type="text" id="capReason" maxlength="255" autocomplete="off" placeholder="e.g. short visit, family already inside"></label>
+    <button type="button" class="btn danger big" id="btnCapOverride">Override and complete sale</button>
+  </div>
   <button type="button" class="btn big" id="btnRetry" hidden>Retry saving</button>
   <button type="button" class="link" id="payClose">Back to cart</button>
 </dialog>
@@ -533,6 +544,6 @@ $boot = [
 <!-- Printed receipt (only visible when printing) -->
 <section id="receipt" class="receipt" aria-hidden="true"></section>
 
-<script src="assets/register.js?v=4"></script>
+<script src="assets/register.js?v=5"></script>
 </body>
 </html>
