@@ -7,6 +7,8 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
  *   3. Uptime: the two URLs UptimeRobot should watch
  *   4. Farm OS runner + job queue (includes/queue.php, admin/cron/run.php): counts, jobs that gave up
  *      (retry / discard), recent events, and the switch that lets the runner start the scheduled jobs
+ *   5. Image tools (Nov 2026, Pinterest pre-work): GD / FreeType / JPEG / WebP / Imagick, memory limit,
+ *      brand fonts in includes/fonts/, and a test render of a 1000 x 1500 JPEG with text
  */
 require_once '../config.php';
 check_admin();
@@ -103,6 +105,50 @@ $local = function (?string $utc): string {
     $d = new DateTime($utc, new DateTimeZone('UTC')); $d->setTimezone(new DateTimeZone(date_default_timezone_get()));   // farm time zone (set above)
     return $d->format('M j, g:i A');
 };
+
+// ── Image tools (read-only checks for generated social images) ──────────────────────────────────────
+$imgTools = (function (): array {
+    $gd  = function_exists('gd_info') ? gd_info() : [];
+    $dir = dirname(__DIR__) . '/includes/fonts';
+    $files = is_dir($dir) ? (glob($dir . '/*.{ttf,otf,TTF,OTF}', GLOB_BRACE) ?: []) : [];
+    $norm  = fn($f) => strtolower(preg_replace('/[^a-z0-9]/i', '', basename($f)));
+    $want  = ['Young Serif (headings)' => 'youngserif', 'Lora (body)' => 'lora', 'Nothing You Could Do (script)' => 'nothingyoucoulddo'];
+    $fonts = [];
+    foreach ($want as $label => $key) {
+        $hit = null;
+        foreach ($files as $f) if (str_starts_with($norm($f), $key)) { $hit = basename($f); break; }
+        $fonts[$label] = $hit;
+    }
+    $ttf  = function_exists('imagettftext') && !empty($gd['FreeType Support']);
+    $test = ['ok' => false, 'msg' => 'Skipped: needs FreeType and at least one brand font.', 'ms' => null, 'kb' => null];
+    $font = null;
+    foreach ($files as $f) { $font = $f; break; }
+    if ($ttf && $font && function_exists('imagejpeg')) {
+        try {
+            $t0 = microtime(true);
+            $im = imagecreatetruecolor(1000, 1500);
+            imagefill($im, 0, 0, imagecolorallocate($im, 0xF7, 0xF1, 0xE3));
+            $box = imagettftext($im, 64, 0, 80, 300, imagecolorallocate($im, 0x3E, 0x2A, 0x1E), $font, 'Bat Cave Road Farm');
+            ob_start(); $ok = imagejpeg($im, null, 85); $jpg = (string)ob_get_clean();
+            unset($im);
+            $test = ['ok' => $ok && $box !== false && strlen($jpg) > 0, 'msg' => ($ok && $box !== false) ? 'Rendered a 1000 × 1500 JPEG with text using ' . basename($font) . '.' : 'GD could not draw text with ' . basename($font) . '.',
+                     'ms' => (int)round((microtime(true) - $t0) * 1000), 'kb' => (int)round(strlen($jpg) / 1024)];
+        } catch (Throwable $e) {
+            $test = ['ok' => false, 'msg' => 'Test render failed: ' . $e->getMessage(), 'ms' => null, 'kb' => null];
+        }
+    }
+    return [
+        'gd'       => $gd ? (string)($gd['GD Version'] ?? 'yes') : null,
+        'freetype' => $ttf,
+        'jpeg'     => !empty($gd['JPEG Support']),
+        'webp'     => !empty($gd['WebP Support']),
+        'imagick'  => extension_loaded('imagick'),
+        'memory'   => (string)ini_get('memory_limit'),
+        'fontdir'  => is_dir($dir),
+        'fonts'    => $fonts,
+        'test'     => $test,
+    ];
+})();
 ?><!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>System Health · BCRF Admin</title>
@@ -214,6 +260,22 @@ h1{font-size:1.35rem;margin:10px 0 4px}h2{font-size:1.05rem;margin:26px 0 8px}.s
   <div class="card"><div class="err"><span class="count">×<?= (int)$g['count'] ?></span><?= $h(mb_substr($g['msg'], 0, 600)) ?></div>
     <div class="meta">Last <?= $h(date('M j, g:i A', $g['last'])) ?> · first <?= $h(date('M j, g:i A', $g['first'])) ?> · <code><?= $h($g['file']) ?></code></div></div>
 <?php endforeach; ?>
+
+<h2 id="images">Image tools</h2>
+<p class="sub">What the server can use to make social images (Pinterest 1000 × 1500 JPEGs).</p>
+<div class="card meta" style="font-size:.88rem;line-height:1.8">
+  <?php $yn = fn($b) => $b ? '<strong style="color:#2f5a22">Yes</strong>' : '<strong style="color:#8b2018">No</strong>'; ?>
+  GD: <?= $imgTools['gd'] ? '<strong style="color:#2f5a22">' . $h($imgTools['gd']) . '</strong>' : $yn(false) ?>
+  · Text on images (FreeType): <?= $yn($imgTools['freetype']) ?>
+  · JPEG: <?= $yn($imgTools['jpeg']) ?> · WebP: <?= $yn($imgTools['webp']) ?>
+  · Imagick: <?= $yn($imgTools['imagick']) ?> · Memory limit: <code><?= $h($imgTools['memory']) ?></code><br>
+  <strong>Brand fonts</strong> (<code>includes/fonts/</code><?= $imgTools['fontdir'] ? '' : ', folder not created yet' ?>):<br>
+  <?php foreach ($imgTools['fonts'] as $label => $file): ?>
+    <?= $h($label) ?>: <?= $file ? '<strong style="color:#2f5a22">' . $h($file) . '</strong>' : '<span style="color:#8b2018">missing</span>' ?><br>
+  <?php endforeach; ?>
+  <strong>Test render:</strong> <span style="color:<?= $imgTools['test']['ok'] ? '#2f5a22' : '#7a5200' ?>"><?= $h($imgTools['test']['msg']) ?></span>
+  <?php if ($imgTools['test']['ms'] !== null): ?> (<?= (int)$imgTools['test']['ms'] ?> ms, <?= (int)$imgTools['test']['kb'] ?> KB)<?php endif; ?>
+</div>
 
 <h2>Uptime checks (UptimeRobot)</h2>
 <div class="card meta" style="font-size:.88rem">
