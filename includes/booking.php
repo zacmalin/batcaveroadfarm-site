@@ -248,13 +248,20 @@ function _booking_cancel_url(array $b): string {
     return (bcrf_farm_url() . '/cancel-booking.php?id=') . (int)$b['id'] . '&t=' . rawurlencode($b['token']);
 }
 
+/** NC liability warnings (G.S. 99E-32 / 99E-8) for customer booking emails (Nov 6, 2026). */
+function _booking_nc_warning(): string {
+    require_once __DIR__ . '/nc_warning.php';
+    return bcrf_nc_warning_email_html();
+}
+
 /** Acknowledge a new request (status pending). */
 function booking_send_ack(array $b, ?array $type = null): bool {
     if (empty($b['email'])) return false;
     $inner = '<h1 style="font-family:Georgia,serif;color:#f5ead6;">We got your request 🐐</h1>'
         . '<p style="color:#e8d5b0;">Thanks, ' . htmlspecialchars($b['customer_name']) . "! We've received your booking request and will confirm by email shortly. Here's what you sent:</p>"
         . _booking_summary_html($b, $type)
-        . '<p style="color:#e8d5b0;">Nothing is reserved until we confirm. Questions? Just reply to this email.</p>';
+        . '<p style="color:#e8d5b0;">Nothing is reserved until we confirm. Questions? Just reply to this email.</p>'
+        . _booking_nc_warning();
     return _booking_mail($b['email'], 'Your booking request — Bat Cave Road Farm', $inner);
 }
 
@@ -264,7 +271,8 @@ function booking_send_confirmation(array $b, ?array $type = null): bool {
     $inner = '<h1 style="font-family:Georgia,serif;color:#f5ead6;">You\'re confirmed! 🎉</h1>'
         . '<p style="color:#e8d5b0;">See you soon, ' . htmlspecialchars($b['customer_name']) . '. Your booking is confirmed:</p>'
         . _booking_summary_html($b, $type)
-        . '<p style="color:#e8d5b0;">Need to cancel? <a style="color:#e8b84b;" href="' . _booking_cancel_url($b) . '">Cancel this booking</a>.</p>';
+        . '<p style="color:#e8d5b0;">Need to cancel? <a style="color:#e8b84b;" href="' . _booking_cancel_url($b) . '">Cancel this booking</a>.</p>'
+        . _booking_nc_warning();
     return _booking_mail($b['email'], 'Booking confirmed — Bat Cave Road Farm', $inner);
 }
 

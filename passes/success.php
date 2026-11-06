@@ -82,6 +82,7 @@ $active = $pass && $pass['status'] === 'active';
             Add this page to your phone's home screen for instant access.
         </p>
         <a class="cta-btn" href="/petting-zoo/">Plan your first visit →</a>
+        <?php require_once __DIR__ . '/../includes/nc_warning.php'; echo bcrf_nc_warning_html(); ?>
     </div>
     <?php else: ?>
     <div class="pass-success-card">

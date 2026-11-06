@@ -180,6 +180,8 @@ function bcrf_online_ticket_email(array $t): void {
         . '<p style="margin:0 0 18px;text-align:center"><a href="' . htmlspecialchars($url, ENT_QUOTES) . '" style="display:inline-block;background:#c9923a;color:#3b2010;font-family:Lora,Georgia,serif;font-weight:bold;text-decoration:none;padding:13px 28px;border-radius:8px">Show my ticket (QR code) →</a></p>'
         . '<p style="font-size:.9rem;margin:0 0 8px">Show the QR code at the gate. Your ticket is good for <strong>any day we\'re open</strong>' . ($exp ? ' until ' . $exp : '') . ', and your party can come in together or on different days.</p>'
         . '<p style="font-size:.85rem;color:rgba(245,234,214,.8);margin:0">Online tickets don\'t reserve a time. We limit how many guests are on the farm at once, so on a busy day you may wait a little. Groups of 6 or more, please book ahead. Tickets are non-refundable.</p>';
+    require_once __DIR__ . '/nc_warning.php';
+    $inner .= bcrf_nc_warning_email_html();   // G.S. 99E-32 / 99E-8: warnings in every written contract
     if (!bcf_send_mail($t['purchaser_email'], 'Your Bat Cave Road Farm tickets', $inner, ['subtitle' => 'Admission Tickets'])) {
         if (function_exists('bcrf_queue_push') && bcrf_queue_push('email.send', ['to' => $t['purchaser_email'], 'subject' => 'Your Bat Cave Road Farm tickets', 'html' => $inner, 'opts' => ['subtitle' => 'Admission Tickets']])) return;
         throw new RuntimeException('The mail server did not accept the ticket email.');

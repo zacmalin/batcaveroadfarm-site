@@ -101,6 +101,8 @@ if ($passId > 0) {
                 . '<p style="margin:0 0 12px">Valid until <strong>' . date('F j, Y', strtotime($pass['valid_until'])) . '</strong></p>'
                 . '<p style="margin:0 0 18px;text-align:center"><a href="' . htmlspecialchars($verifyUrl, ENT_QUOTES) . '" style="display:inline-block;background:#c9923a;color:#3b2010;font-family:Lora,Georgia,serif;font-weight:bold;text-decoration:none;padding:13px 28px;border-radius:8px">View My Pass →</a></p>'
                 . '<p style="font-size:.85rem;color:rgba(245,234,214,.8)">Bookmark this link or screenshot the QR code. Show it to staff at the gate. We can\'t wait to see you at the farm!</p>';
+            require_once __DIR__ . '/../../includes/nc_warning.php';
+            $inner .= bcrf_nc_warning_email_html();   // G.S. 99E-32 / 99E-8
             @bcf_send_mail($pass['email'], 'Your Bat Cave Road Farm annual pass is active!', $inner, ['subtitle' => 'Annual Pass']);
         }
 

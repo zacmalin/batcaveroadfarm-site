@@ -67,6 +67,7 @@ $expired = $t && $t['expires_at'] && strtotime($t['expires_at'] . ' UTC') < time
       <a class="cta-btn" href="/tickets/">Buy more tickets</a>
     <?php endif; ?>
   <?php endif; ?>
+  <?php if ($state === 'ok'): require_once __DIR__ . '/../includes/nc_warning.php'; echo bcrf_nc_warning_html(); endif; ?>
   </div>
 </div>
 <?php require '../includes/footer.php'; ?>
