@@ -7,7 +7,7 @@
  *   bcrf_drawer_close($pdo, $sessionId, $counts, $note)        count by denomination; variance checked
  *   bcrf_drawer_summary($pdo, $sessionId)                      everything the drawer report shows
  *
- * Expected cash = float + cash taken on sales − cash refunds (none until refunds are built) + paid in
+ * Expected cash = float + cash taken on sales − cash refunds (includes/refunds.php, slice 3) + paid in
  * − paid out − drops. Variance = counted − expected. A variance bigger than the threshold (Settings
  * drawer_variance_threshold_cents, default $5) needs a note and an Owner or Manager (05 › Cash drawer).
  * Closing locks the session row, and so does every sale (includes/sales.php), so no sale can land in a
@@ -109,7 +109,17 @@ function bcrf_drawer_expected(PDO $pdo, array $session): int {
     $st = $pdo->prepare("SELECT type, COALESCE(SUM(amount_cents), 0) FROM cash_movements WHERE drawer_session_id = ? GROUP BY type");
     $st->execute([$sid]);
     $mv = $st->fetchAll(PDO::FETCH_KEY_PAIR);
-    return (int)$session['opening_float_cents'] + $cash + (int)($mv['paid_in'] ?? 0) - (int)($mv['paid_out'] ?? 0) - (int)($mv['drop'] ?? 0);
+    return (int)$session['opening_float_cents'] + $cash - bcrf_drawer_cash_refunds($pdo, $sid)
+         + (int)($mv['paid_in'] ?? 0) - (int)($mv['paid_out'] ?? 0) - (int)($mv['drop'] ?? 0);
+}
+
+/** Cash paid out of this drawer for refunds (0 until migration 0011). */
+function bcrf_drawer_cash_refunds(PDO $pdo, int $sid): int {
+    if (!function_exists('bcrf_refunds_ready') || !bcrf_refunds_ready($pdo)) return 0;
+    $st = $pdo->prepare("SELECT COALESCE(SUM(rp.amount_cents), 0) FROM refund_payments rp JOIN refunds r ON r.id = rp.refund_id
+                         WHERE r.drawer_session_id = ? AND rp.tender = 'cash'");
+    $st->execute([$sid]);
+    return (int)$st->fetchColumn();
 }
 
 /** Everything the drawer screen and report need. */
@@ -150,6 +160,27 @@ function bcrf_drawer_summary(PDO $pdo, int $sessionId): ?array {
                   'payer' => (string)$p['payer_handle'], 'reference' => (string)$p['reference'], 'time' => bcrf_local_time($p['created_at'])];
     }
 
+    // Refunds paid from this drawer, and sales rung on it that were voided (slice 3)
+    $refunds = []; $voids = [];
+    if (function_exists('bcrf_refunds_ready') && bcrf_refunds_ready($pdo)) {
+        $st = $pdo->prepare("SELECT r.id, r.refund_number, r.total_cents, r.reason, r.created_at, r.created_by, s.sale_number,
+                                    (SELECT GROUP_CONCAT(CONCAT(rp.tender, ':', rp.amount_cents)) FROM refund_payments rp WHERE rp.refund_id = r.id) AS pays
+                             FROM refunds r JOIN sales s ON s.id = r.sale_id WHERE r.drawer_session_id = ? ORDER BY r.id");
+        $st->execute([$sessionId]);
+        foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $pays = [];
+            foreach (array_filter(explode(',', (string)$r['pays'])) as $pp) { [$t, $c] = explode(':', $pp); $pays[$t] = ($pays[$t] ?? 0) + (int)$c; }
+            $refunds[] = ['refund_number' => $r['refund_number'], 'sale_number' => $r['sale_number'], 'total_cents' => (int)$r['total_cents'],
+                          'reason' => $r['reason'], 'time' => bcrf_local_time($r['created_at']), 'by' => bcrf_staff_name($pdo, $r['created_by']), 'payments' => $pays];
+        }
+        $st = $pdo->prepare("SELECT sale_number, total_cents, void_reason, voided_at, voided_by FROM sales WHERE drawer_session_id = ? AND status = 'voided' ORDER BY id");
+        $st->execute([$sessionId]);
+        foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $v) {
+            $voids[] = ['sale_number' => $v['sale_number'], 'total_cents' => (int)$v['total_cents'], 'reason' => (string)$v['void_reason'],
+                        'time' => bcrf_local_time($v['voided_at']), 'by' => bcrf_staff_name($pdo, $v['voided_by'])];
+        }
+    }
+
     $open = $d['status'] === 'open';
     $expected = $open ? bcrf_drawer_expected($pdo, $d) : (int)$d['expected_cash_cents'];
     return [
@@ -162,7 +193,9 @@ function bcrf_drawer_summary(PDO $pdo, int $sessionId): ?array {
         'paid_in_cents'  => array_sum(array_map(fn($m) => $m['type'] === 'paid_in'  ? $m['amount_cents'] : 0, $moves)),
         'paid_out_cents' => array_sum(array_map(fn($m) => $m['type'] === 'paid_out' ? $m['amount_cents'] : 0, $moves)),
         'drops_cents'    => array_sum(array_map(fn($m) => $m['type'] === 'drop'     ? $m['amount_cents'] : 0, $moves)),
-        'refunds_cents' => 0, 'voids' => 0,   // refunds and voids arrive in the next slice
+        'refunds_cents' => bcrf_drawer_cash_refunds($pdo, $sessionId),   // cash only (what left the drawer)
+        'refunds_total_cents' => array_sum(array_column($refunds, 'total_cents')),
+        'refunds' => $refunds, 'voids' => $voids, 'voids_total_cents' => array_sum(array_column($voids, 'total_cents')),
         'expected_cents' => $expected,
         'counted_cents'  => $open ? null : (int)$d['counted_cash_cents'],
         'variance_cents' => $open ? null : (int)$d['variance_cents'],

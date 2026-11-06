@@ -5,6 +5,7 @@
 // the cart, payments and save code stay in this browser (localStorage) and Retry sends the same save
 // code, so a double tap or a dropped connection can never make two sales.
 // Slice 2 (Nov 6): cash drawers. Each device remembers its register; sales need that register's drawer open.
+// Slice 3 (Nov 6): Sales screen: find a sale, reprint, refund by line, or void it (includes/refunds.php).
 (function () {
   'use strict';
   var BOOT = JSON.parse(document.getElementById('regBoot').textContent);
@@ -244,11 +245,18 @@
     if (!S.cart.length) return;
     confirmBox('Clear this sale?', 'Removes every item and payment. Nothing has been saved yet.', clearSale);
   });
-  function confirmBox(title, text, yes) {
+  // confirmBox(title, text, yes [, askReason]): with askReason the box asks for a reason and passes it to yes(reason).
+  function confirmBox(title, text, yes, askReason) {
     $('confTitle').textContent = title; $('confText').textContent = text;
-    $('confYes').onclick = function () { $('dlgConfirm').close(); yes(); };
+    $('confReasonWrap').hidden = !askReason; $('confReason').value = ''; $('confErr').hidden = true;
+    $('confYes').onclick = function () {
+      var r = $('confReason').value.trim();
+      if (askReason && !r) { $('confErr').textContent = 'Give a reason.'; $('confErr').hidden = false; return; }
+      $('dlgConfirm').close(); yes(r);
+    };
     $('confNo').onclick = function () { $('dlgConfirm').close(); };
     $('dlgConfirm').showModal();
+    if (askReason) $('confReason').focus();
   }
 
   // ── cart sheet on phones ─────────────────────────────────────────────────
@@ -475,6 +483,8 @@
         .concat([el('tr', { class: 'b' }, [el('td', { text: 'TOTAL' }), el('td', { class: 'r', text: money(s.total_cents) })])])),
       el('hr'),
       el('table', {}, pays),
+      s.status === 'voided' ? el('div', { class: 'note', text: 'VOIDED' + (s.voided_local ? ' ' + s.voided_local : '') }) : null,
+      (s.refunds && s.refunds.length) ? el('table', {}, s.refunds.map(function (r) { return el('tr', {}, [el('td', { text: 'Refund ' + r.refund_number + ' ' + r.when }), el('td', { class: 'r', text: money(-r.total_cents) })]); })) : null,
       thrift ? el('div', { class: 'note', text: 'Thrift shop items are sold as-is.' }) : null,
       f.policy ? el('p', { class: 'c', text: f.policy }) : null,
       el('p', { class: 'c', text: 'Thank you! ' + f.domain })
@@ -512,6 +522,7 @@
   function renderDrawer() {
     var b = $('btnDrawer'), d = S.drawer;
     b.hidden = false;
+    $('btnSales').hidden = !BOOT.refunds;
     b.textContent = d ? 'Drawer open' : 'Drawer closed';
     b.classList.toggle('closed', !d);
     $('drawerBanner').hidden = !!d;
@@ -618,6 +629,155 @@
       S.drawer = j.session; renderDrawer(); flash('Drawer open with ' + money(j.session.float_cents));
     }, function () { $('cnOk').disabled = false; err('No connection. Try again.'); });
   });
+
+  // ── sales screen: reprint, refund, void ─────────────────────────────────
+  function openSales(q) {
+    $('salesHint').textContent = q ? 'Search: ' + q : 'Today on this register. Tap a sale to reprint, refund or void it.';
+    $('salesList').replaceChildren(el('li', { class: 'muted', text: 'Loading…' }));
+    if (!$('dlgSales').open) $('dlgSales').showModal();
+    api('sales&register_id=' + (S.regId || 0) + (q ? '&q=' + encodeURIComponent(q) : '')).then(function (j) {
+      if (!j.ok) { $('salesList').replaceChildren(el('li', { class: 'err', text: j.message })); return; }
+      if (!j.sales.length) { $('salesList').replaceChildren(el('li', { class: 'muted', text: q ? 'No sale with that number.' : 'No sales yet today.' })); return; }
+      $('salesList').replaceChildren.apply($('salesList'), j.sales.map(function (x) {
+        var tag = x.status === 'voided' ? 'voided' : x.status === 'refunded' ? 'refunded' : x.status === 'partially_refunded' ? 'part refunded' : '';
+        return el('li', {}, [el('button', { type: 'button', onclick: function () { openSale(x.id); } }, [
+          el('span', {}, [el('b', { text: x.sale_number }), el('br'), el('small', { text: x.time + ' · ' + x.lines + (x.lines === 1 ? ' item · ' : ' items · ') + x.tenders.split(',').map(function (t) { return BOOT.tenders[t] || t; }).join(' + ') })]),
+          el('span', { class: 'amt' + (tag ? ' off' : '') }, [money(x.total_cents), tag ? el('br') : null, tag ? el('small', { text: tag }) : null])
+        ])]);
+      }));
+    }, function () { $('salesList').replaceChildren(el('li', { class: 'err', text: 'No connection. Try again.' })); });
+  }
+  $('btnSales').addEventListener('click', function () { $('salesQ').value = ''; openSales(''); });
+  $('formSalesFind').addEventListener('submit', function (e) { e.preventDefault(); openSales($('salesQ').value.trim()); });
+  $('salesClose').addEventListener('click', function () { $('dlgSales').close(); });
+
+  S.cur = null;
+  function openSale(id) {
+    api('sale&id=' + id).then(function (j) {
+      if (!j.ok) return flash(j.message);
+      S.cur = j.sale; S.refundRule = { threshold: j.refund_threshold_cents, canApprove: j.can_approve };
+      renderSale();
+      if ($('dlgSales').open) $('dlgSales').close();
+      if (!$('dlgSale').open) $('dlgSale').showModal();
+    }, function () { flash('No connection. Try again.'); });
+  }
+  function renderSale() {
+    var s = S.cur;
+    $('sdTitle').textContent = s.sale_number;
+    $('sdMeta').textContent = s.completed_local + ' · ' + s.payments.map(function (p) { return (BOOT.tenders[p.tender] || p.tender) + ' ' + money(p.amount_cents); }).join(' + ');
+    $('sdVoided').hidden = s.status !== 'voided';
+    $('sdVoided').textContent = 'Voided ' + (s.voided_local || '') + (s.voided_by_name ? ' by ' + s.voided_by_name : '') + (s.void_reason ? ': ' + s.void_reason : '');
+    $('sdLines').replaceChildren.apply($('sdLines'), s.lines.map(function (l) {
+      var q = parseFloat(l.quantity), each = l.unit === 'each';
+      return el('tr', {}, [el('td', {}, [l.description, el('br'), el('small', { class: 'muted', text: qtyText(q) + (each ? ' × ' : ' ' + l.unit + ' × ') + money(l.unit_price_cents) + (l.refunded_quantity > 0 ? ' · ' + qtyText(l.refunded_quantity) + ' refunded' : '') })]),
+                           el('td', { class: 'r', text: money(l.line_total_cents) })]);
+    }));
+    var rows = [['Subtotal', s.subtotal_cents]];
+    if (s.discount_cents) rows.push(['Discount', -s.discount_cents]);
+    rows.push(['Tax', s.tax_cents], ['Total', s.total_cents]);
+    if (s.refunded_cents) rows.push(['Refunded', -s.refunded_cents]);
+    $('sdTotals').replaceChildren.apply($('sdTotals'), rows.map(function (r) { return el('div', { class: r[0] === 'Total' ? 'grand' : '' }, [el('dt', { text: r[0] }), el('dd', { text: money(r[1]) })]); }));
+    $('sdRefunds').replaceChildren.apply($('sdRefunds'), s.refunds.map(function (r) {
+      return el('p', { class: 'muted' }, ['Refund ' + r.refund_number + ' · ' + r.when + ' · ' + r.by + ' · ' + money(r.total_cents) + ' (' +
+        r.payments.map(function (p) { return (BOOT.tenders[p.tender] || p.tender) + ' ' + money(p.amount_cents); }).join(', ') + '): ' + r.reason]);
+    }));
+    $('sdRefund').disabled = s.refundable_cents <= 0;
+    $('sdVoid').disabled = !!s.void_blocker;
+    $('sdVoidWhy').hidden = !s.void_blocker || s.status === 'voided';
+    $('sdVoidWhy').textContent = s.void_blocker || '';
+  }
+  $('sdBack').addEventListener('click', function () { $('dlgSale').close(); openSales($('salesQ').value.trim()); });
+  $('sdPrint').addEventListener('click', function () { if (S.cur) printReceipt(S.cur); });
+  $('sdVoid').addEventListener('click', function () {
+    var s = S.cur;
+    confirmBox('Void ' + s.sale_number + '?', 'Cancels the whole sale (' + money(s.total_cents) + ') and puts the items back in stock.' +
+      (s.payments.some(function (p) { return p.tender !== 'cash'; }) ? ' Money paid by app or check has to be given back there.' : ' Give the cash back from the drawer.'), function (reason) {
+      post('void', { sale_id: s.id, reason: reason }).then(function (j) {
+        if (!j.ok) return flash(j.message);
+        S.cur = j.sale; renderSale(); flash('Voided'); loadDrawer(); loadToday(); loadCatalog(true);
+      }, function () { flash('No connection. Try again.'); });
+    }, true);
+  });
+
+  // Refund: pick quantities → server works out the money → confirm
+  var rfQuote = null;
+  function rfReset() { rfQuote = null; $('rfMoney').hidden = true; $('rfOk').textContent = 'Work out refund'; $('rfStatus').hidden = true; }
+  $('sdRefund').addEventListener('click', function () {
+    var s = S.cur; S.refundKey = newKey(); rfReset();
+    $('rfTitle').textContent = 'Refund on ' + s.sale_number;
+    $('rfReason').value = ''; $('rfErr').hidden = true;
+    $('rfLines').replaceChildren.apply($('rfLines'), s.lines.filter(function (l) { return l.remaining_quantity > 0; }).map(function (l) {
+      var inp = el('input', { type: 'number', inputmode: 'decimal', min: '0', max: String(l.remaining_quantity), step: 'any', value: '0', 'data-id': l.id, 'aria-label': 'How many ' + l.description, oninput: rfReset });
+      var chk = l.stockable ? el('input', { type: 'checkbox', checked: true, 'data-restock': l.id, onchange: rfReset }) : null;
+      return el('div', { class: 'rfline' }, [
+        el('div', {}, [el('b', { text: l.description }), el('br'), el('small', { class: 'muted', text: qtyText(l.remaining_quantity) + ' left to refund · ' + money(l.remaining_cents) })]),
+        el('div', { class: 'rfq' }, [inp, el('button', { type: 'button', class: 'btn sm', text: 'All', onclick: function () { inp.value = qtyText(l.remaining_quantity); rfReset(); } })]),
+        chk ? el('label', { class: 'check' }, [chk, ' Back in stock (untick if damaged)']) : el('small', { class: 'muted', text: 'Not a stocked item' })
+      ]);
+    }));
+    $('dlgSale').close(); $('dlgRefund').showModal();
+  });
+  $('rfReason').addEventListener('input', function () { $('rfErr').hidden = true; });
+  $('rfCancel').addEventListener('click', function () { $('dlgRefund').close(); $('dlgSale').showModal(); });
+  function rfLines() {
+    return Array.prototype.map.call($('rfLines').querySelectorAll('input[data-id]'), function (i) {
+      var c = $('rfLines').querySelector('input[data-restock="' + i.dataset.id + '"]');
+      return { sale_line_id: +i.dataset.id, qty: parseFloat(i.value) || 0, restock: c ? c.checked : false };
+    }).filter(function (x) { return x.qty > 0; });
+  }
+  function rfErr(m) { $('rfErr').textContent = m; $('rfErr').hidden = false; }
+  $('rfOk').addEventListener('click', function () {
+    var lines = rfLines(), reason = $('rfReason').value.trim();
+    if (!lines.length) return rfErr('Enter how many of an item to refund.');
+    if (!reason) return rfErr('Give a reason for the refund.');
+    if (!rfQuote) {
+      post('refund_quote', { sale_id: S.cur.id, lines: lines }).then(function (j) {
+        if (!j.ok) return rfErr(j.message);
+        rfQuote = j.quote; showRefundMoney();
+      }, function () { rfErr('No connection. Try again.'); });
+      return;
+    }
+    var pays = Array.prototype.map.call($('rfPays').querySelectorAll('.rfpay'), function (row) {
+      var a = row.querySelector('input[data-amt]'), r = row.querySelector('input[data-ref]');
+      return { tender: row.dataset.t, amount_cents: cents(a.value) || 0, reference: r ? r.value.trim() : null };
+    }).filter(function (p) { return p.amount_cents > 0; });
+    var sum = pays.reduce(function (s, p) { return s + p.amount_cents; }, 0);
+    if (sum !== rfQuote.total) return rfErr('The amounts add up to ' + money(sum) + ' but the refund is ' + money(rfQuote.total) + '.');
+    confirmBox('Refund ' + money(rfQuote.total) + '?', pays.map(function (p) { return (BOOT.tenders[p.tender] || p.tender) + ' ' + money(p.amount_cents); }).join(', ') + '. This can\'t be undone.', function () {
+      $('rfOk').disabled = true; $('rfStatus').className = 'status saving'; $('rfStatus').textContent = 'Saving refund… (not saved yet)'; $('rfStatus').hidden = false;
+      post('refund', { idempotency_key: S.refundKey, sale_id: S.cur.id, register_id: S.regId, reason: reason, lines: lines, payments: pays }).then(function (j) {
+        $('rfOk').disabled = false;
+        if (!j.ok) { $('rfStatus').className = 'status bad'; $('rfStatus').textContent = 'Not saved: ' + j.message; return; }
+        var cash = pays.filter(function (p) { return p.tender === 'cash'; }).reduce(function (s, p) { return s + p.amount_cents; }, 0);
+        $('dlgRefund').close(); S.cur = j.sale; renderSale(); $('dlgSale').showModal();
+        flash('Refund ' + j.refund_number + ' saved' + (cash ? ': give back ' + money(cash) + ' cash' : ''));
+        loadDrawer(); loadCatalog(true);
+      }, function () { $('rfOk').disabled = false; $('rfStatus').className = 'status bad'; $('rfStatus').textContent = 'Not saved: no connection. Tap Refund again (it won\'t refund twice).'; });
+    });
+  });
+  function showRefundMoney() {
+    var q = rfQuote;
+    $('rfTotals').replaceChildren(
+      el('div', {}, [el('dt', { text: 'Items' }), el('dd', { text: money(q.net) })]),
+      el('div', {}, [el('dt', { text: 'Tax' }), el('dd', { text: money(q.tax) })]),
+      el('div', { class: 'grand' }, [el('dt', { text: 'Refund' }), el('dd', { text: money(q.total) })]));
+    var sug = {}; q.suggested.forEach(function (p) { sug[p.tender] = p.amount_cents; });
+    var tenders = Object.keys(q.tender_left).filter(function (t) { return q.tender_left[t] > 0; });
+    if (tenders.indexOf('cash') < 0) tenders.push('cash');
+    $('rfPays').replaceChildren.apply($('rfPays'), tenders.map(function (t) {
+      var p2p = t === 'paypal' || t === 'venmo' || t === 'cashapp';
+      return el('div', { class: 'rfpay', 'data-t': t }, [
+        el('label', {}, [(BOOT.tenders[t] || t) + (t !== 'cash' ? ' (up to ' + money(q.tender_left[t]) + ')' : ''),
+          el('input', { type: 'number', inputmode: 'decimal', step: '0.01', min: '0', 'data-amt': t, value: sug[t] ? (sug[t] / 100).toFixed(2) : '' })]),
+        (p2p || t === 'check') ? el('label', {}, [p2p ? 'Refund transaction ID (last characters), after sending it in ' + BOOT.tenders[t] : 'Check number (optional)',
+          el('input', { type: 'text', 'data-ref': t, maxlength: '80', autocomplete: 'off' })]) : null
+      ]);
+    }));
+    $('rfApproval').hidden = !q.needs_approval;
+    $('rfApproval').textContent = q.needs_approval ? (q.can_approve ? 'Over ' + money(q.threshold_cents) + ': you are approving this refund.' : 'Over ' + money(q.threshold_cents) + ': an Owner or Manager has to do this refund.') : '';
+    $('rfMoney').hidden = false;
+    $('rfOk').textContent = 'Refund ' + money(q.total);
+  }
 
   // ── today's total ────────────────────────────────────────────────────────
   function loadToday() {

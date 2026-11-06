@@ -12,6 +12,10 @@
 //   GET  register.php?api=drawer&register_id=N   registers + the open drawer's summary
 //   POST register.php?api=drawer_open | drawer_move | drawer_close   (JSON, X-CSRF-Token)
 //   GET  register.php?view=drawer&id=N            printable drawer report;  ?view=drawers  recent drawers
+// Slice 3 (Nov 6, 2026), refunds and voids (includes/refunds.php):
+//   GET  register.php?api=sales&register_id=N[&q=R-2026-000012]   today's sales, or one by number
+//   GET  register.php?api=sale&id=N                               one sale with refund/void state
+//   POST register.php?api=refund_quote | refund | void            (JSON, X-CSRF-Token)
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
 check_admin();
@@ -23,6 +27,7 @@ require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/queue.php';
 require_once __DIR__ . '/../includes/sales.php';
 require_once __DIR__ . '/../includes/drawers.php';
+require_once __DIR__ . '/../includes/refunds.php';
 require_once __DIR__ . '/../includes/site_info.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -31,6 +36,7 @@ $csrf    = $_SESSION['csrf_token'];
 $isAdmin = ($_SESSION['user_role'] ?? '') === 'administrator';
 $ready   = bcrf_sales_ready($pdo);
 $drawersReady = $ready && bcrf_drawers_ready($pdo);
+$refundsReady = $drawersReady && bcrf_refunds_ready($pdo);
 $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
 
 // ── JSON API ──────────────────────────────────────────────────────────────────
@@ -122,6 +128,33 @@ if ($api !== '') {
             $out(500, ['ok' => false, 'message' => 'The server could not save that. Try again.']);
         }
     }
+    // ── Sales list, refunds, voids ──
+    if (in_array($api, ['sales', 'sale', 'refund_quote', 'refund', 'void'], true)) {
+        if (!$refundsReady) $out(503, ['ok' => false, 'message' => 'Refunds and voids are waiting for migration 0011 (Settings › Database).']);
+        if ($api === 'sales') $out(200, ['ok' => true, 'sales' => bcrf_sales_list($pdo, (int)($_GET['register_id'] ?? 0), trim((string)($_GET['q'] ?? '')))]);
+        if ($api === 'sale') {
+            $d = bcrf_sale_detail($pdo, (int)($_GET['id'] ?? 0));
+            $d ? $out(200, ['ok' => true, 'sale' => $d, 'refund_threshold_cents' => bcrf_refund_threshold($pdo), 'can_approve' => bcrf_is_approver()])
+               : $out(404, ['ok' => false, 'message' => 'Sale not found.']);
+        }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') $out(405, ['ok' => false, 'message' => 'POST only.']);
+        if (!hash_equals($csrf, (string)($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''))) $out(403, ['ok' => false, 'message' => 'Your session expired. Reload the register.']);
+        $in = json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($in)) $out(400, ['ok' => false, 'message' => 'The request could not be read. Try again.']);
+        try {
+            if ($api === 'refund_quote') $out(200, ['ok' => true, 'quote' => bcrf_refund_quote($pdo, (int)($in['sale_id'] ?? 0), (array)($in['lines'] ?? []))]);
+            if ($api === 'refund') {
+                $r = bcrf_refund_complete($pdo, $in);
+                $out(200, ['ok' => true] + $r);
+            }
+            $out(200, ['ok' => true, 'sale' => bcrf_sale_void($pdo, (int)($in['sale_id'] ?? 0), (string)($in['reason'] ?? ''))]);
+        } catch (BcrfSaleError $e) {
+            $out(422, ['ok' => false, 'message' => $e->getMessage()]);
+        } catch (Throwable $e) {
+            error_log('[register] ' . $api . ': ' . $e->getMessage());
+            $out(500, ['ok' => false, 'message' => 'The server could not save that. Nothing was changed; try again.']);
+        }
+    }
     $out(404, ['ok' => false, 'message' => 'Unknown request.']);
 }
 
@@ -152,7 +185,7 @@ if ($view === 'tax') {
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self'; base-uri 'self'; form-action 'self'">
 <title>Tax rates — Register</title><meta name="robots" content="noindex">
-<link rel="stylesheet" href="assets/register.css?v=3"></head>
+<link rel="stylesheet" href="assets/register.css?v=4"></head>
 <body class="page"><main class="narrow">
 <p><a href="register.php">← Register</a></p>
 <h1>Tax rates</h1>
@@ -179,7 +212,7 @@ if ($view === 'drawer' || $view === 'drawers') {
     $tenders = bcrf_tenders();
     $head = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
           . '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">'
-          . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=3">';
+          . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=4">';
     if (!$drawersReady) { echo $head, '<title>Drawers</title></head><body class="page"><main class="narrow"><p class="flash err">Run migration 0010 in Settings › Database first.</p></main></body></html>'; exit; }
     if ($view === 'drawers') {
         $rows = $pdo->query("SELECT d.id FROM drawer_sessions d ORDER BY d.opened_at DESC LIMIT 60")->fetchAll(PDO::FETCH_COLUMN);
@@ -222,12 +255,25 @@ if ($view === 'drawer' || $view === 'drawers') {
         foreach (bcrf_denominations() as $c => $label) if (!empty($d['closing_count'][$c])) echo $row($label . ' × ' . (int)$d['closing_count'][$c], $m($c * (int)$d['closing_count'][$c]));
         echo '</table>';
     }
+    $rt = (int)($d['refunds_total_cents'] ?? 0);
     echo '<h2>Sales</h2><table class="rt">', $row('Sales', (int)$d['sales']['n']), $row('Before discounts', $m($d['sales']['sub'])),
-         $row('Discounts', $m(-$d['sales']['disc'])), $row('Tax', $m($d['sales']['tax'])), $row('Total', $m($d['sales']['tot']), 'b'), '</table>';
+         $row('Discounts', $m(-$d['sales']['disc'])), $row('Tax', $m($d['sales']['tax'])), $row('Total', $m($d['sales']['tot']), 'b'),
+         $rt ? $row('Refunds paid from this drawer', $m(-$rt)) . $row('Net', $m($d['sales']['tot'] - $rt), 'b') : '', '</table>';
     echo '<h2>By payment type</h2><table class="rt">';
     if (!$d['by_tender']) echo '<tr><td class="muted">No payments</td><td></td></tr>';
     foreach ($d['by_tender'] as $t => $x) echo $row($h($tenders[$t] ?? $t) . ' (' . $x['count'] . ')', $m($x['cents']));
-    echo '</table><h2>Refunds and voids</h2><p class="muted">None (refunds and voids come in the next update).</p>';
+    echo '</table><h2>Refunds, voids and discounts</h2>';
+    if (!$d['refunds'] && !$d['voids'] && !$d['sales']['disc']) echo '<p class="muted">None.</p>';
+    else {
+        echo '<table class="rt">';
+        foreach ($d['refunds'] as $r) {
+            $how = implode(', ', array_map(fn($t, $c) => ($tenders[$t] ?? $t) . ' ' . $m($c), array_keys($r['payments']), $r['payments']));
+            echo $row('Refund ' . $h($r['refund_number']) . ' on ' . $h($r['sale_number']) . ' · ' . $h($r['time']) . ' · ' . $h($r['by']) . '<br><small>' . $h($r['reason']) . ' · ' . $h($how) . '</small>', $m(-$r['total_cents']));
+        }
+        foreach ($d['voids'] as $v) echo $row('Void ' . $h($v['sale_number']) . ' · ' . $h($v['time']) . ' · ' . $h($v['by']) . '<br><small>' . $h($v['reason']) . '</small>', $m($v['total_cents']) . ' void');
+        if ($d['sales']['disc']) echo $row('Discounts given', $m(-$d['sales']['disc']));
+        echo '</table>';
+    }
     if ($d['movements']) {
         echo '<h2>Cash in and out</h2><table class="rt">';
         foreach ($d['movements'] as $mv) echo $row($h(bcrf_movement_types()[$mv['type']]) . ' · ' . $h($mv['time']) . ' · ' . $h($mv['by']) . '<br><small>' . $h($mv['reason']) . '</small>',
@@ -262,6 +308,7 @@ $boot = [
     'tenders' => bcrf_tenders(),
     'isAdmin' => $isAdmin,
     'drawers' => $drawersReady,
+    'refunds' => $refundsReady,
 ];
 ?><!DOCTYPE html>
 <html lang="en">
@@ -271,7 +318,7 @@ $boot = [
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self'; base-uri 'self'; form-action 'self'">
 <meta name="robots" content="noindex">
 <title>Register — <?= $h(bcrf_farm_name()) ?></title>
-<link rel="stylesheet" href="assets/register.css?v=3">
+<link rel="stylesheet" href="assets/register.css?v=4">
 </head>
 <body>
 <script type="application/json" id="regBoot"><?= json_encode($boot, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
@@ -280,6 +327,7 @@ $boot = [
   <header class="top">
     <a class="back" href="/admin/admin.php">← Console</a>
     <div class="today" id="today" aria-live="polite">Today: …</div>
+    <button type="button" class="drawerbtn" id="btnSales" hidden>Sales</button>
     <button type="button" class="drawerbtn" id="btnDrawer" hidden>Drawer</button>
     <div class="who"><?= $h($me) ?><?php if ($isAdmin): ?> · <a href="register.php?view=tax">Tax</a><?php endif; ?></div>
   </header>
@@ -393,6 +441,8 @@ $boot = [
 <dialog id="dlgConfirm" class="sheet">
   <h3 id="confTitle">Are you sure?</h3>
   <p id="confText"></p>
+  <label id="confReasonWrap" hidden>Reason<input type="text" id="confReason" maxlength="255" autocomplete="off"></label>
+  <p class="err" id="confErr" hidden></p>
   <div class="row"><button type="button" class="btn" id="confNo">Cancel</button><button type="button" class="btn danger" id="confYes">Yes</button></div>
 </dialog>
 
@@ -410,7 +460,7 @@ $boot = [
   <dl class="totals" id="drRows"></dl>
   <div class="tenders" id="drMoves"></div>
   <button type="button" class="btn primary big" id="btnCloseDrawer">Count and close drawer</button>
-  <p class="row"><a class="btn" id="drReport" href="#">Report so far</a><a class="btn" href="register.php?view=drawers">All drawers</a></p>
+  <p class="row wrap"><a class="btn" id="drReport" href="#">Report so far</a><a class="btn" href="register.php?view=drawers">All drawers</a><?php if ($isAdmin): ?><a class="btn" href="register.php?view=tax">Tax rates</a><?php endif; ?></p>
   <button type="button" class="link" id="drClose">Back</button>
 </dialog>
 
@@ -440,9 +490,49 @@ $boot = [
   </form>
 </dialog>
 
+<dialog id="dlgSales" class="sheet tall">
+  <h3>Sales</h3>
+  <form id="formSalesFind" class="find"><input type="search" id="salesQ" placeholder="Receipt number, e.g. R-2026-000012 or 12" autocomplete="off"><button class="btn">Find</button></form>
+  <p class="muted" id="salesHint">Today on this register. Tap a sale to reprint, refund or void it.</p>
+  <ul class="salelist" id="salesList"></ul>
+  <button type="button" class="link" id="salesClose">Close</button>
+</dialog>
+
+<dialog id="dlgSale" class="sheet tall">
+  <h3 id="sdTitle">Sale</h3>
+  <p class="muted" id="sdMeta"></p>
+  <p class="status bad" id="sdVoided" hidden></p>
+  <table class="rt" id="sdLines"></table>
+  <dl class="totals" id="sdTotals"></dl>
+  <div id="sdRefunds"></div>
+  <div class="row wrap">
+    <button type="button" class="btn" id="sdPrint">Print receipt</button>
+    <button type="button" class="btn" id="sdRefund">Refund</button>
+    <button type="button" class="btn danger" id="sdVoid">Void</button>
+  </div>
+  <p class="muted" id="sdVoidWhy" hidden></p>
+  <button type="button" class="link" id="sdBack">Back to sales</button>
+</dialog>
+
+<dialog id="dlgRefund" class="sheet tall">
+  <h3 id="rfTitle">Refund</h3>
+  <p class="muted">Choose how many of each item to refund, and whether it goes back on the shelf.</p>
+  <div id="rfLines"></div>
+  <label>Reason<input type="text" id="rfReason" maxlength="255" autocomplete="off" placeholder="e.g. jar cracked, changed mind"></label>
+  <div id="rfMoney" hidden>
+    <dl class="totals" id="rfTotals"></dl>
+    <p class="muted">How the money goes back (original payment first):</p>
+    <div id="rfPays"></div>
+    <p class="muted" id="rfApproval" hidden></p>
+  </div>
+  <p class="err" id="rfErr" hidden></p>
+  <div class="status" id="rfStatus" hidden role="status"></div>
+  <div class="row"><button type="button" class="btn" id="rfCancel">Cancel</button><button type="button" class="btn primary" id="rfOk">Work out refund</button></div>
+</dialog>
+
 <!-- Printed receipt (only visible when printing) -->
 <section id="receipt" class="receipt" aria-hidden="true"></section>
 
-<script src="assets/register.js?v=3"></script>
+<script src="assets/register.js?v=4"></script>
 </body>
 </html>
