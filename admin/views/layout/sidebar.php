@@ -67,7 +67,8 @@ $_sections = [
         ], 'match'=>['jobs_hire']],
     ]],
     'reports' => ['label'=>'Reports','icon'=>'📈','items'=>[
-        ['label'=>'Sales',   'icon'=>'💵','tabs'=>[['Sales','?view=sales_analytics','view','sales_analytics']]],
+        ['label'=>'Sales',   'icon'=>'💵','tabs'=>[['Sales','?view=sales_analytics','view','sales_analytics'],
+                                                   ['Daily & tax','/admin/farm_reports.php','view','sales_analytics']]],   // Farm OS reports (Phase 1, slice 5)
         ['label'=>'Website', 'icon'=>'🔎','tabs'=>[['Website','?view=search_analytics','view','search_analytics']]],
     ]],
     'settings' => ['label'=>'Settings','icon'=>'⚙️','items'=>[
