@@ -43,6 +43,7 @@ $admin_view_registry = [
     'jobs_questions'   => ['label' => 'Hiring: Question Bank', 'icon' => '❓', 'admin_only' => true],
     'jobs_categories'  => ['label' => 'Hiring: Categories',   'icon' => '🏷️', 'admin_only' => true],
     'p2p_reconcile'    => ['label' => 'P2P Reconcile (PayPal, Venmo, Cash App)', 'icon' => '🤝', 'admin_only' => false],   // Farm OS Phase 1, slice 6 (admin/reconcile.php)
+    'pos_discount_override' => ['label' => 'POS Discount Override (any %, free items)', 'icon' => '🏷️', 'admin_only' => false],   // Farm OS Phase 1, slice 9 (includes/receipts.php); Owners and Managers always can
     
 ];
 

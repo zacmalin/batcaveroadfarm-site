@@ -18,6 +18,9 @@
 //   POST register.php?api=refund_quote | refund | void            (JSON, X-CSRF-Token)
 // Slice 4a (Nov 6, 2026): admission sold here checks the party in (includes/admission.php); a full farm returns
 // 409 code=capacity and an Owner or Manager can resend with capacity_override (a reason). Gate screen: admin/gate.php.
+// Slice 9 (Nov 6, 2026): emailed receipts, farm PayPal/Venmo/Cash App handles with QR codes, preset discounts (includes/receipts.php):
+//   POST register.php?api=email_receipt   {sale_id, email}  (JSON, X-CSRF-Token)
+//   GET/POST register.php?view=settings   handles, return policy, discount % buttons (administrators)
 // Slice 7 (Nov 6, 2026): item discounts (disc_pct per line), a customer on the sale (customer_id), held carts
 // (includes/register_extras.php):
 //   GET  register.php?api=customers&q=...          find customers / pass holders (name, email, phone, pass link)
@@ -36,6 +39,7 @@ require_once __DIR__ . '/../includes/drawers.php';
 require_once __DIR__ . '/../includes/refunds.php';
 require_once __DIR__ . '/../includes/admission.php';
 require_once __DIR__ . '/../includes/register_extras.php';
+require_once __DIR__ . '/../includes/receipts.php';
 require_once __DIR__ . '/../includes/site_info.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -172,6 +176,22 @@ if ($api !== '') {
             $out(500, ['ok' => false, 'message' => 'The server could not save that. Nothing was changed; try again.']);
         }
     }
+    // -- Emailed receipts (slice 9) --
+    if ($api === 'email_receipt') {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') $out(405, ['ok' => false, 'message' => 'POST only.']);
+        if (!hash_equals($csrf, (string)($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''))) $out(403, ['ok' => false, 'message' => 'Your session expired. Reload the register.']);
+        $in = json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($in)) $out(400, ['ok' => false, 'message' => 'The request could not be read. Try again.']);
+        try {
+            $to = bcrf_receipt_email($pdo, (int)($in['sale_id'] ?? 0), (string)($in['email'] ?? ''));
+            $out(200, ['ok' => true, 'email' => $to]);
+        } catch (InvalidArgumentException $e) {
+            $out(422, ['ok' => false, 'message' => $e->getMessage()]);
+        } catch (Throwable $e) {
+            error_log('[register] email_receipt: ' . $e->getMessage());
+            $out(500, ['ok' => false, 'message' => 'The email could not be sent. Try again or print the receipt.']);
+        }
+    }
     // -- Customers and held carts (slice 7) --
     if (in_array($api, ['customers', 'customer_new', 'customer_pass', 'holds_list', 'hold', 'recall', 'hold_discard'], true)) {
         if ($api === 'customers') $out(200, ['ok' => true, 'results' => bcrf_pos_customer_search($pdo, (string)($_GET['q'] ?? ''))]);
@@ -227,9 +247,9 @@ if ($view === 'tax') {
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self'; base-uri 'self'; form-action 'self'">
 <title>Tax rates — Register</title><meta name="robots" content="noindex">
-<link rel="stylesheet" href="assets/register.css?v=6"></head>
+<link rel="stylesheet" href="assets/register.css?v=7"></head>
 <body class="page"><main class="narrow">
-<p><a href="register.php">← Register</a></p>
+<p><a href="register.php">← Register</a> · <a href="register.php?view=settings">Settings</a></p>
 <h1>Tax rates</h1>
 <p class="muted">Each product has a tax category (set on the product in the inventory editor). Sales work out tax per line from these rates. Past sales keep the rate they were sold at.</p>
 <?php if ($flash): ?><p class="flash"><?= $h($flash) ?></p><?php endif; ?>
@@ -248,13 +268,53 @@ if ($view === 'tax') {
     exit;
 }
 
+// -- Register settings (administrators, slice 9) --
+if ($view === 'settings') {
+    if (!$isAdmin) { http_response_code(403); exit('Administrators only.'); }
+    $flash = $_SESSION['register_flash'] ?? null; unset($_SESSION['register_flash']);
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (!hash_equals($csrf, (string)($_POST['csrf_token'] ?? ''))) $_SESSION['register_flash'] = ['err', 'Security token expired; try again.'];
+        else {
+            try { bcrf_pos_settings_save($pdo, $_POST, (int)$_SESSION['user_id']); $_SESSION['register_flash'] = ['ok', 'Saved. Registers pick this up when they reload.']; }
+            catch (InvalidArgumentException $e) { $_SESSION['register_flash'] = ['err', $e->getMessage()]; }
+        }
+        header('Location: register.php?view=settings'); exit;
+    }
+    $ps = bcrf_pos_settings($pdo);
+    ?><!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self'">
+<title>Settings — Register</title><meta name="robots" content="noindex">
+<link rel="stylesheet" href="assets/register.css?v=7"></head>
+<body class="page"><main class="narrow">
+<p><a href="register.php">← Register</a> · <a href="register.php?view=tax">Tax rates</a></p>
+<h1>Register settings</h1>
+<?php if ($flash): ?><p class="flash<?= $flash[0] === 'err' ? ' err' : '' ?>"><?= $h($flash[1]) ?></p><?php endif; ?>
+<form method="POST" class="card setf">
+  <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
+  <h3>The farm's payment apps</h3>
+  <p class="muted">Shown with a QR code when staff take a PayPal, Venmo or Cash App payment, so the customer can scan it. Leave blank to hide.</p>
+  <label>PayPal.me name <small class="muted">(paypal.me/<b>name</b>)</small><input type="text" name="p2p_paypal" value="<?= $h($ps['handles']['paypal']) ?>" maxlength="41" autocomplete="off"></label>
+  <label>Venmo username <small class="muted">(@<b>name</b>)</small><input type="text" name="p2p_venmo" value="<?= $h($ps['handles']['venmo']) ?>" maxlength="41" autocomplete="off"></label>
+  <label>Cash App $cashtag <small class="muted">($<b>name</b>)</small><input type="text" name="p2p_cashapp" value="<?= $h($ps['handles']['cashapp']) ?>" maxlength="41" autocomplete="off"></label>
+  <h3>Discount buttons</h3>
+  <p class="muted">The % buttons anyone on the register can use, for the whole sale or one item. Any other %, or making an item free, needs an Owner or Manager (or "POS Discount Override" in the Permissions Matrix).</p>
+  <label>Percents, separated by commas<input type="text" name="pos_discount_presets" value="<?= $h(implode(', ', $ps['presets'])) ?>" maxlength="60" autocomplete="off" inputmode="numeric"></label>
+  <h3>Receipt</h3>
+  <label>Return policy <small class="muted">(printed and emailed at the bottom of every receipt)</small><textarea name="receipt_return_policy" rows="3" maxlength="500"><?= $h($ps['policy']) ?></textarea></label>
+  <button class="btn primary" type="submit">Save</button>
+</form>
+</main></body></html><?php
+    exit;
+}
+
 // ── Drawer report and recent drawers ────────────────────────────────────────
 if ($view === 'drawer' || $view === 'drawers') {
     $m = fn($c) => ($c < 0 ? '−$' : '$') . number_format(abs((int)$c) / 100, 2);
     $tenders = bcrf_tenders();
     $head = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
           . '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">'
-          . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=6">';
+          . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=7">';
     if (!$drawersReady) { echo $head, '<title>Drawers</title></head><body class="page"><main class="narrow"><p class="flash err">Run migration 0010 in Settings › Database first.</p></main></body></html>'; exit; }
     if ($view === 'drawers') {
         $rows = $pdo->query("SELECT d.id FROM drawer_sessions d ORDER BY d.opened_at DESC LIMIT 60")->fetchAll(PDO::FETCH_COLUMN);
@@ -346,7 +406,8 @@ $boot = [
     'csrf'    => $csrf,
     'staff'   => $me,
     'farm'    => ['name' => bcrf_farm_name(), 'address' => site_address(), 'phone' => site_phone_display(),
-                  'domain' => bcrf_farm_domain(), 'policy' => site_setting('receipt_return_policy')],
+                  'domain' => bcrf_farm_domain(), 'policy' => ($posSet = bcrf_pos_settings($pdo))['policy']],
+    'pos'     => ['handles' => $posSet['handles'], 'presets' => $posSet['presets'], 'canOverride' => bcrf_can_override_discount()],   // slice 9
     'tenders' => bcrf_tenders(),
     'isAdmin' => $isAdmin,
     'drawers' => $drawersReady,
@@ -365,7 +426,7 @@ $boot = [
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self'; base-uri 'self'; form-action 'self'">
 <meta name="robots" content="noindex">
 <title>Register — <?= $h(bcrf_farm_name()) ?></title>
-<link rel="stylesheet" href="assets/register.css?v=6">
+<link rel="stylesheet" href="assets/register.css?v=7">
 </head>
 <body>
 <script type="application/json" id="regBoot"><?= json_encode($boot, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
@@ -377,7 +438,7 @@ $boot = [
     <?php if ($refundsReady && bcrf_admission_ready($pdo)): ?><a class="drawerbtn" href="gate.php">Gate</a><?php endif; ?>
     <button type="button" class="drawerbtn" id="btnSales" hidden>Sales</button>
     <button type="button" class="drawerbtn" id="btnDrawer" hidden>Drawer</button>
-    <div class="who"><?= $h($me) ?><?php if ($isAdmin): ?> · <a href="register.php?view=tax">Tax</a><?php endif; ?></div>
+    <div class="who"><?= $h($me) ?><?php if ($isAdmin): ?> · <a href="register.php?view=settings">Settings</a><?php endif; ?></div>
   </header>
 
   <?php if (!$ready): ?>
@@ -437,7 +498,8 @@ $boot = [
   <form method="dialog">
     <h3>Discount on the whole sale</h3>
     <div class="chips" id="discChips"></div>
-    <label>Other %<input type="number" inputmode="decimal" min="0" max="100" step="0.5" id="discPct"></label>
+    <label id="discOther">Other %<input type="number" inputmode="decimal" min="0" max="100" step="0.5" id="discPct"></label>
+    <p class="muted" id="discOtherNote" hidden>Another % needs an Owner or Manager.</p>
     <div class="row"><button type="button" class="btn" id="discNone">No discount</button><button type="button" class="btn primary" id="discOk">Apply</button></div>
   </form>
 </dialog>
@@ -458,6 +520,7 @@ $boot = [
     </div>
     <div id="payOther" hidden>
       <label>Amount ($)<input type="number" inputmode="decimal" step="0.01" min="0" id="payAmt"></label>
+      <div class="p2ppay" id="p2pPay" hidden><div class="qr" id="p2pQr"></div><div><b id="p2pHandle"></b><br><small class="muted" id="p2pAmt"></small><br><a id="p2pLink" href="#" target="_blank" rel="noopener">Open link</a></div></div>
       <label id="payerWrap">Payer name or handle<input type="text" id="payer" maxlength="120" autocomplete="off"></label>
       <label id="refWrap"><span id="refLbl">Last characters of the transaction ID</span><input type="text" id="payRef" maxlength="80" autocomplete="off"></label>
       <p class="muted" id="p2pHint">Check the payment arrived on the farm phone before adding it.</p>
@@ -482,7 +545,15 @@ $boot = [
   <h3>Sale saved</h3>
   <p class="saleno" id="doneNo"></p>
   <p class="bigchange" id="doneChange" hidden></p>
-  <div class="row"><button type="button" class="btn" id="btnReprint">Print receipt</button><button type="button" class="btn primary" id="btnNew">New sale</button></div>
+  <div class="row"><button type="button" class="btn" id="btnReprint">Print receipt</button><button type="button" class="btn" id="btnEmailDone">Email receipt</button><button type="button" class="btn primary" id="btnNew">New sale</button></div>
+</dialog>
+
+<dialog id="dlgEmail" class="sheet">
+  <h3>Email the receipt</h3>
+  <p class="muted" id="emSale"></p>
+  <label>Email address<input type="email" id="emTo" maxlength="254" autocomplete="off" inputmode="email"></label>
+  <p class="err" id="emErr" hidden></p>
+  <div class="row"><button type="button" class="btn" id="emCancel">Cancel</button><button type="button" class="btn primary" id="emSend">Send</button></div>
 </dialog>
 
 <dialog id="dlgScan" class="sheet">
@@ -559,7 +630,7 @@ $boot = [
   <dl class="totals" id="drRows"></dl>
   <div class="tenders" id="drMoves"></div>
   <button type="button" class="btn primary big" id="btnCloseDrawer">Count and close drawer</button>
-  <p class="row wrap"><a class="btn" id="drReport" href="#">Report so far</a><a class="btn" href="register.php?view=drawers">All drawers</a><?php if ($isAdmin): ?><a class="btn" href="register.php?view=tax">Tax rates</a><?php endif; ?></p>
+  <p class="row wrap"><a class="btn" id="drReport" href="#">Report so far</a><a class="btn" href="register.php?view=drawers">All drawers</a><?php if ($isAdmin): ?><a class="btn" href="register.php?view=tax">Tax rates</a><a class="btn" href="register.php?view=settings">Settings</a><?php endif; ?></p>
   <button type="button" class="link" id="drClose">Back</button>
 </dialog>
 
@@ -606,6 +677,7 @@ $boot = [
   <div id="sdRefunds"></div>
   <div class="row wrap">
     <button type="button" class="btn" id="sdPrint">Print receipt</button>
+    <button type="button" class="btn" id="sdEmail">Email receipt</button>
     <button type="button" class="btn" id="sdRefund">Refund</button>
     <button type="button" class="btn danger" id="sdVoid">Void</button>
   </div>
@@ -632,6 +704,7 @@ $boot = [
 <!-- Printed receipt (only visible when printing) -->
 <section id="receipt" class="receipt" aria-hidden="true"></section>
 
-<script src="assets/register.js?v=7"></script>
+<script src="/js/qrcode.min.js"></script>
+<script src="assets/register.js?v=8"></script>
 </body>
 </html>

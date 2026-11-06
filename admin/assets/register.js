@@ -10,6 +10,8 @@
 // Slice 7 (Nov 6): tap an item for its own % off and a note; attach a customer (search, pass link, or add new);
 // hold a cart and take it back later on any device. Item discounts come off first, then the whole-sale discount.
 // Slice 8 (Nov 6): with stock kept by location, the stock badges show what this register's location holds.
+// Slice 9 (Nov 6): discount % buttons come from Register settings; any other % (or Free) only for an Owner or Manager.
+// PayPal/Venmo/Cash App show the farm's handle and a QR code; receipts can be emailed after the sale or from the sale record.
 (function () {
   'use strict';
   var BOOT = JSON.parse(document.getElementById('regBoot').textContent);
@@ -247,12 +249,15 @@
   $('btnCustom').addEventListener('click', function () { itemDialog(null); });
 
   // ── discount, exempt, clear ──────────────────────────────────────────────
-  [5, 10, 15, 20, 25, 50].forEach(function (p) {
+  var POS = BOOT.pos || { presets: [5, 10, 15, 20, 25, 50], canOverride: true, handles: {} };
+  function presetOk(p) { return !p || POS.canOverride || POS.presets.indexOf(p) >= 0; }
+  POS.presets.forEach(function (p) {
     $('discChips').appendChild(el('button', { type: 'button', text: p + '%', onclick: function () { setDisc(p); } }));
   });
+  $('discOther').hidden = !POS.canOverride; $('discOtherNote').hidden = POS.canOverride;
   function setDisc(p) { S.discPct = Math.max(0, Math.min(100, p)); changed(); $('dlgDiscount').close(); }
   $('btnDiscount').addEventListener('click', function () { $('discPct').value = S.discPct || ''; $('dlgDiscount').showModal(); });
-  $('discOk').addEventListener('click', function () { var p = parseFloat($('discPct').value); if (p >= 0 && p <= 100) setDisc(p); });
+  $('discOk').addEventListener('click', function () { var p = parseFloat($('discPct').value); if (p >= 0 && p <= 100 && presetOk(p)) setDisc(p); });
   $('discNone').addEventListener('click', function () { setDisc(0); });
   $('btnExempt').addEventListener('click', function () { S.exempt = !S.exempt; changed(); });
   $('btnClear').addEventListener('click', function () {
@@ -275,8 +280,8 @@
 
   // -- slice 7: item sheet (discount + note) --
   var lineIdx = null;
-  [10, 20, 25, 50, 100].forEach(function (p) {
-    $('lineChips').appendChild(el('button', { type: 'button', text: p === 100 ? 'Free' : p + '%', onclick: function () { $('linePct').value = p; } }));
+  [0].concat(POS.presets, POS.canOverride ? [100] : []).forEach(function (p) {
+    $('lineChips').appendChild(el('button', { type: 'button', text: p === 100 ? 'Free' : (p ? p + '%' : 'None'), onclick: function () { $('linePct').value = p || ''; } }));
   });
   function lineDialog(i) {
     var l = S.cart[i]; if (!l) return;
@@ -287,7 +292,7 @@
     $('lineNote').value = l.note || '';
     $('lineErr').hidden = true;
     var canDisc = !!BOOT.lineDisc;
-    $('lineChips').hidden = !canDisc; $('linePct').closest('label').hidden = !canDisc;
+    $('lineChips').hidden = !canDisc; $('linePct').closest('label').hidden = !canDisc || !POS.canOverride;
     $('lineSub').textContent += canDisc ? '' : ' · item discounts need migration 0014';
     $('dlgLine').showModal();
   }
@@ -295,6 +300,7 @@
     var l = S.cart[lineIdx]; if (!l) return $('dlgLine').close();
     var raw = $('linePct').value.trim(), p = raw === '' ? 0 : parseFloat(raw);
     if (!(p >= 0 && p <= 100)) { $('lineErr').textContent = 'Enter a % from 0 to 100.'; $('lineErr').hidden = false; return; }
+    if (!presetOk(p)) { $('lineErr').textContent = 'That % needs an Owner or Manager. Use one of the buttons.'; $('lineErr').hidden = false; return; }
     l.disc_pct = BOOT.lineDisc ? Math.round(p * 100) / 100 : 0;
     l.note = $('lineNote').value.trim().slice(0, 120);
     $('dlgLine').close(); changed();
@@ -312,7 +318,7 @@
     $('btnCustomer').textContent = c ? 'Change customer' : 'Customer';
   }
   $('custChip').addEventListener('click', function () { S.customer = null; save(); renderCart(); flash('Customer removed'); });
-  function attach(c) { S.customer = { id: c.id, name: c.name, pass: c.pass || null }; save(); renderCart(); $('dlgCustomer').close(); flash('Customer: ' + c.name); }
+  function attach(c) { S.customer = { id: c.id, name: c.name, email: c.email || '', pass: c.pass || null }; save(); renderCart(); $('dlgCustomer').close(); flash('Customer: ' + c.name); }
   var custT = null, custSeq = 0;
   function custSearch() {
     var q = $('custQ').value.trim(), seq = ++custSeq;
@@ -499,7 +505,7 @@
       return el('li', {}, [el('span', {}, [el('b', { text: BOOT.tenders[py.tender] + ' ' + money(py.amount_cents) }), extra ? el('br') : null, extra ? el('small', { text: extra }) : null]),
         el('button', { type: 'button', class: 'link', text: 'Remove', disabled: S.saving, onclick: function () { S.payments.splice(i, 1); save(); renderPay(); } })]);
     }));
-    var done = lf === 0 && S.payments.length > 0;
+    var done = lf === 0 && (S.payments.length > 0 || (p.total === 0 && S.cart.length > 0));   // a $0 sale (free admission) needs no payment
     $('payAdd').hidden = done || S.saving;
     $('payDone').hidden = !done || S.saving;
     if (lf < 0) { $('payErr').textContent = 'Payments are more than the total. Remove one.'; $('payErr').hidden = false; }
@@ -526,11 +532,33 @@
       $('payAmt').value = (lf / 100).toFixed(2);
       $('payer').value = ''; $('payRef').value = '';
       $('payerWrap').hidden = !p2p; $('p2pHint').hidden = !p2p;
+      showP2P(p2p ? t : null, lf);
       $('refLbl').textContent = t === 'check' ? 'Check number (optional)' : 'Last characters of the transaction ID (optional)';
       setTimeout(function () { (p2p ? $('payer') : $('payAmt')).focus(); }, 0);
     }
     renderPay();
   }
+  // -- slice 9: the farm's handle and a QR code for the app the customer pays with --
+  function p2pLink(t, h, c) {
+    if (!h) return '';
+    var amt = c > 0 ? '/' + (c / 100).toFixed(2) : '';
+    if (t === 'paypal') return 'https://paypal.me/' + encodeURIComponent(h) + amt;
+    if (t === 'cashapp') return 'https://cash.app/$' + encodeURIComponent(h) + amt;
+    if (t === 'venmo') return 'https://venmo.com/u/' + encodeURIComponent(h);
+    return '';
+  }
+  function showP2P(t, c) {
+    var h = t ? (POS.handles || {})[t] : '', link = p2pLink(t, h, c);
+    $('p2pPay').hidden = !link;
+    if (!link) return;
+    $('p2pHandle').textContent = (t === 'venmo' ? '@' : t === 'cashapp' ? '$' : 'paypal.me/') + h;
+    $('p2pAmt').textContent = (t === 'venmo' ? 'Customer types ' : 'Asks for ') + money(c);
+    $('p2pLink').href = link;
+    $('p2pQr').replaceChildren();
+    if (window.QRCode) { try { new QRCode($('p2pQr'), { text: link, width: 168, height: 168, correctLevel: QRCode.CorrectLevel.M }); } catch (e) {} }
+  }
+  $('payAmt').addEventListener('input', function () { if (!$('p2pPay').hidden) showP2P(S.tender, cents($('payAmt').value)); });
+
   function cashChange() {
     var g = cents($('cashGiven').value), lf = left();
     $('cashChange').textContent = g > lf ? 'Change due: ' + money(g - lf) : (g > 0 && g < lf ? money(lf - g) + ' still to pay after this' : '');
@@ -592,7 +620,7 @@
       });
   }
   function saved(sale, printIt) {
-    S.lastSale = sale;
+    S.lastSale = sale; S.lastEmail = S.customer && S.customer.email || '';   // slice 9: suggest it for the emailed receipt
     S.cart = []; S.payments = []; S.discPct = 0; S.exempt = false; S.key = null; S.tender = null; S.customer = null;
     save(); renderCart();
     $('dlgPay').close();
@@ -605,6 +633,28 @@
   }
   $('btnNew').addEventListener('click', function () { $('dlgDone').close(); $('search').focus(); });
   $('btnReprint').addEventListener('click', function () { if (S.lastSale) printReceipt(S.lastSale); });
+
+  // -- slice 9: email the receipt --
+  var emSale = null;
+  function emailDialog(sale, suggest) {
+    emSale = sale;
+    $('emSale').textContent = sale.sale_number + ' · ' + money(sale.total_cents);
+    $('emTo').value = suggest || ''; $('emErr').hidden = true; $('emSend').disabled = false;
+    $('dlgEmail').showModal(); $('emTo').focus();
+  }
+  $('btnEmailDone').addEventListener('click', function () { if (S.lastSale) emailDialog(S.lastSale, S.lastEmail || ''); });
+  $('emCancel').addEventListener('click', function () { $('dlgEmail').close(); });
+  $('emTo').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('emSend').click(); } });
+  $('emSend').addEventListener('click', function () {
+    var to = $('emTo').value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) { $('emErr').textContent = 'Check the email address.'; $('emErr').hidden = false; return; }
+    $('emSend').disabled = true;
+    post('email_receipt', { sale_id: emSale.id, email: to }).then(function (j) {
+      $('emSend').disabled = false;
+      if (!j.ok) { $('emErr').textContent = j.message; $('emErr').hidden = false; return; }
+      $('dlgEmail').close(); flash('Receipt sent to ' + j.email);
+    }, function () { $('emSend').disabled = false; $('emErr').textContent = 'No connection. Try again.'; $('emErr').hidden = false; });
+  });
 
   // ── receipt ──────────────────────────────────────────────────────────────
   function printReceipt(s) {
@@ -852,6 +902,7 @@
   }
   $('sdBack').addEventListener('click', function () { $('dlgSale').close(); openSales($('salesQ').value.trim()); });
   $('sdPrint').addEventListener('click', function () { if (S.cur) printReceipt(S.cur); });
+  $('sdEmail').addEventListener('click', function () { if (S.cur) emailDialog(S.cur, S.cur.customer_email || ''); });
   $('sdVoid').addEventListener('click', function () {
     var s = S.cur;
     confirmBox('Void ' + s.sale_number + '?', 'Cancels the whole sale (' + money(s.total_cents) + ') and puts the items back in stock.' +

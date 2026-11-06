@@ -95,11 +95,15 @@ function bcrf_sale_detail(PDO $pdo, int $saleId): ?array {
                 'stockable' => $l['product_id'] && (int)$l['track_inventory'] === 1];
     }, $st->fetchAll(PDO::FETCH_ASSOC));
     // unit price back for the receipt
-    $st = $pdo->prepare("SELECT id, unit_price_cents, tax_rate_bp FROM sale_lines WHERE sale_id = ?");
+    // (and, slice 9, the item discount and note, so a reprint or emailed receipt matches the original)
+    $st = $pdo->prepare("SELECT id, unit_price_cents, tax_rate_bp, note" . (bcrf_sales_line_disc_ready($pdo) ? ", line_discount_bp" : ", 0 AS line_discount_bp") . " FROM sale_lines WHERE sale_id = ?");
     $st->execute([$saleId]);
     $up = [];
     foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) $up[(int)$r['id']] = $r;
-    foreach ($s['lines'] as &$l) { $l['unit_price_cents'] = (int)$up[$l['id']]['unit_price_cents']; $l['tax_rate_bp'] = (int)$up[$l['id']]['tax_rate_bp']; }
+    foreach ($s['lines'] as &$l) {
+        $l['unit_price_cents'] = (int)$up[$l['id']]['unit_price_cents']; $l['tax_rate_bp'] = (int)$up[$l['id']]['tax_rate_bp'];
+        $l['note'] = $up[$l['id']]['note']; $l['line_discount_bp'] = (int)$up[$l['id']]['line_discount_bp'];
+    }
     unset($l);
 
     $s['refunds'] = [];

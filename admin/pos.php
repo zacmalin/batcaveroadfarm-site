@@ -9,6 +9,13 @@ require_permission([['view', 'pos']]);
 require_once __DIR__ . '/includes/audit.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');   // farm time zone setting (Phase 0, C-03)
 
+// Farm OS slice 9 (Nov 6, 2026): the new register (admin/register.php) replaces this screen. Opening it goes to the register;
+// ?legacy=1 still opens the old one for now, and saves from an old tab that was already open still go through.
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && !isset($_GET['legacy']) && !preg_grep('/^ajax_/', array_keys($_GET))) {
+    require_once __DIR__ . '/../includes/sales.php';
+    if (bcrf_sales_ready($pdo)) { header('Location: register.php', true, 302); exit; }
+}
+
 // ── AJAX: Stock quantity refresh ──────────────────────────────────────────────
 if (isset($_GET['ajax_stock'])) {
     header('Content-Type: application/json');

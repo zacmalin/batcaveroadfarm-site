@@ -195,3 +195,13 @@ small.ok{color:var(--ok)}small.warn{color:var(--amber)}
 #holdNewWrap .btn.primary{margin-left:0}
 .lbl{font-weight:700;margin:.5rem 0 .1rem}
 h3.mt{margin-top:1rem}
+/* Slice 9 (Nov 6, 2026): farm handle + QR for PayPal/Venmo/Cash App; register settings */
+.p2ppay{display:flex;gap:.9rem;align-items:center;background:#fff;border:1px solid var(--line);border-radius:12px;padding:.75rem;margin:.5rem 0}
+.p2ppay .qr{flex:0 0 auto;width:168px;height:168px;background:#fff}
+.p2ppay .qr canvas,.p2ppay .qr img{display:block;width:168px;height:168px}
+.p2ppay b{font-size:1.1em;overflow-wrap:anywhere}
+@media (max-width:380px){.p2ppay{flex-direction:column;align-items:flex-start}}
+.setf label{display:flex;flex-direction:column;gap:.25rem;font-weight:600;margin:.6rem 0}
+.setf input,.setf textarea{font:inherit;font-weight:400;padding:.55rem .65rem;border:1px solid var(--line);border-radius:10px;min-height:44px;width:100%}
+.setf h3{margin-top:1.2rem}
+.setf h3:first-of-type{margin-top:0}

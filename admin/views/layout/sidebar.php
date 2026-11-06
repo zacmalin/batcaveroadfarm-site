@@ -12,7 +12,7 @@
 // check_type: 'view' | 'table' | 'always'. The item links to its first tab the user can open.
 $_sections = [
     'storefront' => ['label'=>'Storefront','icon'=>'🏪','items'=>[
-        ['label'=>'POS','icon'=>'💳','tabs'=>[['POS','/admin/pos.php','view','pos']]],
+        ['label'=>'POS','icon'=>'💳','tabs'=>[['POS','/admin/register.php','view','pos']]],   // Farm OS slice 9: the new register (old one at /admin/pos.php?legacy=1)
         ['label'=>'Products & Inventory','short'=>'Inventory','icon'=>'📦','tabs'=>[
             ['Stock',      '/admin/stock.php',                        'view',  'inventory_update'],   // Farm OS slice 8: by location, counts, history
             ['Counts',     '?view=inventory_update',                  'view',  'inventory_update'],

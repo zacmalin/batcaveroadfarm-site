@@ -298,7 +298,7 @@ $todayGuests = array_sum(array_map(fn($b) => $b['status'] === 'confirmed' ? (int
 
 // ═══ QUICK ACTIONS ═══════════════════════════════════════════════════════════
 $quick = [];
-if ($canV('pos'))              $quick[] = ['💳', 'New sale',         '/admin/pos.php'];
+if ($canV('pos'))              $quick[] = ['💳', 'New sale',         '/admin/register.php'];
 if ($canV('inventory_update')) $quick[] = ['📦', 'Count inventory',  "$A?view=inventory_update"];
 if ($canV('bookings'))         $quick[] = ['📋', "Today's bookings", "$A?view=bookings&day=$today"];
 if ($canV('timecard'))         $quick[] = ['⏰', 'Clock in / out',   "$A?view=timecard"];

@@ -16,6 +16,7 @@
  * full the sale is refused with BcrfCapacityError, unless an Owner or Manager gives capacity_override (a reason).
  * Slice 8 (Nov 6): once migration 0015 has run, stock comes off the register's location (includes/stock.php) and the
  * sale records that location, so refunds and voids put it back in the same place.
+ * Slice 9 (Nov 6): discounts other than the preset % buttons need an Owner or Manager (includes/receipts.php).
  */
 require_once __DIR__ . '/stock.php';
 
@@ -202,7 +203,7 @@ function bcrf_sale_validate(array $in): array {
         }
         $pays[] = $row;
     }
-    if (!$pays) throw new BcrfSaleError('Add a payment first.');
+    // No payments is fine only for a $0 sale (e.g. an Under-3 admission alone); checked once the total is known.
     if (count($pays) > 10) throw new BcrfSaleError('Too many payments on one sale.');
 
     $pct = (float)($in['discount_pct'] ?? 0);
@@ -228,11 +229,11 @@ function bcrf_sale_get(PDO $pdo, ?int $id, ?string $key = null): ?array {
     $s['lines'] = $l->fetchAll(PDO::FETCH_ASSOC);
     $s['payments'] = $p->fetchAll(PDO::FETCH_ASSOC);
     foreach (['id', 'subtotal_cents', 'discount_cents', 'tax_cents', 'total_cents', 'discount_bp', 'tax_exempt'] as $k) $s[$k] = (int)$s[$k];
-    $s['customer_name'] = null;
+    $s['customer_name'] = null; $s['customer_email'] = null;
     if ($s['customer_id'] && bcrf_customers_ready($pdo)) {
-        $cn = $pdo->prepare("SELECT TRIM(CONCAT(first_name, ' ', last_name)) FROM customers WHERE id = ?");
+        $cn = $pdo->prepare("SELECT TRIM(CONCAT(first_name, ' ', last_name)) AS n, email FROM customers WHERE id = ?");
         $cn->execute([$s['customer_id']]);
-        $s['customer_name'] = $cn->fetchColumn() ?: null;
+        if ($c = $cn->fetch(PDO::FETCH_ASSOC)) { $s['customer_name'] = $c['n'] ?: null; $s['customer_email'] = $c['email'] ?: null; }
     }
     // Tax by rate, for the receipt
     $byRate = [];
@@ -250,6 +251,9 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
     $v = bcrf_sale_validate($in);
 
     if ($done = bcrf_sale_get($pdo, null, $v['key'])) return ['replayed' => true, 'sale' => $done];
+    // Slice 9: a discount that isn't one of the preset % buttons needs an Owner or Manager (05 › POS, pos.discount.override).
+    require_once __DIR__ . '/receipts.php';
+    if ($why = bcrf_discount_problem($pdo, (int)$v['discount_bp'], array_map('intval', array_column($v['cart'], 'disc_bp')))) throw new BcrfSaleError($why);
 
     $uid = (int)($_SESSION['user_id'] ?? 0) ?: null;
     [$now, $bdate, $year] = bcrf_farm_now();
@@ -307,6 +311,7 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
             $admission = bcrf_admission_guests($pdo, $priced['lines']);
             if ($admission[0] > 0) $ov = bcrf_capacity_check($pdo, $admission[1], $v['capacity_override']);
         }
+        if (!$v['payments'] && $priced['total'] !== 0) throw new BcrfSaleError('Add a payment first.');
         $paid = array_sum(array_column($v['payments'], 'amount_cents'));
         if ($paid !== $priced['total']) {
             throw new BcrfSaleError(sprintf('Payments add up to $%s but the total is $%s. Check the payments and try again.',
@@ -385,7 +390,7 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
 
         // Sales Log / dashboard compatibility (they read pos_receipts until the reports are rebuilt).
         $tenders = array_unique(array_column($v['payments'], 'tender'));
-        $method  = count($tenders) === 1 ? strtoupper(reset($tenders)) : 'SPLIT';
+        $method  = !$tenders ? 'FREE' : (count($tenders) === 1 ? strtoupper(reset($tenders)) : 'SPLIT');
         $pdo->prepare("INSERT INTO pos_receipts (receipt_number, cart_json, subtotal, discount, tax, total, payment_method, tax_exempt, was_printed)
                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
             ->execute([$number, json_encode($legacyCart, JSON_UNESCAPED_UNICODE), $priced['subtotal'] / 100, $priced['discount'] / 100,
