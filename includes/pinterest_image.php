@@ -6,10 +6,10 @@
 //       → ['ok' => bool, 'bytes' => int, 'error' => string]
 //
 // Template v1 (BCRF_PIN_TEMPLATE_VERSION): the farm photo fills the top 1000 × 960 (cover crop, never
-// stretched), a Wheat Gold rule, then a Cream panel with a Barn Red script kicker, the title in Young Serif
+// stretched; small or very wide photos are framed whole over a blurred fill instead), a Wheat Gold rule, then a Cream panel with a Barn Red script kicker, the title in Young Serif
 // (shrinks to fit, at most 3 lines) and the website in Lora. Brand colours from the farm brand settings.
 // The original photo is only read, never changed. Photos must be local files under the site root (no
-// remote fetching, so no SSRF), JPEG/PNG/WebP/GIF, at most 40 megapixels. Uses GD (FreeType checked on
+// remote fetching, so no SSRF), JPEG/PNG/WebP/GIF, at least 400 × 200 and at most 40 megapixels. Uses GD (FreeType checked on
 // System Health → Image tools). Bump the version whenever the layout changes: drafts made with an older
 // version are then regenerated on the next batch.
 
@@ -53,7 +53,7 @@ function bcrf_pin_open(string $file) {
     $info = @getimagesize($file);
     if (!$info) throw new RuntimeException('Not a readable image: ' . basename($file));
     [$w, $h] = $info;
-    if ($w < 300 || $h < 300) throw new RuntimeException("Photo is too small ({$w} × {$h}); Pins need at least 300 px.");
+    if ($w < 400 || $h < 200) throw new RuntimeException("Photo is too small ({$w} × {$h}); Pins need at least 400 × 200 px.");
     if ($w * $h > 40000000) throw new RuntimeException("Photo is too large to process ({$w} × {$h}).");
     $im = match ($info[2]) {
         IMAGETYPE_JPEG => @imagecreatefromjpeg($file),
@@ -116,13 +116,34 @@ function bcrf_pin_render(string $src, string $dst, array $o): array {
         $wheat   = imagecolorallocate($im, 0xD9, 0xA4, 0x41);
         imagefilledrectangle($im, 0, 0, $W, $H, $cream);
 
-        // Photo: cover-crop to W × photoH around the focus point
+        // Photo area. Big enough photos are cover-cropped to W × photoH around the focus point. Small or very
+        // wide photos (they'd need more than 1.6× enlargement) are shown whole in a cream-bordered frame
+        // over a blurred, darkened fill of the same photo, so nothing is blown up past 2×.
         $scale = max($W / $pw, $photoH / $ph);
         $cw = (int)round($W / $scale); $ch = (int)round($photoH / $scale);
         $fy = max(0.0, min(1.0, (float)($o['focus_y'] ?? 0.5)));
         $cx = (int)round(($pw - $cw) / 2);
         $cy = (int)round(($ph - $ch) * $fy);
-        imagecopyresampled($im, $photo, 0, 0, max(0, $cx), max(0, $cy), $W, $photoH, min($cw, $pw), min($ch, $ph));
+        if ($scale <= 1.6) {
+            imagecopyresampled($im, $photo, 0, 0, max(0, $cx), max(0, $cy), $W, $photoH, min($cw, $pw), min($ch, $ph));
+        } else {
+            // Background: tiny copy of the crop, stretched back up (soft), blurred, then darkened
+            $tiny = imagecreatetruecolor(100, 96);
+            imagecopyresampled($tiny, $photo, 0, 0, max(0, $cx), max(0, $cy), 100, 96, min($cw, $pw), min($ch, $ph));
+            for ($i = 0; $i < 8; $i++) imagefilter($tiny, IMG_FILTER_GAUSSIAN_BLUR);
+            imagesetinterpolation($tiny, IMG_BICUBIC);
+            $big = imagescale($tiny, $W, $photoH, IMG_BICUBIC) ?: $tiny;
+            imagecopy($im, $big, 0, 0, 0, 0, min($W, imagesx($big)), min($photoH, imagesy($big)));
+            unset($tiny, $big);
+            for ($i = 0; $i < 4; $i++) imagefilter($im, IMG_FILTER_GAUSSIAN_BLUR);
+            imagefilledrectangle($im, 0, 0, $W, $photoH, imagecolorallocatealpha($im, 0x3E, 0x2A, 0x1E, 70));
+            // Foreground: whole photo, at most 2× and inside an 880 × 840 box, with a cream border
+            $fs = min(880 / $pw, 840 / $ph, 2.0);
+            $fw = (int)round($pw * $fs); $fh = (int)round($ph * $fs);
+            $fx = (int)(($W - $fw) / 2); $fyy = (int)(($photoH - $fh) / 2);
+            imagefilledrectangle($im, $fx - 10, $fyy - 10, $fx + $fw + 9, $fyy + $fh + 9, $cream);
+            imagecopyresampled($im, $photo, $fx, $fyy, 0, 0, $fw, $fh, $pw, $ph);
+        }
         unset($photo);
 
         // Wheat Gold rule under the photo
