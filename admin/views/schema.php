@@ -740,7 +740,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                             if (fdcEl) fdcEl.value = food.fdc_id || '';
 
                             if (panel) panel.classList.add('hidden');
-                            showMsg('emerald', '✅ Filled from: "' + food.description + '" — click Save Record to store.');
+                            showMsg('emerald', '✅ Filled from: "' + food.description + '" — click Save to store.');
                         }
 
                         function showMsg(color, text) {
@@ -1672,10 +1672,10 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                         </button>
                     </div>
                 <?php else: ?>
-                    <span></span>
+                    <!-- Matches the Farm OS primary button (.btn.primary in assets/register.css): brown, left-aligned -->
                     <button type="submit"
-                        class="bg-stone-900 text-white font-mono font-bold uppercase tracking-wider py-2.5 px-6 rounded shadow-xs hover:bg-stone-800 transition">
-                        Save Record →
+                        class="min-h-[44px] px-4 py-2 rounded-[10px] border border-[#3b2010] bg-[#3b2010] text-white text-sm font-semibold hover:bg-[#2a170b] transition">
+                        <?= $edit_data ? 'Save' : 'Add record' ?>
                     </button>
                 <?php endif; ?>
             </div>
@@ -2139,7 +2139,7 @@ function applyUSDAResult(ingId, food) {
 
     const saveMsg = document.getElementById('usdaSaveMsg_' + ingId);
     if (saveMsg) {
-        saveMsg.textContent = `✅ Filled from USDA: "${food.description}" — click Save Record to store.`;
+        saveMsg.textContent = `✅ Filled from USDA: "${food.description}" — click Save to store.`;
         saveMsg.className   = 'mx-4 mb-3 p-2 rounded text-xs font-mono bg-emerald-50 text-emerald-800 border border-emerald-200';
     }
 }

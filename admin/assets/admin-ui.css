@@ -52,6 +52,12 @@
     #schemaFieldGrid > *{grid-column:1 / -1 !important;min-width:0}
     #schemaFieldGrid input:not([type=checkbox]):not([type=radio]):not([type=file]),
     #schemaFieldGrid select, #schemaFieldGrid textarea{width:100%;max-width:100%}
+    /* Nov 7, 2026: <main> is a scroll container on phones (overflow-x:auto in sidebar.php), so the sticky Save bar
+       measured itself against <main> instead of the screen and got pushed up over the last field. On the editor,
+       clip sideways instead of scrolling so the bar sticks to the screen and rests below the last field. */
+    body:has(#schemaEditForm) > main{overflow-x:clip !important;overflow-y:visible !important}
+    /* Fields focused by the keyboard scroll clear of the Save bar + bottom nav */
+    html:has(#schemaEditForm){scroll-padding-bottom:9rem}
 }
 
 /* <details> used as an expandable row: hide the default marker */
