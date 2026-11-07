@@ -91,13 +91,6 @@ button{font:inherit;padding:12px 18px;border-radius:8px;border:0;cursor:pointer;
 <?php if ($flash): ?><div class="flash <?= $flash[0] === 'ok' ? 'ok' : 'err' ?>"><?= $h($flash[1]) ?></div><?php endif; ?>
 
 <?php if ($tab === 'methods'): ?>
-<div class="card">
-  <h2>Payment types on the register</h2>
-  <p class="muted" style="margin:0">None of these are connected to a payment company: the register records them, it doesn't verify them.</p>
-  <?php foreach (bcrf_tenders() as $code => $label): ?>
-    <div class="mrow"><b><?= $h($label) ?></b><br><small class="muted"><?= $h($methodNotes[$code] ?? '') ?></small></div>
-  <?php endforeach; ?>
-</div>
 <form method="POST" class="card">
   <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
   <h2>The farm's payment apps</h2>
@@ -107,6 +100,13 @@ button{font:inherit;padding:12px 18px;border-radius:8px;border:0;cursor:pointer;
   <label>Cash App $cashtag <small class="muted">($<b>name</b>)</small><input type="text" name="p2p_cashapp" value="<?= $h($ps['handles']['cashapp']) ?>" maxlength="41" autocomplete="off"></label>
   <button type="submit">Save payment apps</button>
 </form>
+<div class="card">
+  <h2>Payment types on the register</h2>
+  <p class="muted" style="margin:0">None of these are connected to a payment company: the register records them, it doesn't verify them.</p>
+  <?php foreach (bcrf_tenders() as $code => $label): ?>
+    <div class="mrow"><b><?= $h($label) ?></b><br><small class="muted"><?= $h($methodNotes[$code] ?? '') ?></small></div>
+  <?php endforeach; ?>
+</div>
 
 <?php elseif ($tab === 'register'): ?>
 <form method="POST" class="card">
