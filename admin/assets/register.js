@@ -479,7 +479,7 @@
   $('formSku').addEventListener('submit', function (e) { e.preventDefault(); scanned($('skuInput').value.trim()); $('skuInput').value = ''; });
 
   // ── payment ──────────────────────────────────────────────────────────────
-  Object.keys(BOOT.tenders).forEach(function (t) {
+  (BOOT.payTenders || Object.keys(BOOT.tenders)).forEach(function (t) {   // only the types turned on in Settings, in that order
     $('tenderBtns').appendChild(el('button', { type: 'button', class: 'btn', 'data-t': t, text: BOOT.tenders[t], 'aria-pressed': 'false', onclick: function () { chooseTender(t); } }));
   });
   function openPay() {

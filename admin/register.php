@@ -414,7 +414,8 @@ $boot = [
     'farm'    => ['name' => bcrf_farm_name(), 'address' => site_address(), 'phone' => site_phone_display(),
                   'domain' => bcrf_farm_domain(), 'policy' => ($posSet = bcrf_pos_settings($pdo))['policy']],
     'pos'     => ['handles' => $posSet['handles'], 'presets' => $posSet['presets'], 'canOverride' => bcrf_can_override_discount()],   // slice 9
-    'tenders' => bcrf_tenders(),
+    'tenders' => bcrf_tenders(),                                   // labels for every type (past sales, refunds)
+    'payTenders' => array_keys(bcrf_tenders_active($pdo)),         // buttons for new sales, in order (Settings › Payments & Register)
     'isAdmin' => $isAdmin,
     'drawers' => $drawersReady,
     'refunds' => $refundsReady,
@@ -711,6 +712,6 @@ $boot = [
 <section id="receipt" class="receipt" aria-hidden="true"></section>
 
 <script src="/js/qrcode.min.js"></script>
-<script src="assets/register.js?v=8"></script>
+<script src="assets/register.js?v=9"></script>
 </body>
 </html>

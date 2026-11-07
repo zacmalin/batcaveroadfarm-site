@@ -9,6 +9,9 @@
 //     Permissions Matrix. The server checks this when the sale is saved.
 //   Receipts: bcrf_receipt_email() sends the receipt (same content as the printed one) and marks the sale as emailed.
 // No migration: settings live in site_settings; sales.receipt_delivery already exists (0009).
+// Nov 6, 2026: pos_tenders = the payment types the register offers, in button order (comma list of codes from
+//   bcrf_tenders()). Missing or empty = all of them in the default order. Edited in Settings › Payments & Register.
+//   Turning one off only hides it for new sales; past sales, reports and refunds still know it.
 if (!function_exists('bcrf_pos_settings')) {
 
 function bcrf_pos_setting_keys(): array {
@@ -84,6 +87,44 @@ function bcrf_pos_settings_save(PDO $pdo, array $in, ?int $uid): array {
                         'policy' => $new['receipt_return_policy'], 'presets' => bcrf_parse_presets($new['pos_discount_presets'])]]);
     }
     return bcrf_pos_settings($pdo);
+}
+
+// -- Payment types on the register --
+
+/** Payment types the register offers for new sales, code => label, in button order. */
+function bcrf_tenders_active(PDO $pdo): array {
+    $all = bcrf_tenders();
+    $raw = '';
+    try {
+        $st = $pdo->prepare("SELECT setting_value FROM site_settings WHERE setting_key = 'pos_tenders'");
+        $st->execute();
+        $raw = (string)$st->fetchColumn();
+    } catch (Throwable $e) {}
+    if (trim($raw) === '') return $all;
+    $out = [];
+    foreach (explode(',', $raw) as $c) { $c = trim($c); if (isset($all[$c])) $out[$c] = $all[$c]; }
+    return $out ?: $all;
+}
+
+/** Save which types are on and their order. $on = codes ticked; $order = code => position number. */
+function bcrf_tenders_save(PDO $pdo, array $on, array $order): array {
+    $all = bcrf_tenders();
+    $before = array_keys(bcrf_tenders_active($pdo));
+    $pos = []; $i = 0;
+    foreach ($all as $c => $label) { $i++; $pos[$c] = [is_numeric($order[$c] ?? null) ? (float)$order[$c] : 99, $i]; }
+    $codes = array_keys($all);
+    usort($codes, fn($a, $b) => $pos[$a] <=> $pos[$b]);
+    $codes = array_values(array_filter($codes, fn($c) => in_array($c, $on, true)));
+    if (!$codes) throw new InvalidArgumentException('Leave at least one payment type turned on.');
+    $pdo->prepare("INSERT INTO site_settings (setting_key, setting_value) VALUES ('pos_tenders', ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)")
+        ->execute([implode(',', $codes)]);
+    if ($codes !== $before && function_exists('bcrf_audit_event') && function_exists('bcrf_audit_actor')) {
+        [$t, $aid, $name, $ip] = bcrf_audit_actor();
+        bcrf_audit_event($pdo, ['actor_type' => $t, 'actor_id' => $aid, 'actor_label' => $name, 'ip' => $ip, 'action' => 'update',
+            'object_type' => 'site_settings', 'object_id' => 'pos_tenders', 'object_label' => 'Register payment types',
+            'before' => ['tenders' => $before], 'after' => ['tenders' => $codes]]);
+    }
+    return bcrf_tenders_active($pdo);
 }
 
 // -- Discounts --

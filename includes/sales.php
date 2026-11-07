@@ -17,6 +17,7 @@
  * Slice 8 (Nov 6): once migration 0015 has run, stock comes off the register's location (includes/stock.php) and the
  * sale records that location, so refunds and voids put it back in the same place.
  * Slice 9 (Nov 6): discounts other than the preset % buttons need an Owner or Manager (includes/receipts.php).
+ * Nov 6: payment types turned off in Settings › Payments & Register are refused for new sales (bcrf_tenders_active()).
  */
 require_once __DIR__ . '/stock.php';
 
@@ -254,6 +255,10 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
     // Slice 9: a discount that isn't one of the preset % buttons needs an Owner or Manager (05 › POS, pos.discount.override).
     require_once __DIR__ . '/receipts.php';
     if ($why = bcrf_discount_problem($pdo, (int)$v['discount_bp'], array_map('intval', array_column($v['cart'], 'disc_bp')))) throw new BcrfSaleError($why);
+    $active = bcrf_tenders_active($pdo);
+    foreach ($v['payments'] as $p) {
+        if (!isset($active[$p['tender']])) throw new BcrfSaleError(bcrf_tenders()[$p['tender']] . ' is turned off in Settings › Payments & Register. Reload the register and use another payment type.');
+    }
 
     $uid = (int)($_SESSION['user_id'] ?? 0) ?: null;
     [$now, $bdate, $year] = bcrf_farm_now();

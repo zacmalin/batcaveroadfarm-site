@@ -43,6 +43,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $go('ok', $changed ? 'Saved: ' . implode(', ', $changed) . '. New sales use these rates.' : 'No changes.');
     }
+    if ($tab === 'methods' && ($_POST['form'] ?? '') === 'tenders') {
+        try { bcrf_tenders_save($pdo, array_map('strval', (array)($_POST['on'] ?? [])), (array)($_POST['order'] ?? [])); }
+        catch (InvalidArgumentException $e) { $go('err', $e->getMessage()); }
+        $go('ok', 'Saved. Registers show the new payment buttons when they reload.');
+    }
     // Methods and Register tabs each post only their own fields; keep the rest as they are.
     $cur = bcrf_pos_settings($pdo);
     $in = [
@@ -80,7 +85,10 @@ label{display:block;margin:12px 0;font-weight:600}
 input[type=text],input[type=number],textarea{display:block;width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:10px;border:1px solid #d6d3d1;border-radius:8px;margin-top:4px;font-weight:400}
 .taxrow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #f0efee;margin:0}
 .taxrow .pct{display:flex;align-items:center;gap:6px;white-space:nowrap}.taxrow input{width:90px;margin:0}
-.mrow{padding:10px 0;border-bottom:1px solid #f0efee}.mrow:last-child{border-bottom:0}
+.mrow{padding:10px 0;border-bottom:1px solid #f0efee}.mrow:last-of-type{border-bottom:0}
+.trow{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px}.trow small{flex-basis:100%}
+.tchk{display:flex;align-items:center;gap:8px;margin:0;flex:1}.tchk input{width:22px;height:22px}
+.tord{display:flex;align-items:center;gap:6px;margin:0;font-weight:400}.tord input{width:64px;margin:0}
 .flash{padding:12px 14px;border-radius:8px;margin:12px 0}.ok{background:#ecfdf5;border:1px solid #a7f3d0}.err{background:#fef2f2;border:1px solid #fecaca}
 button{font:inherit;padding:12px 18px;border-radius:8px;border:0;cursor:pointer;background:#3b2010;color:#fff;margin-top:8px}
 </style></head><body><main>
@@ -100,13 +108,21 @@ button{font:inherit;padding:12px 18px;border-radius:8px;border:0;cursor:pointer;
   <label>Cash App $cashtag <small class="muted">($<b>name</b>)</small><input type="text" name="p2p_cashapp" value="<?= $h($ps['handles']['cashapp']) ?>" maxlength="41" autocomplete="off"></label>
   <button type="submit">Save payment apps</button>
 </form>
-<div class="card">
+<form method="POST" class="card">
+  <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
+  <input type="hidden" name="form" value="tenders">
   <h2>Payment types on the register</h2>
-  <p class="muted" style="margin:0">None of these are connected to a payment company: the register records them, it doesn't verify them.</p>
-  <?php foreach (bcrf_tenders() as $code => $label): ?>
-    <div class="mrow"><b><?= $h($label) ?></b><br><small class="muted"><?= $h($methodNotes[$code] ?? '') ?></small></div>
+  <p class="muted" style="margin:0">Tick the ones staff can take. The number sets the button order (1 first). Turning one off only hides it for new sales; past sales and refunds still work.<br>None of these are connected to a payment company: the register records them, it doesn't verify them.</p>
+  <?php $act = bcrf_tenders_active($pdo); $pos = array_flip(array_keys($act)); $n = count($act);
+        foreach (bcrf_tenders() as $code => $label): $isOn = isset($act[$code]); ?>
+    <div class="mrow trow">
+      <label class="tchk"><input type="checkbox" name="on[]" value="<?= $h($code) ?>"<?= $isOn ? ' checked' : '' ?>> <b><?= $h($label) ?></b></label>
+      <label class="tord">Order <input type="number" name="order[<?= $h($code) ?>]" value="<?= $isOn ? $pos[$code] + 1 : ++$n ?>" min="1" max="20" inputmode="numeric"></label>
+      <small class="muted"><?= $h($methodNotes[$code] ?? '') ?></small>
+    </div>
   <?php endforeach; ?>
-</div>
+  <button type="submit">Save payment types</button>
+</form>
 
 <?php elseif ($tab === 'register'): ?>
 <form method="POST" class="card">
