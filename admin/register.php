@@ -7,7 +7,7 @@
 //   GET  register.php?api=catalog   products for the tiles
 //   GET  register.php?api=today     today's count and total
 //   POST register.php?api=complete  JSON sale → includes/sales.php bcrf_sale_complete()
-//   GET/POST register.php?view=tax  tax rates (administrators)
+//   GET register.php?view=tax|settings  redirect to Settings › Payments & Register (admin/payment_settings.php)
 // Slice 2 (Nov 6, 2026), cash drawers (includes/drawers.php):
 //   GET  register.php?api=drawer&register_id=N   registers + the open drawer's summary
 //   POST register.php?api=drawer_open | drawer_move | drawer_close   (JSON, X-CSRF-Token)
@@ -20,7 +20,7 @@
 // 409 code=capacity and an Owner or Manager can resend with capacity_override (a reason). Gate screen: admin/gate.php.
 // Slice 9 (Nov 6, 2026): emailed receipts, farm PayPal/Venmo/Cash App handles with QR codes, preset discounts (includes/receipts.php):
 //   POST register.php?api=email_receipt   {sale_id, email}  (JSON, X-CSRF-Token)
-//   GET/POST register.php?view=settings   handles, return policy, discount % buttons (administrators)
+//   (handles, return policy and discount buttons are edited in Settings › Payments & Register)
 // Slice 7 (Nov 6, 2026): item discounts (disc_pct per line), a customer on the sale (customer_id), held carts
 // (includes/register_extras.php):
 //   GET  register.php?api=customers&q=...          find customers / pass holders (name, email, phone, pass link)
@@ -223,97 +223,10 @@ if ($api !== '') {
 // ── Tax rates (administrators) ───────────────────────────────────────────────
 $view = (string)($_GET['view'] ?? '');
 // Nov 6, 2026: register settings and tax rates moved to Settings › Payments & Register (admin/payment_settings.php).
-// The old screens below are unreachable and kept only until the move is verified; then delete them.
 if ($view === 'settings' || $view === 'tax') {
     header('Location: /admin/payment_settings.php?tab=' . ($view === 'tax' ? 'tax' : 'methods'), true, 302);
     exit;
 }
-if ($view === 'tax') {
-    if (!$isAdmin) { http_response_code(403); exit('Administrators only.'); }
-    $flash = $_SESSION['register_flash'] ?? null; unset($_SESSION['register_flash']);
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ready) {
-        if (!hash_equals($csrf, (string)($_POST['csrf_token'] ?? ''))) { $_SESSION['register_flash'] = 'Security token expired; try again.'; header('Location: register.php?view=tax'); exit; }
-        $cats = bcrf_tax_categories($pdo);
-        $up = $pdo->prepare("UPDATE tax_categories SET rate_bp = ?, updated_at = UTC_TIMESTAMP(), updated_by = ? WHERE id = ?");
-        $changed = [];
-        foreach ((array)($_POST['rate'] ?? []) as $id => $pct) {
-            $id = (int)$id; $bp = (int)round((float)$pct * 100);
-            if (!isset($cats[$id]) || $bp < 0 || $bp > 3000 || $bp === $cats[$id]['rate_bp']) continue;
-            $up->execute([$bp, (int)$_SESSION['user_id'], $id]);
-            bcrf_audit_event($pdo, ['actor_type' => 'staff', 'actor_id' => (int)$_SESSION['user_id'], 'actor_label' => bcrf_audit_actor()[2],
-                'ip' => bcrf_audit_actor()[3], 'action' => 'update', 'object_type' => 'tax_categories', 'object_id' => $id,
-                'object_label' => $cats[$id]['name'], 'before' => ['rate_bp' => $cats[$id]['rate_bp']], 'after' => ['rate_bp' => $bp]]);
-            $changed[] = $cats[$id]['name'] . ' ' . ($bp / 100) . '%';
-        }
-        $_SESSION['register_flash'] = $changed ? 'Saved: ' . implode(', ', $changed) . '. New sales use these rates.' : 'No changes.';
-        header('Location: register.php?view=tax'); exit;
-    }
-    $cats = $ready ? bcrf_tax_categories($pdo) : [];
-    ?><!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self'; base-uri 'self'; form-action 'self'">
-<title>Tax rates — Register</title><meta name="robots" content="noindex">
-<link rel="stylesheet" href="assets/register.css?v=8"></head>
-<body class="page"><main class="narrow">
-<p><a href="register.php">← Register</a> · <a href="register.php?view=settings">Settings</a></p>
-<h1>Tax rates</h1>
-<p class="muted">Each product has a tax category (set on the product in <a href="products.php">Products</a>). Sales work out tax per line from these rates. Past sales keep the rate they were sold at.</p>
-<?php if ($flash): ?><p class="flash"><?= $h($flash) ?></p><?php endif; ?>
-<?php if (!$ready): ?><p class="flash err">Run migration 0009 in Settings › Database first.</p><?php else: ?>
-<form method="POST" class="card">
-  <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
-  <?php foreach ($cats as $c): ?>
-    <label class="taxrow"><span><b><?= $h($c['name']) ?></b><?php if ($c['notes']): ?><br><small class="muted"><?= $h($c['notes']) ?></small><?php endif; ?></span>
-      <span class="pct"><input type="number" inputmode="decimal" step="0.01" min="0" max="30" name="rate[<?= (int)$c['id'] ?>]" value="<?= $h(rtrim(rtrim(number_format($c['rate_bp'] / 100, 2, '.', ''), '0'), '.')) ?>"> %</span></label>
-  <?php endforeach; ?>
-  <button class="btn primary" type="submit">Save rates</button>
-</form>
-<p class="muted">Tax on food, admission and thrift differs by state and item. Confirm categories and rates with the NC Department of Revenue or an accountant.</p>
-<?php endif; ?>
-</main></body></html><?php
-    exit;
-}
-
-// -- Register settings (administrators, slice 9) --
-if ($view === 'settings') {
-    if (!$isAdmin) { http_response_code(403); exit('Administrators only.'); }
-    $flash = $_SESSION['register_flash'] ?? null; unset($_SESSION['register_flash']);
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        if (!hash_equals($csrf, (string)($_POST['csrf_token'] ?? ''))) $_SESSION['register_flash'] = ['err', 'Security token expired; try again.'];
-        else {
-            try { bcrf_pos_settings_save($pdo, $_POST, (int)$_SESSION['user_id']); $_SESSION['register_flash'] = ['ok', 'Saved. Registers pick this up when they reload.']; }
-            catch (InvalidArgumentException $e) { $_SESSION['register_flash'] = ['err', $e->getMessage()]; }
-        }
-        header('Location: register.php?view=settings'); exit;
-    }
-    $ps = bcrf_pos_settings($pdo);
-    ?><!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self'">
-<title>Settings — Register</title><meta name="robots" content="noindex">
-<link rel="stylesheet" href="assets/register.css?v=8"></head>
-<body class="page"><main class="narrow">
-<p><a href="register.php">← Register</a> · <a href="register.php?view=tax">Tax rates</a></p>
-<h1>Register settings</h1>
-<?php if ($flash): ?><p class="flash<?= $flash[0] === 'err' ? ' err' : '' ?>"><?= $h($flash[1]) ?></p><?php endif; ?>
-<form method="POST" class="card setf">
-  <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
-  <h3>The farm's payment apps</h3>
-  <p class="muted">Shown with a QR code when staff take a PayPal, Venmo or Cash App payment, so the customer can scan it. Leave blank to hide.</p>
-  <label>PayPal.me name <small class="muted">(paypal.me/<b>name</b>)</small><input type="text" name="p2p_paypal" value="<?= $h($ps['handles']['paypal']) ?>" maxlength="41" autocomplete="off"></label>
-  <label>Venmo username <small class="muted">(@<b>name</b>)</small><input type="text" name="p2p_venmo" value="<?= $h($ps['handles']['venmo']) ?>" maxlength="41" autocomplete="off"></label>
-  <label>Cash App $cashtag <small class="muted">($<b>name</b>)</small><input type="text" name="p2p_cashapp" value="<?= $h($ps['handles']['cashapp']) ?>" maxlength="41" autocomplete="off"></label>
-  <h3>Discount buttons</h3>
-  <p class="muted">The % buttons anyone on the register can use, for the whole sale or one item. Any other %, or making an item free, needs an Owner or Manager (or "POS Discount Override" in the Permissions Matrix).</p>
-  <label>Percents, separated by commas<input type="text" name="pos_discount_presets" value="<?= $h(implode(', ', $ps['presets'])) ?>" maxlength="60" autocomplete="off" inputmode="numeric"></label>
-  <h3>Receipt</h3>
-  <label>Return policy <small class="muted">(printed and emailed at the bottom of every receipt)</small><textarea name="receipt_return_policy" rows="3" maxlength="500"><?= $h($ps['policy']) ?></textarea></label>
-  <button class="btn primary" type="submit">Save</button>
-</form>
-</main></body></html><?php
-    exit;
-}
-
 // ── Drawer report and recent drawers ────────────────────────────────────────
 if ($view === 'drawer' || $view === 'drawers') {
     $m = fn($c) => ($c < 0 ? '−$' : '$') . number_format(abs((int)$c) / 100, 2);
