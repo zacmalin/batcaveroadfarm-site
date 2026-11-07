@@ -122,10 +122,10 @@ function renderNavDropdown(string $dropId, string $emoji, string $label, array $
   <!-- Hamburger toggle (mobile only) -->
   <button class="hamburger" id="hamburger-btn" type="button"
           aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="nav-drawer">
-    <span class="hamburger-label">☰ &nbsp;Menu</span>
     <span class="hamburger-icon" aria-hidden="true">
       <span></span><span></span><span></span>
     </span>
+    <span class="hamburger-label" aria-hidden="true"><span class="hl-open">Menu</span><span class="hl-close">Close</span></span>
   </button>
 
   <!-- Desktop: horizontal bar -->

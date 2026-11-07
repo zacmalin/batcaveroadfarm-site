@@ -383,3 +383,13 @@ a:not([class]):hover{color:var(--link-hover)}
 :where(.ad-wiki,.animal-detail,.animal-tile,.article-reader,.auth-card,.booking-tix-cta,.breed-history,.card,.comment,.comment-form,.comment-login,.contact-form,.event-card,.faq-answer,.faq-question,.home-blog-card,.info-box,.info-tile,.item-detail,.item-recipe-card,.jb-card,.journal-card,.legal-doc,.pass-card,.pass-form-wrap,.pass-success-card,.produce-item,.recipe-body,.recipe-card,.recipe-head,.related-card,.stand-card,.sub-modal-card,.thanks-card,.tickets-section,.timeline-content,.visit-amenities,.visit-cta-inner,.visit-info-block,.visit-local,.visit-pricing,.visit-tile) a:not([class]):hover{color:var(--link-hover-on-light)}
 a:not([class]):focus-visible{outline:2px solid var(--gold-bright,#e8b84b);outline-offset:2px;border-radius:2px}
 .social-links{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem 1.75rem}.social-links-center{justify-content:center}.social-link{display:inline-flex;align-items:center;gap:.6rem;white-space:nowrap;text-decoration:none!important}.social-link span{text-decoration:underline;text-underline-offset:.15em}.social-link:hover span{text-decoration-thickness:2px}.social-link .socialicon{flex:none;width:50px;height:50px}.social-link:focus-visible{outline:2px solid var(--gold-bright,#e8b84b);outline-offset:3px;border-radius:10px}.info-box li.li-social{display:flex;align-items:flex-start}.info-box li.li-social::before{flex:none;line-height:50px}.info-box .social-link,.info-box .social-link:visited{color:var(--link-on-light)}@media (max-width:600px){.social-links{flex-direction:column;align-items:flex-start;gap:.9rem}.social-links-center{align-items:center}.social-link .socialicon{width:44px;height:44px}}
+/* ── Mobile menu button: single pill (X-morph icon + Menu/Close label), high contrast on rust ── */
+@media (max-width:700px){.hamburger{width:auto;margin:10px 14px;padding:10px 18px 10px 14px;justify-content:flex-start;gap:12px;background:rgba(28,14,6,.82);border:2px solid var(--gold);border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.45)}}
+.hamburger-icon{position:relative;width:24px;height:20px;gap:0;justify-content:space-between}
+.hamburger-icon span{width:24px;height:3px;background:var(--cream)}
+nav.open .hamburger-icon span:first-child{transform:translateY(8.5px) rotate(45deg)}
+nav.open .hamburger-icon span:nth-child(3){transform:translateY(-8.5px) rotate(-45deg)}
+.hamburger-label{color:var(--cream);font-size:1rem;letter-spacing:.08em;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.hamburger-label .hl-close,nav.open .hamburger-label .hl-open{display:none}
+nav.open .hamburger-label .hl-close{display:inline}
+.hamburger:focus-visible{outline:3px solid var(--cream);outline-offset:3px}
