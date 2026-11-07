@@ -222,6 +222,12 @@ if ($api !== '') {
 
 // ── Tax rates (administrators) ───────────────────────────────────────────────
 $view = (string)($_GET['view'] ?? '');
+// Nov 6, 2026: register settings and tax rates moved to Settings › Payments & Register (admin/payment_settings.php).
+// The old screens below are unreachable and kept only until the move is verified; then delete them.
+if ($view === 'settings' || $view === 'tax') {
+    header('Location: /admin/payment_settings.php?tab=' . ($view === 'tax' ? 'tax' : 'methods'), true, 302);
+    exit;
+}
 if ($view === 'tax') {
     if (!$isAdmin) { http_response_code(403); exit('Administrators only.'); }
     $flash = $_SESSION['register_flash'] ?? null; unset($_SESSION['register_flash']);
@@ -438,8 +444,7 @@ $boot = [
     <?php if ($refundsReady && bcrf_admission_ready($pdo)): ?><a class="drawerbtn" href="gate.php">Gate</a><?php endif; ?>
     <button type="button" class="drawerbtn" id="btnSales" hidden>Sales</button>
     <button type="button" class="drawerbtn" id="btnDrawer" hidden>Drawer</button>
-    <?php if ($isAdmin): ?><a class="drawerbtn setbtn" href="register.php?view=settings" aria-label="Register settings"><span aria-hidden="true">⚙</span><span class="lbl">&nbsp;Settings</span></a><?php endif; ?>
-    <div class="who"><?= $h($me) ?></div>
+        <div class="who"><?= $h($me) ?></div>
   </header>
 
   <?php if (!$ready): ?>
@@ -631,7 +636,7 @@ $boot = [
   <dl class="totals" id="drRows"></dl>
   <div class="tenders" id="drMoves"></div>
   <button type="button" class="btn primary big" id="btnCloseDrawer">Count and close drawer</button>
-  <p class="row wrap"><a class="btn" id="drReport" href="#">Report so far</a><a class="btn" href="register.php?view=drawers">All drawers</a><?php if ($isAdmin): ?><a class="btn" href="register.php?view=tax">Tax rates</a><a class="btn" href="register.php?view=settings">Settings</a><?php endif; ?></p>
+  <p class="row wrap"><a class="btn" id="drReport" href="#">Report so far</a><a class="btn" href="register.php?view=drawers">All drawers</a></p>
   <button type="button" class="link" id="drClose">Back</button>
 </dialog>
 

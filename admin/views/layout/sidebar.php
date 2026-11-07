@@ -76,6 +76,11 @@ $_sections = [
     ]],
     'settings' => ['label'=>'Settings','icon'=>'⚙️','items'=>[
         ['label'=>'Hours & Contacts', 'short'=>'Hours','icon'=>'🏠','tabs'=>[['Hours & Contacts','?view=site_info','view','site_info']]],
+        ['label'=>'Payments & Register', 'short'=>'Payments','icon'=>'💳','tabs'=>[   // administrators only (moved off the register, Nov 6 2026)
+            ['Payment methods', '/admin/payment_settings.php?tab=methods',  'view', 'payment_settings'],
+            ['Register',        '/admin/payment_settings.php?tab=register', 'view', 'payment_settings'],
+            ['Tax rates',       '/admin/payment_settings.php?tab=tax',      'view', 'payment_settings'],
+        ]],
         ['label'=>'Users & Roles',    'short'=>'Users','icon'=>'🔐','tabs'=>[
             ['Staff',       '?view=schema&table=users',     'table', 'users'],       // staff accounts (Farm OS Phase 0, C-02)
             ['Customers',   '?view=schema&table=customers', 'table', 'customers'],   // public site accounts
