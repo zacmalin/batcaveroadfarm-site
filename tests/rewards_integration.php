@@ -251,6 +251,14 @@ expect($welcomeMail['opts']['unsubscribe'] === false, 'service email not marketi
 $reminderMail = bcrf_roost_expiration_email_content(30, 675, '2027-01-31 09:30:00', 'https://batcaveroadfarm.com/roost-rewards/');
 expect(($welcomeMail['opts']['transport'] ?? '')==='smtp_required', 'welcome mail requires strict SMTP');
 expect(($reminderMail['opts']['transport'] ?? '')==='smtp_required', 'reminder mail requires strict SMTP');
+// Exercise the real mail adapter only when no SMTP credential is configured.
+// This must return before any SMTP or PHP mail() call is attempted.
+require_once __DIR__ . '/../admin/includes/email_template.php';
+if (!bcf_smtp_available()) {
+    expect(!bcf_send_mail('nobody@example.test','Strict transport check','<p>Never send</p>', ['transport'=>'smtp_required']), 'strict SMTP fails closed when credentials are absent');
+    expect(($GLOBALS['bcf_mail_last_error'] ?? '')==='Required SMTP transport unavailable', 'strict SMTP reports unavailable transport');
+}
+
 expect(str_contains($reminderMail['html'], '675 points'), 'reminder includes current balance');
 expect(str_contains($reminderMail['html'], 'January 31, 2027'), 'reminder includes UTC expiry');
 expect($reminderMail['opts']['unsubscribe'] === false, 'reminder service email not marketing');
