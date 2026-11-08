@@ -48,6 +48,15 @@
 
   document.addEventListener('click', closeAll);
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') closeAll();
+    if (e.key === 'Escape') {
+      var nav = document.getElementById('main-nav');
+      var drawerOpen = nav && nav.classList.contains('open');
+      closeAll();
+      if (drawerOpen) {
+        closeDrawer();
+        var hamburger = document.getElementById('hamburger-btn');
+        if (hamburger) hamburger.focus();
+      }
+    }
   });
 })();
