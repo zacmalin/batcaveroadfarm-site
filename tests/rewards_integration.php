@@ -197,6 +197,13 @@ expect(bcrf_roost_verified_provider_feedback_reason('provider_block') === 'provi
 foreach (['soft_bounce','delivered','opened','clicked','deferred','unknown','Hard_Bounce',''] as $feedback) {
     expect(bcrf_roost_verified_provider_feedback_reason($feedback) === null, 'unrecognized or transient provider feedback is not a permanent suppression instruction');
 }
+require_once __DIR__ . '/../includes/roost-email-provider-feedback-record.php';
+expect(!bcrf_roost_record_verified_provider_feedback($pdo,'customer1@example.test','soft_bounce','provider:soft-1'), 'transient provider feedback does not create suppression');
+expect(bcrf_roost_record_verified_provider_feedback($pdo,'customer1@example.test','spam_complaint','provider:complaint-1'), 'verified complaint records service suppression');
+expect(bcrf_roost_email_service_suppressed($pdo,'customer1@example.test'), 'verified complaint suppression blocks service delivery');
+expect(bcrf_roost_record_verified_provider_feedback($pdo,'customer1@example.test','spam_complaint','provider:complaint-1'), 'duplicate provider feedback is idempotent');
+expect(bcrf_roost_email_clear_suppression($pdo,'customer1@example.test','service','complaint'), 'provider feedback test suppression explicitly cleared');
+expect(!bcrf_roost_email_service_suppressed($pdo,'customer1@example.test'), 'cleared provider feedback does not block service delivery');
 require_once __DIR__ . '/../includes/roost-email-delivery-audit.php';
 require_once __DIR__ . '/../includes/roost-email-reconciliation.php';
 
