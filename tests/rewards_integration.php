@@ -19,6 +19,9 @@ function rejected(callable $run, string $message): void { try { $run(); } catch 
 $base = ['household_id'=>1,'policy_id'=>1,'customer_id'=>1,'source_type'=>'sale','source_id'=>'100','entry_type'=>'earn_spend','points_delta'=>200,'idempotency_key'=>'test-sale-100'];
 $a = bcrf_reward_post($pdo,$base);
 expect($a['balance']===200 && !$a['replayed'],'first award');
+rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_type'=>'visit','source_id'=>'wrong-kind','idempotency_key'=>'test-wrong-spend-source'])),'purchase earning requires sale source');
+rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'earn_visit','source_type'=>'sale','source_id'=>'wrong-kind','points_delta'=>25,'idempotency_key'=>'test-wrong-visit-source'])),'visit earning requires visit source');
+
 $pdo->exec("INSERT INTO reward_households (id,status,created_at) VALUES (2,'active',UTC_TIMESTAMP(3))");
 $pdo->exec("INSERT INTO reward_accounts (household_id,updated_at) VALUES (2,UTC_TIMESTAMP(3))");
 $pdo->exec("INSERT INTO customers VALUES (3)");
