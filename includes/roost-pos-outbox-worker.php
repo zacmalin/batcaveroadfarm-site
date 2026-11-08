@@ -47,3 +47,31 @@ function bcrf_roost_outbox_finish(PDO $pdo, int $id, int $attempt, string $outco
     $st->execute([$nextStatus,$error===null?null:mb_substr($error,0,500),$outcome,$outcome,$id,$attempt]);
     return $st->rowCount()===1;
 }
+
+// Recover an eighth-attempt worker that crashed after claiming but before
+// acknowledging. Expired lease only; row lock prevents racing a live claim.
+// A separate, authorized operator must review dead letters before replay.
+function bcrf_roost_outbox_expire_exhausted_lease(PDO $pdo): ?int {
+    if ($pdo->inTransaction()) throw new LogicException('Lease recovery requires autocommit.');
+    $pdo->beginTransaction();
+    try {
+        $st=$pdo->query("SELECT id FROM reward_pos_outbox
+            WHERE status='processing' AND attempts >= 8
+              AND available_at <= UTC_TIMESTAMP(3)
+            ORDER BY available_at,id LIMIT 1 FOR UPDATE SKIP LOCKED");
+        $id=$st->fetchColumn();
+        if ($id===false) { $pdo->commit(); return null; }
+        $update=$pdo->prepare("UPDATE reward_pos_outbox
+            SET status='dead',last_error='Final processing lease expired without acknowledgment',
+                processed_at=NULL
+            WHERE id=? AND status='processing' AND attempts >= 8
+              AND available_at <= UTC_TIMESTAMP(3)");
+        $update->execute([(int)$id]);
+        if ($update->rowCount()!==1) throw new RuntimeException('Exhausted lease recovery lost claim.');
+        $pdo->commit();
+        return (int)$id;
+    } catch(Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $e;
+    }
+}
