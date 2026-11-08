@@ -12,9 +12,11 @@ $pdo->exec("CREATE TABLE sale_lines (id BIGINT AUTO_INCREMENT PRIMARY KEY, sale_
 $pdo->exec("INSERT INTO sale_lines (sale_id,product_type,gross_cents,discount_cents,refunded_net_cents) VALUES (100,'retail',4000,0,0),(101,'retail',5500,0,0),(102,'retail',500,0,0),(103,'retail',500,0,0)");
 $pdo->exec("CREATE TABLE payments (sale_id BIGINT,tender VARCHAR(30),amount_cents BIGINT,status VARCHAR(20),reconciled_at DATETIME NULL,reconcile_flag VARCHAR(30) NULL) ENGINE=InnoDB");
 $pdo->exec("INSERT INTO payments (sale_id,tender,amount_cents,status) VALUES (100,'cash',4000,'completed'),(101,'cash',5500,'completed'),(102,'cash',500,'completed'),(103,'cash',500,'completed')");
-$pdo->exec("CREATE TABLE refunds (id BIGINT PRIMARY KEY, sale_id BIGINT NOT NULL, net_cents BIGINT NOT NULL) ENGINE=InnoDB");
-$pdo->exec("INSERT INTO refunds VALUES (1,100,4000),(2,101,0)");
+$pdo->exec("CREATE TABLE refunds (id BIGINT PRIMARY KEY, sale_id BIGINT NOT NULL, net_cents BIGINT NOT NULL, total_cents BIGINT NOT NULL) ENGINE=InnoDB");
+$pdo->exec("INSERT INTO refunds VALUES (1,100,4000,4000),(2,101,0,0)");
 $pdo->exec("CREATE TABLE refund_lines (refund_id BIGINT, sale_line_id BIGINT, net_cents BIGINT) ENGINE=InnoDB");
+$pdo->exec("CREATE TABLE refund_payments (refund_id BIGINT, tender VARCHAR(20), amount_cents BIGINT, reference VARCHAR(80)) ENGINE=InnoDB");
+$pdo->exec("INSERT INTO refund_payments VALUES (1,'cash',4000,NULL)");
 $schema = require __DIR__ . '/../admin/migrations/0016_farm_rewards_foundation.php';
 $schema($pdo);
 $schema($pdo); // rerunnable
@@ -222,15 +224,17 @@ $pdo->exec("UPDATE refunds SET net_cents=4000 WHERE id=1");
 $pdo->exec("UPDATE refund_lines SET net_cents=3900 WHERE refund_id=1");
 rejected(fn()=>bcrf_roost_refund_reversal_preview($pdo,100),'refund amount mismatch fails closed');
 // Partial refunds must reverse only the change in floored points.
-$pdo->exec("UPDATE refunds SET net_cents=1001 WHERE id=1");
+$pdo->exec("UPDATE refunds SET net_cents=1001,total_cents=1001 WHERE id=1");
 $pdo->exec("UPDATE refund_lines SET net_cents=1001 WHERE refund_id=1");
 $pdo->exec("UPDATE sale_lines SET refunded_net_cents=1001 WHERE id=1");
+$pdo->exec("UPDATE refund_payments SET amount_cents=1001 WHERE refund_id=1");
 $partial = bcrf_roost_refund_reversal_preview($pdo,100);
 expect($partial['original_eligible_cents']===4000 && $partial['remaining_eligible_cents']===2999 &&
     $partial['cumulative_points_to_reverse']===51,'partial refund rounds cumulative points correctly');
 // A second refund changes the cumulative reversal by only the newly lost points.
-$pdo->exec("INSERT INTO refunds VALUES (3,100,999)");
+$pdo->exec("INSERT INTO refunds VALUES (3,100,999,999)");
 $pdo->exec("INSERT INTO refund_lines VALUES (3,1,999)");
+$pdo->exec("INSERT INTO refund_payments VALUES (3,'cash',999,NULL)");
 $pdo->exec("UPDATE sale_lines SET refunded_net_cents=2000 WHERE id=1");
 $twice = bcrf_roost_refund_reversal_preview($pdo,100);
 expect($twice['cumulative_points_to_reverse']===100 && count($twice['eligible_refunds_cents'])===2,
@@ -239,8 +243,9 @@ expect($twice['cumulative_points_to_reverse']===100 && count($twice['eligible_re
 $pdo->exec("INSERT INTO sales VALUES (104,1,'partially_refunded',3000,0,3000)");
 $pdo->exec("INSERT INTO sale_lines (sale_id,product_type,gross_cents,discount_cents,refunded_net_cents)
     VALUES (104,'retail',2000,0,0),(104,'gift_card',1000,0,1000)");
-$pdo->exec("INSERT INTO refunds VALUES (4,104,1000)");
+$pdo->exec("INSERT INTO refunds VALUES (4,104,1000,1000)");
 $pdo->exec("INSERT INTO refund_lines VALUES (4,6,1000)");
+$pdo->exec("INSERT INTO refund_payments VALUES (4,'cash',1000,NULL)");
 $mixed = bcrf_roost_refund_reversal_preview($pdo,104);
 expect($mixed['cumulative_points_to_reverse']===0 && $mixed['remaining_eligible_cents']===2000,
     'ineligible refund does not reverse eligible points');
@@ -248,15 +253,17 @@ expect($mixed['cumulative_points_to_reverse']===0 && $mixed['remaining_eligible_
 $pdo->exec("INSERT INTO sales VALUES (105,1,'partially_refunded',101,0,101)");
 $pdo->exec("INSERT INTO sale_lines (sale_id,product_type,gross_cents,discount_cents,refunded_net_cents)
     VALUES (105,'retail',101,0,1)");
-$pdo->exec("INSERT INTO refunds VALUES (5,105,1)");
+$pdo->exec("INSERT INTO refunds VALUES (5,105,1,1)");
 $pdo->exec("INSERT INTO refund_lines VALUES (5,7,1)");
+$pdo->exec("INSERT INTO refund_payments VALUES (5,'cash',1,NULL)");
 $zeroRefund = bcrf_roost_refund_reversal_preview($pdo,105);
 expect($zeroRefund['cumulative_points_to_reverse']===0 && bcrf_roost_refund_points_due(5,0,0)===0, 'one-cent refund not crossing a point threshold needs no debit');
 expect(bcrf_roost_refund_is_points_noop($pdo,105,5,0), 'read-only preflight recognizes zero-point refund');
 expect(!bcrf_roost_refund_is_points_noop($pdo,100,200,0), 'read-only preflight identifies refund needing reversal');
 $pdo->exec("UPDATE refund_lines SET net_cents=0 WHERE refund_id=5");
-$pdo->exec("UPDATE refunds SET net_cents=0 WHERE id=5");
+$pdo->exec("UPDATE refunds SET net_cents=0,total_cents=0 WHERE id=5");
 $pdo->exec("UPDATE sale_lines SET refunded_net_cents=0 WHERE id=7");
+$pdo->exec("DELETE FROM refund_payments WHERE refund_id=5");
 $zeroRefund = bcrf_roost_refund_reversal_preview($pdo,105);
 expect($zeroRefund['cumulative_points_to_reverse']===0 &&
     bcrf_roost_refund_points_due(5,0,0)===0,'zero-point refund requires no ledger debit');
