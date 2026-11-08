@@ -44,7 +44,7 @@ function bcrf_roost_expiration_email_content(int $days, int $balance, string $ex
     $expiration = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s.u', $expirationUtc, $tz);
     if ($expiration === false) $expiration = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $expirationUtc, $tz);
     if ($expiration === false) throw new BcrfRewardError('Invalid UTC expiration timestamp.');
-    $when = $expiration->format('F j, Y \\a\\t g:i A') . ' UTC';
+    $when = $expiration->format('F j, Y \a\t g:i A') . ' UTC';
     $safeDate = bcrf_roost_email_escape($when);
     $safeLink = bcrf_roost_email_escape($dashboardUrl);
     $html = '<h1 style="color:#e8b84b;">Your Roost Rewards points may expire soon</h1>'
