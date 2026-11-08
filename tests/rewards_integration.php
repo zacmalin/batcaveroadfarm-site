@@ -31,6 +31,8 @@ rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['idempotency_key'=>'diff
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['points_delta'=>300])),'conflicting replay');
 $v = bcrf_reward_post($pdo,array_merge($base,['source_type'=>'visit','source_id'=>'person-1:2026-11-08','entry_type'=>'earn_visit','points_delta'=>25,'idempotency_key'=>'test-visit-1']));
 expect($v['balance']===225,'visit award');
+rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['household_id'=>2,'customer_id'=>3,'source_type'=>'visit','source_id'=>'person-1:2026-11-08','entry_type'=>'earn_visit','points_delta'=>25,'idempotency_key'=>'other-household-same-visit'])),'same visit cannot award another household');
+
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_type'=>'visit','source_id'=>'person-1:2026-11-08','entry_type'=>'earn_visit','points_delta'=>25,'idempotency_key'=>'different-key-same-visit'])),'duplicate visit source with different key');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'redeem','points_delta'=>-250,'idempotency_key'=>'test-redeem-too-much'])),'overspend');
 $d = bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'redeem','points_delta'=>-200,'source_type'=>'reward','source_id'=>'r1','idempotency_key'=>'test-redeem-1','customer_id'=>2]));
@@ -44,6 +46,8 @@ rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'earn_spen
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'earn_visit','points_delta'=>25,'source_id'=>'revoked-visit','idempotency_key'=>'test-revoked-visit','customer_id'=>2])),'revoked customer cannot receive visit points');
 $refund = bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'refund_reversal','points_delta'=>-200,'source_type'=>'refund','source_id'=>'refund-1','idempotency_key'=>'test-refund-1','related_entry_id'=>$a['id']]));
 expect($refund['balance']===-175,'refund negative balance');
+$pdo->exec("SELECT COUNT(*) FROM reward_ledger WHERE entry_type='refund_reversal' AND source_type='refund'");
+
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'refund_reversal','points_delta'=>-1,'source_type'=>'refund','source_id'=>'refund-2','idempotency_key'=>'test-refund-2','related_entry_id'=>$a['id']])),'over reversal');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'redeem','points_delta'=>-1,'idempotency_key'=>'test-negative-redeem'])),'negative balance redeem');
 // Race two independent database sessions against the same 100-point balance.
