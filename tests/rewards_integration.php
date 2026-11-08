@@ -20,6 +20,11 @@ $pdo->exec("INSERT INTO refund_payments VALUES (1,'cash',4000,NULL)");
 $schema = require __DIR__ . '/../admin/migrations/0016_farm_rewards_foundation.php';
 $schema($pdo);
 $schema($pdo); // rerunnable
+$refundProcessingSchema = require __DIR__ . '/../admin/migrations/0018_roost_refund_processing.php';
+$refundProcessingSchema($pdo);
+$refundProcessingSchema($pdo); // rerunnable
+require_once __DIR__ . '/../includes/roost-refund-processing.php';
+
 $pdo->exec("CREATE TABLE check_ins (id BIGINT UNSIGNED NOT NULL PRIMARY KEY, business_date DATE NOT NULL, party_size INT NOT NULL) ENGINE=InnoDB");
 $pdo->exec("INSERT INTO check_ins VALUES (1,'2026-11-08',1),(2,'2026-11-08',2),(3,'2026-11-09',1),(4,'2026-11-10',1),(5,'2026-11-11',1)");
 $attendanceSchema = require __DIR__ . '/../admin/migrations/0017_roost_rewards_attendance.php';
@@ -249,6 +254,9 @@ $twice = bcrf_roost_refund_reversal_preview($pdo,100);
 expect(bcrf_roost_refund_points_for_id($twice,1,0)===51, 'first refund reverses only its own points');
 rejected(fn()=>bcrf_roost_refund_points_for_id($twice,3,0), 'later refund cannot bypass earlier reversal');
 expect(bcrf_roost_refund_points_for_id($twice,3,51)===49, 'second refund reverses only incremental points');
+rejected(fn()=>bcrf_roost_record_zero_point_refund($pdo,1,1),
+    'point-bearing refund cannot be recorded as zero-point processed');
+
 $zeroThenDebit = ['refund_point_boundaries'=>[
     10=>['points_before'=>0,'points_after'=>0],
     11=>['points_before'=>0,'points_after'=>1]
