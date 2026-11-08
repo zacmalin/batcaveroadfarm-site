@@ -14,6 +14,7 @@ $pdo->exec("CREATE TABLE payments (sale_id BIGINT,tender VARCHAR(30),amount_cent
 $pdo->exec("INSERT INTO payments (sale_id,tender,amount_cents,status) VALUES (100,'cash',4000,'completed'),(101,'cash',5500,'completed'),(102,'cash',500,'completed'),(103,'cash',500,'completed')");
 $pdo->exec("CREATE TABLE refunds (id BIGINT PRIMARY KEY, sale_id BIGINT NOT NULL, net_cents BIGINT NOT NULL) ENGINE=InnoDB");
 $pdo->exec("INSERT INTO refunds VALUES (1,100,4000),(2,101,0)");
+$pdo->exec("CREATE TABLE refund_lines (refund_id BIGINT, sale_line_id BIGINT, net_cents BIGINT) ENGINE=InnoDB");
 $schema = require __DIR__ . '/../admin/migrations/0016_farm_rewards_foundation.php';
 $schema($pdo);
 $schema($pdo); // rerunnable
@@ -111,6 +112,8 @@ rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'earn_spen
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'earn_visit','points_delta'=>25,'source_id'=>'revoked-visit','idempotency_key'=>'test-revoked-visit','customer_id'=>2])),'revoked customer cannot receive visit points');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'refund_reversal','points_delta'=>-1,'source_type'=>'refund','source_id'=>'2','idempotency_key'=>'wrong-sale-refund','related_entry_id'=>$a['id']])),'refund must belong to awarded sale');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'refund_reversal','points_delta'=>-1,'source_type'=>'refund','source_id'=>'999','idempotency_key'=>'missing-refund','related_entry_id'=>$a['id']])),'refund must exist');
+$pdo->exec("INSERT INTO refund_lines VALUES (1,1,4000)");
+$pdo->exec("UPDATE sale_lines SET refunded_net_cents=4000 WHERE id=1");
 $refund = bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'refund_reversal','points_delta'=>-200,'source_type'=>'refund','source_id'=>'1','idempotency_key'=>'test-refund-1','related_entry_id'=>$a['id']]));
 expect($refund['balance']===-175,'refund negative balance');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'refund_reversal','points_delta'=>-1,'source_type'=>'refund','source_id'=>'1','idempotency_key'=>'duplicate-refund-different-key','related_entry_id'=>$a['id']])),'same refund cannot reverse twice');
@@ -196,9 +199,6 @@ $fresh = bcrf_roost_expire_household($pdo, 1);
 expect(!$fresh['expired'] && $fresh['balance']===50, 'recent activity blocks expiration');
 // Reconciled refund preview uses actual refund lines and sale-line running totals.
 require __DIR__ . '/../includes/roost-refund-preview.php';
-$pdo->exec("CREATE TABLE refund_lines (refund_id BIGINT, sale_line_id BIGINT, net_cents BIGINT) ENGINE=InnoDB");
-$pdo->exec("INSERT INTO refund_lines VALUES (1,1,4000)");
-$pdo->exec("UPDATE sale_lines SET refunded_net_cents=4000 WHERE id=1");
 $preview = bcrf_roost_refund_reversal_preview($pdo,100);
 expect($preview['cumulative_points_to_reverse']===200 && $preview['remaining_eligible_cents']===0,'full refund preview matches original points');
 $pdo->exec("UPDATE refund_lines SET net_cents=3900 WHERE refund_id=1");
