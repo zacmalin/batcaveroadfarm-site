@@ -69,5 +69,50 @@ function bcrf_roost_outbox_dispatch_refund_preflight(PDO $pdo, array $event): ar
         throw new RuntimeException('Queued refund source does not match outbox identity.');
     require_once __DIR__.'/roost-pos-outbox-policy.php';
     $policy=bcrf_roost_outbox_resolve_policy($pdo,$event);
+    // Receipt-first replay: an already-posted refund cannot be re-previewed
+    // as a new reversal because cumulative prior reversals include itself.
+    // Match immutable provenance before acknowledging a committed receipt.
+    $receipt=$pdo->prepare("SELECT p.household_id,p.original_earning_entry_id,p.points_reversed,
+            p.reversal_entry_id,r.sale_id,e.household_id AS earned_household,
+            e.policy_id AS earned_policy,e.source_id AS earned_sale,
+            e.entry_type AS earned_type,e.source_type AS earned_source,
+            l.id AS ledger_id,l.household_id AS ledger_household,
+            l.policy_id AS ledger_policy,l.related_entry_id,l.points_delta,
+            l.entry_type AS ledger_type,l.source_type AS ledger_source,
+            l.source_id AS ledger_refund,l.idempotency_key
+        FROM reward_refund_processing p
+        JOIN refunds r ON r.id=p.refund_id
+        JOIN reward_ledger e ON e.id=p.original_earning_entry_id
+        LEFT JOIN reward_ledger l ON l.id=p.reversal_entry_id
+        WHERE p.refund_id=?");
+    $receipt->execute([(int)$sourceId]);
+    $rows=$receipt->fetchAll(PDO::FETCH_ASSOC);
+    if (count($rows)>1) throw new RuntimeException('Ambiguous committed refund receipt.');
+    if ($rows) {
+        $saved=$rows[0];
+        if ((int)$saved['household_id']!==(int)$saved['earned_household'] ||
+            (int)$saved['earned_policy']!==$policy ||
+            $saved['earned_type']!=='earn_spend' || $saved['earned_source']!=='sale' ||
+            (string)$saved['earned_sale']!==(string)$saved['sale_id'])
+            throw new RuntimeException('Committed refund provenance mismatch.');
+        if ((int)$saved['points_reversed']===0 && $saved['reversal_entry_id']===null)
+            return ['action'=>'zero_point_already_processed','refund_id'=>(int)$sourceId,
+                'original_earning_entry_id'=>(int)$saved['original_earning_entry_id']];
+        if ((int)$saved['points_reversed']<=0 ||
+            (int)$saved['reversal_entry_id']<=0 ||
+            (int)$saved['ledger_id']!==(int)$saved['reversal_entry_id'] ||
+            (int)$saved['ledger_household']!==(int)$saved['household_id'] ||
+            (int)$saved['ledger_policy']!==$policy ||
+            (int)$saved['related_entry_id']!==(int)$saved['original_earning_entry_id'] ||
+            (int)$saved['points_delta']!==-(int)$saved['points_reversed'] ||
+            $saved['ledger_type']!=='refund_reversal' || $saved['ledger_source']!=='refund' ||
+            (string)$saved['ledger_refund']!==(string)$sourceId ||
+            $saved['idempotency_key']!=='roost:pos:refund:'.$sourceId)
+            throw new RuntimeException('Committed refund ledger receipt mismatch.');
+        return ['action'=>'already_posted',
+            'event'=>['policy_id'=>$policy,'entry_type'=>'refund_reversal',
+                'source_type'=>'refund','source_id'=>(string)$sourceId],
+            'receipt'=>['ledger_entry_id'=>(int)$saved['ledger_id'],'replayed'=>true]];
+    }
     return bcrf_roost_outbox_dispatch_preflight($pdo,$event,$policy);
 }
