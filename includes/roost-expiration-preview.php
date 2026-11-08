@@ -43,6 +43,8 @@ function bcrf_roost_expiration_reminder_day(string $lastActivityUtc, string $now
     if ($now >= $expiration) return null;
     foreach ([60, 30, 7] as $days) {
         $start = $expiration->modify("-$days days");
+        // Calendar-day milestones are anchored to the exact UTC anniversary
+        // instant, not midnight; never send after the 24-hour window.
         if ($now >= $start && $now < $start->modify('+1 day')) return $days;
     }
     return null;
