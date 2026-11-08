@@ -190,6 +190,13 @@ $pdo->exec("UPDATE reward_households SET status='active' WHERE id=1");
 expect(bcrf_roost_email_suppress($pdo,(int)$claim['id'],$claim['claim_token'],'test suppression'), 'claimed event can be suppressed');
 expect(!bcrf_roost_email_suppress($pdo,(int)$claim['id'],$claim['claim_token'],'duplicate suppression'), 'suppression cannot replay');
 expect((string)$pdo->query("SELECT status FROM reward_email_outbox WHERE id=".(int)$claim['id'])->fetchColumn()==='suppressed', 'suppression persisted');
+require_once __DIR__ . '/../includes/roost-email-provider-feedback.php';
+expect(bcrf_roost_verified_provider_feedback_reason('hard_bounce') === 'hard_bounce', 'verified hard bounce maps to permanent suppression');
+expect(bcrf_roost_verified_provider_feedback_reason('spam_complaint') === 'complaint', 'verified complaint maps to permanent suppression');
+expect(bcrf_roost_verified_provider_feedback_reason('provider_block') === 'provider_block', 'verified provider block maps to suppression');
+foreach (['soft_bounce','delivered','opened','clicked','deferred','unknown','Hard_Bounce',''] as $feedback) {
+    expect(bcrf_roost_verified_provider_feedback_reason($feedback) === null, 'unrecognized or transient provider feedback is not a permanent suppression instruction');
+}
 require_once __DIR__ . '/../includes/roost-email-delivery-audit.php';
 require_once __DIR__ . '/../includes/roost-email-reconciliation.php';
 
