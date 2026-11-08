@@ -63,7 +63,11 @@ function bcrf_rewards_sale_eligible_cents(PDO $pdo, int $saleId): int {
     $tenders->execute([$saleId]);
     $paid = 0;
     while ($payment = $tenders->fetch(PDO::FETCH_ASSOC)) {
-        if ($payment['status'] !== 'completed') continue;
+        // A pending, failed or reversed tender alongside completed tenders
+        // makes allocation ambiguous. Require every recorded payment settled.
+        if ($payment['status'] !== 'completed') {
+            throw new BcrfRewardError('Sale has an unresolved payment.');
+        }
         if (in_array($payment['tender'], ['gift_card','store_credit','reward','rewards'], true)) {
             throw new BcrfRewardError('Sale has unallocated non-earning tender.');
         }
