@@ -99,15 +99,21 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
                 // A delayed sale may earn under a retired policy only when
                 // the immutable, committed POS outbox event pinned that exact
                 // policy. Legacy null snapshots fail closed.
-                $pinned = $pdo->prepare("SELECT 1 FROM reward_pos_outbox o
-                    JOIN reward_policies p ON p.id=o.policy_id
-                    WHERE o.event_type='sale.completed' AND o.source_id=?
-                      AND o.policy_id=? AND p.created_at<=o.created_at
-                      AND (p.effective_at IS NULL OR p.effective_at<=o.created_at)
-                    LIMIT 1 FOR UPDATE");
-                $pinned->execute([(int)$event['source_id'],$policy]);
-                if (!$pinned->fetchColumn())
+                // Lock only the queued event, not the policy row: policy
+                // maintenance must not invert account/outbox lock ordering.
+                $pinned = $pdo->prepare("SELECT policy_id,created_at FROM reward_pos_outbox
+                    WHERE event_type='sale.completed' AND source_id=? FOR UPDATE");
+                $pinned->execute([(int)$event['source_id']]);
+                $snapshot=$pinned->fetch(PDO::FETCH_ASSOC);
+                if (!$snapshot || $snapshot['policy_id']===null ||
+                    (int)$snapshot['policy_id']!==$policy)
                     throw new BcrfRewardError('Retired sale policy requires matching immutable outbox snapshot.');
+                $historicalPolicy=$pdo->prepare("SELECT 1 FROM reward_policies
+                    WHERE id=? AND created_at<=?
+                      AND (effective_at IS NULL OR effective_at<=?) LIMIT 1");
+                $historicalPolicy->execute([$policy,$snapshot['created_at'],$snapshot['created_at']]);
+                if (!$historicalPolicy->fetchColumn())
+                    throw new BcrfRewardError('Pinned sale policy was not valid when queued.');
             } elseif ($type === 'refund_reversal' && !empty($event['related_entry_id'])) {
                 $historical = $pdo->prepare("SELECT 1 FROM reward_ledger l
                 JOIN reward_policies p ON p.id=l.policy_id
