@@ -4,6 +4,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/stripe.php';
+require_once __DIR__ . '/../includes/pass_reservations.php';
 
 function _pass_bail(string $code): void {
     header('Location: /passes/?error=' . rawurlencode($code)); exit;
@@ -30,38 +31,18 @@ if ($typeId <= 0)  _pass_bail('type');
 if ($name === '')  _pass_bail('name');
 if (!$email)       _pass_bail('email');
 
-// Load pass type
-try {
-    $st = $pdo->prepare("SELECT * FROM pass_types WHERE id=? AND is_active=1 LIMIT 1");
-    $st->execute([$typeId]);
-    $pt = $st->fetch(PDO::FETCH_ASSOC) ?: null;
-} catch (Throwable $e) { _pass_bail('db'); }
-if (!$pt) _pass_bail('type');
-
-// Check founding member availability
-if ($pt['is_founding'] && $pt['founding_qty_limit']) {
-    try {
-        $st = $pdo->prepare("SELECT COUNT(*) FROM passes WHERE pass_type_id = ? AND status != 'cancelled'");   // audit #2
-        $st->execute([(int)$typeId]);
-        $sold = (int)$st->fetchColumn();
-        if ($sold >= (int)$pt['founding_qty_limit']) _pass_bail('sold_out');
-    } catch (Throwable $e) { /* allow through if can't check */ }
-}
-
-// Generate unique token
+// Atomically check capacity and reserve a slot under the pass-type row lock.
 $token = bin2hex(random_bytes(24));
-
-// Insert pass (status=pending_payment — becomes active when webhook fires)
 try {
-    $pdo->prepare("
-        INSERT INTO passes (pass_type_id, holder_name, email, phone, token, status, payment_status, amount_paid)
-        VALUES (?,?,?,?,?, 'pending_payment','pending',?)
-    ")->execute([$typeId, $name, $email, $phone ?: null, $token, (float)$pt['price']]);
-    $passId = (int)$pdo->lastInsertId();
+    $reservation = bcrf_pass_reserve($pdo, $typeId, $name, $email, $phone ?: null, $token);
+    $passId = $reservation['id'];
+    $pt = $reservation['type'];
     require_once __DIR__ . '/../includes/ga.php';
-    bcrf_ga_store_ids($pdo, 'passes', $passId);   // so the GA purchase is credited to this visit
+    bcrf_ga_store_ids($pdo, 'passes', $passId);
+} catch (DomainException $e) {
+    _pass_bail(in_array($e->getMessage(), ['type', 'sold_out'], true) ? $e->getMessage() : 'db');
 } catch (Throwable $e) {
-    error_log('[BCRF passes/submit] DB insert failed: ' . $e->getMessage());
+    error_log('[BCRF passes/submit] Reservation failed: ' . $e->getMessage());
     _pass_bail('db');
 }
 
@@ -73,6 +54,8 @@ $perYear = '/ year';
 try {
     $session = stripe_api('POST', 'checkout/sessions', [
         'mode'                                          => 'payment',
+        // Stripe Checkout minimum expiry is 30 minutes; use the same hold window.
+        'expires_at'                                    => time() + 1800,
         'line_items[0][price_data][currency]'           => 'usd',
         'line_items[0][price_data][unit_amount]'        => (int)round((float)$pt['price'] * 100),
         'line_items[0][price_data][product_data][name]' => $pt['label'] . ' — Bat Cave Road Farm',
@@ -89,7 +72,7 @@ try {
 } catch (Throwable $e) {
     error_log('[BCRF passes/submit] Stripe error: ' . $e->getMessage());
     // Clean up the pending pass so it doesn't orphan
-    try { $pdo->prepare("DELETE FROM passes WHERE id=? AND status='pending_payment'")->execute([$passId]); } catch (Throwable $ex) {}
+    try { $pdo->prepare("UPDATE passes SET reservation_expires_at=NOW() WHERE id=? AND status='pending_payment' AND payment_status='pending'")->execute([$passId]); } catch (Throwable $ex) {}
     header('Location: /passes/?error=stripe'); exit;
 }
 
