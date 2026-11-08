@@ -47,6 +47,22 @@ try {
             $issues[] = "$table engine must be InnoDB for foreign keys";
         }
     }
+    // Detect an existing outbox from an earlier migration revision before
+    // attempting any release that assumes immutable policy snapshots.
+    $tableStmt->execute(['reward_pos_outbox']);
+    $existingOutbox=$tableStmt->fetch(PDO::FETCH_ASSOC);
+    if ($existingOutbox) {
+        $stmt->execute(['reward_pos_outbox']);
+        $outboxColumns=[];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $col)
+            $outboxColumns[$col['COLUMN_NAME']]=$col;
+        if (!isset($outboxColumns['policy_id']) ||
+            $outboxColumns['policy_id']['DATA_TYPE']!=='bigint' ||
+            !str_contains($outboxColumns['policy_id']['COLUMN_TYPE'],'unsigned'))
+            $issues[]='Existing reward_pos_outbox lacks BIGINT UNSIGNED policy_id; CREATE TABLE IF NOT EXISTS will not upgrade it';
+        if (strtoupper((string)$existingOutbox['ENGINE'])!=='INNODB')
+            $issues[]='Existing reward_pos_outbox must use InnoDB';
+    }
     if (stripos($version, 'MariaDB') !== false) {
         $issues[] = 'MariaDB detected: migration SQL is MySQL 8-specific; verify separately before deployment';
     }
