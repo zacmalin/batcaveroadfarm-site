@@ -91,7 +91,21 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
         }
         $active = $pdo->prepare("SELECT 1 FROM reward_policies WHERE id = ? AND status = 'active' AND (effective_at IS NULL OR effective_at <= UTC_TIMESTAMP(3)) LIMIT 1");
         $active->execute([$policy]);
-        if (!$active->fetchColumn()) throw new BcrfRewardError('Reward policy is not active.');
+        if (!$active->fetchColumn()) {
+            // Historical refunds must reverse under the immutable original
+            // earning policy, even after that policy is retired. This exception
+            // is never available to new earnings, redemptions, or adjustments.
+            if ($type !== 'refund_reversal' || empty($event['related_entry_id']))
+                throw new BcrfRewardError('Reward policy is not active.');
+            $historical = $pdo->prepare("SELECT 1 FROM reward_ledger l
+                JOIN reward_policies p ON p.id=l.policy_id
+                WHERE l.id=? AND l.policy_id=? AND l.household_id=?
+                  AND l.entry_type='earn_spend' AND l.source_type='sale'
+                LIMIT 1");
+            $historical->execute([$event['related_entry_id'],$policy,$household]);
+            if (!$historical->fetchColumn())
+                throw new BcrfRewardError('Refund policy must match the original sale earning.');
+        }
 
         $balance = (int)$account['balance_points'];
         if (($delta > 0 && $balance > PHP_INT_MAX - $delta) || ($delta < 0 && $balance < PHP_INT_MIN - $delta)) throw new BcrfRewardError('Reward balance overflow.');
