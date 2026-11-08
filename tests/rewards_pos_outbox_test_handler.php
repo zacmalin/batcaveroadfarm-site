@@ -142,7 +142,7 @@ try {
         ['id'=>$refundReplayOutboxId,'event_type'=>'sale.refunded','source_id'=>9021]);
     throw new RuntimeException('Corrupted refund receipt was acknowledged.');
 } catch (RuntimeException $expected) {
-    if ($expected->getMessage()!=='Committed refund ledger receipt mismatch') throw $expected;
+    if ($expected->getMessage()!=='Committed refund ledger receipt mismatch.') throw $expected;
 } finally {
     $pdo->exec("UPDATE reward_refund_processing SET points_reversed=points_reversed-1 WHERE refund_id=9021");
 }
