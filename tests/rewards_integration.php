@@ -219,6 +219,15 @@ foreach (['moderator','Shopkeep','Media','Staff','user','Administrator',''] as $
     expect(!bcrf_roost_delivery_review_access($role,true), 'non-administrator cannot review sensitive delivery failures');
 }
 expect(!bcrf_roost_delivery_review_access('administrator',false), 'disabled administrator cannot review delivery failures');
+require_once __DIR__ . '/../includes/roost-email-dsn-review-admin-preview.php';
+$adminSummary = bcrf_roost_dsn_review_summary('5.1.1','outbound:admin-review',true,true);
+expect(str_contains(bcrf_roost_delivery_review_admin_preview('administrator',true,$adminSummary),'Delivery failure review'), 'active admin can render dormant review');
+foreach ([['Staff',true],['moderator',true],['administrator',false]] as [$role,$active]) {
+    $denied = false;
+    try { bcrf_roost_delivery_review_admin_preview($role,$active,$adminSummary); }
+    catch (RuntimeException $e) { $denied = true; }
+    expect($denied, 'admin review rendering fails closed for unauthorized accounts');
+}
 require_once __DIR__ . '/../includes/roost-email-dsn-review-preview.php';
 $preview = bcrf_roost_dsn_review_preview_html(bcrf_roost_dsn_review_summary('5.1.1','ref:<script>alert(1)</script>',true,true));
 expect(str_contains($preview,'&lt;script&gt;') && !str_contains($preview,'<script>'), 'staff delivery review escapes untrusted references');
