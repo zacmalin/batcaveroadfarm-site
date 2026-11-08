@@ -45,3 +45,17 @@ function bcrf_roost_outbox_assert_sale_policy_not_newer(PDO $pdo, int $outboxId,
         ($row['policy_effective_at']!==null && $row['policy_effective_at']>$row['queued_at']))
         throw new RuntimeException('Queued sale cannot use a newer or inactive reward policy.');
 }
+
+// The only valid sale policy for queued dispatch is its immutable snapshot.
+// Null/legacy entries require manual reconciliation, never a guessed policy.
+function bcrf_roost_outbox_pinned_sale_policy(PDO $pdo, int $outboxId): int {
+    if ($pdo->inTransaction()) throw new LogicException('Pinned policy read requires autocommit.');
+    if ($outboxId<=0) throw new InvalidArgumentException('Positive outbox ID required.');
+    $q=$pdo->prepare("SELECT policy_id FROM reward_pos_outbox
+        WHERE id=? AND event_type='sale.completed'");
+    $q->execute([$outboxId]);
+    $value=$q->fetchColumn();
+    if ($value===false || $value===null || (int)$value<=0)
+        throw new RuntimeException('Queued sale has no pinned policy; manual reconciliation required.');
+    return (int)$value;
+}
