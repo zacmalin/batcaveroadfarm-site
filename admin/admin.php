@@ -378,6 +378,7 @@ $view_map = [
     'comment_moderation' => __DIR__ . '/views/comment_moderation.php',
     'theme_scheduler'    => __DIR__ . '/views/theme_scheduler.php',
     'audit_log'          => __DIR__ . '/views/audit_log.php',
+    'rewards_delivery_review' => __DIR__ . '/views/rewards_delivery_review.php',
     'site_info'          => __DIR__ . '/views/site_info.php',
     'sales_analytics'    => __DIR__ . '/views/sales_analytics.php',
     'search_analytics'   => __DIR__ . '/views/search_analytics.php',
