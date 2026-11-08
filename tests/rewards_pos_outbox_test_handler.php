@@ -88,4 +88,28 @@ if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household
     throw new RuntimeException('Zero-point refund changed balance.');
 if ((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE refund_id=9023 AND points_reversed=0 AND reversal_entry_id IS NULL")->fetchColumn()!==1)
     throw new RuntimeException('Zero-point refund receipt duplicated or missing.');
-echo "Authorized POS handler award, refunds and zero-point crash-replay guards passed.\\n";
+// Queue-level crash-after-commit simulation, still no automatic dispatcher.
+require_once __DIR__.'/../includes/roost-pos-outbox.php';
+require_once __DIR__.'/../includes/roost-pos-outbox-worker.php';
+$pdo->beginTransaction();
+bcrf_roost_pos_outbox_enqueue($pdo,'sale.completed',902);
+$pdo->commit();
+$claim=bcrf_roost_outbox_claim($pdo);
+if (!$claim || $claim['event_type']!=='sale.completed' || (int)$claim['source_id']!==902)
+    throw new RuntimeException('Expected sale queue claim missing.');
+$recovered=bcrf_roost_outbox_handle_test_event($pdo,$valid,1,true);
+if (!$recovered['replayed'] || $recovered['ledger_entry_id']!==$first['ledger_entry_id'])
+    throw new RuntimeException('Claimed event did not recover committed award.');
+// Simulate crash before acknowledgment, then expire lease and reclaim.
+$pdo->prepare("UPDATE reward_pos_outbox SET available_at=UTC_TIMESTAMP(3)-INTERVAL 1 SECOND WHERE id=?")->execute([$claim['id']]);
+$retry=bcrf_roost_outbox_claim($pdo);
+if (!$retry || (int)$retry['id']!==(int)$claim['id'] || (int)$retry['attempts']!==2)
+    throw new RuntimeException('Expired queue claim was not recovered.');
+if (bcrf_roost_outbox_finish($pdo,(int)$claim['id'],1,'completed'))
+    throw new RuntimeException('Stale queue attempt acknowledged.');
+$recoveredAgain=bcrf_roost_outbox_handle_test_event($pdo,$valid,1,true);
+if (!$recoveredAgain['replayed'] || !bcrf_roost_outbox_finish($pdo,(int)$retry['id'],2,'completed'))
+    throw new RuntimeException('Recovered queue event not acknowledged.');
+if ((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger WHERE source_type='sale' AND source_id='902'")->fetchColumn()!==1)
+    throw new RuntimeException('Queue retry duplicated ledger award.');
+echo "POS handler refund and queue crash-recovery guards passed.\\n";
