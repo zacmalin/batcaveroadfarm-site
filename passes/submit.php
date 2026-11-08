@@ -90,7 +90,7 @@ try {
     error_log('[BCRF passes/submit] Stripe error: ' . $e->getMessage());
     // Clean up the pending pass so it doesn't orphan
     try { $pdo->prepare("DELETE FROM passes WHERE id=? AND status='pending_payment'")->execute([$passId]); } catch (Throwable $ex) {}
-    header('Location: /passes/?error=stripe&msg=' . rawurlencode($e->getMessage())); exit;
+    header('Location: /passes/?error=stripe'); exit;
 }
 
 // Store session reference
