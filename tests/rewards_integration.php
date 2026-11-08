@@ -82,6 +82,18 @@ $pdo->prepare("INSERT INTO reward_email_suppressions (email_hash,scope,reason,cr
 rejected(fn()=>bcrf_roost_email_enqueue($pdo,1,1,'welcome',null,null,$welcomeEvent), 'active hard bounce blocks queueing');
 $pdo->prepare("UPDATE reward_email_suppressions SET cleared_at=UTC_TIMESTAMP(3) WHERE email_hash=?")->execute([$hash]);
 expect(!bcrf_roost_email_service_suppressed($pdo,'customer1@example.test'), 'cleared bounce does not block service delivery');
+require_once __DIR__ . '/../includes/roost-email-suppression-admin.php';
+bcrf_roost_email_record_suppression($pdo,'customer1@example.test','service','hard_bounce','provider:fixture');
+bcrf_roost_email_record_suppression($pdo,'customer1@example.test','all','admin_block','operator:fixture');
+bcrf_roost_email_record_suppression($pdo,'customer1@example.test','service','hard_bounce','provider:repeat');
+expect((int)$pdo->query("SELECT COUNT(*) FROM reward_email_suppressions")->fetchColumn()===2, 'repeat suppression does not create duplicates');
+expect(bcrf_roost_email_service_suppressed($pdo,'customer1@example.test'), 'multiple reasons block service delivery');
+expect(bcrf_roost_email_clear_suppression($pdo,'customer1@example.test','service','hard_bounce'), 'explicit bounce clearance succeeds');
+expect(bcrf_roost_email_service_suppressed($pdo,'customer1@example.test'), 'independent admin block remains active');
+expect(bcrf_roost_email_clear_suppression($pdo,'customer1@example.test','all','admin_block'), 'explicit admin clearance succeeds');
+expect(!bcrf_roost_email_service_suppressed($pdo,'customer1@example.test'), 'all active reasons cleared');
+expect(!bcrf_roost_email_clear_suppression($pdo,'customer1@example.test','all','admin_block'), 'clearance cannot replay');
+
 
 $pdo->exec("UPDATE customers SET email_verified_at=NULL WHERE id=1");
 rejected(fn()=>bcrf_roost_email_enqueue($pdo,1,1,'welcome',null,null,$welcomeEvent), 'unverified email cannot queue welcome');
