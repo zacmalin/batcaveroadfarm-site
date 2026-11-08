@@ -13,4 +13,20 @@ if (bcrf_roost_pos_enqueue_if_enabled($pdo,'sale.completed',123) ||
 $after=(int)$pdo->query("SELECT COUNT(*) FROM reward_pos_outbox")->fetchColumn();
 $pdo->rollBack();
 if ($before!==$after) throw new RuntimeException('Disabled integration modified outbox.');
+// Exercise the underlying transactional writer directly while activation remains off.
+$pdo->exec("DELETE FROM reward_pos_outbox WHERE source_id IN (990001,990002)");
+$pdo->beginTransaction();
+bcrf_roost_pos_outbox_enqueue($pdo,'sale.completed',990001);
+if ((int)$pdo->query("SELECT COUNT(*) FROM reward_pos_outbox WHERE source_id=990001")->fetchColumn()!==1)
+    throw new RuntimeException('Transaction-local outbox event missing.');
+$pdo->rollBack();
+if ((int)$pdo->query("SELECT COUNT(*) FROM reward_pos_outbox WHERE source_id=990001")->fetchColumn()!==0)
+    throw new RuntimeException('Rolled-back POS event leaked into outbox.');
+$pdo->beginTransaction();
+bcrf_roost_pos_outbox_enqueue($pdo,'sale.refunded',990002);
+bcrf_roost_pos_outbox_enqueue($pdo,'sale.refunded',990002);
+$pdo->commit();
+if ((int)$pdo->query("SELECT COUNT(*) FROM reward_pos_outbox WHERE source_id=990002 AND event_type='sale.refunded'")->fetchColumn()!==1)
+    throw new RuntimeException('Committed refund event was not idempotent.');
+$pdo->exec("DELETE FROM reward_pos_outbox WHERE source_id=990002");
 echo "Disabled POS transaction adapter guards passed.\\n";
