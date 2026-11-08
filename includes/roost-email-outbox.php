@@ -1,6 +1,7 @@
 <?php
 // Dormant Rewards service-email outbox writer. No sending or scheduler.
 require_once __DIR__ . '/roost-email-events.php';
+require_once __DIR__ . '/roost-email-recipient.php';
 
 /**
  * Caller must verify the committed membership and recipient before enqueue.
@@ -44,12 +45,18 @@ function bcrf_roost_email_enqueue(
         $eventKey !== bcrf_roost_expiration_event_key($householdId, $memberId, (string)$activityUtc, (int)$milestoneDays)) {
         throw new BcrfRewardError('Mismatched expiration email event key.');
     }
-    $check = $pdo->prepare("SELECT m.id FROM reward_household_members m
+    $check = $pdo->prepare("SELECT m.id,m.role,c.email,c.email_verified_at,c.account_status FROM reward_household_members m
+        JOIN customers c ON c.id=m.customer_id
         JOIN reward_households h ON h.id=m.household_id
         WHERE m.id=? AND m.household_id=? AND m.revoked_at IS NULL
           AND m.verification_status='verified' AND h.status='active'");
     $check->execute([$memberId,$householdId]);
-    if (!$check->fetchColumn()) throw new BcrfRewardError('Verified active household membership required.');
+    $recipient = $check->fetch(PDO::FETCH_ASSOC);
+    if (!$recipient || $recipient['account_status'] !== 'active' ||
+        bcrf_roost_verified_service_recipient((string)$recipient['email'],
+            $recipient['email_verified_at'] !== null, false, (string)$recipient['role']) === null) {
+        throw new BcrfRewardError('Verified active adult recipient required.');
+    }
 
     // Recheck the exact millisecond activity epoch before queueing.
     if ($eventType === 'expiration_reminder') {
