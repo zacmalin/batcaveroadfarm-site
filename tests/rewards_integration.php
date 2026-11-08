@@ -249,6 +249,17 @@ $twice = bcrf_roost_refund_reversal_preview($pdo,100);
 expect(bcrf_roost_refund_points_for_id($twice,1,0)===51, 'first refund reverses only its own points');
 rejected(fn()=>bcrf_roost_refund_points_for_id($twice,3,0), 'later refund cannot bypass earlier reversal');
 expect(bcrf_roost_refund_points_for_id($twice,3,51)===49, 'second refund reverses only incremental points');
+$zeroThenDebit = ['refund_point_boundaries'=>[
+    10=>['points_before'=>0,'points_after'=>0],
+    11=>['points_before'=>0,'points_after'=>1]
+]];
+expect(bcrf_roost_refund_points_for_id($zeroThenDebit,10,0)===0,
+    'earlier refund crossing no point threshold requires no debit');
+expect(bcrf_roost_refund_points_for_id($zeroThenDebit,11,0)===1,
+    'later threshold-crossing refund can post after a zero-point refund');
+rejected(fn()=>bcrf_roost_refund_points_for_id($zeroThenDebit,11,1),
+    'later refund cannot be reversed again after its point was already deducted');
+
 
 expect($twice['cumulative_points_to_reverse']===100 && count($twice['eligible_refunds_cents'])===2,
     'multiple partial refunds reconcile cumulatively');
