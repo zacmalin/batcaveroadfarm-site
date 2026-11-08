@@ -8,12 +8,12 @@ $pdo->exec("CREATE TABLE customers (id INT NOT NULL PRIMARY KEY) ENGINE=InnoDB")
 $pdo->exec("INSERT INTO customers VALUES (1),(2)");
 $pdo->exec("CREATE TABLE sales (id BIGINT PRIMARY KEY, customer_id INT NULL, status VARCHAR(24) NOT NULL, subtotal_cents BIGINT NOT NULL, discount_cents BIGINT NOT NULL DEFAULT 0, total_cents BIGINT NOT NULL) ENGINE=InnoDB");
 $pdo->exec("INSERT INTO sales VALUES (100,1,'completed',4000,0,4000),(101,1,'completed',5500,0,5500),(102,2,'completed',500,0,500),(103,1,'voided',500,0,500)");
-$pdo->exec("CREATE TABLE sale_lines (sale_id BIGINT, product_type VARCHAR(30), gross_cents BIGINT, discount_cents BIGINT, refunded_net_cents BIGINT) ENGINE=InnoDB");
-$pdo->exec("INSERT INTO sale_lines VALUES (100,'retail',4000,0,0),(101,'retail',5500,0,0),(102,'retail',500,0,0),(103,'retail',500,0,0)");
+$pdo->exec("CREATE TABLE sale_lines (id BIGINT AUTO_INCREMENT PRIMARY KEY, sale_id BIGINT, product_type VARCHAR(30), gross_cents BIGINT, discount_cents BIGINT, refunded_net_cents BIGINT) ENGINE=InnoDB");
+$pdo->exec("INSERT INTO sale_lines (sale_id,product_type,gross_cents,discount_cents,refunded_net_cents) VALUES (100,'retail',4000,0,0),(101,'retail',5500,0,0),(102,'retail',500,0,0),(103,'retail',500,0,0)");
 $pdo->exec("CREATE TABLE payments (sale_id BIGINT,tender VARCHAR(30),amount_cents BIGINT,status VARCHAR(20),reconciled_at DATETIME NULL,reconcile_flag VARCHAR(30) NULL) ENGINE=InnoDB");
 $pdo->exec("INSERT INTO payments (sale_id,tender,amount_cents,status) VALUES (100,'cash',4000,'completed'),(101,'cash',5500,'completed'),(102,'cash',500,'completed'),(103,'cash',500,'completed')");
-$pdo->exec("CREATE TABLE refunds (id BIGINT PRIMARY KEY, sale_id BIGINT NOT NULL) ENGINE=InnoDB");
-$pdo->exec("INSERT INTO refunds VALUES (1,100),(2,101)");
+$pdo->exec("CREATE TABLE refunds (id BIGINT PRIMARY KEY, sale_id BIGINT NOT NULL, net_cents BIGINT NOT NULL) ENGINE=InnoDB");
+$pdo->exec("INSERT INTO refunds VALUES (1,100,4000),(2,101,0)");
 $schema = require __DIR__ . '/../admin/migrations/0016_farm_rewards_foundation.php';
 $schema($pdo);
 $schema($pdo); // rerunnable
@@ -194,4 +194,13 @@ $pdo->exec("UPDATE reward_accounts SET balance_points=50 WHERE household_id=1");
 $pdo->exec("UPDATE reward_households SET last_qualifying_activity_at=UTC_TIMESTAMP(3) WHERE id=1");
 $fresh = bcrf_roost_expire_household($pdo, 1);
 expect(!$fresh['expired'] && $fresh['balance']===50, 'recent activity blocks expiration');
+// Reconciled refund preview uses actual refund lines and sale-line running totals.
+require __DIR__ . '/../includes/roost-refund-preview.php';
+$pdo->exec("CREATE TABLE refund_lines (refund_id BIGINT, sale_line_id BIGINT, net_cents BIGINT) ENGINE=InnoDB");
+$pdo->exec("INSERT INTO refund_lines VALUES (1,1,4000)");
+$pdo->exec("UPDATE sale_lines SET refunded_net_cents=4000 WHERE id=1");
+$preview = bcrf_roost_refund_reversal_preview($pdo,100);
+expect($preview['cumulative_points_to_reverse']===200 && $preview['remaining_eligible_cents']===0,'full refund preview matches original points');
+$pdo->exec("UPDATE refund_lines SET net_cents=3900 WHERE refund_id=1");
+rejected(fn()=>bcrf_roost_refund_reversal_preview($pdo,100),'refund amount mismatch fails closed');
 echo "Farm Rewards integration checks passed.\\n";
