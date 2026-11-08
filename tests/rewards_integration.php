@@ -90,6 +90,19 @@ foreach ([60,30,7] as $milestone) {
 }
 expect(bcrf_roost_expiration_reminder_day('2025-01-31 09:30:00',$expiration->format('Y-m-d H:i:s')) === null, 'no reminder at expiration');
 expect(bcrf_roost_expiration_reminder_day('2025-01-31 09:30:00',$expiration->modify('-61 days')->format('Y-m-d H:i:s')) === null, 'no early reminder');
+// Service-email content must remain inert and reuse the shared branded wrapper at delivery.
+require_once __DIR__ . '/../includes/roost-email-content.php';
+$welcomeMail = bcrf_roost_welcome_email_content('https://batcaveroadfarm.com/roost-rewards/');
+expect($welcomeMail['subject'] === 'Welcome to Roost Rewards', 'welcome email content');
+expect(str_contains($welcomeMail['html'], '25 points'), 'welcome visit rule');
+expect($welcomeMail['opts']['unsubscribe'] === false, 'service email not marketing');
+$reminderMail = bcrf_roost_expiration_email_content(30, 675, '2027-01-31 09:30:00', 'https://batcaveroadfarm.com/roost-rewards/');
+expect(str_contains($reminderMail['html'], '675 points'), 'reminder includes current balance');
+expect(str_contains($reminderMail['html'], 'January 31, 2027'), 'reminder includes UTC expiry');
+expect($reminderMail['opts']['unsubscribe'] === false, 'reminder service email not marketing');
+rejected(fn()=>bcrf_roost_expiration_email_content(14, 675, '2027-01-31 09:30:00', 'https://batcaveroadfarm.com/roost-rewards/'), 'unapproved reminder milestone');
+rejected(fn()=>bcrf_roost_expiration_email_content(30, 0, '2027-01-31 09:30:00', 'https://batcaveroadfarm.com/roost-rewards/'), 'zero balance reminder');
+rejected(fn()=>bcrf_roost_welcome_email_content('http://example.test/'), 'non-HTTPS account link');
 function expect(bool $condition, string $message): void { if (!$condition) throw new RuntimeException($message); }
 function rejected(callable $run, string $message): void { try { $run(); } catch (BcrfRewardError $e) { return; } throw new RuntimeException('Expected rejection: '.$message); }
 $base = ['household_id'=>1,'policy_id'=>1,'customer_id'=>1,'source_type'=>'sale','source_id'=>'100','entry_type'=>'earn_spend','points_delta'=>200,'idempotency_key'=>'test-sale-100'];
