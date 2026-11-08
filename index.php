@@ -21,11 +21,11 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.ph
                 <div class="hero-content">
                     <h1>Petting Zoo, Farmstand &amp; Thrift Shop in Old Fort, NC</h1>
                     <p>A family-owned slice of countryside magic — where <a href="<?= bcrf_farm_url() ?>/farm-stand/">fresh food</a>, <a href="<?= bcrf_farm_url() ?>/petting-zoo/">friendly animals</a>, and <a href="<?= bcrf_farm_url() ?>/thrift-shop/">found treasures</a> come together.</p>
-                    <nav class="home-visit-actions" aria-label="Plan your farm visit">
+                    <div class="home-visit-actions" role="group" aria-label="Plan your farm visit">
                         <a class="cta-btn" href="<?= bcrf_farm_url() ?>/tickets/">Buy Tickets</a>
                         <a class="cta-btn" href="<?= bcrf_farm_url() ?>/booking/">Book a Group Visit</a>
                         <a class="cta-btn" href="<?= bcrf_farm_url() ?>/private-events/">Birthday Parties</a>
-                    </nav>
+                    </div>
                 </div>
             </div>
             <div class="divider" aria-hidden="true">✦ ✦ ✦</div>
