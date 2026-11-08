@@ -25,7 +25,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
       "telephone": <?= json_encode(function_exists('site_tel') ? site_tel('general') : '+18282165488') ?>,
       "address": <?= json_encode(function_exists('site_schema_address') ? site_schema_address() : ['@type' => 'PostalAddress', 'streetAddress' => '4132 Bat Cave Road', 'addressLocality' => 'Old Fort', 'addressRegion' => 'NC', 'postalCode' => '28762', 'addressCountry' => 'US'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>,
       "geo": <?= json_encode(function_exists('site_schema_geo') ? site_schema_geo() : ['@type' => 'GeoCoordinates', 'latitude' => 35.5785104, 'longitude' => -82.1821418], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>,
-      "openingHoursSpecification": <?= json_encode(function_exists('site_hours_schema') ? (site_hours_schema('thrift_shop') ?: [['@type' => 'OpeningHoursSpecification', 'dayOfWeek' => ['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], 'opens' => '10:00', 'closes' => '16:00']]) : [['@type' => 'OpeningHoursSpecification', 'dayOfWeek' => ['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], 'opens' => '10:00', 'closes' => '16:00']], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>,
+      "openingHoursSpecification": <?= json_encode(site_hours_schema('thrift_shop'), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>,
       "currenciesAccepted": "USD",
       "paymentAccepted": "Cash, Credit Card, Venmo, PayPal, CashApp",
       "isAccessibleForFree": true,
@@ -227,10 +227,9 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
                 </div>
             <div class="info-box reveal" style="margin-top:40px">
               <h3><span aria-hidden="true">🕐</span> Thrift Shop Hours</h3>
-              <?php $hp = function_exists('site_hours_parts') ? site_hours_parts('thrift_shop') : ['days' => 'Tuesday – Sunday', 'time' => '10:00 AM – 4:00 PM', 'closed' => 'Closed Mondays']; ?>
+              <?php $hoursText = trim(site_hours_summary('thrift_shop')['sentence'] ?? ''); ?>
               <ul>
-                <li><?= htmlspecialchars($hp['days']) ?>: <?= htmlspecialchars($hp['time']) ?></li>
-                <li><?= htmlspecialchars($hp['closed']) ?></li>
+                <li><?= htmlspecialchars($hoursText !== '' ? $hoursText : 'Please contact us for current opening hours.', ENT_QUOTES, 'UTF-8') ?></li>
                 <li>Special sales and pop-up events throughout the year</li>
                 <li>We accept cash, card, CashApp, PayPal, and Venmo</li>
                 <li>All sales final — no returns</li>
