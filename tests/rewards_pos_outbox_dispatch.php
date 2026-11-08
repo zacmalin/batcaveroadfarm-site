@@ -41,4 +41,17 @@ try {
     if($e->getMessage()!=='Queued sale has no pinned policy; manual reconciliation required.') throw $e;
 }
 $pdo->exec("DELETE FROM reward_pos_outbox WHERE id=$queuedId");
+// Refund preflight must reject substituted outbox source identities.
+$pdo->beginTransaction();
+bcrf_roost_pos_outbox_enqueue($pdo,'sale.refunded',9021);
+$pdo->commit();
+$refundOutboxId=(int)$pdo->query("SELECT id FROM reward_pos_outbox WHERE event_type='sale.refunded' AND source_id=9021")->fetchColumn();
+try {
+    bcrf_roost_outbox_dispatch_refund_preflight($pdo,['id'=>$refundOutboxId,'event_type'=>'sale.refunded','source_id'=>9022]);
+    throw new RuntimeException('Mismatched queued refund identity accepted.');
+} catch(RuntimeException $e) {
+    if($e->getMessage()==='Mismatched queued refund identity accepted.') throw $e;
+    if($e->getMessage()!=='Queued refund source does not match outbox identity.') throw $e;
+}
+$pdo->exec("DELETE FROM reward_pos_outbox WHERE id=$refundOutboxId");
 echo "Inert outbox dispatch guards passed.\n";
