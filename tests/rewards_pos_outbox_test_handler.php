@@ -118,6 +118,23 @@ $firstRefund=bcrf_roost_outbox_handle_test_event($pdo,['event_type'=>'sale.refun
 $pdo->exec("UPDATE reward_policies SET status='active' WHERE id=1");
 if ($firstRefund['outcome']!=='completed' || $firstRefund['replayed'])
     throw new RuntimeException('First refund was not processed.');
+// A queued refund retried after its ledger reversal committed must be
+// acknowledged from its durable receipt, never posted a second time.
+$pdo->beginTransaction();
+bcrf_roost_pos_outbox_enqueue($pdo,'sale.refunded',9021);
+$pdo->commit();
+$refundReplayOutboxId=(int)$pdo->query("SELECT id FROM reward_pos_outbox
+ WHERE event_type='sale.refunded' AND source_id=9021")->fetchColumn();
+$replayBalance=(int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn();
+$refundReplayPlan=bcrf_roost_outbox_dispatch_refund_preflight($pdo,
+    ['id'=>$refundReplayOutboxId,'event_type'=>'sale.refunded','source_id'=>9021]);
+if (($refundReplayPlan['action']??null)!=='already_posted' ||
+    (int)($refundReplayPlan['event']['policy_id']??0)!==1 ||
+    empty($refundReplayPlan['receipt']['ledger_entry_id']))
+    throw new RuntimeException('Committed refund replay receipt not recognized by dispatch preflight.');
+if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==$replayBalance)
+    throw new RuntimeException('Read-only refund replay preflight changed household balance.');
+$pdo->exec("DELETE FROM reward_pos_outbox WHERE id=$refundReplayOutboxId");
 $secondRefund=bcrf_roost_outbox_handle_test_event($pdo,$late,1,true);
 if ($secondRefund['outcome']!=='completed' || $secondRefund['replayed'])
     throw new RuntimeException('Second refund was not processed.');
