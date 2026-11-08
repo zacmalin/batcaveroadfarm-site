@@ -3,6 +3,7 @@
 // This does not resolve or verify recipient addresses and never sends mail.
 require_once __DIR__ . '/roost-email-claim.php';
 require_once __DIR__ . '/roost-email-recipient.php';
+require_once __DIR__ . '/roost-email-suppressions.php';
 
 /**
  * Re-read live membership and household state after a claim. Fail closed.
@@ -29,6 +30,7 @@ function bcrf_roost_email_claim_eligible(PDO $pdo, int $id, string $token): bool
         $row['account_status'] !== 'active' ||
         bcrf_roost_verified_service_recipient((string)$row['recipient_email'],
             $row['email_verified_at'] !== null, false, (string)$row['member_role']) === null) return false;
+    if (bcrf_roost_email_service_suppressed($pdo, (string)$row['recipient_email'])) return false;
     if ($row['event_type'] === 'welcome') return true;
     if ($row['event_type'] !== 'expiration_reminder' ||
         $row['last_qualifying_activity_at'] === null ||
