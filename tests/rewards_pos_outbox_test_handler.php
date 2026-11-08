@@ -38,6 +38,20 @@ $pdo->beginTransaction();
 bcrf_roost_pos_outbox_enqueue_pinned_sale($pdo,905,1);
 $pdo->commit();
 $pdo->exec("UPDATE reward_policies SET status='draft' WHERE id=1");
+// Missing or mismatched snapshots must never authorize retired-policy awards.
+$pdo->exec("UPDATE reward_pos_outbox SET policy_id=NULL WHERE event_type='sale.completed' AND source_id=905");
+try {
+    bcrf_roost_outbox_handle_test_event($pdo,['event_type'=>'sale.completed','source_id'=>905],1,true);
+    throw new RuntimeException('Null snapshot authorized retired sale award.');
+} catch (BcrfRewardError $expected) {}
+$pdo->exec("UPDATE reward_pos_outbox SET policy_id=999 WHERE event_type='sale.completed' AND source_id=905");
+try {
+    bcrf_roost_outbox_handle_test_event($pdo,['event_type'=>'sale.completed','source_id'=>905],1,true);
+    throw new RuntimeException('Mismatched snapshot authorized retired sale award.');
+} catch (BcrfRewardError $expected) {}
+if ((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger WHERE entry_type='earn_spend' AND source_id='905'")->fetchColumn()!==0)
+    throw new RuntimeException('Rejected snapshot modified rewards ledger.');
+$pdo->exec("UPDATE reward_pos_outbox SET policy_id=1 WHERE event_type='sale.completed' AND source_id=905");
 $delayed=bcrf_roost_outbox_handle_test_event($pdo,['event_type'=>'sale.completed','source_id'=>905],1,true);
 if ($delayed['outcome']!=='completed' || $delayed['replayed'])
     throw new RuntimeException('Pinned delayed sale failed after policy retirement.');
