@@ -12,6 +12,8 @@ $pdo->exec("CREATE TABLE sale_lines (sale_id BIGINT, product_type VARCHAR(30), g
 $pdo->exec("INSERT INTO sale_lines VALUES (100,'retail',4000,0,0),(101,'retail',5500,0,0),(102,'retail',500,0,0),(103,'retail',500,0,0)");
 $pdo->exec("CREATE TABLE payments (sale_id BIGINT,tender VARCHAR(30),amount_cents BIGINT,status VARCHAR(20),reconciled_at DATETIME NULL,reconcile_flag VARCHAR(30) NULL) ENGINE=InnoDB");
 $pdo->exec("INSERT INTO payments (sale_id,tender,amount_cents,status) VALUES (100,'cash',4000,'completed'),(101,'cash',5500,'completed'),(102,'cash',500,'completed'),(103,'cash',500,'completed')");
+$pdo->exec("CREATE TABLE refunds (id BIGINT PRIMARY KEY, sale_id BIGINT NOT NULL) ENGINE=InnoDB");
+$pdo->exec("INSERT INTO refunds VALUES (1,100),(2,101)");
 $schema = require __DIR__ . '/../admin/migrations/0016_farm_rewards_foundation.php';
 $schema($pdo);
 $schema($pdo); // rerunnable
@@ -67,10 +69,12 @@ $pdo->exec("UPDATE reward_household_members SET revoked_at=UTC_TIMESTAMP(3) WHER
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'redeem','points_delta'=>-10,'idempotency_key'=>'test-revoked','customer_id'=>2])),'revoked adult');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'earn_spend','points_delta'=>25,'source_id'=>'102','idempotency_key'=>'test-revoked-earn','customer_id'=>2])),'revoked customer cannot earn');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'earn_visit','points_delta'=>25,'source_id'=>'revoked-visit','idempotency_key'=>'test-revoked-visit','customer_id'=>2])),'revoked customer cannot receive visit points');
-$refund = bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'refund_reversal','points_delta'=>-200,'source_type'=>'refund','source_id'=>'refund-1','idempotency_key'=>'test-refund-1','related_entry_id'=>$a['id']]));
+rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'refund_reversal','points_delta'=>-1,'source_type'=>'refund','source_id'=>'2','idempotency_key'=>'wrong-sale-refund','related_entry_id'=>$a['id']])),'refund must belong to awarded sale');
+rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'refund_reversal','points_delta'=>-1,'source_type'=>'refund','source_id'=>'999','idempotency_key'=>'missing-refund','related_entry_id'=>$a['id']])),'refund must exist');
+$refund = bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'refund_reversal','points_delta'=>-200,'source_type'=>'refund','source_id'=>'1','idempotency_key'=>'test-refund-1','related_entry_id'=>$a['id']]));
 expect($refund['balance']===-175,'refund negative balance');
 
-rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'refund_reversal','points_delta'=>-1,'source_type'=>'refund','source_id'=>'refund-2','idempotency_key'=>'test-refund-2','related_entry_id'=>$a['id']])),'over reversal');
+rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'refund_reversal','points_delta'=>-1,'source_type'=>'refund','source_id'=>'1','idempotency_key'=>'test-refund-2','related_entry_id'=>$a['id']])),'over reversal');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'redeem','points_delta'=>-1,'idempotency_key'=>'test-negative-redeem'])),'negative balance redeem');
 // Race two independent database sessions against the same 100-point balance.
 // Each child starts together and attempts a 100-point redemption. Exactly one succeeds.
