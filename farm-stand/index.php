@@ -90,7 +90,7 @@ function bcrfStandBoxes(PDO $pdo, array $keys, string $label = '', int $limit = 
         "latitude": <?= json_encode(function_exists('site_setting') ? (float)site_setting('geo_lat') : 35.5785104) ?>,
         "longitude": <?= json_encode(function_exists('site_setting') ? (float)site_setting('geo_lng') : -82.1821418) ?>
       },
-      "openingHoursSpecification": <?= json_encode(function_exists('site_hours_schema') ? site_hours_schema('farm_stand') : [['@type'=>'OpeningHoursSpecification','dayOfWeek'=>['Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],'opens'=>'10:00','closes'=>'16:00']], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) ?>,
+      "openingHoursSpecification": <?= json_encode(site_hours_schema('farm_stand'), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>,
       "currenciesAccepted": "USD",
       "paymentAccepted": "Cash, Credit Card, Venmo, PayPal, CashApp",
       "isAccessibleForFree": true,
@@ -104,7 +104,7 @@ function bcrfStandBoxes(PDO $pdo, array $keys, string $label = '', int $limit = 
           {
             "@type": "OfferCatalog",
             "name": "Sourdough Bread",
-            "description": "Naturally leavened sourdough bread baked fresh on-farm in Old Fort, NC. Available at the farmstand Tuesday through Sunday while supplies last."
+            "description": "Naturally leavened sourdough bread baked fresh on-farm in Old Fort, NC. Available at the farmstand while supplies last."
           },
           {
             "@type": "OfferCatalog",
@@ -197,10 +197,9 @@ function bcrfStandBoxes(PDO $pdo, array $keys, string $label = '', int $limit = 
                 </div>
             <div class="info-box reveal" style="margin-top:40px">
               <h3>🕐 Farmstand Hours</h3>
-              <?php $hp = function_exists('site_hours_parts') ? site_hours_parts('farm_stand') : ['days' => 'Tuesday – Sunday', 'time' => '10:00 AM – 4:00 PM', 'closed' => 'Closed Mondays']; ?>
+              <?php $hoursText = trim(site_hours_summary('farm_stand')['sentence'] ?? ''); ?>
               <ul>
-                <li><?= htmlspecialchars($hp['days']) ?>: <?= htmlspecialchars($hp['time']) ?></li>
-                <li><?= htmlspecialchars($hp['closed']) ?></li>
+                <li><?= htmlspecialchars($hoursText !== '' ? $hoursText : 'Please contact us for current opening hours.', ENT_QUOTES, 'UTF-8') ?></li>
                 <li>We accept cash, card, CashApp, PayPal, and Venmo</li>
                 <li>Follow us on social media for daily availability updates</li>
                 <li class="li-social">
