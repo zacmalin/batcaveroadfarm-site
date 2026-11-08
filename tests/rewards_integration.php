@@ -291,6 +291,20 @@ $pdo->exec("INSERT INTO refund_payments VALUES (5,'cash',1,NULL)");
 $zeroRefund = bcrf_roost_refund_reversal_preview($pdo,105);
 expect($zeroRefund['cumulative_points_to_reverse']===0 && bcrf_roost_refund_points_due(5,0,0)===0, 'one-cent refund not crossing a point threshold needs no debit');
 expect(bcrf_roost_refund_is_points_noop($pdo,105,5,0), 'read-only preflight recognizes zero-point refund');
+$pdo->exec("INSERT INTO reward_ledger (household_id,customer_id,policy_id,entry_type,points_delta,source_type,source_id,idempotency_key,created_at)
+    VALUES (1,1,1,'earn_spend',5,'sale','105','test-sale-105-zero',UTC_TIMESTAMP(3))");
+$zeroEarnId = (int)$pdo->lastInsertId();
+$recordedZero = bcrf_roost_record_zero_point_refund($pdo,5,$zeroEarnId);
+expect(!$recordedZero['replayed'] && $recordedZero['points_reversed']===0,
+    'zero-point refund recorded durably');
+$replayedZero = bcrf_roost_record_zero_point_refund($pdo,5,$zeroEarnId);
+expect($replayedZero['replayed'] && $replayedZero['points_reversed']===0,
+    'zero-point refund processing replay is idempotent');
+expect((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE refund_id=5")->fetchColumn()===1,
+    'zero-point refund has exactly one processing receipt');
+rejected(fn()=>bcrf_roost_record_zero_point_refund($pdo,5,$a['id']),
+    'processed refund cannot be rebound to a different earning');
+
 expect(!bcrf_roost_refund_is_points_noop($pdo,100,200,0), 'read-only preflight identifies refund needing reversal');
 $pdo->exec("UPDATE refund_lines SET net_cents=0 WHERE refund_id=5");
 $pdo->exec("UPDATE refunds SET net_cents=0,total_cents=0 WHERE id=5");
