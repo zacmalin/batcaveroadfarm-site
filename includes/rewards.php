@@ -31,6 +31,9 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
         throw new BcrfRewardError('Unknown reward event type.');
     }
     if (in_array($type, ['earn_spend','earn_visit'], true) && $delta <= 0) throw new BcrfRewardError('Earnings must be positive.');
+    // Approved visit policy: a verified visit earns exactly 25 points.
+    // This does not establish visit provenance; trusted check-in validation remains a release gate.
+    if ($type === 'earn_visit' && $delta !== 25) throw new BcrfRewardError('Visit award must equal 25 points.');
     if (in_array($type, ['redeem','refund_reversal','expire'], true) && $delta >= 0) throw new BcrfRewardError('Deductions must be negative.');
     foreach (['source_type'=>40,'source_id'=>100,'idempotency_key'=>160] as $key=>$max) {
         if (!is_string($event[$key]) || strlen($event[$key]) > $max || trim($event[$key]) === '') {
