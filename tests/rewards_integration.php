@@ -264,9 +264,8 @@ $pdo->exec("UPDATE refund_lines SET net_cents=0 WHERE refund_id=5");
 $pdo->exec("UPDATE refunds SET net_cents=0,total_cents=0 WHERE id=5");
 $pdo->exec("UPDATE sale_lines SET refunded_net_cents=0 WHERE id=7");
 $pdo->exec("DELETE FROM refund_payments WHERE refund_id=5");
-$zeroRefund = bcrf_roost_refund_reversal_preview($pdo,105);
-expect($zeroRefund['cumulative_points_to_reverse']===0 &&
-    bcrf_roost_refund_points_due(5,0,0)===0,'zero-point refund requires no ledger debit');
+rejected(fn()=>bcrf_roost_refund_reversal_preview($pdo,105),
+    'zero-cash refund without payout record is invalid in POS lifecycle');
 expect(bcrf_roost_refund_points_due(200,100,51)===49,'incremental reversal accounts for prior refund');
 expect(bcrf_roost_refund_points_due(200,100,100)===0,'no points deducted twice');
 rejected(fn()=>bcrf_roost_refund_points_due(200,100,101),'over-reversal rejected');
