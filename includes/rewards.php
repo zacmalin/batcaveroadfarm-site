@@ -113,6 +113,16 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
                 throw new BcrfRewardError('Earning sale is not completed or assigned to this customer.');
             }
         }
+        if ($type === 'earn_spend') {
+            // Recalculate from sale lines and payment records under the same
+            // transaction; a caller cannot choose an arbitrary points award.
+            require_once __DIR__ . '/rewards-pos-preview.php';
+            $eligibleCents = bcrf_rewards_sale_eligible_cents($pdo, (int)$event['source_id']);
+            $expectedPoints = bcrf_rewards_points_for_eligible_cents($eligibleCents);
+            if ($expectedPoints <= 0 || $delta !== $expectedPoints) {
+                throw new BcrfRewardError('Purchase points do not match verified eligible sale value.');
+            }
+        }
         if ($type === 'redeem') {
             // Recheck permission inside the same transaction, after balance lock.
             $member = $pdo->prepare("SELECT id FROM reward_household_members WHERE household_id = ? AND customer_id = ? AND revoked_at IS NULL AND verification_status = 'verified' AND role IN ('manager','adult') AND can_redeem = 1 FOR UPDATE");
