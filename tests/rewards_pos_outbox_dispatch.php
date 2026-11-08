@@ -18,4 +18,18 @@ try {
 } catch(InvalidArgumentException $expected) {
     if ($expected->getMessage()==='Dispatch accepted missing policy.') throw $expected;
 }
+// Queued-sale dispatch must verify the actual outbox row identity before
+// deriving its immutable policy; caller-provided event source is untrusted.
+$pdo->beginTransaction();
+require_once __DIR__.'/../includes/roost-pos-outbox.php';
+bcrf_roost_pos_outbox_enqueue_pinned_sale($pdo,990221,1);
+$pdo->commit();
+$queuedId=(int)$pdo->query("SELECT id FROM reward_pos_outbox WHERE event_type='sale.completed' AND source_id=990221")->fetchColumn();
+try {
+    bcrf_roost_outbox_dispatch_pinned_sale_preflight($pdo,['id'=>$queuedId,'event_type'=>'sale.completed','source_id'=>990222]);
+    throw new RuntimeException('Mismatched queued sale identity accepted.');
+} catch(RuntimeException $e) {
+    if($e->getMessage()==='Mismatched queued sale identity accepted.') throw $e;
+}
+$pdo->exec("DELETE FROM reward_pos_outbox WHERE id=$queuedId");
 echo "Inert outbox dispatch guards passed.\n";
