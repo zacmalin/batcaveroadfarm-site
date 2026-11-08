@@ -52,6 +52,7 @@ function bcrf_rewards_sale_eligible_cents(PDO $pdo, int $saleId): int {
         $eligible += $net;
     }
     if ($lineCount === 0) throw new BcrfRewardError('Sale has no line items.');
+    if ($eligible <= 0) throw new BcrfRewardError('Sale contains no eligible net value.');
     if ($grossTotal !== (int)$sale['subtotal_cents'] || $discountTotal !== (int)$sale['discount_cents']) {
         throw new BcrfRewardError('Sale lines do not match recorded subtotal or discounts.');
     }
