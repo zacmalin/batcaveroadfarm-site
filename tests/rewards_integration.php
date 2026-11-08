@@ -246,6 +246,10 @@ $pdo->exec("INSERT INTO refund_lines VALUES (3,1,999)");
 $pdo->exec("INSERT INTO refund_payments VALUES (3,'cash',999,NULL)");
 $pdo->exec("UPDATE sale_lines SET refunded_net_cents=2000 WHERE id=1");
 $twice = bcrf_roost_refund_reversal_preview($pdo,100);
+expect(bcrf_roost_refund_points_for_id($twice,1,0)===51, 'first refund reverses only its own points');
+rejected(fn()=>bcrf_roost_refund_points_for_id($twice,3,0), 'later refund cannot bypass earlier reversal');
+expect(bcrf_roost_refund_points_for_id($twice,3,51)===49, 'second refund reverses only incremental points');
+
 expect($twice['cumulative_points_to_reverse']===100 && count($twice['eligible_refunds_cents'])===2,
     'multiple partial refunds reconcile cumulatively');
 // Ineligible items may be refunded without reducing eligible points.
