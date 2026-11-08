@@ -19,7 +19,6 @@ function bcrf_rewards_points_for_eligible_cents(int $eligibleCents): int {
         throw new BcrfRewardError('Reward points overflow.');
     }
     $points = $wholeDollars * 5 + intdiv($remainderCents * 5, 100);
-    if ($points <= 0) throw new BcrfRewardError('Sale earns no whole points.');
     return $points;
 }
 
