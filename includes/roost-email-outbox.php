@@ -44,7 +44,7 @@ function bcrf_roost_email_enqueue(
 
     // Recheck that the activity snapshot is still current before queueing.
     if ($eventType === 'expiration_reminder') {
-        $activityCheck = $pdo->prepare("SELECT h.last_qualifying_activity_at,
+        $activityCheck = $pdo->prepare("SELECT DATE_FORMAT(h.last_qualifying_activity_at, '%Y-%m-%d %H:%i:%s') AS last_qualifying_activity_at,
             a.balance_points, h.status, UTC_TIMESTAMP(3) AS now_utc
             FROM reward_households h JOIN reward_accounts a ON a.household_id=h.id
             WHERE h.id=?");
