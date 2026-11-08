@@ -241,6 +241,8 @@ $pdo->exec("INSERT INTO refunds VALUES (5,105,1)");
 $pdo->exec("INSERT INTO refund_lines VALUES (5,7,1)");
 $zeroRefund = bcrf_roost_refund_reversal_preview($pdo,105);
 expect($zeroRefund['cumulative_points_to_reverse']===0 && bcrf_roost_refund_points_due(5,0,0)===0, 'one-cent refund not crossing a point threshold needs no debit');
+expect(bcrf_roost_refund_is_points_noop($pdo,105,5,0), 'read-only preflight recognizes zero-point refund');
+expect(!bcrf_roost_refund_is_points_noop($pdo,100,200,0), 'read-only preflight identifies refund needing reversal');
 $pdo->exec("UPDATE refund_lines SET net_cents=0 WHERE refund_id=5");
 $pdo->exec("UPDATE refunds SET net_cents=0 WHERE id=5");
 $pdo->exec("UPDATE sale_lines SET refunded_net_cents=0 WHERE id=7");
