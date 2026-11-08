@@ -29,6 +29,9 @@ rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_id'=>'999','idem
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_id'=>'102','idempotency_key'=>'different-customer-sale'])),'sale belongs to another customer');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_id'=>'103','idempotency_key'=>'voided-sale'])),'voided sale cannot earn');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['points_delta'=>201,'idempotency_key'=>'inflated-points'])),'caller cannot inflate purchase points');
+$pdo->exec("UPDATE sale_lines SET gross_cents=4100 WHERE sale_id=101");
+rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_id'=>'101','points_delta'=>275,'idempotency_key'=>'tampered-sale-lines'])),'inconsistent sale lines cannot earn');
+$pdo->exec("UPDATE sale_lines SET gross_cents=5500 WHERE sale_id=101");
 $pdo->exec("UPDATE payments SET status='pending' WHERE sale_id=101");
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_id'=>'101','points_delta'=>275,'idempotency_key'=>'unsettled-purchase'])),'unsettled purchase cannot earn');
 $pdo->exec("UPDATE payments SET status='completed' WHERE sale_id=101");
