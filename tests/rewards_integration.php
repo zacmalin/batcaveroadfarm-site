@@ -76,6 +76,20 @@ $_SESSION['user_role'] = 'visitor';
 rejected(fn()=>bcrf_roost_verify_attendee($pdo,5,2),'visitor cannot verify attendance');
 $_SESSION['user_role'] = 'administrator';
 expect((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger WHERE entry_type='earn_visit'")->fetchColumn()===0,'attendance verification does not silently award points');
+// Expiration and service-reminder calendar boundaries share one UTC anniversary.
+require_once __DIR__ . '/../includes/roost-expiration-preview.php';
+expect(bcrf_roost_expiration_at('2024-02-29 12:00:00')->format('Y-m-d H:i:s') === '2025-02-28 12:00:00', 'leap-day expiration clamps to Feb 28');
+expect(bcrf_roost_expiration_at('2025-01-31 09:30:00')->format('Y-m-d H:i:s') === '2026-01-31 09:30:00', 'month-end anniversary remains Jan 31');
+expect(!bcrf_roost_is_inactive_at('2024-02-29 12:00:00','2025-02-28 11:59:59'), 'not expired before exact anniversary');
+expect(bcrf_roost_is_inactive_at('2024-02-29 12:00:00','2025-02-28 12:00:00'), 'expired at exact anniversary');
+$expiration = bcrf_roost_expiration_at('2025-01-31 09:30:00');
+foreach ([60,30,7] as $milestone) {
+    $start = $expiration->modify("-$milestone days");
+    expect(bcrf_roost_expiration_reminder_day('2025-01-31 09:30:00',$start->format('Y-m-d H:i:s')) === $milestone, "reminder milestone $milestone starts exactly");
+    expect(bcrf_roost_expiration_reminder_day('2025-01-31 09:30:00',$start->modify('+23 hours')->format('Y-m-d H:i:s')) === $milestone, "reminder milestone $milestone remains eligible during 24h window");
+}
+expect(bcrf_roost_expiration_reminder_day('2025-01-31 09:30:00',$expiration->format('Y-m-d H:i:s')) === null, 'no reminder at expiration');
+expect(bcrf_roost_expiration_reminder_day('2025-01-31 09:30:00',$expiration->modify('-61 days')->format('Y-m-d H:i:s')) === null, 'no early reminder');
 function expect(bool $condition, string $message): void { if (!$condition) throw new RuntimeException($message); }
 function rejected(callable $run, string $message): void { try { $run(); } catch (BcrfRewardError $e) { return; } throw new RuntimeException('Expected rejection: '.$message); }
 $base = ['household_id'=>1,'policy_id'=>1,'customer_id'=>1,'source_type'=>'sale','source_id'=>'100','entry_type'=>'earn_spend','points_delta'=>200,'idempotency_key'=>'test-sale-100'];
