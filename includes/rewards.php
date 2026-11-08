@@ -197,9 +197,22 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
             $origin->execute([$event['related_entry_id']]);
             $earned = $origin->fetch(PDO::FETCH_ASSOC);
             if (!$earned || (int)$earned['household_id'] !== (int)$household || !in_array($earned['entry_type'], ['earn_spend','earn_visit'], true)) throw new BcrfRewardError('Invalid earning to reverse.');
+            // Reconcile the requested debit with the actual refunded sale lines
+            // while the account and refund rows are locked. Never trust a
+            // caller-supplied reversal amount.
+            require_once __DIR__ . '/roost-refund-preview.php';
+            $refundPreview = bcrf_roost_refund_reversal_preview($pdo, (int)$refundSaleId);
             $prior = $pdo->prepare("SELECT COALESCE(SUM(points_delta),0) FROM reward_ledger WHERE related_entry_id = ? AND entry_type = 'refund_reversal'");
             $prior->execute([$event['related_entry_id']]);
-            if (-$delta > (int)$earned['points_delta'] + (int)$prior->fetchColumn()) throw new BcrfRewardError('Refund exceeds earned points.');
+            $alreadyReversed = -(int)$prior->fetchColumn();
+            $due = bcrf_roost_refund_points_due(
+                (int)$earned['points_delta'],
+                (int)$refundPreview['cumulative_points_to_reverse'],
+                $alreadyReversed
+            );
+            if ($due <= 0 || -$delta !== $due) {
+                throw new BcrfRewardError('Refund reversal does not match verified incremental points.');
+            }
         }
         $newBalance = $balance + $delta;
         $metadata = isset($event['metadata']) ? json_encode($event['metadata'], JSON_THROW_ON_ERROR) : null;
