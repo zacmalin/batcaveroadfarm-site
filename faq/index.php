@@ -1,5 +1,10 @@
 <?php
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
+	require_once __DIR__ . '/../includes/site_info.php';
+	$faqHours = site_hours_summary('general');
+	$faqThriftHours = site_hours_summary('thrift_shop');
+	$faqGeneralSentence = trim(($faqHours['sentence'] ?? '') . ' Hours may vary on holidays.');
+	$faqThriftSentence = trim($faqThriftHours['sentence'] ?? '');
 	$pageTitle = "FAQ | Bat Cave Road Farm — Old Fort, NC";
 	$metaDesc = "Find answers to common questions about Bat Cave Road Farm — hours, animals, farmstand, thrift shop, and visiting us in Old Fort, NC.";
 	$canonicalUrl = (bcrf_farm_url() . "/faq/");
@@ -20,7 +25,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
       "name": "What are your hours?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "We are open Tuesday through Sunday, 10:00 AM to 4:00 PM. We are closed on Mondays. Hours may vary on holidays."
+        "text": <?= json_encode($faqGeneralSentence, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>
       }
     },
     {
@@ -132,7 +137,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
       "name": "How do I plan a birthday party or private event at the farm?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "We love hosting private events — birthday parties, school field trips, corporate outings, and full farm buyouts. Fill out our private event inquiry form at <?= bcrf_farm_domain() ?>/private-events and we'll be in touch within 24 hours to discuss your event and put together a custom package. You can also call us at (828) 216-5488."
+        "text": "We love hosting private events — birthday parties, school field trips, corporate outings, and full farm buyouts. Fill out our private event inquiry form at <?= bcrf_farm_domain() ?>/private-events and we'll be in touch within 24 hours to discuss your event and put together a custom package. You can also call us at <?= htmlspecialchars(site_phone_display('general')) ?>."
       }
     }
   ]
@@ -164,7 +169,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
                         <button class="faq-question">
                             What are your hours? <span class="faq-chevron" aria-hidden="true">▼</span>
                         </button>
-                        <div class="faq-answer">We are open Tuesday through Sunday, 10:00 AM to 4:00 PM. We are closed on Mondays. Hours may vary on holidays — follow us on <a href="https://www.facebook.com/batcaveroadfarm" target="_blank" rel="noopener">Facebook</a> or <a href="https://www.instagram.com/batcaveroadfarm" target="_blank" rel="noopener">Instagram</a> for any schedule changes.</div>
+                        <div class="faq-answer"><?= htmlspecialchars($faqGeneralSentence) ?> Follow us on <a href="https://www.facebook.com/batcaveroadfarm" target="_blank" rel="noopener">Facebook</a> or <a href="https://www.instagram.com/batcaveroadfarm" target="_blank" rel="noopener">Instagram</a> for any schedule changes.</div>
                     </div>
  
                     <div class="faq-item">
@@ -308,7 +313,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
                         <button class="faq-question">
                             What days is the thrift shop open? <span class="faq-chevron" aria-hidden="true">▼</span>
                         </button>
-                        <div class="faq-answer">The thrift shop is open Tuesday through Sunday, 10:00 AM to 4:00 PM. We occasionally host special sales and pop-up events — follow us on <a href="https://www.facebook.com/batcaveroadfarm" target="_blank" rel="noopener">Facebook</a> and <a href="https://www.instagram.com/batcaveroadfarm" target="_blank" rel="noopener">Instagram</a> to stay in the loop!</div>
+                        <div class="faq-answer">The thrift shop hours are <?= htmlspecialchars($faqThriftSentence) ?>. We occasionally host special sales and pop-up events — follow us on <a href="https://www.facebook.com/batcaveroadfarm" target="_blank" rel="noopener">Facebook</a> and <a href="https://www.instagram.com/batcaveroadfarm" target="_blank" rel="noopener">Instagram</a> to stay in the loop!</div>
                     </div>
     
                     <div class="faq-item">
@@ -366,7 +371,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
                         <button class="faq-question">
                             How do I plan a birthday party or private event? <span class="faq-chevron" aria-hidden="true">▼</span>
                         </button>
-                        <div class="faq-answer">We love hosting private events — birthday parties, school field trips, corporate outings, and full farm buyouts. Fill out our <a href="<?= bcrf_farm_url() ?>/private-events/">private event inquiry form</a> and we'll be in touch within 24 hours to put together a custom package. For urgent requests call us at <a href="tel:+18282165488">(828) 216-5488</a>.</div>
+                        <div class="faq-answer">We love hosting private events — birthday parties, school field trips, corporate outings, and full farm buyouts. Fill out our <a href="<?= bcrf_farm_url() ?>/private-events/">private event inquiry form</a> and we'll be in touch within 24 hours to put together a custom package. For urgent requests call us at <a href="tel:<?= htmlspecialchars(site_tel('general'), ENT_QUOTES) ?>"><?= htmlspecialchars(site_phone_display('general')) ?></a>.</div>
                     </div>
 
             </div>
