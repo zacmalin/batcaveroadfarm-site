@@ -72,15 +72,30 @@ expect(!bcrf_roost_email_enqueue($pdo,1,1,'welcome',null,null,$welcomeEvent), 'd
 expect((int)$pdo->query("SELECT COUNT(*) FROM reward_email_outbox WHERE event_type='welcome'")->fetchColumn()===1, 'single durable welcome event');
 rejected(fn()=>bcrf_roost_email_enqueue($pdo,1,999,'welcome',null,null,bcrf_roost_welcome_event_key(999,'2026-11-08 12:00:00')), 'unknown member cannot queue welcome');
 rejected(fn()=>bcrf_roost_email_enqueue($pdo,1,1,'expiration_reminder',14,'2025-01-31 09:30:00','invalid-event'), 'invalid milestone cannot queue');
-$reminderActivity = gmdate('Y-m-d H:i:s', strtotime('-305 days'));
+// Use database UTC as the clock so this test is independent of runner timezone.
+$databaseNow = (string)$pdo->query("SELECT UTC_TIMESTAMP(0)")->fetchColumn();
+$reminderActivity = null;
+foreach (range(300, 360) as $ageDays) {
+    $candidate = (new DateTimeImmutable($databaseNow, new DateTimeZone('UTC')))
+        ->modify("-$ageDays days")->format('Y-m-d H:i:s');
+    if (bcrf_roost_expiration_reminder_day($candidate, $databaseNow) === 60) {
+        $reminderActivity = $candidate;
+        break;
+    }
+}
+expect($reminderActivity !== null, 'test fixture finds a real 60-day milestone');
 $pdo->prepare("UPDATE reward_households SET last_qualifying_activity_at=? WHERE id=1")->execute([$reminderActivity]);
 $pdo->exec("UPDATE reward_accounts SET balance_points=250 WHERE household_id=1");
-$daysUntilExpiry = bcrf_roost_expiration_reminder_day($reminderActivity, gmdate('Y-m-d H:i:s'));
-if ($daysUntilExpiry !== null) {
-    $reminderEvent = bcrf_roost_expiration_event_key(1,1,$reminderActivity,$daysUntilExpiry);
-    expect(bcrf_roost_email_enqueue($pdo,1,1,'expiration_reminder',$daysUntilExpiry,$reminderActivity,$reminderEvent), 'eligible reminder queued');
-    expect(!bcrf_roost_email_enqueue($pdo,1,1,'expiration_reminder',$daysUntilExpiry,$reminderActivity,$reminderEvent), 'duplicate reminder suppressed');
-}
+$reminderEvent = bcrf_roost_expiration_event_key(1,1,$reminderActivity,60);
+expect(bcrf_roost_email_enqueue($pdo,1,1,'expiration_reminder',60,$reminderActivity,$reminderEvent), 'eligible reminder queued');
+expect(!bcrf_roost_email_enqueue($pdo,1,1,'expiration_reminder',60,$reminderActivity,$reminderEvent), 'duplicate reminder suppressed');
+$pdo->exec("UPDATE reward_households SET status='suspended' WHERE id=1");
+expect(!bcrf_roost_email_enqueue($pdo,1,2,'expiration_reminder',60,$reminderActivity,
+    bcrf_roost_expiration_event_key(1,2,$reminderActivity,60)), 'suspended household cannot enqueue');
+$pdo->exec("UPDATE reward_households SET status='active' WHERE id=1");
+$pdo->exec("UPDATE reward_accounts SET balance_points=0 WHERE household_id=1");
+expect(!bcrf_roost_email_enqueue($pdo,1,2,'expiration_reminder',60,$reminderActivity,
+    bcrf_roost_expiration_event_key(1,2,$reminderActivity,60)), 'zero-balance reminder not queued');
 $pdo->exec("UPDATE reward_households SET last_qualifying_activity_at=NULL WHERE id=1");
 $pdo->exec("UPDATE reward_accounts SET balance_points=0 WHERE household_id=1");
 
