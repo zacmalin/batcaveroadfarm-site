@@ -65,6 +65,8 @@ function rejected(callable $run, string $message): void { try { $run(); } catch 
 $base = ['household_id'=>1,'policy_id'=>1,'customer_id'=>1,'source_type'=>'sale','source_id'=>'100','entry_type'=>'earn_spend','points_delta'=>200,'idempotency_key'=>'test-sale-100'];
 $a = bcrf_reward_post($pdo,$base);
 expect($a['balance']===200 && !$a['replayed'],'first award');
+$activityAfterEarn = $pdo->query("SELECT last_qualifying_activity_at FROM reward_households WHERE id=1")->fetchColumn();
+expect($activityAfterEarn !== false && $activityAfterEarn !== null, 'earning records household qualifying activity');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_id'=>'999','idempotency_key'=>'missing-sale'])),'missing sale cannot earn');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_id'=>'102','idempotency_key'=>'different-customer-sale'])),'sale belongs to another customer');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_id'=>'103','idempotency_key'=>'voided-sale'])),'voided sale cannot earn');
@@ -90,6 +92,7 @@ rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['household_id'=>2,'custo
 
 $b = bcrf_reward_post($pdo,$base);
 expect($b['replayed'] && $b['balance']===200,'idempotent replay');
+expect($pdo->query("SELECT last_qualifying_activity_at FROM reward_households WHERE id=1")->fetchColumn() === $activityAfterEarn, 'replayed earning does not refresh inactivity clock');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['idempotency_key'=>'different-key-same-sale'])),'duplicate sale source with different key');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['points_delta'=>300])),'conflicting replay');
 $v = bcrf_reward_post($pdo,array_merge($base,['source_type'=>'visit','source_id'=>'1','entry_type'=>'earn_visit','points_delta'=>25,'idempotency_key'=>'test-visit-1']));
