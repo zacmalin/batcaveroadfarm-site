@@ -14,7 +14,7 @@ function bcrf_pass_reserve(PDO $pdo, int $typeId, string $name, string $email, ?
         $limited = !empty($type['is_founding']) && (int)($type['founding_qty_limit'] ?? 0) > 0;
         if ($limited) {
             $q = $pdo->prepare("SELECT COUNT(*) FROM passes WHERE pass_type_id=?
-                AND ((payment_status IN ('paid','waived') AND status NOT IN ('cancelled','expired'))
+                AND ((payment_status IN ('paid','waived'))
                   OR (status='pending_payment' AND payment_status='pending'
                       AND (reservation_expires_at > NOW()
                            OR (reservation_expires_at IS NULL AND created_at > DATE_SUB(NOW(), INTERVAL 30 MINUTE)))))");
@@ -59,7 +59,7 @@ function bcrf_pass_confirm_payment(PDO $pdo, int $passId, string $sessionId): st
         }
         $limited = !empty($pass['is_founding']) && (int)$pass['founding_qty_limit'] > 0;
         $late = $limited && ($pass['reservation_expires_at'] === null ||
-            strtotime($pass['reservation_expires_at']) <= time());
+            strtotime($pass['reservation_expires_at'] . ' UTC') <= time());
         if ($late) {
             $q = $pdo->prepare("UPDATE passes SET payment_status='paid', payment_provider='stripe', payment_reference=? WHERE id=? AND status='pending_payment'");
             $q->execute([$sessionId, $passId]);
