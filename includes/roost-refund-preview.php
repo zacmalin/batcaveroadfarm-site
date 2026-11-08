@@ -61,7 +61,11 @@ function bcrf_roost_refund_reversal_preview(PDO $pdo, int $saleId): array {
         if (($sumByLine[$id] ?? 0) !== $line['refunded'])
             throw new BcrfRewardError('Refund line totals differ from sale line running totals.');
     }
-    return [
+    // The current refund's exact point delta is the cumulative amount owed
+    // minus reversals already committed for this original sale earning.
+    // This helper is read-only; the caller must hold the account lock and
+    // recheck all source rows in the same posting transaction.
+        return [
         'original_eligible_cents'=>$original,
         'remaining_eligible_cents'=>$remaining,
         'cumulative_points_to_reverse'=>bcrf_rewards_cumulative_refund_points($original,$remaining),
