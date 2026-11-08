@@ -66,8 +66,8 @@ $errMap = [
     'closed_monday'  => 'We\'re closed on Mondays — please choose another day.',
     'blackout'       => 'That date is not available. Please choose another day.',
     'missing_info'   => 'Please fill in your name and email.',
-    'no_type'        => 'Ticket sales are temporarily unavailable. Please call (828) 216-5488.',
-    'db'             => 'Something went wrong — please try again or call (828) 216-5488.',
+    'no_type'        => 'Ticket sales are temporarily unavailable. Please call ' . site_phone_display('general') . '.',
+    'db'             => 'Something went wrong — please try again or call ' . site_phone_display('general') . '.',
     'too_many'       => 'For groups of 6 or more, please use the <a href="/booking/">group booking form</a>.',
 ];
 $errKey = trim((string)($_GET['error'] ?? ''));
