@@ -6,6 +6,9 @@ if (!$dsn) { fwrite(STDERR, "Set BCRF_REWARDS_TEST_DSN for a disposable database
 $pdo = new PDO($dsn, getenv('BCRF_REWARDS_TEST_USER') ?: '', getenv('BCRF_REWARDS_TEST_PASSWORD') ?: '', [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
 $pdo->exec("CREATE TABLE customers (id INT NOT NULL PRIMARY KEY) ENGINE=InnoDB");
 $pdo->exec("INSERT INTO customers VALUES (1),(2)");
+$pdo->exec("ALTER TABLE customers ADD COLUMN email VARCHAR(100), ADD COLUMN email_verified_at DATETIME NULL, ADD COLUMN account_status VARCHAR(20) NOT NULL DEFAULT 'active'");
+$pdo->exec("UPDATE customers SET email=CONCAT('customer',id,'@example.test'), email_verified_at=UTC_TIMESTAMP()");
+
 $pdo->exec("CREATE TABLE sales (id BIGINT UNSIGNED PRIMARY KEY, customer_id INT NULL, status VARCHAR(24) NOT NULL, subtotal_cents BIGINT NOT NULL, discount_cents BIGINT NOT NULL DEFAULT 0, total_cents BIGINT NOT NULL) ENGINE=InnoDB");
 $pdo->exec("INSERT INTO sales VALUES (100,1,'completed',4000,0,4000),(101,1,'completed',5500,0,5500),(102,2,'completed',500,0,500),(103,1,'voided',500,0,500)");
 $pdo->exec("CREATE TABLE sale_lines (id BIGINT AUTO_INCREMENT PRIMARY KEY, sale_id BIGINT, product_type VARCHAR(30), gross_cents BIGINT, discount_cents BIGINT, refunded_net_cents BIGINT) ENGINE=InnoDB");
@@ -116,6 +119,12 @@ expect(bcrf_roost_verified_service_recipient('adult@example.com',true,true,'mana
 expect(bcrf_roost_verified_service_recipient('child@example.com',true,false,'dependent') === null, 'dependent not a service recipient');
 
 expect(bcrf_roost_email_claim_eligible($pdo,(int)$claim['id'],$claim['claim_token']), 'verified welcome claim eligible');
+$pdo->exec("UPDATE customers SET email_verified_at=NULL WHERE id=1");
+expect(!bcrf_roost_email_claim_eligible($pdo,(int)$claim['id'],$claim['claim_token']), 'unverified customer email denied');
+$pdo->exec("UPDATE customers SET email_verified_at=UTC_TIMESTAMP(), account_status='disabled' WHERE id=1");
+expect(!bcrf_roost_email_claim_eligible($pdo,(int)$claim['id'],$claim['claim_token']), 'disabled customer account denied');
+$pdo->exec("UPDATE customers SET account_status='active' WHERE id=1");
+
 expect(!bcrf_roost_email_claim_eligible($pdo,(int)$claim['id'],str_repeat('0',64)), 'incorrect claim token denied');
 $pdo->exec("UPDATE reward_households SET status='suspended' WHERE id=1");
 expect(!bcrf_roost_email_claim_eligible($pdo,(int)$claim['id'],$claim['claim_token']), 'suspended household denied after claim');
