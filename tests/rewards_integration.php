@@ -101,6 +101,13 @@ require_once __DIR__ . '/../includes/roost-email-claim.php';
 $claim = bcrf_roost_email_claim($pdo);
 expect($claim !== null && $claim['event_type']==='welcome', 'oldest welcome event claimed');
 expect(strlen($claim['claim_token'])===64, 'claim uses random 256-bit token');
+require_once __DIR__ . '/../includes/roost-email-delivery-eligibility.php';
+expect(bcrf_roost_email_claim_eligible($pdo,(int)$claim['id'],$claim['claim_token']), 'verified welcome claim eligible');
+expect(!bcrf_roost_email_claim_eligible($pdo,(int)$claim['id'],str_repeat('0',64)), 'incorrect claim token denied');
+$pdo->exec("UPDATE reward_households SET status='suspended' WHERE id=1");
+expect(!bcrf_roost_email_claim_eligible($pdo,(int)$claim['id'],$claim['claim_token']), 'suspended household denied after claim');
+$pdo->exec("UPDATE reward_households SET status='active' WHERE id=1");
+
 expect(bcrf_roost_email_suppress($pdo,(int)$claim['id'],$claim['claim_token'],'test suppression'), 'claimed event can be suppressed');
 expect(!bcrf_roost_email_suppress($pdo,(int)$claim['id'],$claim['claim_token'],'duplicate suppression'), 'suppression cannot replay');
 expect((string)$pdo->query("SELECT status FROM reward_email_outbox WHERE id=".(int)$claim['id'])->fetchColumn()==='suppressed', 'suppression persisted');
