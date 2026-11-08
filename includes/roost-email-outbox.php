@@ -38,8 +38,22 @@ function bcrf_roost_email_enqueue(
     $check->execute([$memberId,$householdId]);
     if (!$check->fetchColumn()) throw new BcrfRewardError('Verified active household membership required.');
 
-    // INSERT IGNORE handles only duplicate events in expected operation;
-    // other SQL errors are not suppressed. Recheck identity on duplicate.
+    // Recheck that the activity snapshot is still current before queueing.
+    if ($eventType === 'expiration_reminder') {
+        $activityCheck = $pdo->prepare("SELECT h.last_qualifying_activity_at,
+            a.balance_points, h.status, UTC_TIMESTAMP(3) AS now_utc
+            FROM reward_households h JOIN reward_accounts a ON a.household_id=h.id
+            WHERE h.id=?");
+        $activityCheck->execute([$householdId]);
+        $current = $activityCheck->fetch(PDO::FETCH_ASSOC);
+        if (!$current ||
+            (string)$current['last_qualifying_activity_at'] !== (string)$activityUtc ||
+            !bcrf_roost_reminder_eligible((string)$current['status'], (int)$current['balance_points'],
+                (string)$current['last_qualifying_activity_at'], (string)$current['now_utc'], (int)$milestoneDays)) {
+            return false;
+        }
+    }
+    // The unique event key makes retries idempotent; other SQL errors surface.
     $stmt = $pdo->prepare("INSERT INTO reward_email_outbox
         (household_id,member_id,event_type,milestone_days,activity_at,event_key,status,
          available_at,created_at,updated_at)
