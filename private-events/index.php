@@ -186,7 +186,7 @@ $heardFrom = ['Google search', 'Google Maps / Apple Maps', 'Facebook', 'Instagra
         <div class="pe-submit">
             <button type="submit" class="cta-btn">Send My Inquiry →</button>
         </div>
-        <p class="pe-note">We typically respond within 24 hours. For urgent requests call <a href="tel:+18282165488" style="color:var(--cream,#f5ead6)">(828) 216-5488</a>.</p>
+        <p class="pe-note">We typically respond within 24 hours. For urgent requests call <a href="tel:<?= htmlspecialchars(site_tel('general'), ENT_QUOTES) ?>" style="color:var(--cream,#f5ead6)"><?= htmlspecialchars(site_phone_display('general')) ?></a>.</p>
     </form>
 </div>
 
