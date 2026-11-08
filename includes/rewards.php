@@ -214,11 +214,24 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
                 throw new BcrfRewardError('Refund reversal does not match verified incremental points.');
             }
         }
+        if ($type === 'refund_reversal') {
+            // The refund receipt is unique even when a different event key is supplied.
+            $receiptCheck = $pdo->prepare("SELECT refund_id FROM reward_refund_processing WHERE refund_id = ?");
+            $receiptCheck->execute([(int)$event['source_id']]);
+            if ($receiptCheck->fetchColumn()) throw new BcrfRewardError('Refund already processed.');
+        }
         $newBalance = $balance + $delta;
         $metadata = isset($event['metadata']) ? json_encode($event['metadata'], JSON_THROW_ON_ERROR) : null;
         $ins = $pdo->prepare("INSERT INTO reward_ledger (household_id, customer_id, policy_id, entry_type, points_delta, source_type, source_id, idempotency_key, related_entry_id, metadata_json, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(3), ?)");
         $ins->execute([$household, $customer, $policy, $type, $delta, $event['source_type'], $event['source_id'], $event['idempotency_key'], $event['related_entry_id'] ?? null, $metadata, $event['created_by'] ?? null]);
         $id = (int)$pdo->lastInsertId();
+        if ($type === 'refund_reversal') {
+            $receipt = $pdo->prepare("INSERT INTO reward_refund_processing
+                (refund_id, household_id, original_earning_entry_id, points_reversed, reversal_entry_id, processed_at)
+                VALUES (?, ?, ?, ?, ?, UTC_TIMESTAMP(3))");
+            $receipt->execute([(int)$event['source_id'], (int)$household,
+                (int)$event['related_entry_id'], -$delta, $id]);
+        }
         $upd = $pdo->prepare("UPDATE reward_accounts SET balance_points = ?, lifetime_earned = lifetime_earned + ?, lifetime_redeemed = lifetime_redeemed + ?, updated_at = UTC_TIMESTAMP(3) WHERE household_id = ?");
         $upd->execute([$newBalance, in_array($type,['earn_spend','earn_visit'],true) ? $delta : 0, $type === 'redeem' ? -$delta : 0, $household]);
         // Only confirmed earning events reset household inactivity. A replay
