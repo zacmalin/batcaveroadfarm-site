@@ -26,7 +26,7 @@ function bcrf_roost_email_claim_eligible(PDO $pdo, int $id, string $token): bool
     if ($row['event_type'] === 'welcome') return true;
     if ($row['event_type'] !== 'expiration_reminder' ||
         $row['last_qualifying_activity_at'] === null ||
-        (string)$row['last_qualifying_activity_at'] !== (string)$row['activity_at']) return false;
+        substr((string)$row['last_qualifying_activity_at'], 0, 23) !== substr((string)$row['activity_at'], 0, 23)) return false;
     return bcrf_roost_reminder_eligible((string)$row['household_status'],
         (int)$row['balance_points'], (string)$row['last_qualifying_activity_at'],
         (string)$row['now_utc'], (int)$row['milestone_days']);
