@@ -62,6 +62,28 @@ $pdo->exec("INSERT INTO reward_households (id, status, created_at) VALUES (1,'ac
 $pdo->exec("INSERT INTO reward_accounts (household_id, updated_at) VALUES (1,UTC_TIMESTAMP(3))");
 $pdo->exec("INSERT INTO reward_household_members (household_id,customer_id,role,verification_status,can_redeem,joined_at) VALUES (1,1,'manager','verified',1,UTC_TIMESTAMP(3)),(1,2,'adult','verified',1,UTC_TIMESTAMP(3))");
 $pdo->exec("INSERT INTO reward_policies (id,version,config_json,status,created_at) VALUES (1,'test-1','{}','active',UTC_TIMESTAMP(3))");
+$emailSchema = require __DIR__ . '/../admin/migrations/0020_roost_email_outbox.php';
+$emailSchema($pdo);
+$emailSchema($pdo); // additive migration must be rerunnable
+require_once __DIR__ . '/../includes/roost-email-outbox.php';
+$welcomeEvent = bcrf_roost_welcome_event_key(1, '2026-11-08 12:00:00');
+expect(bcrf_roost_email_enqueue($pdo,1,1,'welcome',null,null,$welcomeEvent), 'verified welcome queued once');
+expect(!bcrf_roost_email_enqueue($pdo,1,1,'welcome',null,null,$welcomeEvent), 'duplicate welcome not queued');
+expect((int)$pdo->query("SELECT COUNT(*) FROM reward_email_outbox WHERE event_type='welcome'")->fetchColumn()===1, 'single durable welcome event');
+rejected(fn()=>bcrf_roost_email_enqueue($pdo,1,999,'welcome',null,null,bcrf_roost_welcome_event_key(999,'2026-11-08 12:00:00')), 'unknown member cannot queue welcome');
+rejected(fn()=>bcrf_roost_email_enqueue($pdo,1,1,'expiration_reminder',14,'2025-01-31 09:30:00','invalid-event'), 'invalid milestone cannot queue');
+$reminderActivity = gmdate('Y-m-d H:i:s', strtotime('-305 days'));
+$pdo->prepare("UPDATE reward_households SET last_qualifying_activity_at=? WHERE id=1")->execute([$reminderActivity]);
+$pdo->exec("UPDATE reward_accounts SET balance_points=250 WHERE household_id=1");
+$daysUntilExpiry = bcrf_roost_expiration_reminder_day($reminderActivity, gmdate('Y-m-d H:i:s'));
+if ($daysUntilExpiry !== null) {
+    $reminderEvent = bcrf_roost_expiration_event_key(1,1,$reminderActivity,$daysUntilExpiry);
+    expect(bcrf_roost_email_enqueue($pdo,1,1,'expiration_reminder',$daysUntilExpiry,$reminderActivity,$reminderEvent), 'eligible reminder queued');
+    expect(!bcrf_roost_email_enqueue($pdo,1,1,'expiration_reminder',$daysUntilExpiry,$reminderActivity,$reminderEvent), 'duplicate reminder suppressed');
+}
+$pdo->exec("UPDATE reward_households SET last_qualifying_activity_at=NULL WHERE id=1");
+$pdo->exec("UPDATE reward_accounts SET balance_points=0 WHERE household_id=1");
+
 require __DIR__ . '/../includes/rewards.php';
 // Staff-only verification service: no public endpoint, no implicit point award.
 require __DIR__ . '/../includes/roost-attendance.php';
