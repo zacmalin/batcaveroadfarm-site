@@ -53,17 +53,18 @@ try {
     if($e->getMessage()==='Mismatched queued refund identity accepted.') throw $e;
     if($e->getMessage()!=='Queued refund source does not match outbox identity.') throw $e;
 }
-// The full inert preflight must preserve the historical earning policy
-// when that policy is retired, without switching to an active replacement.
+// Missing original earning must fail closed; no active or retired policy
+// may be guessed for an orphaned refund. Historical-policy resolution is
+// tested separately with its dedicated original-earning fixture.
 $pdo->exec("UPDATE reward_policies SET status='retired' WHERE id=1");
 try {
-    $refundPlan=bcrf_roost_outbox_dispatch_refund_preflight($pdo,
-        ['id'=>$refundOutboxId,'event_type'=>'sale.refunded','source_id'=>9021]);
-    if (!in_array($refundPlan['action']??null,
-        ['posting_required','already_posted','zero_point_receipt_required'],true))
-        throw new RuntimeException('Refund preflight returned unsupported action.');
-    if (isset($refundPlan['event']) && (int)$refundPlan['event']['policy_id']!==1)
-        throw new RuntimeException('Refund preflight substituted historical policy.');
+    try {
+        bcrf_roost_outbox_dispatch_refund_preflight($pdo,
+            ['id'=>$refundOutboxId,'event_type'=>'sale.refunded','source_id'=>9021]);
+        throw new RuntimeException('Orphaned queued refund was accepted.');
+    } catch(RuntimeException $e) {
+        if ($e->getMessage()!=='Refund requires one original sale policy.') throw $e;
+    }
 } finally {
     $pdo->exec("UPDATE reward_policies SET status='active' WHERE id=1");
 }
