@@ -52,6 +52,17 @@ foreach ($faqSchemaItems as [$question, $answer]) {
 
  		<div class="content-wrap">
 
+    <div class="faq-category reveal" id="roost-rewards">
+      <h2 class="faq-category-title"><span aria-hidden="true">🐓</span> Roost Rewards</h2>
+      <p>Roost Rewards is coming soon. Enrollment and earning are not available until launch.</p>
+      <div class="faq-list">
+        <div class="faq-item"><button class="faq-question" type="button">How do I earn Roost Rewards points? <span class="faq-chevron" aria-hidden="true">▼</span></button><div class="faq-answer">Once launched, qualifying purchases earn 5 points per dollar of eligible spending after discounts and before tax, rounded down per sale. Staff-verified visits earn 25 points per eligible person per operating day.</div></div>
+        <div class="faq-item"><button class="faq-question" type="button">Can my family share rewards? <span class="faq-chevron" aria-hidden="true">▼</span></button><div class="faq-answer">Yes. Verified household members share a balance. Authorized verified adults may redeem; children may earn but cannot redeem.</div></div>
+        <div class="faq-item"><button class="faq-question" type="button">Do rewards points expire? <span class="faq-chevron" aria-hidden="true">▼</span></button><div class="faq-answer">Points expire after 12 months of inactivity. A qualifying purchase or verified visit resets that period.</div></div>
+        <div class="faq-item"><button class="faq-question" type="button">What happens if I return something? <span class="faq-chevron" aria-hidden="true">▼</span></button><div class="faq-answer">Points earned from refunded purchases may be reversed, potentially creating a temporary negative balance. Read our <a href="<?= bcrf_farm_url() ?>/terms/#roost-rewards">rewards terms</a>.</div></div>
+      </div>
+    </div>
+
     		<!-- ── VISITING THE FARM ── -->
     		<div class="faq-category reveal">
       			<h2 class="faq-category-title"><span aria-hidden="true">🌾</span> Visiting the Farm</h2>
