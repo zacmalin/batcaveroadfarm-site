@@ -47,6 +47,12 @@ $pdo->exec("INSERT INTO reward_household_members VALUES (7,11,'verified',NULL),(
 mustReject(fn()=>bcrf_rewards_sale_verified_household($pdo,1),'anonymous sale has no household');
 $pdo->exec("UPDATE sales SET customer_id=11 WHERE id=1");
 check(bcrf_rewards_sale_verified_household($pdo,1)===['customer_id'=>11,'household_id'=>7],'verified sale owner');
+$pdo->exec("INSERT INTO reward_household_members VALUES (8,11,'verified',NULL)");
+mustReject(fn()=>bcrf_rewards_sale_verified_household($pdo,1),'ambiguous verified household memberships');
+$pdo->exec("DELETE FROM reward_household_members WHERE household_id=8 AND customer_id=11");
+$pdo->exec("UPDATE reward_households SET status='inactive' WHERE id=7");
+mustReject(fn()=>bcrf_rewards_sale_verified_household($pdo,1),'inactive household cannot claim sale');
+$pdo->exec("UPDATE reward_households SET status='active' WHERE id=7");
 $pdo->exec("UPDATE reward_household_members SET revoked_at=UTC_TIMESTAMP() WHERE customer_id=11");
 mustReject(fn()=>bcrf_rewards_sale_verified_household($pdo,1),'revoked member');
 $pdo->exec("UPDATE sales SET customer_id=12 WHERE id=1");
