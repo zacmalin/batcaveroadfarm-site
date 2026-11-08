@@ -4,10 +4,10 @@
 $dsn = getenv('BCRF_REWARDS_TEST_DSN');
 if (!$dsn) { fwrite(STDERR,"Set BCRF_REWARDS_TEST_DSN for a disposable database.\n"); exit(2); }
 $pdo = new PDO($dsn,getenv('BCRF_REWARDS_TEST_USER') ?: '',getenv('BCRF_REWARDS_TEST_PASSWORD') ?: '',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
-$pdo->exec("CREATE TABLE sales (id BIGINT PRIMARY KEY,status VARCHAR(20),total_cents BIGINT,customer_id INT NULL)");
+$pdo->exec("CREATE TABLE sales (id BIGINT PRIMARY KEY,status VARCHAR(20),total_cents BIGINT,customer_id INT NULL,subtotal_cents BIGINT NOT NULL DEFAULT 0,discount_cents BIGINT NOT NULL DEFAULT 0)");
 $pdo->exec("CREATE TABLE sale_lines (sale_id BIGINT,product_type VARCHAR(20),gross_cents BIGINT,discount_cents BIGINT,refunded_net_cents BIGINT)");
 $pdo->exec("CREATE TABLE payments (sale_id BIGINT,tender VARCHAR(20),amount_cents BIGINT,status VARCHAR(12),reconciled_at DATETIME NULL,reconcile_flag VARCHAR(20) NULL)");
-$pdo->exec("INSERT INTO sales (id,status,total_cents) VALUES (1,'completed',2150),(2,'completed',500),(3,'voided',500)");
+$pdo->exec("INSERT INTO sales (id,status,total_cents,subtotal_cents,discount_cents) VALUES (1,'completed',2150,2500,350),(2,'completed',500,500,0),(3,'voided',500,500,0)");
 $pdo->exec("INSERT INTO sale_lines VALUES (1,'retail',2000,200,100),(1,'gift_card',500,0,0),(1,'admission',500,50,0),(2,'retail',500,0,0),(3,'retail',500,0,0)");
 $pdo->exec("INSERT INTO payments (sale_id,tender,amount_cents,status) VALUES (1,'cash',2150,'completed'),(2,'cash',500,'pending'),(3,'cash',500,'completed')");
 require __DIR__.'/../includes/rewards-pos-preview.php';
@@ -32,7 +32,7 @@ mustReject(fn()=>bcrf_rewards_sale_eligible_cents($pdo,2),'discount exceeds gros
 $pdo->exec("UPDATE sale_lines SET discount_cents=0 WHERE sale_id=2");
 $pdo->exec("DELETE FROM sale_lines WHERE sale_id=2");
 mustReject(fn()=>bcrf_rewards_sale_eligible_cents($pdo,2),'sale with no lines');
-$pdo->exec("INSERT INTO sales (id,status,total_cents) VALUES (4,'completed',500)");
+$pdo->exec("INSERT INTO sales (id,status,total_cents,subtotal_cents) VALUES (4,'completed',500,500)");
 $pdo->exec("INSERT INTO sale_lines VALUES (4,'retail',500,0,0)");
 $pdo->exec("INSERT INTO payments (sale_id,tender,amount_cents,status) VALUES (4,'venmo',500,'completed')");
 mustReject(fn()=>bcrf_rewards_sale_eligible_cents($pdo,4),'unreconciled noncash');
@@ -51,4 +51,6 @@ $pdo->exec("UPDATE reward_household_members SET revoked_at=UTC_TIMESTAMP() WHERE
 mustReject(fn()=>bcrf_rewards_sale_verified_household($pdo,1),'revoked member');
 $pdo->exec("UPDATE sales SET customer_id=12 WHERE id=1");
 mustReject(fn()=>bcrf_rewards_sale_verified_household($pdo,1),'unverified member');
+$pdo->exec("UPDATE sales SET subtotal_cents=100 WHERE id=1");
+mustReject(fn()=>bcrf_rewards_sale_eligible_cents($pdo,1),'eligible value exceeds recorded net subtotal');
 echo "Farm Rewards POS eligibility checks passed.\\n";
