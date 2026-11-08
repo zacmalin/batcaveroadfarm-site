@@ -202,9 +202,9 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
             // caller-supplied reversal amount.
             require_once __DIR__ . '/roost-refund-preview.php';
             $refundPreview = bcrf_roost_refund_reversal_preview($pdo, (int)$refundSaleId);
-            $prior = $pdo->prepare("SELECT COALESCE(SUM(points_delta),0) FROM reward_ledger WHERE related_entry_id = ? AND entry_type = 'refund_reversal'");
+            $prior = $pdo->prepare("SELECT COALESCE(SUM(points_reversed),0) FROM reward_refund_processing WHERE original_earning_entry_id = ?");
             $prior->execute([$event['related_entry_id']]);
-            $alreadyReversed = -(int)$prior->fetchColumn();
+            $alreadyReversed = (int)$prior->fetchColumn();
             $due = bcrf_roost_refund_points_for_id(
                 $refundPreview,
                 (int)$event['source_id'],
