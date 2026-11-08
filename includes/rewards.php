@@ -151,6 +151,14 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
                 !filter_var($event['source_id'], FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]])) {
                 throw new BcrfRewardError('Refund reversal requires a positive refund ID.');
             }
+            // A single refund may not be reversed twice under different event keys.
+            $duplicateRefund = $pdo->prepare("SELECT id FROM reward_ledger
+                WHERE entry_type = 'refund_reversal' AND source_type = 'refund'
+                  AND source_id = ? LIMIT 1");
+            $duplicateRefund->execute([$event['source_id']]);
+            if ($duplicateRefund->fetchColumn()) {
+                throw new BcrfRewardError('Refund already reversed in rewards ledger.');
+            }
             $refundCheck = $pdo->prepare("SELECT sale_id FROM refunds WHERE id = ? FOR UPDATE");
             $refundCheck->execute([(int)$event['source_id']]);
             $refundSaleId = $refundCheck->fetchColumn();
