@@ -90,6 +90,17 @@ foreach ([60,30,7] as $milestone) {
 }
 expect(bcrf_roost_expiration_reminder_day('2025-01-31 09:30:00',$expiration->format('Y-m-d H:i:s')) === null, 'no reminder at expiration');
 expect(bcrf_roost_expiration_reminder_day('2025-01-31 09:30:00',$expiration->modify('-61 days')->format('Y-m-d H:i:s')) === null, 'no early reminder');
+// Service-email event identities must be stable and reminder eligibility fail closed.
+require_once __DIR__ . '/../includes/roost-email-events.php';
+expect(bcrf_roost_welcome_event_key(3, '2026-11-08 12:00:00') === bcrf_roost_welcome_event_key(3, '2026-11-08 12:00:00'), 'welcome event identity stable');
+expect(bcrf_roost_welcome_event_key(3, '2026-11-08 12:00:00') !== bcrf_roost_welcome_event_key(4, '2026-11-08 12:00:00'), 'welcome recipient isolated');
+expect(bcrf_roost_expiration_event_key(1, 3, '2025-01-31 09:30:00', 30) !== bcrf_roost_expiration_event_key(1, 4, '2025-01-31 09:30:00', 30), 'reminder recipient isolated');
+expect(bcrf_roost_expiration_event_key(1, 3, '2025-01-31 09:30:00', 30) !== bcrf_roost_expiration_event_key(1, 3, '2025-02-01 09:30:00', 30), 'qualifying activity resets reminder identity');
+expect(bcrf_roost_reminder_eligible('active', 250, '2025-01-31 09:30:00', '2025-12-02 09:30:00', 60), 'valid reminder eligible');
+expect(!bcrf_roost_reminder_eligible('suspended', 250, '2025-01-31 09:30:00', '2025-12-02 09:30:00', 60), 'suspended household suppressed');
+expect(!bcrf_roost_reminder_eligible('active', -10, '2025-01-31 09:30:00', '2025-12-02 09:30:00', 60), 'negative balance suppressed');
+expect(!bcrf_roost_reminder_eligible('active', 250, null, '2025-12-02 09:30:00', 60), 'missing activity suppressed');
+rejected(fn()=>bcrf_roost_expiration_event_key(1, 3, '2025-01-31 09:30:00', 14), 'invalid reminder event milestone');
 // Service-email content must remain inert and reuse the shared branded wrapper at delivery.
 require_once __DIR__ . '/../includes/roost-email-content.php';
 $welcomeMail = bcrf_roost_welcome_email_content('https://batcaveroadfarm.com/roost-rewards/');
