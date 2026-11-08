@@ -32,6 +32,20 @@ try {
             $issues[] = "$table.id must be UNSIGNED for reward foreign keys";
         }
     }
+    $tableStmt = $pdo->prepare("SELECT ENGINE, TABLE_COLLATION FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?");
+    foreach (array_keys($required) as $table) {
+        $tableStmt->execute([$table]);
+        $details = $tableStmt->fetch(PDO::FETCH_ASSOC);
+        if (!$details) {
+            $issues[] = "$table missing";
+        } elseif (strtoupper((string)$details['ENGINE']) !== 'INNODB') {
+            $issues[] = "$table engine must be InnoDB for foreign keys";
+        }
+    }
+    if (stripos($version, 'MariaDB') !== false) {
+        $issues[] = 'MariaDB detected: migration SQL is MySQL 8-specific; verify separately before deployment';
+    }
     if ($collation === '') $issues[] = 'utf8mb4_0900_ai_ci collation unavailable';
     echo "Database engine: $version\n";
     echo "Collation: ".($collation ?: 'unavailable')."\n";
