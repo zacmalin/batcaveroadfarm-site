@@ -86,3 +86,17 @@ function bcrf_roost_refund_points_due(int $originalEarnedPoints, int $cumulative
     }
     return $cumulativeRefundPoints - $alreadyReversedPoints;
 }
+
+/**
+ * Trusted caller preflight for a refund with no point impact. This does not
+ * mutate the ledger or mark a refund processed. A later eligible refund may
+ * cross the rounding threshold, so always re-evaluate cumulative totals.
+ */
+function bcrf_roost_refund_is_points_noop(PDO $pdo, int $saleId, int $earnedPoints, int $alreadyReversedPoints): bool {
+    $preview = bcrf_roost_refund_reversal_preview($pdo, $saleId);
+    return bcrf_roost_refund_points_due(
+        $earnedPoints,
+        (int)$preview['cumulative_points_to_reverse'],
+        $alreadyReversedPoints
+    ) === 0;
+}
