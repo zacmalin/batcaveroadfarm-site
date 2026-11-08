@@ -19,6 +19,14 @@ check(bcrf_rewards_points_for_eligible_cents(19)===0,'nineteen cents earns zero'
 check(bcrf_rewards_points_for_eligible_cents(20)===1,'twenty cents earns one');
 check(bcrf_rewards_points_for_eligible_cents(199)===9,'one dollar ninety-nine earns nine');
 check(bcrf_rewards_points_for_eligible_cents(100)===5,'one dollar earns five');
+check(bcrf_rewards_points_for_eligible_cents(999)===49,'nine dollars ninety-nine earns forty-nine');
+check(bcrf_rewards_points_for_eligible_cents(4789)===239,'forty-seven eighty-nine earns 239');
+check(bcrf_rewards_points_for_eligible_cents(20) + bcrf_rewards_points_for_eligible_cents(19)===1,'separate sales do not carry fractional points');
+check(bcrf_rewards_points_for_eligible_cents(19) + bcrf_rewards_points_for_eligible_cents(19)===0,'two subthreshold sales earn zero');
+check(bcrf_rewards_points_for_eligible_cents(39)===1,'one combined sale floors once');
+for ($cents=1; $cents<=10000; $cents++) {
+    check(bcrf_rewards_points_for_eligible_cents($cents)===intdiv($cents*5,100),'exact integer points for cents '.$cents);
+}
 check(bcrf_rewards_points_for_eligible_cents(PHP_INT_MAX)===intdiv(PHP_INT_MAX,100)*5+intdiv((PHP_INT_MAX%100)*5,100),'large integer exact conversion');
 mustReject(fn()=>bcrf_rewards_points_for_eligible_cents(0),'zero eligible cents');
 mustReject(fn()=>bcrf_rewards_points_for_eligible_cents(-1),'negative eligible cents');
