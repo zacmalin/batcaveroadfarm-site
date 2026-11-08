@@ -55,6 +55,7 @@
             	<a href="<?= bcrf_farm_url() ?>/events/"> Events</a> <span aria-hidden="true">✦</span>
             	<a href="<?= bcrf_farm_url() ?>/about/"> About</a> <span aria-hidden="true">✦</span>
             	<a href="<?= bcrf_farm_url() ?>/contact-us/"> Contact Us</a> <span aria-hidden="true">✦</span>
+            	<a href="<?= bcrf_farm_url() ?>/roost-rewards/"> Roost Rewards</a> <span aria-hidden="true">✦</span>
             	<a href="<?= bcrf_farm_url() ?>/faq/"> FAQ</a> <span aria-hidden="true">✦</span>
             	<a href="<?= bcrf_farm_url() ?>/jobs/"> Jobs</a> <span aria-hidden="true">✦</span>
             	<a href="<?= bcrf_farm_url() ?>/gallery/"> Gallery</a>
