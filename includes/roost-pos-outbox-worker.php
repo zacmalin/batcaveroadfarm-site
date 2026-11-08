@@ -7,7 +7,7 @@ function bcrf_roost_outbox_claim(PDO $pdo): ?array {
     try {
         $q=$pdo->query("SELECT id, event_type, source_id, attempts
             FROM reward_pos_outbox
-            WHERE status IN ('pending','failed') AND available_at <= UTC_TIMESTAMP(3)
+            WHERE status IN ('pending','failed','processing') AND available_at <= UTC_TIMESTAMP(3)
             ORDER BY available_at, id LIMIT 1 FOR UPDATE SKIP LOCKED");
         $row=$q->fetch(PDO::FETCH_ASSOC);
         if (!$row) { $pdo->commit(); return null; }
