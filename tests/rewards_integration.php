@@ -46,6 +46,7 @@ $pdo->exec("INSERT INTO reward_accounts (household_id,updated_at) VALUES (2,UTC_
 $pdo->exec("INSERT INTO customers VALUES (3)");
 $pdo->exec("INSERT INTO reward_household_members (household_id,customer_id,role,verification_status,can_redeem,joined_at) VALUES (2,3,'manager','verified',1,UTC_TIMESTAMP(3))");
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['household_id'=>2,'customer_id'=>3,'idempotency_key'=>'other-household-same-sale'])),'same sale cannot award another household');
+rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['household_id'=>2,'customer_id'=>1,'source_id'=>'101','points_delta'=>275,'idempotency_key'=>'wrong-household-customer'])),'sale cannot award to household other than verified customer household');
 
 $b = bcrf_reward_post($pdo,$base);
 expect($b['replayed'] && $b['balance']===200,'idempotent replay');
