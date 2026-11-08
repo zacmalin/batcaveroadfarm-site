@@ -50,16 +50,6 @@ $_SESSION['user_role'] = 'visitor';
 rejected(fn()=>bcrf_roost_verify_attendee($pdo,5,2),'visitor cannot verify attendance');
 $_SESSION['user_role'] = 'administrator';
 expect((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger WHERE entry_type='earn_visit'")->fetchColumn()===0,'attendance verification does not silently award points');
-// Trusted visit-award orchestration: provenance, fixed points, replay and fabricated sources.
-require __DIR__ . '/../includes/roost-visit-awards.php';
-$visitAward = bcrf_roost_award_verified_visit($pdo, $staffAttendance);
-expect(!$visitAward['replayed'] && $visitAward['id'] > 0, 'verified individual visit awards 25 points');
-$visitReplay = bcrf_roost_award_verified_visit($pdo, $staffAttendance);
-expect($visitReplay['replayed'] && $visitReplay['id'] === $visitAward['id'], 'same attendance never awards twice');
-rejected(fn()=>bcrf_roost_award_verified_visit($pdo, 999999), 'fabricated attendance cannot earn');
-expect((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger WHERE entry_type='earn_visit' AND source_id='".(int)$staffAttendance."'")->fetchColumn()===1, 'single verified visit ledger award');
-
-
 function expect(bool $condition, string $message): void { if (!$condition) throw new RuntimeException($message); }
 function rejected(callable $run, string $message): void { try { $run(); } catch (BcrfRewardError $e) { return; } throw new RuntimeException('Expected rejection: '.$message); }
 $base = ['household_id'=>1,'policy_id'=>1,'customer_id'=>1,'source_type'=>'sale','source_id'=>'100','entry_type'=>'earn_spend','points_delta'=>200,'idempotency_key'=>'test-sale-100'];
@@ -171,6 +161,17 @@ if (function_exists('pcntl_fork') && function_exists('stream_socket_pair')) {
     $pdo = new PDO($dsn, getenv('BCRF_REWARDS_TEST_USER') ?: '', getenv('BCRF_REWARDS_TEST_PASSWORD') ?: '', [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
     expect((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()===0,'concurrent balance never overspent');
 }
+
+$pdo->exec("UPDATE reward_household_members SET revoked_at=NULL WHERE customer_id=2");
+// Trusted visit-award orchestration: provenance, fixed points, replay and fabricated sources.
+require __DIR__ . '/../includes/roost-visit-awards.php';
+$visitAward = bcrf_roost_award_verified_visit($pdo, $staffAttendance);
+expect(!$visitAward['replayed'] && $visitAward['id'] > 0, 'verified individual visit awards 25 points');
+$visitReplay = bcrf_roost_award_verified_visit($pdo, $staffAttendance);
+expect($visitReplay['replayed'] && $visitReplay['id'] === $visitAward['id'], 'same attendance never awards twice');
+rejected(fn()=>bcrf_roost_award_verified_visit($pdo, 999999), 'fabricated attendance cannot earn');
+expect((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger WHERE entry_type='earn_visit' AND source_id='".(int)$staffAttendance."'")->fetchColumn()===1, 'single verified visit ledger award');
+
 
 // Read-only expiration preview: only positive-balance, active, stale households.
 require __DIR__ . '/../includes/roost-expiration-preview.php';
