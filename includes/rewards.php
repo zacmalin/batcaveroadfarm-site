@@ -68,6 +68,13 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
             return ['id'=>(int)$old['id'],'balance'=>(int)$account['balance_points'],'replayed'=>true];
         }
 
+        // A different event key must not award the same purchase or visit twice.
+        // The household account lock serializes this check within a household.
+        if (in_array($type, ['earn_spend','earn_visit'], true)) {
+            $sourceCheck = $pdo->prepare("SELECT id FROM reward_ledger WHERE entry_type = ? AND source_type = ? AND source_id = ? LIMIT 1");
+            $sourceCheck->execute([$type, $event['source_type'], $event['source_id']]);
+            if ($sourceCheck->fetchColumn()) throw new BcrfRewardError('Reward source already awarded.');
+        }
         $active = $pdo->prepare("SELECT 1 FROM reward_policies WHERE id = ? AND status = 'active' AND (effective_at IS NULL OR effective_at <= UTC_TIMESTAMP(3)) LIMIT 1");
         $active->execute([$policy]);
         if (!$active->fetchColumn()) throw new BcrfRewardError('Reward policy is not active.');
