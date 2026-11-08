@@ -214,12 +214,16 @@ try {
 } finally {
     $pdo->exec("UPDATE reward_refund_processing SET original_earning_entry_id=".(int)$first['ledger_entry_id']." WHERE refund_id=9023");
 }
-// An orphaned processing receipt must not disappear through an inner join.
-$pdo->exec("UPDATE reward_refund_processing SET original_earning_entry_id=999999 WHERE refund_id=9023");
+// A processing receipt pointing at an existing non-earning ledger entry
+// must fail provenance validation; the foreign key disallows orphan IDs.
+$wrongLedgerId=(int)$secondRefund['ledger_entry_id'];
+if ($wrongLedgerId<=0) throw new RuntimeException('Missing reversal fixture for provenance test.');
+$pdo->prepare("UPDATE reward_refund_processing SET original_earning_entry_id=? WHERE refund_id=9023")
+    ->execute([$wrongLedgerId]);
 try {
     bcrf_roost_outbox_dispatch_refund_preflight($pdo,
         ['id'=>$zeroQueuedId,'event_type'=>'sale.refunded','source_id'=>9023]);
-    throw new RuntimeException('Orphaned zero-point receipt was accepted.');
+    throw new RuntimeException('Non-earning zero-point receipt was accepted.');
 } catch (RuntimeException $expected) {
     if ($expected->getMessage()!=='Committed refund provenance mismatch.')
         throw $expected;
