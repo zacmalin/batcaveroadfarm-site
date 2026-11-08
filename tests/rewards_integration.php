@@ -256,6 +256,8 @@ rejected(fn()=>bcrf_roost_refund_points_for_id($twice,3,0), 'later refund cannot
 expect(bcrf_roost_refund_points_for_id($twice,3,51)===49, 'second refund reverses only incremental points');
 rejected(fn()=>bcrf_roost_record_zero_point_refund($pdo,1,1),
     'point-bearing refund cannot be recorded as zero-point processed');
+expect((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE refund_id=1")->fetchColumn()===0,
+    'rejected false zero-point processing rolls back its receipt');
 
 $zeroThenDebit = ['refund_point_boundaries'=>[
     10=>['points_before'=>0,'points_after'=>0],
@@ -294,12 +296,18 @@ expect(bcrf_roost_refund_is_points_noop($pdo,105,5,0), 'read-only preflight reco
 $pdo->exec("INSERT INTO reward_ledger (household_id,customer_id,policy_id,entry_type,points_delta,source_type,source_id,idempotency_key,created_at)
     VALUES (1,1,1,'earn_spend',5,'sale','105','test-sale-105-zero',UTC_TIMESTAMP(3))");
 $zeroEarnId = (int)$pdo->lastInsertId();
+$balanceBeforeZero = (int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn();
+$ledgerCountBeforeZero = (int)$pdo->query("SELECT COUNT(*) FROM reward_ledger")->fetchColumn();
 $recordedZero = bcrf_roost_record_zero_point_refund($pdo,5,$zeroEarnId);
 expect(!$recordedZero['replayed'] && $recordedZero['points_reversed']===0,
     'zero-point refund recorded durably');
 $replayedZero = bcrf_roost_record_zero_point_refund($pdo,5,$zeroEarnId);
 expect($replayedZero['replayed'] && $replayedZero['points_reversed']===0,
     'zero-point refund processing replay is idempotent');
+expect((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()===$balanceBeforeZero,
+    'zero-point processing and replay leave account balance unchanged');
+expect((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger")->fetchColumn()===$ledgerCountBeforeZero,
+    'zero-point processing and replay create no financial ledger entry');
 expect((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE refund_id=5")->fetchColumn()===1,
     'zero-point refund has exactly one processing receipt');
 $otherPdo = new PDO($dsn, getenv('BCRF_REWARDS_TEST_USER') ?: '',
