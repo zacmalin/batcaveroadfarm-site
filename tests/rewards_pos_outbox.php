@@ -62,5 +62,20 @@ $pdo->rollBack();
 rr_check($blocked,'Concurrent retirement was not blocked by pinned policy lock.');
 rr_check((int)$pdo->query("SELECT COUNT(*) FROM reward_pos_outbox WHERE source_id=990112")->fetchColumn()===0,
     'Rolled-back concurrency fixture persisted.');
+// Once retirement commits, a later sale must not pin that policy.
+$other->exec("UPDATE reward_policies SET status='retired' WHERE id=1");
+$pdo->beginTransaction();
+$rejected=false;
+try {
+    bcrf_roost_pos_outbox_enqueue_pinned_sale($pdo,990113,1);
+} catch(RuntimeException $e) {
+    if ($e->getMessage()!=='Cannot pin inactive or future reward policy.') throw $e;
+    $rejected=true;
+}
+$pdo->rollBack();
+rr_check($rejected,'Retired policy was accepted for a new sale.');
+rr_check((int)$pdo->query("SELECT COUNT(*) FROM reward_pos_outbox WHERE source_id=990113")->fetchColumn()===0,
+    'Rejected retired-policy sale left an outbox event.');
+$other->exec("UPDATE reward_policies SET status='active' WHERE id=1");
 $pdo->exec("DELETE FROM reward_pos_outbox WHERE source_id=990111");
 echo "POS outbox atomicity and deduplication passed.\n";
