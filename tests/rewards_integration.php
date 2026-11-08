@@ -6,7 +6,7 @@ if (!$dsn) { fwrite(STDERR, "Set BCRF_REWARDS_TEST_DSN for a disposable database
 $pdo = new PDO($dsn, getenv('BCRF_REWARDS_TEST_USER') ?: '', getenv('BCRF_REWARDS_TEST_PASSWORD') ?: '', [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
 $pdo->exec("CREATE TABLE customers (id INT NOT NULL PRIMARY KEY) ENGINE=InnoDB");
 $pdo->exec("INSERT INTO customers VALUES (1),(2)");
-$pdo->exec("CREATE TABLE sales (id BIGINT PRIMARY KEY, customer_id INT NULL, status VARCHAR(24) NOT NULL, subtotal_cents BIGINT NOT NULL, discount_cents BIGINT NOT NULL DEFAULT 0, total_cents BIGINT NOT NULL) ENGINE=InnoDB");
+$pdo->exec("CREATE TABLE sales (id BIGINT UNSIGNED PRIMARY KEY, customer_id INT NULL, status VARCHAR(24) NOT NULL, subtotal_cents BIGINT NOT NULL, discount_cents BIGINT NOT NULL DEFAULT 0, total_cents BIGINT NOT NULL) ENGINE=InnoDB");
 $pdo->exec("INSERT INTO sales VALUES (100,1,'completed',4000,0,4000),(101,1,'completed',5500,0,5500),(102,2,'completed',500,0,500),(103,1,'voided',500,0,500)");
 $pdo->exec("CREATE TABLE sale_lines (id BIGINT AUTO_INCREMENT PRIMARY KEY, sale_id BIGINT, product_type VARCHAR(30), gross_cents BIGINT, discount_cents BIGINT, refunded_net_cents BIGINT) ENGINE=InnoDB");
 $pdo->exec("INSERT INTO sale_lines (sale_id,product_type,gross_cents,discount_cents,refunded_net_cents) VALUES (100,'retail',4000,0,0),(101,'retail',5500,0,0),(102,'retail',500,0,0),(103,'retail',500,0,0)");
@@ -27,6 +27,24 @@ require_once __DIR__ . '/../includes/roost-refund-processing.php';
 
 $pdo->exec("CREATE TABLE check_ins (id BIGINT UNSIGNED NOT NULL PRIMARY KEY, business_date DATE NOT NULL, party_size INT NOT NULL) ENGINE=InnoDB");
 $pdo->exec("INSERT INTO check_ins VALUES (1,'2026-11-08',1),(2,'2026-11-08',2),(3,'2026-11-09',1),(4,'2026-11-10',1),(5,'2026-11-11',1)");
+$preflightEnv = array_merge(getenv(), [
+    'BCRF_REWARDS_PREFLIGHT_DSN'=>$dsn,
+    'BCRF_REWARDS_PREFLIGHT_USER'=>getenv('BCRF_REWARDS_TEST_USER') ?: '',
+    'BCRF_REWARDS_PREFLIGHT_PASSWORD'=>getenv('BCRF_REWARDS_TEST_PASSWORD') ?: '',
+]);
+$preflightPipes = [];
+$preflight = proc_open([PHP_BINARY, __DIR__.'/rewards_production_preflight.php'],
+    [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']], $preflightPipes, null, $preflightEnv);
+if (!is_resource($preflight)) throw new RuntimeException('Unable to launch read-only schema preflight.');
+fclose($preflightPipes[0]);
+$preflightOutput = stream_get_contents($preflightPipes[1]);
+$preflightError = stream_get_contents($preflightPipes[2]);
+fclose($preflightPipes[1]);
+fclose($preflightPipes[2]);
+if (proc_close($preflight)!==0 || !str_contains($preflightOutput,'Preflight structural checks passed')) {
+    throw new RuntimeException('Read-only schema preflight failed: '.$preflightOutput.' '.$preflightError);
+}
+
 $attendanceSchema = require __DIR__ . '/../admin/migrations/0017_roost_rewards_attendance.php';
 $attendanceSchema($pdo);
 $attendanceSchema($pdo); // rerunnable
