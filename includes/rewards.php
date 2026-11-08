@@ -37,6 +37,11 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
             throw new BcrfRewardError('Invalid reward source or event key.');
         }
     }
+    // Never let a generic caller disguise a visit as a purchase (or vice versa).
+    if (($type === 'earn_spend' && $event['source_type'] !== 'sale') ||
+        ($type === 'earn_visit' && $event['source_type'] !== 'visit')) {
+        throw new BcrfRewardError('Earning source type does not match reward event.');
+    }
     $customer = $event['customer_id'] ?? null;
     if ($customer !== null && !filter_var($customer, FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]])) {
         throw new BcrfRewardError('Invalid customer.');
