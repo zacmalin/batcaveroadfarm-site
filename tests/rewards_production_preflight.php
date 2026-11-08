@@ -81,6 +81,13 @@ try {
                 $hasEventUniqueness=true;
         if (!$hasEventUniqueness)
             $issues[]='Existing reward_pos_outbox lacks unique event_type/source_id constraint';
+        if (isset($outboxColumns['policy_id'], $outboxColumns['event_type'])) {
+            $unresolved=(int)$pdo->query("SELECT COUNT(*) FROM reward_pos_outbox
+                WHERE event_type='sale.completed' AND policy_id IS NULL
+                  AND status IN ('pending','processing','failed')")->fetchColumn();
+            if ($unresolved>0)
+                $issues[]="Existing outbox has $unresolved unresolved sale events without pinned policy; manual reconciliation required";
+        }
     }
     if (stripos($version, 'MariaDB') !== false) {
         $issues[] = 'MariaDB detected: migration SQL is MySQL 8-specific; verify separately before deployment';
