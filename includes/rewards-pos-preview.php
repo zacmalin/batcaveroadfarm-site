@@ -68,3 +68,23 @@ function bcrf_rewards_sale_eligible_cents(PDO $pdo, int $saleId): int {
     if ($paid !== (int)$sale['total_cents']) throw new BcrfRewardError('Sale payment total does not match recorded sale.');
     return $eligible;
 }
+
+/**
+ * Resolve the one verified active household belonging to the sale's recorded
+ * customer. Never infer ownership from a name, email, or payment handle.
+ * This is a read-only guard, not a customer-claim or identity-verification API.
+ */
+function bcrf_rewards_sale_verified_household(PDO $pdo, int $saleId): array {
+    if ($saleId <= 0) throw new BcrfRewardError('Invalid sale.');
+    $st = $pdo->prepare("SELECT s.customer_id, m.household_id
+        FROM sales s
+        JOIN reward_household_members m ON m.customer_id = s.customer_id
+        JOIN reward_households h ON h.id = m.household_id
+        WHERE s.id = ? AND s.customer_id IS NOT NULL
+          AND m.revoked_at IS NULL AND m.verification_status = 'verified'
+          AND h.status = 'active'");
+    $st->execute([$saleId]);
+    $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+    if (count($rows) !== 1) throw new BcrfRewardError('Sale has no unique verified active household.');
+    return ['customer_id'=>(int)$rows[0]['customer_id'], 'household_id'=>(int)$rows[0]['household_id']];
+}
