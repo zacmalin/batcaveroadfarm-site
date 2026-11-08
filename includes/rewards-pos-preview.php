@@ -20,15 +20,26 @@ function bcrf_rewards_sale_eligible_cents(PDO $pdo, int $saleId): int {
     if (!$sale || !in_array($sale['status'], ['completed','partially_refunded'], true)) {
         throw new BcrfRewardError('Sale is not eligible for rewards.');
     }
+    if ((int)$sale['total_cents'] <= 0) throw new BcrfRewardError('Nonpositive sale total.');
     $lines = $pdo->prepare("SELECT product_type, gross_cents, discount_cents, refunded_net_cents FROM sale_lines WHERE sale_id = ?");
     $lines->execute([$saleId]);
     $allowed = ['retail','produce','kitchen_good','admission','thrift_item'];
     $eligible = 0;
+    $lineCount = 0;
     while ($line = $lines->fetch(PDO::FETCH_ASSOC)) {
+        $lineCount++;
+        $gross = (int)$line['gross_cents'];
+        $discount = (int)$line['discount_cents'];
+        $refunded = (int)($line['refunded_net_cents'] ?? 0);
+        if ($gross < 0 || $discount < 0 || $discount > $gross || $refunded < 0 || $refunded > $gross - $discount) {
+            throw new BcrfRewardError('Invalid sale line amounts.');
+        }
         if (!in_array($line['product_type'], $allowed, true)) continue;
-        $net = max(0, (int)$line['gross_cents'] - (int)$line['discount_cents'] - (int)($line['refunded_net_cents'] ?? 0));
+        $net = $gross - $discount - $refunded;
+        if ($eligible > PHP_INT_MAX - $net) throw new BcrfRewardError('Eligible amount overflow.');
         $eligible += $net;
     }
+    if ($lineCount === 0) throw new BcrfRewardError('Sale has no line items.');
     // Gift-card/store-credit/reward payment allocation is not yet safely
     // reconciled by line. Fail closed rather than overaward on mixed tenders.
     $tenders = $pdo->prepare("SELECT tender, amount_cents, status FROM payments WHERE sale_id = ?");
@@ -46,6 +57,6 @@ function bcrf_rewards_sale_eligible_cents(PDO $pdo, int $saleId): int {
         if ($amount <= 0 || $paid > PHP_INT_MAX - $amount) throw new BcrfRewardError('Invalid payment amount.');
         $paid += $amount;
     }
-    if ($paid < (int)$sale['total_cents']) throw new BcrfRewardError('Sale payment not fully recorded.');
+    if ($paid !== (int)$sale['total_cents']) throw new BcrfRewardError('Sale payment total does not match recorded sale.');
     return $eligible;
 }
