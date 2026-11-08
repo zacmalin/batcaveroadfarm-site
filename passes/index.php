@@ -58,7 +58,7 @@ $csrf   = $_SESSION['csrf_token'] ?? ($_SESSION['csrf_token'] = bin2hex(random_b
 
     <?php if (empty($passTypes)): ?>
     <p style="font-family:'Lora',serif;color:var(--cream-dark,#e8d5b0);text-shadow:1px 1px 3px rgba(0,0,0,.6);text-align:center">
-        Pass sales coming soon — call <a href="tel:+18282165488" style="color:inherit">(828) 216-5488</a> to enquire.
+        Pass sales coming soon — call <a href="tel:<?= htmlspecialchars(site_tel('general'), ENT_QUOTES) ?>" style="color:inherit"><?= htmlspecialchars(site_phone_display('general')) ?></a> to enquire.
     </p>
     <?php else: ?>
 
