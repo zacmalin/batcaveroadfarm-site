@@ -35,4 +35,14 @@ rr_expect(bcrf_roost_outbox_finish($pdo,(int)$final['id'],8,'failed','terminal t
 $state=$pdo->query("SELECT status FROM reward_pos_outbox WHERE source_id=73 AND event_type='sale.completed'")->fetchColumn();
 rr_expect($state==='dead','Exhausted retry not dead-lettered.');
 rr_expect(bcrf_roost_outbox_claim($pdo)===null,'Dead-letter event reclaimed.');
-echo "POS outbox worker state machine passed.\\n";
+$pdo->beginTransaction(); bcrf_roost_pos_outbox_enqueue($pdo,'sale.completed',74); $pdo->commit();
+$pdo->exec("UPDATE reward_pos_outbox SET attempts=7 WHERE event_type='sale.completed' AND source_id=74");
+$crashed=bcrf_roost_outbox_claim($pdo);
+rr_expect((int)$crashed['attempts']===8,'Crash fixture did not reach final attempt.');
+rr_expect(bcrf_roost_outbox_expire_exhausted_lease($pdo)===null,'Unexpired final lease dead-lettered.');
+$pdo->prepare("UPDATE reward_pos_outbox SET available_at=UTC_TIMESTAMP(3) - INTERVAL 1 SECOND WHERE id=?")->execute([$crashed['id']]);
+rr_expect(bcrf_roost_outbox_expire_exhausted_lease($pdo)===(int)$crashed['id'],'Expired final lease was stranded.');
+rr_expect(!bcrf_roost_outbox_finish($pdo,(int)$crashed['id'],8,'completed'),'Crashed worker acknowledged dead letter.');
+rr_expect(bcrf_roost_outbox_expire_exhausted_lease($pdo)===null,'Dead letter recovered twice.');
+rr_expect(bcrf_roost_outbox_claim($pdo)===null,'Dead letter was reclaimed.');
+echo "POS outbox worker state machine and final lease recovery passed.\\n";
