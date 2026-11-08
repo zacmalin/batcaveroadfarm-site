@@ -74,6 +74,15 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
 
         $balance = (int)$account['balance_points'];
         if (($delta > 0 && $balance > PHP_INT_MAX - $delta) || ($delta < 0 && $balance < PHP_INT_MIN - $delta)) throw new BcrfRewardError('Reward balance overflow.');
+        // Revalidate earning membership while holding the account lock.
+        // FOR UPDATE prevents a concurrent membership revocation from
+        // completing between this check and the ledger commit.
+        if (in_array($type, ['earn_spend','earn_visit'], true)) {
+            if ($customer === null) throw new BcrfRewardError('Verified earning customer required.');
+            $earningMember = $pdo->prepare("SELECT id FROM reward_household_members WHERE household_id = ? AND customer_id = ? AND revoked_at IS NULL AND verification_status = 'verified' FOR UPDATE");
+            $earningMember->execute([$household, $customer]);
+            if (!$earningMember->fetchColumn()) throw new BcrfRewardError('Earning customer has no verified active membership.');
+        }
         if ($type === 'redeem') {
             // Recheck permission inside the same transaction, after balance lock.
             $member = $pdo->prepare("SELECT 1 FROM reward_household_members WHERE household_id = ? AND customer_id = ? AND revoked_at IS NULL AND verification_status = 'verified' AND role IN ('manager','adult') AND can_redeem = 1 LIMIT 1");
