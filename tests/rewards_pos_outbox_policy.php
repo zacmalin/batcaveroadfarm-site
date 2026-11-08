@@ -17,4 +17,25 @@ $pdo->exec("INSERT INTO reward_policies (id,version,config_json,status,effective
 try { bcrf_roost_outbox_resolve_policy($pdo,$sale); throw new RuntimeException('Ambiguous policy accepted.'); }
 catch(RuntimeException $e) { if ($e->getMessage()==='Ambiguous policy accepted.') throw $e; }
 $pdo->exec("DELETE FROM reward_policies WHERE id=99");
+// A delayed sale may not silently adopt a policy created after its queue entry.
+$pdo->exec("INSERT INTO reward_pos_outbox (event_type,source_id,created_at)
+ VALUES ('sale.completed',990091,DATE_SUB(UTC_TIMESTAMP(3), INTERVAL 1 DAY))");
+$outboxId=(int)$pdo->lastInsertId();
+try {
+    bcrf_roost_outbox_assert_sale_policy_not_newer($pdo,$outboxId,1);
+    throw new RuntimeException('Newer policy was accepted for old queued sale.');
+} catch(RuntimeException $e) {
+    if($e->getMessage()==='Newer policy was accepted for old queued sale.') throw $e;
+}
+$pdo->exec("UPDATE reward_pos_outbox SET created_at=DATE_ADD(UTC_TIMESTAMP(3), INTERVAL 1 DAY) WHERE id=$outboxId");
+bcrf_roost_outbox_assert_sale_policy_not_newer($pdo,$outboxId,1);
+$pdo->exec("UPDATE reward_policies SET effective_at=DATE_ADD(UTC_TIMESTAMP(3), INTERVAL 2 DAY) WHERE id=1");
+try {
+    bcrf_roost_outbox_assert_sale_policy_not_newer($pdo,$outboxId,1);
+    throw new RuntimeException('Future effective policy was accepted.');
+} catch(RuntimeException $e) {
+    if($e->getMessage()==='Future effective policy was accepted.') throw $e;
+}
+$pdo->exec("UPDATE reward_policies SET effective_at=NULL WHERE id=1");
+$pdo->exec("DELETE FROM reward_pos_outbox WHERE id=$outboxId");
 echo "POS policy resolver guards passed.\\n";
