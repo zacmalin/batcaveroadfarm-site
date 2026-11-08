@@ -329,6 +329,13 @@ expect(bcrf_roost_record_zero_point_refund($pdo,5,$zeroEarnId)['replayed'],
     'refund replay succeeds after competing transaction releases account lock');
 expect((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE refund_id=5")->fetchColumn()===1,
     'account contention does not create duplicate receipts');
+$pdo->exec("UPDATE reward_households SET status='suspended' WHERE id=1");
+rejected(fn()=>bcrf_roost_record_zero_point_refund($pdo,5,$zeroEarnId),
+    'suspended household cannot replay zero-point processing');
+$pdo->exec("UPDATE reward_households SET status='active' WHERE id=1");
+expect(bcrf_roost_record_zero_point_refund($pdo,5,$zeroEarnId)['replayed'],
+    'active household may safely replay the same refund');
+
 
 rejected(fn()=>bcrf_roost_record_zero_point_refund($pdo,5,$a['id']),
     'processed refund cannot be rebound to a different earning');
