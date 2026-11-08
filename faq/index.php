@@ -226,7 +226,7 @@ foreach ($faqSchemaItems as [$question, $answer]) {
                         <button class="faq-question">
                             Can I put something on hold? <span class="faq-chevron" aria-hidden="true">▼</span>
                         </button>
-                        <div class="faq-answer">We can hold items for up to 24 hours with a deposit. Give us a call or send a message through our <a href="<?= bcrf_farm_url() ?>/contact-us/#contactform">Contact page</a> and we'll do our best to accommodate you. All sales are final — we do not offer returns or exchanges.</div>
+                        <div class="faq-answer">We can hold items for up to 24 hours with a deposit. Give us a call or send a message through our <a href="<?= bcrf_farm_url() ?>/contact-us/#contactform">Contact page</a> and we'll do our best to accommodate you. Return eligibility depends on the item and our current return policy; please ask our team before purchasing.</div>
                     </div>
     
                     <div class="faq-item">
