@@ -14,9 +14,13 @@ function bcrf_roost_record_zero_point_refund(PDO $pdo, int $refundId, int $earni
         if (!$earned || $earned['entry_type'] !== 'earn_spend' || $earned['source_type'] !== 'sale')
             throw new BcrfRewardError('Invalid original sale earning.');
         $household = (int)$earned['household_id'];
-        $lock = $pdo->prepare("SELECT balance_points FROM reward_accounts WHERE household_id=? FOR UPDATE");
+        $lock = $pdo->prepare("SELECT a.balance_points, h.status FROM reward_accounts a
+            JOIN reward_households h ON h.id = a.household_id
+            WHERE a.household_id=? FOR UPDATE");
         $lock->execute([$household]);
-        if ($lock->fetchColumn() === false) throw new BcrfRewardError('Reward account unavailable.');
+        $account = $lock->fetch(PDO::FETCH_ASSOC);
+        if (!$account || $account['status'] !== 'active')
+            throw new BcrfRewardError('Reward account unavailable.');
         $refund = $pdo->prepare("SELECT sale_id FROM refunds WHERE id=? FOR UPDATE");
         $refund->execute([$refundId]);
         $saleId = $refund->fetchColumn();
