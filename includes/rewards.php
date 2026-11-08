@@ -95,9 +95,21 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
             // Historical refunds must reverse under the immutable original
             // earning policy, even after that policy is retired. This exception
             // is never available to new earnings, redemptions, or adjustments.
-            if ($type !== 'refund_reversal' || empty($event['related_entry_id']))
-                throw new BcrfRewardError('Reward policy is not active.');
-            $historical = $pdo->prepare("SELECT 1 FROM reward_ledger l
+            if ($type === 'earn_spend') {
+                // A delayed sale may earn under a retired policy only when
+                // the immutable, committed POS outbox event pinned that exact
+                // policy. Legacy null snapshots fail closed.
+                $pinned = $pdo->prepare("SELECT 1 FROM reward_pos_outbox o
+                    JOIN reward_policies p ON p.id=o.policy_id
+                    WHERE o.event_type='sale.completed' AND o.source_id=?
+                      AND o.policy_id=? AND p.created_at<=o.created_at
+                      AND (p.effective_at IS NULL OR p.effective_at<=o.created_at)
+                    LIMIT 1 FOR UPDATE");
+                $pinned->execute([(int)$event['source_id'],$policy]);
+                if (!$pinned->fetchColumn())
+                    throw new BcrfRewardError('Retired sale policy requires matching immutable outbox snapshot.');
+            } elseif ($type === 'refund_reversal' && !empty($event['related_entry_id'])) {
+                $historical = $pdo->prepare("SELECT 1 FROM reward_ledger l
                 JOIN reward_policies p ON p.id=l.policy_id
                 WHERE l.id=? AND l.policy_id=? AND l.household_id=?
                   AND l.entry_type='earn_spend' AND l.source_type='sale'
@@ -105,6 +117,9 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
             $historical->execute([$event['related_entry_id'],$policy,$household]);
             if (!$historical->fetchColumn())
                 throw new BcrfRewardError('Refund policy must match the original sale earning.');
+            } else {
+                throw new BcrfRewardError('Reward policy is not active.');
+            }
         }
 
         $balance = (int)$account['balance_points'];
