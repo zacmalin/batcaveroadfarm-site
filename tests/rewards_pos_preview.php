@@ -17,6 +17,10 @@ check(bcrf_rewards_sale_eligible_cents($pdo,1)===2150,'net eligible cents exclud
 mustReject(fn()=>bcrf_rewards_sale_eligible_cents($pdo,2),'unpaid sale');
 mustReject(fn()=>bcrf_rewards_sale_eligible_cents($pdo,3),'voided sale');
 $pdo->exec("UPDATE payments SET status='completed' WHERE sale_id=2");
+$pdo->exec("INSERT INTO payments (sale_id,tender,amount_cents,status) VALUES (2,'cash',1,'pending')");
+mustReject(fn()=>bcrf_rewards_sale_eligible_cents($pdo,2),'completed sale with unresolved additional payment');
+$pdo->exec("DELETE FROM payments WHERE sale_id=2 AND status='pending'");
+
 check(bcrf_rewards_sale_eligible_cents($pdo,2)===500,'completed payment');
 $pdo->exec("UPDATE payments SET tender='gift_card' WHERE sale_id=2");
 mustReject(fn()=>bcrf_rewards_sale_eligible_cents($pdo,2),'gift card tender');
