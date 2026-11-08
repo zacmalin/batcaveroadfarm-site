@@ -1,0 +1,30 @@
+<?php
+require_once __DIR__.'/../includes/roost-pos-outbox.php';
+require_once __DIR__.'/../includes/roost-pos-outbox-worker.php';
+$pdo=new PDO(getenv('BCRF_REWARDS_TEST_DSN'),getenv('BCRF_REWARDS_TEST_USER')?:'',getenv('BCRF_REWARDS_TEST_PASSWORD')?:'');
+$pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+$m=require __DIR__.'/../admin/migrations/0019_roost_pos_outbox.php'; $m($pdo);
+$pdo->exec('DELETE FROM reward_pos_outbox');
+function rr_expect(bool $ok,string $message):void {if(!$ok) throw new RuntimeException($message);}
+rr_expect(bcrf_roost_outbox_claim($pdo)===null,'Empty queue must return null.');
+$pdo->beginTransaction(); bcrf_roost_pos_outbox_enqueue($pdo,'sale.completed',71); $pdo->commit();
+$first=bcrf_roost_outbox_claim($pdo);
+rr_expect($first!==null && (int)$first['attempts']===1,'First claim failed.');
+rr_expect(bcrf_roost_outbox_claim($pdo)===null,'Unexpired claim was duplicated.');
+rr_expect(!bcrf_roost_outbox_finish($pdo,(int)$first['id'],2,'completed'),'Wrong attempt accepted.');
+rr_expect(bcrf_roost_outbox_finish($pdo,(int)$first['id'],1,'failed','simulated failure'),'Failure update rejected.');
+rr_expect(bcrf_roost_outbox_claim($pdo)===null,'Backoff was ignored.');
+$pdo->prepare("UPDATE reward_pos_outbox SET available_at=UTC_TIMESTAMP(3) - INTERVAL 1 SECOND WHERE id=?")->execute([$first['id']]);
+$second=bcrf_roost_outbox_claim($pdo);
+rr_expect($second!==null && (int)$second['attempts']===2,'Retry claim failed.');
+rr_expect(!bcrf_roost_outbox_finish($pdo,(int)$first['id'],1,'completed'),'Stale claim completed.');
+rr_expect(bcrf_roost_outbox_finish($pdo,(int)$second['id'],2,'completed'),'Completion failed.');
+rr_expect(bcrf_roost_outbox_claim($pdo)===null,'Completed event was reclaimed.');
+$pdo->beginTransaction(); bcrf_roost_pos_outbox_enqueue($pdo,'sale.refunded',72); $pdo->commit();
+$stale=bcrf_roost_outbox_claim($pdo);
+$pdo->prepare("UPDATE reward_pos_outbox SET available_at=UTC_TIMESTAMP(3) - INTERVAL 1 SECOND WHERE id=?")->execute([$stale['id']]);
+$reclaimed=bcrf_roost_outbox_claim($pdo);
+rr_expect((int)$reclaimed['attempts']===2,'Expired processing lease was not reclaimed.');
+rr_expect(!bcrf_roost_outbox_finish($pdo,(int)$stale['id'],1,'completed'),'Expired worker could overwrite claim.');
+rr_expect(bcrf_roost_outbox_finish($pdo,(int)$reclaimed['id'],2,'skipped'),'Skipped completion failed.');
+echo "POS outbox worker state machine passed.\n";
