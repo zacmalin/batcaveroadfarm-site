@@ -5,15 +5,18 @@ function bcrf_roost_record_zero_point_refund(PDO $pdo, int $refundId, int $earni
     if ($refundId <= 0 || $earningEntryId <= 0 || $pdo->inTransaction()) {
         throw new BcrfRewardError('Invalid refund processing request.');
     }
+    // Resolve the account before starting a REPEATABLE READ transaction. A plain
+    // read inside the transaction would establish a stale snapshot before the
+    // account lock is acquired, hiding another worker's committed receipt.
+    $origin = $pdo->prepare("SELECT household_id, entry_type, source_type, source_id, points_delta
+        FROM reward_ledger WHERE id=?");
+    $origin->execute([$earningEntryId]);
+    $earned = $origin->fetch(PDO::FETCH_ASSOC);
+    if (!$earned || $earned['entry_type'] !== 'earn_spend' || $earned['source_type'] !== 'sale')
+        throw new BcrfRewardError('Invalid original sale earning.');
+    $household = (int)$earned['household_id'];
     $pdo->beginTransaction();
     try {
-        $origin = $pdo->prepare("SELECT household_id, entry_type, source_type, source_id, points_delta
-            FROM reward_ledger WHERE id=?");
-        $origin->execute([$earningEntryId]);
-        $earned = $origin->fetch(PDO::FETCH_ASSOC);
-        if (!$earned || $earned['entry_type'] !== 'earn_spend' || $earned['source_type'] !== 'sale')
-            throw new BcrfRewardError('Invalid original sale earning.');
-        $household = (int)$earned['household_id'];
         $lock = $pdo->prepare("SELECT a.balance_points, h.status FROM reward_accounts a
             JOIN reward_households h ON h.id = a.household_id
             WHERE a.household_id=? FOR UPDATE");
@@ -27,9 +30,12 @@ function bcrf_roost_record_zero_point_refund(PDO $pdo, int $refundId, int $earni
         if ($saleId === false || (string)$saleId !== (string)$earned['source_id'])
             throw new BcrfRewardError('Refund does not match original sale.');
         // Match ledger posting lock order: account, refund, then original earning.
-        $originLock = $pdo->prepare("SELECT id FROM reward_ledger WHERE id=? FOR UPDATE");
+        $originLock = $pdo->prepare("SELECT household_id, entry_type, source_type, source_id, points_delta
+            FROM reward_ledger WHERE id=? FOR UPDATE");
         $originLock->execute([$earningEntryId]);
-        if (!$originLock->fetchColumn()) throw new BcrfRewardError('Original earning unavailable.');
+        $currentEarned = $originLock->fetch(PDO::FETCH_ASSOC);
+        if (!$currentEarned || $currentEarned != $earned)
+            throw new BcrfRewardError('Original earning changed during processing.');
         $existing = $pdo->prepare("SELECT original_earning_entry_id, points_reversed FROM reward_refund_processing WHERE refund_id=?");
         $existing->execute([$refundId]);
         if ($saved = $existing->fetch(PDO::FETCH_ASSOC)) {
