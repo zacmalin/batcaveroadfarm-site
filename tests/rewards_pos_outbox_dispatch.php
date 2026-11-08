@@ -31,5 +31,14 @@ try {
 } catch(RuntimeException $e) {
     if($e->getMessage()==='Mismatched queued sale identity accepted.') throw $e;
 }
+// A legacy/unpinned queued sale must fail before any posting preview.
+$pdo->exec("UPDATE reward_pos_outbox SET policy_id=NULL WHERE id=$queuedId");
+try {
+    bcrf_roost_outbox_dispatch_pinned_sale_preflight($pdo,['id'=>$queuedId,'event_type'=>'sale.completed','source_id'=>990221]);
+    throw new RuntimeException('Missing queued policy snapshot accepted.');
+} catch(RuntimeException $e) {
+    if($e->getMessage()==='Missing queued policy snapshot accepted.') throw $e;
+    if($e->getMessage()!=='Queued sale has no pinned policy; manual reconciliation required.') throw $e;
+}
 $pdo->exec("DELETE FROM reward_pos_outbox WHERE id=$queuedId");
 echo "Inert outbox dispatch guards passed.\n";
