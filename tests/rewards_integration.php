@@ -72,6 +72,15 @@ require_once __DIR__ . '/../includes/roost-email-outbox.php';
 $welcomeEvent = bcrf_roost_welcome_event_key(1, '2026-11-08 12:00:00');
 expect(bcrf_roost_email_enqueue($pdo,1,1,'welcome',null,null,$welcomeEvent), 'verified welcome queued once');
 expect(!bcrf_roost_email_enqueue($pdo,1,1,'welcome',null,null,$welcomeEvent), 'duplicate welcome not queued');
+$pdo->exec("UPDATE customers SET email_verified_at=NULL WHERE id=1");
+rejected(fn()=>bcrf_roost_email_enqueue($pdo,1,1,'welcome',null,null,$welcomeEvent), 'unverified email cannot queue welcome');
+$pdo->exec("UPDATE customers SET email_verified_at=UTC_TIMESTAMP(), account_status='disabled' WHERE id=1");
+rejected(fn()=>bcrf_roost_email_enqueue($pdo,1,1,'welcome',null,null,$welcomeEvent), 'disabled customer cannot queue welcome');
+$pdo->exec("UPDATE customers SET account_status='active' WHERE id=1");
+$pdo->exec("UPDATE reward_household_members SET role='dependent' WHERE customer_id=1");
+rejected(fn()=>bcrf_roost_email_enqueue($pdo,1,1,'welcome',null,null,$welcomeEvent), 'dependent cannot queue adult service welcome');
+$pdo->exec("UPDATE reward_household_members SET role='manager' WHERE customer_id=1");
+
 expect((int)$pdo->query("SELECT COUNT(*) FROM reward_email_outbox WHERE event_type='welcome'")->fetchColumn()===1, 'single durable welcome event');
 rejected(fn()=>bcrf_roost_email_enqueue($pdo,1,999,'welcome',null,null,bcrf_roost_welcome_event_key(999,'2026-11-08 12:00:00')), 'unknown member cannot queue welcome');
 rejected(fn()=>bcrf_roost_email_enqueue($pdo,1,1,'expiration_reminder',14,'2025-01-31 09:30:00','invalid-event'), 'invalid milestone cannot queue');
