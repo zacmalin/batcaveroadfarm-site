@@ -30,10 +30,24 @@ function bcrf_roost_outbox_event_preview(PDO $pdo, array $event): array {
     if (count($rows)!==1) throw new BcrfRewardError('Refund has no unique original rewarded sale.');
     $earning=$rows[0];
     $preview=bcrf_roost_refund_reversal_preview($pdo,(int)$saleId);
+    $expectedPoints=bcrf_rewards_points_for_eligible_cents((int)$preview['original_eligible_cents']);
+    if ((int)$earning['points_delta'] !== $expectedPoints || $expectedPoints < 0)
+        throw new BcrfRewardError('Original earning does not match verified eligible sale points.');
+    $saleOwner=bcrf_rewards_sale_verified_household($pdo,(int)$saleId);
+    if ($saleOwner['household_id'] !== (int)$earning['household_id'] ||
+        $saleOwner['customer_id'] !== (int)$earning['customer_id'])
+        throw new BcrfRewardError('Original earning household or customer no longer matches sale.');
     $processed=$pdo->prepare('SELECT COALESCE(SUM(points_reversed),0) FROM reward_refund_processing WHERE original_earning_entry_id=?');
     $processed->execute([(int)$earning['id']]);
     $already=(int)$processed->fetchColumn();
     $due=bcrf_roost_refund_points_for_id($preview,(int)$id,$already);
+    $refundAgain=$pdo->prepare('SELECT sale_id FROM refunds WHERE id=?');
+    $refundAgain->execute([(int)$id]);
+    if ((string)$refundAgain->fetchColumn() !== (string)$saleId)
+        throw new BcrfRewardError('Refund sale association changed during preview.');
+    $saleOwnerAgain=bcrf_rewards_sale_verified_household($pdo,(int)$saleId);
+    if ($saleOwnerAgain !== $saleOwner)
+        throw new BcrfRewardError('Sale household changed during refund preview.');
     return ['kind'=>$kind,'refund_id'=>(int)$id,'sale_id'=>(int)$saleId,
         'original_earning_entry_id'=>(int)$earning['id'],
         'household_id'=>(int)$earning['household_id'],
