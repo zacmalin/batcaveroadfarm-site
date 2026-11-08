@@ -146,6 +146,24 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
             if ($balance <= 0 || $balance < -$delta) throw new BcrfRewardError('Insufficient reward points.');
         }
         if ($type === 'refund_reversal') {
+            if ($event['source_type'] !== 'refund' ||
+                !ctype_digit($event['source_id']) ||
+                !filter_var($event['source_id'], FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]])) {
+                throw new BcrfRewardError('Refund reversal requires a positive refund ID.');
+            }
+            $refundCheck = $pdo->prepare("SELECT sale_id FROM refunds WHERE id = ? FOR UPDATE");
+            $refundCheck->execute([(int)$event['source_id']]);
+            $refundSaleId = $refundCheck->fetchColumn();
+            if ($refundSaleId === false) throw new BcrfRewardError('Referenced refund does not exist.');
+            $sourceCheck = $pdo->prepare("SELECT source_type, source_id FROM reward_ledger WHERE id = ?");
+            $sourceCheck->execute([$event['related_entry_id']]);
+            $originalSource = $sourceCheck->fetch(PDO::FETCH_ASSOC);
+            if (!$originalSource || $originalSource['source_type'] !== 'sale' ||
+                (string)$originalSource['source_id'] !== (string)$refundSaleId) {
+                throw new BcrfRewardError('Refund does not belong to original rewarded sale.');
+            }
+        }
+        if ($type === 'refund_reversal') {
             $origin = $pdo->prepare("SELECT household_id, entry_type, points_delta FROM reward_ledger WHERE id = ? FOR UPDATE");
             $origin->execute([$event['related_entry_id']]);
             $earned = $origin->fetch(PDO::FETCH_ASSOC);
