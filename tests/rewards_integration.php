@@ -226,4 +226,8 @@ $pdo->exec("INSERT INTO refund_lines VALUES (4,6,1000)");
 $mixed = bcrf_roost_refund_reversal_preview($pdo,104);
 expect($mixed['cumulative_points_to_reverse']===0 && $mixed['remaining_eligible_cents']===2000,
     'ineligible refund does not reverse eligible points');
+expect(bcrf_roost_refund_points_due(200,100,51)===49,'incremental reversal accounts for prior refund');
+expect(bcrf_roost_refund_points_due(200,100,100)===0,'no points deducted twice');
+rejected(fn()=>bcrf_roost_refund_points_due(200,100,101),'over-reversal rejected');
+rejected(fn()=>bcrf_roost_refund_points_due(200,201,0),'refund cannot exceed original award');
 echo "Farm Rewards integration checks passed.\\n";
