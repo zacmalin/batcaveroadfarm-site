@@ -1,10 +1,14 @@
-# Automatic code check (fix pack M).
+# .github/workflows/checks.yml — Automatic code check (fix pack M).
 # Runs on every push and pull request. If anything fails, GitHub shows a red X
 # on the commit and emails you, so a broken file is caught BEFORE it's uploaded.
 #
 #  1. PHP syntax check of every .php file on PHP 8.5 (same as the live server)
 #  2. JavaScript syntax check of every file in js/
 #  3. js/min.site.js is up to date with its source files (tools/build-js.mjs)
+#
+# The result is also posted as a commit status ("CI / Code check"), so tools that read
+# GitHub's older commit-status list (e.g. ChatGPT's GitHub connector) see a result
+# instead of "no CI test results".
 name: Code check
 
 on:
@@ -14,6 +18,7 @@ on:
 
 permissions:
   contents: read
+  statuses: write
 
 jobs:
   check:
@@ -70,3 +75,15 @@ jobs:
             git diff --stat -- js/min.site.js
             exit 1
           fi
+
+      - name: Report result as a commit status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          STATE: ${{ job.status == 'success' && 'success' || 'failure' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api -X POST "repos/${{ github.repository }}/statuses/$SHA" \
+            -f state="$STATE" -f context="CI / Code check" -f target_url="$RUN_URL" \
+            -f description="PHP syntax, SQL guard, JS syntax, bundle up to date: $STATE"
