@@ -72,3 +72,17 @@ function bcrf_roost_refund_reversal_preview(PDO $pdo, int $saleId): array {
         'eligible_refunds_cents'=>$eligibleRefunds
     ];
 }
+
+/**
+ * Determine the exact next reversal from verified cumulative refund points and
+ * previously posted reversal points. Never reverse more than was earned.
+ * Zero means a refund crossed no whole-point threshold and needs no ledger debit.
+ */
+function bcrf_roost_refund_points_due(int $originalEarnedPoints, int $cumulativeRefundPoints, int $alreadyReversedPoints): int {
+    if ($originalEarnedPoints < 0 || $cumulativeRefundPoints < 0 ||
+        $alreadyReversedPoints < 0 || $cumulativeRefundPoints > $originalEarnedPoints ||
+        $alreadyReversedPoints > $cumulativeRefundPoints) {
+        throw new BcrfRewardError('Inconsistent cumulative reward reversal amounts.');
+    }
+    return $cumulativeRefundPoints - $alreadyReversedPoints;
+}
