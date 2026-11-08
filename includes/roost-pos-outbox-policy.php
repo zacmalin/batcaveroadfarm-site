@@ -9,7 +9,7 @@ function bcrf_roost_outbox_resolve_policy(PDO $pdo, array $event): int {
     if ($kind==='sale.refunded') {
         $q=$pdo->prepare("SELECT DISTINCT l.policy_id FROM refunds r
             JOIN reward_ledger l ON l.source_type='sale'
-                AND l.entry_type='earn_spend' AND l.source_id=CAST(r.sale_id AS CHAR)
+                AND l.entry_type='earn_spend' AND CAST(l.source_id AS UNSIGNED)=r.sale_id
             WHERE r.id=?");
         $q->execute([$id]);
         $policies=$q->fetchAll(PDO::FETCH_COLUMN);
