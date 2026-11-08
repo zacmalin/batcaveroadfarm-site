@@ -147,7 +147,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
 
     <div class="dir-section" style="text-align:center">
       <p style="font-family:'Lora',serif;color:var(--cream-dark,#e8d5b0);text-shadow:1px 1px 3px rgba(0,0,0,.6);font-size:.92rem;margin:0 0 14px">
-        Free parking on site · Open Tuesday – Sunday, 10AM – 4PM · Questions? Call <a href="tel:+18282165488" style="color:var(--gold,#e8b84b)">(828) 216-5488</a>
+        Free parking on site · Open <?= htmlspecialchars(site_hours_summary('general')['open_days']) ?>, <?= htmlspecialchars(site_hours_summary('general')['open_time']) ?> · Questions? Call <a href="tel:<?= htmlspecialchars(site_tel('general'), ENT_QUOTES) ?>" style="color:var(--gold,#e8b84b)"><?= htmlspecialchars(site_phone_display('general')) ?></a>
       </p>
       <a class="cta-btn" href="/plan-your-visit/">Plan your visit →</a>
     </div>
