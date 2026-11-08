@@ -25,6 +25,10 @@ function bcrf_roost_email_enqueue(
         !in_array($eventType, ['welcome', 'expiration_reminder'], true)) {
         throw new BcrfRewardError('Invalid service email type.');
     }
+    if ($eventType === 'welcome' &&
+        !preg_match('/^roost:welcome:v1:'.preg_quote((string)$memberId, '/').':[a-f0-9]{64}$/D', $eventKey)) {
+        throw new BcrfRewardError('Invalid welcome email event key.');
+    }
     // Validate the supplied key matches the canonical identity to prevent
     // accidental collisions across recipients, milestones or activity epochs.
     if ($eventType === 'expiration_reminder' &&
