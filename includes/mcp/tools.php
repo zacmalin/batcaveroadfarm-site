@@ -263,16 +263,21 @@ function mcp_t_list_passes(PDO $pdo, array $a): array {
 
 function mcp_t_list_inventory(PDO $pdo, array $a): array {
     $cols = mcp_cols($pdo, 'inventory');
-    $want = array_values(array_intersect(['id', 'name', 'sku', 'category', 'price', 'stock_quantity', 'min_stock_level', 'unit', 'is_active', 'updated_at'], $cols));
+    $want = array_values(array_intersect(['id', 'name', 'sku', 'price', 'stock_quantity', 'min_stock_level', 'unit', 'is_active', 'updated_at'], $cols));
+    $select = array_map(static fn($col) => 'i.`' . $col . '`', $want);
+    $select[] = 'ic.name AS category';
+    $select[] = 'ic.slug AS category_slug';
     $w = []; $p = [];
-    if (empty($a['include_inactive']) && in_array('is_active', $cols, true)) $w[] = 'is_active = 1';
-    if (!empty($a['low_stock_only'])) $w[] = 'min_stock_level IS NOT NULL AND stock_quantity <= min_stock_level';
+    if (empty($a['include_inactive']) && in_array('is_active', $cols, true)) $w[] = 'i.is_active = 1';
+    if (!empty($a['low_stock_only'])) $w[] = 'i.min_stock_level IS NOT NULL AND i.stock_quantity <= i.min_stock_level';
     if (trim((string)($a['search'] ?? '')) !== '') {
-        $w[] = in_array('sku', $cols, true) ? '(name LIKE ? OR sku LIKE ?)' : 'name LIKE ?';
+        $w[] = in_array('sku', $cols, true) ? '(i.name LIKE ? OR i.sku LIKE ?)' : 'i.name LIKE ?';
         $s = '%' . trim((string)$a['search']) . '%'; $p[] = $s; if (in_array('sku', $cols, true)) $p[] = $s;
     }
-    $st = $pdo->prepare("SELECT `" . implode('`,`', $want) . "` FROM inventory" . ($w ? ' WHERE ' . implode(' AND ', $w) : '')
-                       . " ORDER BY name LIMIT " . mcp_limit($a, 50));
+    $st = $pdo->prepare('SELECT ' . implode(', ', $select)
+                       . ' FROM inventory i LEFT JOIN inventory_categories ic ON ic.id = i.category_id'
+                       . ($w ? ' WHERE ' . implode(' AND ', $w) : '')
+                       . ' ORDER BY i.name LIMIT ' . mcp_limit($a, 50));
     $st->execute($p);
     return ['items' => $st->fetchAll(PDO::FETCH_ASSOC)];
 }
