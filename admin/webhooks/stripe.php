@@ -48,7 +48,7 @@ $session   = $event['data']['object'] ?? [];
 
 // Only fulfil when Stripe says the money actually arrived
 // ('no_payment_required' = 100% coupon, which is fine to fulfil)
-if (!in_array($event['data']['object']['payment_status'] ?? 'paid', ['paid', 'no_payment_required'], true)) {
+if (!in_array($event['data']['object']['payment_status'] ?? '', ['paid', 'no_payment_required'], true)) {
     http_response_code(200); echo 'Payment not completed yet'; exit;
 }
 $bookingId = (int)($session['metadata']['booking_id'] ?? 0);
@@ -85,6 +85,23 @@ if ($passId > 0) {
             // Paid, but hold expired: leave inactive and flag for manual reconciliation.
             // Do not automatically refund or consume another customer's slot.
             error_log('[BCRF stripe webhook] ACTION REQUIRED: paid late founding pass #' . $passId);
+            // Queue a staff-facing alert; never include customer or card details in logs.
+            // Queue jobs are visible in System Health and retry delivery on SMTP failures.
+            require_once __DIR__ . '/../../includes/queue.php';
+            $alertTo = bcrf_farm_email('support');
+            $jobId = bcrf_queue_push('email.send', [
+                'to' => $alertTo,
+                'subject' => 'ACTION REQUIRED: late paid founding pass #' . $passId,
+                'html' => '<p>Stripe accepted payment for founding pass #' . $passId
+                    . ' after its reservation expired. The pass remains inactive.</p>'
+                    . '<p>Review the pass and Stripe session ' . htmlspecialchars($sessionId, ENT_QUOTES, 'UTF-8')
+                    . '. Resolve by a capacity-safe activation or refund; do not issue a second pass automatically.</p>',
+                'opts' => ['subtitle' => 'Payment review'],
+            ], ['dedupe' => 'stripe.late-pass:' . $passId, 'max_attempts' => 5]);
+            if ($jobId === 0) {
+                error_log('[BCRF stripe webhook] ALERT QUEUE UNAVAILABLE for paid pass #' . $passId
+                    . '; manual follow-up required from server log.');
+            }
             http_response_code(200); echo 'Paid pass requires manual review'; exit;
         }
 
@@ -102,7 +119,19 @@ if ($passId > 0) {
                 . '<p style="font-size:.85rem;color:rgba(245,234,214,.8)">Bookmark this link or screenshot the QR code. Show it to staff at the gate. We can\'t wait to see you at the farm!</p>';
             require_once __DIR__ . '/../../includes/nc_warning.php';
             $inner .= bcrf_nc_warning_email_html();   // G.S. 99E-32 / 99E-8
-            @bcf_send_mail($pass['email'], 'Your Bat Cave Road Farm annual pass is active!', $inner, ['subtitle' => 'Annual Pass']);
+            require_once __DIR__ . '/../../includes/queue.php';
+            $subject = 'Your Bat Cave Road Farm annual pass is active!';
+            $mailJob = bcrf_queue_push('email.send', [
+                'to' => $pass['email'], 'subject' => $subject, 'html' => $inner,
+                'opts' => ['subtitle' => 'Annual Pass'],
+            ], ['dedupe' => 'stripe.pass-confirmation:' . $passId, 'max_attempts' => 5]);
+            if ($mailJob === 0) {
+                // Legacy installations without a running queue still get an email attempt.
+                if (!bcf_send_mail($pass['email'], $subject, $inner, ['subtitle' => 'Annual Pass'])) {
+                    error_log('[BCRF stripe webhook] ACTION REQUIRED: pass #' . $passId
+                        . ' activated but confirmation email failed; resend manually.');
+                }
+            }
         }
 
         $amt = isset($session['amount_total']) ? ' $' . number_format(((int)$session['amount_total']) / 100, 2) : '';

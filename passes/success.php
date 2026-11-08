@@ -28,22 +28,8 @@ if ($token !== '') {
     } catch (Throwable $e) {}
 }
 
-// Race: webhook may not have fired yet — check Stripe directly
-// Limited founding passes are fulfilled only by the capacity-aware webhook.
-if ($pass && $pass['status'] === 'pending_payment' && !empty($pass['payment_reference']) && !( !empty($pass['is_founding']) && (int)$pass['founding_qty_limit'] > 0)) {
-    try {
-        $session = stripe_retrieve_session((string)$pass['payment_reference']);
-        if (($session['payment_status'] ?? '') === 'paid') {
-            $pdo->prepare("UPDATE passes SET payment_status='paid', status='active',
-                           valid_from=CURDATE(), valid_until=DATE_ADD(CURDATE(), INTERVAL ? MONTH),
-                           payment_provider='stripe' WHERE id=? AND status='pending_payment'")
-                ->execute([max(1, (int)($pass['duration_months'] ?? 12)), (int)$pass['id']]);
-            $pass['status'] = 'active';
-            $pass['valid_from']  = date('Y-m-d');
-            $pass['valid_until'] = date('Y-m-d', strtotime('+' . max(1, (int)($pass['duration_months'] ?? 12)) . ' months'));
-        }
-    } catch (Throwable $e) {}
-}
+// The verified Stripe webhook is the sole pass-activation path. A success-page
+// visit must not bypass confirmation email, audit, or capacity-safe fulfillment.
 
 // GA purchase, if the webhook hasn't already sent it (sends at most once)
 if ($pass && $pass['status'] === 'active') { require_once __DIR__ . '/../includes/ga.php'; bcrf_ga_purchase($pdo, 'passes', (int)$pass['id']); }
@@ -79,7 +65,7 @@ $active = $pass && $pass['status'] === 'active';
         </p>
         <div class="pass-link-box"><?= htmlspecialchars($verifyUrl) ?></div>
         <p style="font-family:'Lora',serif;font-size:.8rem;color:#8b5c2a;margin:8px 0 18px;line-height:1.5">
-            We've sent a confirmation email to <strong><?= htmlspecialchars($pass['email']) ?></strong> with this link.
+            A confirmation email will be sent to <strong><?= htmlspecialchars($pass['email']) ?></strong> with this link after payment processing.
             Add this page to your phone's home screen for instant access.
         </p>
         <a class="cta-btn" href="/petting-zoo/">Plan your first visit →</a>
