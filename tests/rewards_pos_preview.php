@@ -57,6 +57,10 @@ $pdo->exec("UPDATE reward_household_members SET revoked_at=UTC_TIMESTAMP() WHERE
 mustReject(fn()=>bcrf_rewards_sale_verified_household($pdo,1),'revoked member');
 $pdo->exec("UPDATE sales SET customer_id=12 WHERE id=1");
 mustReject(fn()=>bcrf_rewards_sale_verified_household($pdo,1),'unverified member');
+$pdo->exec("INSERT INTO sales (id,status,total_cents,subtotal_cents) VALUES (5,'completed',500,500)");
+$pdo->exec("INSERT INTO sale_lines VALUES (5,'gift_card',500,0,0)");
+$pdo->exec("INSERT INTO payments (sale_id,tender,amount_cents,status) VALUES (5,'cash',500,'completed')");
+mustReject(fn()=>bcrf_rewards_sale_eligible_cents($pdo,5),'gift-card-only purchase has no eligible net value');
 $pdo->exec("UPDATE sales SET subtotal_cents=100 WHERE id=1");
 mustReject(fn()=>bcrf_rewards_sale_eligible_cents($pdo,1),'eligible value exceeds recorded net subtotal');
 $pdo->exec("UPDATE sales SET subtotal_cents=3000,discount_cents=249 WHERE id=1");
