@@ -99,6 +99,21 @@ try {
 } catch (BcrfRewardError|RuntimeException $expected) {
     if ($expected->getMessage()==='Mismatched historical refund policy accepted.') throw $expected;
 }
+// Positive-path inert dispatch preflight, using this test's complete
+// committed sale earning and refund fixtures (not another suite's state).
+require_once __DIR__.'/../includes/roost-pos-outbox-dispatch.php';
+$pdo->beginTransaction();
+bcrf_roost_pos_outbox_enqueue($pdo,'sale.refunded',9021);
+$pdo->commit();
+$refundQueuedId=(int)$pdo->query("SELECT id FROM reward_pos_outbox
+ WHERE event_type='sale.refunded' AND source_id=9021")->fetchColumn();
+$refundPlan=bcrf_roost_outbox_dispatch_refund_preflight($pdo,
+    ['id'=>$refundQueuedId,'event_type'=>'sale.refunded','source_id'=>9021]);
+if (($refundPlan['action']??null)!=='posting_required' ||
+    (int)($refundPlan['event']['policy_id']??0)!==1 ||
+    ($refundPlan['event']['entry_type']??null)!=='refund_reversal')
+    throw new RuntimeException('Retired original-policy refund dispatch preflight failed.');
+$pdo->exec("DELETE FROM reward_pos_outbox WHERE id=$refundQueuedId");
 $firstRefund=bcrf_roost_outbox_handle_test_event($pdo,['event_type'=>'sale.refunded','source_id'=>9021],1,true);
 $pdo->exec("UPDATE reward_policies SET status='active' WHERE id=1");
 if ($firstRefund['outcome']!=='completed' || $firstRefund['replayed'])
