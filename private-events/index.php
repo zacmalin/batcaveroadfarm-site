@@ -13,11 +13,11 @@ include '../includes/header.php';
 $errMap = [
     'csrf'    => 'Session expired — please try again.',
     'name'    => 'Please enter your name (up to 100 characters).',
-    'rate'    => 'We\'ve received several inquiries from this connection in a short time. Please wait a few minutes and try again, or call (828) 216-5488.',
+    'rate'    => 'We\'ve received several inquiries from this connection in a short time. Please wait a few minutes and try again, or call ' . site_phone_display('general') . '.',
     'email'   => 'Please enter a valid email address.',
     'type'    => 'Please select an event type.',
     'guests'  => 'Please enter the number of guests.',
-    'db'      => 'Something went wrong saving your inquiry. Please call (828) 216-5488.',
+    'db'      => 'Something went wrong saving your inquiry. Please call ' . site_phone_display('general') . '.',
 ];
 $errKey = trim((string)($_GET['error'] ?? ''));
 $errMsg = $errMap[$errKey] ?? '';
