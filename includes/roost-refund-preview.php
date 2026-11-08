@@ -10,6 +10,12 @@ require_once __DIR__ . '/rewards-pos-preview.php';
 function bcrf_roost_refund_reversal_preview(PDO $pdo, int $saleId): array {
     if ($saleId < 1) throw new BcrfRewardError('Invalid sale.');
     $suffix = $pdo->inTransaction() ? ' FOR UPDATE' : '';
+    $saleCheck = $pdo->prepare("SELECT status FROM sales WHERE id=?" . $suffix);
+    $saleCheck->execute([$saleId]);
+    $status = $saleCheck->fetchColumn();
+    if ($status === false || !in_array($status, ['completed','partially_refunded','refunded'], true)) {
+        throw new BcrfRewardError('Refund references an invalid or voided sale.');
+    }
     $lines = $pdo->prepare("SELECT id, product_type, gross_cents, discount_cents, refunded_net_cents
         FROM sale_lines WHERE sale_id=?".$suffix);
     $lines->execute([$saleId]);
