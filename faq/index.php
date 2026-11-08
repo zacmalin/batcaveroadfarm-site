@@ -16,135 +16,26 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
 	include('../includes/head.php');
 ?>
 
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "What are your hours?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": <?= json_encode($faqGeneralSentence, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Is there an admission fee to visit the farm?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Walking the grounds and shopping at the farmstand and thrift shop is free. The petting zoo has a separate admission fee: Adults $8, Children ages 3-12 $5, Under 3 free."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Where are you located and is parking available?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "We are located at 4132 Bat Cave Road, Old Fort, NC 28762. Free parking is available on-site."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Can I bring my dog?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Leashed, well-behaved dogs are welcome on the general farm grounds. Dogs are not permitted inside the petting zoo area out of respect for our animals."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "What animals are in the petting zoo?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Our petting zoo is home to goats, donkeys, peacocks, pigs, ducks, turkeys, and chickens. The lineup can vary by season."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Can we feed the animals?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes! Animal feed bags are available for purchase at the petting zoo entrance for $2. Please only feed the animals with the feed we provide."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Do you host birthday parties or group events?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes! We love hosting birthday parties, school field trips, homeschool groups, and family reunions. We offer group packages that include guided tours, animal feeding sessions, and private barn access for up to 20 guests. Request your date at <?= bcrf_farm_url() ?>/booking/ to check availability."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "What do you sell at the farmstand?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Our farmstand carries seasonal vegetables and fruit, fresh-baked sourdough and pastries, farm-fresh eggs, local honey, homemade jams and pickles, and cut flowers. Availability changes week to week based on what's ready in the fields."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "What forms of payment do you accept?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "We accept cash, credit and debit cards, CashApp, PayPal, and Venmo. We do not currently accept checks. There is no minimum purchase for card payments."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "What kinds of items does the thrift shop carry?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Our thrift shop carries vintage kitchenware, antique furniture, lamps, clocks, books, toys, clothing, collectibles, and one-of-a-kind curiosities. New items arrive every week from local estates and community donations."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Do you accept thrift shop donations?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes, we gladly accept gently used furniture, housewares, books, clothing, and collectibles. Small loads can be dropped off any open day during shop hours. For large furniture, please call ahead."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Is the farm accessible for strollers and wheelchairs?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Most main pathways are accessible and stroller-friendly. Some areas are on natural terrain which may be uneven. Contact us ahead of your visit if you have specific accessibility needs."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Do you sell annual passes?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes! Bat Cave Road Farm annual passes give you unlimited visits for 12 months. We offer an Individual Pass ($70), a Family Pass for up to 4 guests ($160), and a limited Founding Member pass for up to 6 guests with farmstand discounts and event perks ($275 — only 50 available). Passes can be purchased online at <?= bcrf_farm_domain() ?>/passes or in person during open hours."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Can I buy admission tickets online?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes — walk-in tickets for groups of 5 or fewer can be purchased online at <?= bcrf_farm_domain() ?>/tickets. Select the number of adults, children, and little ones under 3, then pick a date. Groups of 6 or more should use the group booking form instead."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How do I plan a birthday party or private event at the farm?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "We love hosting private events — birthday parties, school field trips, corporate outings, and full farm buyouts. Fill out our private event inquiry form at <?= bcrf_farm_domain() ?>/private-events and we'll be in touch within 24 hours to discuss your event and put together a custom package. You can also call us at <?= htmlspecialchars(site_phone_display('general')) ?>."
-      }
-    }
-  ]
+<?php
+// Generate FAQ structured data from safe, current visitor guidance. Avoid duplicating
+// product prices, capacity rules, and policies that can change in Farm OS.
+$faqSchemaItems = [
+    ['What are your hours?', $faqGeneralSentence],
+    ['Is there an admission fee to visit the farm?', 'Walking the grounds and shopping is free. Petting zoo admission is separate. See ' . bcrf_farm_url('/petting-zoo/') . ' for current pricing.'],
+    ['Where are you located and is parking available?', 'We are located at ' . site_address() . '. Free parking is available on-site.'],
+    ['Can I bring my dog?', 'Leashed, well-behaved dogs are welcome on the general farm grounds, but not inside the petting zoo.'],
+    ['Can we feed the animals?', 'Animal feed is available for purchase at the petting zoo entrance. Please only use feed provided by the farm.'],
+    ['Do you host birthday parties or group events?', 'Yes. Request current packages and availability at ' . bcrf_farm_url('/private-events/') . '.'],
+    ['Do you sell annual passes?', 'Yes. See current annual-pass options and prices at ' . bcrf_farm_url('/passes/') . '.'],
+    ['Can I buy admission tickets online?', 'Yes. See ticket options and booking rules at ' . bcrf_farm_url('/tickets/') . '.'],
+    ['How do I plan a birthday party or private event at the farm?', 'Use the inquiry form at ' . bcrf_farm_url('/private-events/') . ' or contact us at ' . bcrf_farm_url('/contact-us/') . '.'],
+];
+$faqSchema = ['@context' => 'https://schema.org', '@type' => 'FAQPage', 'mainEntity' => []];
+foreach ($faqSchemaItems as [$question, $answer]) {
+    $faqSchema['mainEntity'][] = ['@type' => 'Question', 'name' => $question, 'acceptedAnswer' => ['@type' => 'Answer', 'text' => $answer]];
 }
-
-</script>
+?>
+<script type="application/ld+json"><?= json_encode($faqSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE) ?></script>
 
 <?php
 	include('../includes/header.php');
@@ -365,7 +256,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
                         <button class="faq-question">
                             Do you sell annual passes? <span class="faq-chevron" aria-hidden="true">▼</span>
                         </button>
-                        <div class="faq-answer">Yes! Annual passes give you unlimited visits for 12 months. We offer three tiers: <strong>Individual ($70)</strong>, <strong>Family — up to 4 guests ($160)</strong>, and a limited <strong>Founding Member — up to 6 guests ($275)</strong>, which includes a 10% farmstand discount, priority event access, and your name on our Founders Wall. Only 50 Founding Member passes will ever be sold. <a href="<?= bcrf_farm_url() ?>/passes/">Buy your pass online</a> or in person during open hours.</div>
+                        <div class="faq-answer">Yes! We offer annual passes with different benefits and guest allowances. See <a href="<?= bcrf_farm_url() ?>/passes/">current pass options, pricing, and terms</a> or ask our team during your visit.</div>
                     </div>
 
                     <div class="faq-item">
