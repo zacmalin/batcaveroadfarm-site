@@ -64,7 +64,7 @@ function bcrf_roost_email_enqueue(
         $activityCheck->execute([$householdId]);
         $current = $activityCheck->fetch(PDO::FETCH_ASSOC);
         if (!$current ||
-            (string)$current['last_qualifying_activity_at'] !== (string)$activityUtc ||
+            substr((string)$current['last_qualifying_activity_at'], 0, 23) !== (string)$activityUtc ||
             !bcrf_roost_reminder_eligible((string)$current['status'], (int)$current['balance_points'],
                 (string)$current['last_qualifying_activity_at'], (string)$current['now_utc'], (int)$milestoneDays)) {
             return false;
