@@ -224,7 +224,7 @@ function bcrfBreedCards(PDO $pdo): void {
       "@id": "<?= bcrf_farm_url() ?>/petting-zoo/#groupvisits",
       "serviceType": "Group visits, birthday parties, and private farm events",
       "name": "Birthday Parties & Group Farm Visits — Bat Cave Road Farm",
-      "description": "Host your birthday party, school field trip, homeschool group, or family reunion at Bat Cave Road Farm. Group packages include guided tours, animal feeding sessions, and private barn access for up to 20 guests.",
+      "description": "Host your birthday party, school field trip, homeschool group, or family reunion at Bat Cave Road Farm. Group packages include guided tours, animal feeding sessions, and private barn access for up to 25 guests.",
       "url": "<?= bcrf_farm_url() ?>/petting-zoo/",
       "image": "<?= bcrf_farm_url() ?>/img/og-pettingzoo.jpg",
       "provider": {
@@ -237,7 +237,7 @@ function bcrfBreedCards(PDO $pdo): void {
       "offers": {
         "@type": "Offer",
         "name": "Group Visit Package",
-        "description": "Guided farm tour, animal feeding session, and private barn access for groups up to 20. Call for pricing.",
+        "description": "Guided farm tour, animal feeding session, and private barn access for groups up to 25. Call for pricing.",
         "url": "<?= bcrf_farm_url() ?>/contact-us/",
         "availability": "https://schema.org/InStock",
         "validFrom": "2025-01-01"
@@ -285,7 +285,7 @@ function bcrfBreedCards(PDO $pdo): void {
                   </div>
                   <div class="two-col-text">
                     <h3>Birthday Parties & School Groups</h3>
-                    <p>Looking for a truly memorable birthday party or field trip? We offer group packages that include guided tours, animal feeding, and private barn access. Up to 20 guests can be accommodated. Tell us about your event and we'll put together a custom package!</p>
+                    <p>Looking for a truly memorable birthday party or field trip? We offer group packages that include guided tours, animal feeding, and private barn access. Up to 25 guests can be accommodated. Tell us about your event and we'll put together a custom package!</p>
                     <div class="cta-pair">
                       <a href="<?= bcrf_farm_url() ?>/private-events/" class="cta-btn">Plan a Private Event</a>
                       <a href="<?= bcrf_farm_url() ?>/booking/" class="cta-btn">Book a Group Visit</a>
