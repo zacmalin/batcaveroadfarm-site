@@ -6,6 +6,8 @@ if (!$dsn) { fwrite(STDERR, "Set BCRF_REWARDS_TEST_DSN for a disposable database
 $pdo = new PDO($dsn, getenv('BCRF_REWARDS_TEST_USER') ?: '', getenv('BCRF_REWARDS_TEST_PASSWORD') ?: '', [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
 $pdo->exec("CREATE TABLE customers (id INT NOT NULL PRIMARY KEY) ENGINE=InnoDB");
 $pdo->exec("INSERT INTO customers VALUES (1),(2)");
+$pdo->exec("CREATE TABLE sales (id BIGINT PRIMARY KEY, customer_id INT NULL, status VARCHAR(24) NOT NULL) ENGINE=InnoDB");
+$pdo->exec("INSERT INTO sales VALUES (100,1,'completed'),(101,1,'completed'),(102,2,'completed'),(103,1,'voided')");
 $schema = require __DIR__ . '/../admin/migrations/0016_farm_rewards_foundation.php';
 $schema($pdo);
 $schema($pdo); // rerunnable
@@ -19,6 +21,10 @@ function rejected(callable $run, string $message): void { try { $run(); } catch 
 $base = ['household_id'=>1,'policy_id'=>1,'customer_id'=>1,'source_type'=>'sale','source_id'=>'100','entry_type'=>'earn_spend','points_delta'=>200,'idempotency_key'=>'test-sale-100'];
 $a = bcrf_reward_post($pdo,$base);
 expect($a['balance']===200 && !$a['replayed'],'first award');
+rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_id'=>'999','idempotency_key'=>'missing-sale'])),'missing sale cannot earn');
+rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_id'=>'102','idempotency_key'=>'different-customer-sale'])),'sale belongs to another customer');
+rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_id'=>'103','idempotency_key'=>'voided-sale'])),'voided sale cannot earn');
+
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_id'=>'fabricated-label','idempotency_key'=>'invalid-sale-label'])),'purchase source requires numeric sale ID');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_id'=>'0','idempotency_key'=>'invalid-sale-zero'])),'purchase source rejects zero sale ID');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_type'=>'visit','source_id'=>'wrong-kind','idempotency_key'=>'test-wrong-spend-source'])),'purchase earning requires sale source');
