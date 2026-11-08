@@ -70,4 +70,22 @@ if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household
     throw new RuntimeException('Refund retry deducted points twice.');
 if ((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE refund_id IN (9021,9022)")->fetchColumn()!==2)
     throw new RuntimeException('Missing or duplicate refund receipts.');
-echo "Authorized POS handler award, ordered refunds and crash-replay guards passed.\\n";
+// One cent crosses no additional whole-point threshold but requires a receipt.
+$pdo->exec("INSERT INTO refunds (id,sale_id,net_cents,total_cents) VALUES (9023,902,1,1)");
+$pdo->exec("INSERT INTO refund_lines (refund_id,sale_line_id,net_cents) VALUES (9023,$lineId,1)");
+$pdo->exec("INSERT INTO refund_payments (refund_id,tender,amount_cents,reference) VALUES (9023,'cash',1,NULL)");
+$pdo->exec("UPDATE sale_lines SET refunded_net_cents=1501 WHERE id=$lineId");
+$zero=['event_type'=>'sale.refunded','source_id'=>9023];
+$zeroFirst=bcrf_roost_outbox_handle_test_event($pdo,$zero,1,true);
+if ($zeroFirst['outcome']!=='completed' || $zeroFirst['replayed'] ||
+    $zeroFirst['points_reversed']!==0)
+    throw new RuntimeException('Zero-point refund receipt not committed.');
+$zeroAgain=bcrf_roost_outbox_handle_test_event($pdo,$zero,1,true);
+if ($zeroAgain['outcome']!=='completed' || !$zeroAgain['replayed'] ||
+    $zeroAgain['points_reversed']!==0)
+    throw new RuntimeException('Zero-point refund retry was not acknowledged.');
+if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==$balanceRefunded)
+    throw new RuntimeException('Zero-point refund changed balance.');
+if ((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE refund_id=9023 AND points_reversed=0 AND reversal_entry_id IS NULL")->fetchColumn()!==1)
+    throw new RuntimeException('Zero-point refund receipt duplicated or missing.');
+echo "Authorized POS handler award, refunds and zero-point crash-replay guards passed.\\n";
