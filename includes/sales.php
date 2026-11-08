@@ -406,6 +406,8 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
             bcrf_event('sale.completed', 'sales', $saleId, ['sale_number' => $number, 'total_cents' => $priced['total'],
                        'tenders' => array_values($tenders), 'lines' => count($priced['lines']), 'business_date' => $bdate]);
         }
+        require_once __DIR__.'/roost-pos-outbox-integration.php';
+        bcrf_roost_pos_enqueue_if_enabled($pdo,'sale.completed',$saleId);
         $pdo->commit();
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
