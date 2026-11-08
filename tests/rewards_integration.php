@@ -65,7 +65,7 @@ rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'redeem','
 $pdo->exec("UPDATE reward_household_members SET can_redeem=1 WHERE customer_id=2");
 $pdo->exec("UPDATE reward_household_members SET revoked_at=UTC_TIMESTAMP(3) WHERE customer_id=2");
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'redeem','points_delta'=>-10,'idempotency_key'=>'test-revoked','customer_id'=>2])),'revoked adult');
-rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'earn_spend','points_delta'=>25,'source_id'=>'revoked-earn','idempotency_key'=>'test-revoked-earn','customer_id'=>2])),'revoked customer cannot earn');
+rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'earn_spend','points_delta'=>25,'source_id'=>'102','idempotency_key'=>'test-revoked-earn','customer_id'=>2])),'revoked customer cannot earn');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'earn_visit','points_delta'=>25,'source_id'=>'revoked-visit','idempotency_key'=>'test-revoked-visit','customer_id'=>2])),'revoked customer cannot receive visit points');
 $refund = bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'refund_reversal','points_delta'=>-200,'source_type'=>'refund','source_id'=>'refund-1','idempotency_key'=>'test-refund-1','related_entry_id'=>$a['id']]));
 expect($refund['balance']===-175,'refund negative balance');
