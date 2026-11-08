@@ -74,7 +74,7 @@ expect($v['balance']===225,'visit award');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_type'=>'visit','source_id'=>'not-an-id','entry_type'=>'earn_visit','points_delta'=>25,'idempotency_key'=>'fabricated-visit'])),'fabricated visit label rejected');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_type'=>'visit','source_id'=>'999','entry_type'=>'earn_visit','points_delta'=>25,'idempotency_key'=>'missing-visit'])),'nonexistent attendance rejected');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_type'=>'visit','source_id'=>'2','entry_type'=>'earn_visit','points_delta'=>25,'idempotency_key'=>'wrong-attendee'])),'another customer attendance rejected');
-$pdo->exec("UPDATE reward_verified_attendance SET business_date='2026-11-09' WHERE id=1");
+$pdo->exec("UPDATE reward_verified_attendance SET business_date='2026-11-10' WHERE id=1");
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_type'=>'visit','source_id'=>'1','entry_type'=>'earn_visit','points_delta'=>25,'idempotency_key'=>'mismatched-operating-day'])),'mismatched check-in date rejected');
 $pdo->exec("UPDATE reward_verified_attendance SET business_date='2026-11-08' WHERE id=1");
 
