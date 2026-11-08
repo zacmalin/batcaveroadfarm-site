@@ -214,6 +214,18 @@ try {
 } finally {
     $pdo->exec("UPDATE reward_refund_processing SET original_earning_entry_id=".(int)$first['ledger_entry_id']." WHERE refund_id=9023");
 }
+// An orphaned processing receipt must not disappear through an inner join.
+$pdo->exec("UPDATE reward_refund_processing SET original_earning_entry_id=999999 WHERE refund_id=9023");
+try {
+    bcrf_roost_outbox_dispatch_refund_preflight($pdo,
+        ['id'=>$zeroQueuedId,'event_type'=>'sale.refunded','source_id'=>9023]);
+    throw new RuntimeException('Orphaned zero-point receipt was accepted.');
+} catch (RuntimeException $expected) {
+    if ($expected->getMessage()!=='Committed refund provenance mismatch.')
+        throw $expected;
+} finally {
+    $pdo->exec("UPDATE reward_refund_processing SET original_earning_entry_id=".(int)$first['ledger_entry_id']." WHERE refund_id=9023");
+}
 $zeroRestored=bcrf_roost_outbox_dispatch_refund_preflight($pdo,
     ['id'=>$zeroQueuedId,'event_type'=>'sale.refunded','source_id'=>9023]);
 if (($zeroRestored['action']??null)!=='zero_point_already_processed')
