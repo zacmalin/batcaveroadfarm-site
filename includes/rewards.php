@@ -131,6 +131,24 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
                 throw new BcrfRewardError('Purchase customer has no unique matching verified household.');
             }
         }
+        if ($type === 'earn_visit') {
+            // The source is a verified attendance row, not a user-provided date,
+            // pass scan, purchaser, or unchecked group headcount.
+            if (!ctype_digit($event['source_id']) ||
+                !filter_var($event['source_id'], FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]])) {
+                throw new BcrfRewardError('Visit award requires a verified attendance ID.');
+            }
+            $visitCheck = $pdo->prepare("SELECT a.customer_id, a.business_date, c.business_date AS checkin_date
+                FROM reward_verified_attendance a
+                JOIN check_ins c ON c.id = a.check_in_id
+                WHERE a.id = ? FOR UPDATE");
+            $visitCheck->execute([(int)$event['source_id']]);
+            $visit = $visitCheck->fetch(PDO::FETCH_ASSOC);
+            if (!$visit || (int)$visit['customer_id'] !== (int)$customer ||
+                $visit['business_date'] !== $visit['checkin_date']) {
+                throw new BcrfRewardError('Visit has no matching verified attendee and operating date.');
+            }
+        }
         if ($type === 'earn_spend') {
             // Recalculate from sale lines and payment records under the same
             // transaction; a caller cannot choose an arbitrary points award.
