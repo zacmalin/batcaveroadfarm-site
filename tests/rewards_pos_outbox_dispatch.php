@@ -2,7 +2,7 @@
 require_once __DIR__.'/../includes/roost-pos-outbox-dispatch.php';
 if (bcrf_roost_outbox_dispatch_enabled()!==false)
     throw new RuntimeException('Dispatch unexpectedly enabled.');
-$pdo=new PDO('sqlite::memory:');
+$pdo=new PDO(getenv('BCRF_REWARDS_TEST_DSN'),getenv('BCRF_REWARDS_TEST_USER')?:'',getenv('BCRF_REWARDS_TEST_PASSWORD')?:'');
 $pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
 $pdo->beginTransaction();
 try {
