@@ -196,7 +196,7 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
             $origin = $pdo->prepare("SELECT household_id, entry_type, points_delta FROM reward_ledger WHERE id = ? FOR UPDATE");
             $origin->execute([$event['related_entry_id']]);
             $earned = $origin->fetch(PDO::FETCH_ASSOC);
-            if (!$earned || (int)$earned['household_id'] !== (int)$household || !in_array($earned['entry_type'], ['earn_spend','earn_visit'], true)) throw new BcrfRewardError('Invalid earning to reverse.');
+            if (!$earned || (int)$earned['household_id'] !== (int)$household || $earned['entry_type'] !== 'earn_spend') throw new BcrfRewardError('Invalid earning to reverse.');
             // Reconcile the requested debit with the actual refunded sale lines
             // while the account and refund rows are locked. Never trust a
             // caller-supplied reversal amount.
