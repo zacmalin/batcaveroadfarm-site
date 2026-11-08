@@ -68,10 +68,21 @@ $pdo->exec("INSERT INTO reward_policies (id,version,config_json,status,created_a
 $emailSchema = require __DIR__ . '/../admin/migrations/0020_roost_email_outbox.php';
 $emailSchema($pdo);
 $emailSchema($pdo); // additive migration must be rerunnable
+$suppressionSchema = require __DIR__ . '/../admin/migrations/0021_roost_email_suppressions.php';
+$suppressionSchema($pdo);
+$suppressionSchema($pdo); // additive and rerunnable
+
 require_once __DIR__ . '/../includes/roost-email-outbox.php';
 $welcomeEvent = bcrf_roost_welcome_event_key(1, '2026-11-08 12:00:00');
 expect(bcrf_roost_email_enqueue($pdo,1,1,'welcome',null,null,$welcomeEvent), 'verified welcome queued once');
 expect(!bcrf_roost_email_enqueue($pdo,1,1,'welcome',null,null,$welcomeEvent), 'duplicate welcome not queued');
+$hash = bcrf_roost_email_address_hash('CUSTOMER1@example.test');
+expect($hash === bcrf_roost_email_address_hash(' customer1@example.test '), 'service suppression hash normalizes case and whitespace');
+$pdo->prepare("INSERT INTO reward_email_suppressions (email_hash,scope,reason,created_at) VALUES (?,'service','hard_bounce',UTC_TIMESTAMP(3))")->execute([$hash]);
+rejected(fn()=>bcrf_roost_email_enqueue($pdo,1,1,'welcome',null,null,$welcomeEvent), 'active hard bounce blocks queueing');
+$pdo->prepare("UPDATE reward_email_suppressions SET cleared_at=UTC_TIMESTAMP(3) WHERE email_hash=?")->execute([$hash]);
+expect(!bcrf_roost_email_service_suppressed($pdo,'customer1@example.test'), 'cleared bounce does not block service delivery');
+
 $pdo->exec("UPDATE customers SET email_verified_at=NULL WHERE id=1");
 rejected(fn()=>bcrf_roost_email_enqueue($pdo,1,1,'welcome',null,null,$welcomeEvent), 'unverified email cannot queue welcome');
 $pdo->exec("UPDATE customers SET email_verified_at=UTC_TIMESTAMP(), account_status='disabled' WHERE id=1");
@@ -137,6 +148,10 @@ expect(bcrf_roost_verified_service_recipient('adult@example.com',true,true,'mana
 expect(bcrf_roost_verified_service_recipient('child@example.com',true,false,'dependent') === null, 'dependent not a service recipient');
 
 expect(bcrf_roost_email_claim_eligible($pdo,(int)$claim['id'],$claim['claim_token']), 'verified welcome claim eligible');
+$pdo->prepare("UPDATE reward_email_suppressions SET cleared_at=NULL WHERE email_hash=?")->execute([$hash]);
+expect(!bcrf_roost_email_claim_eligible($pdo,(int)$claim['id'],$claim['claim_token']), 'suppression added after claim blocks delivery');
+$pdo->prepare("UPDATE reward_email_suppressions SET cleared_at=UTC_TIMESTAMP(3) WHERE email_hash=?")->execute([$hash]);
+
 $pdo->exec("UPDATE customers SET email_verified_at=NULL WHERE id=1");
 expect(!bcrf_roost_email_claim_eligible($pdo,(int)$claim['id'],$claim['claim_token']), 'unverified customer email denied');
 $pdo->exec("UPDATE customers SET email_verified_at=UTC_TIMESTAMP(), account_status='disabled' WHERE id=1");
