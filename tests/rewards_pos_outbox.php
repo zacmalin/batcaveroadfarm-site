@@ -43,5 +43,24 @@ try {
 $pdo->rollBack();
 rr_check($pdo->query("SELECT policy_id FROM reward_pos_outbox WHERE event_type='sale.completed' AND source_id=7")->fetchColumn()===null,
     'Existing unpinned event was mutated.');
+// A concurrent policy retirement cannot overtake a transaction that
+// validated and pinned the sale policy. Use a second connection and a
+// short lock timeout; never wait indefinitely in CI.
+$other=new PDO($dsn,getenv('BCRF_REWARDS_TEST_USER')?:'',getenv('BCRF_REWARDS_TEST_PASSWORD')?:'');
+$other->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+$other->exec('SET SESSION innodb_lock_wait_timeout=1');
+$pdo->beginTransaction();
+bcrf_roost_pos_outbox_enqueue_pinned_sale($pdo,990112,1);
+$blocked=false;
+try {
+    $other->exec("UPDATE reward_policies SET status='retired' WHERE id=1");
+} catch(PDOException $e) {
+    if (($e->errorInfo[1]??null)!==1205) throw $e;
+    $blocked=true;
+}
+$pdo->rollBack();
+rr_check($blocked,'Concurrent retirement was not blocked by pinned policy lock.');
+rr_check((int)$pdo->query("SELECT COUNT(*) FROM reward_pos_outbox WHERE source_id=990112")->fetchColumn()===0,
+    'Rolled-back concurrency fixture persisted.');
 $pdo->exec("DELETE FROM reward_pos_outbox WHERE source_id=990111");
 echo "POS outbox atomicity and deduplication passed.\n";
