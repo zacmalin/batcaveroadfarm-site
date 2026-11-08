@@ -19,7 +19,7 @@ $pass  = null; $pt = null;
 
 if ($token !== '') {
     try {
-        $st = $pdo->prepare("SELECT p.*, t.label, t.max_guests, t.perks FROM passes p
+        $st = $pdo->prepare("SELECT p.*, t.label, t.max_guests, t.perks, t.duration_months FROM passes p
                               JOIN pass_types t ON t.id = p.pass_type_id
                               WHERE p.token = ? LIMIT 1");
         $st->execute([$token]);
@@ -34,12 +34,12 @@ if ($pass && $pass['status'] === 'pending_payment' && !empty($pass['payment_refe
         $session = stripe_retrieve_session((string)$pass['payment_reference']);
         if (($session['payment_status'] ?? '') === 'paid') {
             $pdo->prepare("UPDATE passes SET payment_status='paid', status='active',
-                           valid_from=CURDATE(), valid_until=DATE_ADD(CURDATE(), INTERVAL 1 YEAR),
+                           valid_from=CURDATE(), valid_until=DATE_ADD(CURDATE(), INTERVAL ? MONTH),
                            payment_provider='stripe' WHERE id=? AND status='pending_payment'")
-                ->execute([(int)$pass['id']]);
+                ->execute([max(1, (int)($pass['duration_months'] ?? 12)), (int)$pass['id']]);
             $pass['status'] = 'active';
             $pass['valid_from']  = date('Y-m-d');
-            $pass['valid_until'] = date('Y-m-d', strtotime('+1 year'));
+            $pass['valid_until'] = date('Y-m-d', strtotime('+' . max(1, (int)($pass['duration_months'] ?? 12)) . ' months'));
         }
     } catch (Throwable $e) {}
 }
