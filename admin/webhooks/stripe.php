@@ -78,16 +78,15 @@ if ($bookingId <= 0 && $passId <= 0) {
 // ── PASS PAYMENT ─────────────────────────────────────────────────────────────
 if ($passId > 0) {
     try {
-        // Activate the pass, using the pass type's own duration (not a fixed 1 year)
-        $upd = $pdo->prepare("UPDATE passes p JOIN pass_types t ON t.id = p.pass_type_id SET
-            p.payment_status='paid', p.status='active',
-            p.valid_from=COALESCE(p.valid_from, CURDATE()),
-            p.valid_until=DATE_ADD(COALESCE(p.valid_from, CURDATE()), INTERVAL GREATEST(1, COALESCE(t.duration_months, 12)) MONTH),
-            p.payment_provider='stripe', p.payment_reference=?
-            WHERE p.id=? AND p.status='pending_payment'");
-        $upd->execute([$sessionId, $passId]);
-
-        if ($upd->rowCount() === 0) { http_response_code(200); echo 'Pass already processed'; exit; }
+        require_once __DIR__ . '/../../includes/pass_reservations.php';
+        $outcome = bcrf_pass_confirm_payment($pdo, $passId, $sessionId);
+        if ($outcome === 'already') { http_response_code(200); echo 'Pass already processed'; exit; }
+        if ($outcome === 'late') {
+            // Paid, but hold expired: leave inactive and flag for manual reconciliation.
+            // Do not automatically refund or consume another customer's slot.
+            error_log('[BCRF stripe webhook] ACTION REQUIRED: paid late founding pass #' . $passId);
+            http_response_code(200); echo 'Paid pass requires manual review'; exit;
+        }
 
         // Re-read AFTER the update so the email shows the correct expiry date
         $pst = $pdo->prepare("SELECT p.*, t.label, t.duration_months FROM passes p JOIN pass_types t ON t.id=p.pass_type_id WHERE p.id=?");

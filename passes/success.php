@@ -19,7 +19,7 @@ $pass  = null; $pt = null;
 
 if ($token !== '') {
     try {
-        $st = $pdo->prepare("SELECT p.*, t.label, t.max_guests, t.perks, t.duration_months FROM passes p
+        $st = $pdo->prepare("SELECT p.*, t.label, t.max_guests, t.perks, t.duration_months, t.is_founding, t.founding_qty_limit FROM passes p
                               JOIN pass_types t ON t.id = p.pass_type_id
                               WHERE p.token = ? LIMIT 1");
         $st->execute([$token]);
@@ -29,7 +29,8 @@ if ($token !== '') {
 }
 
 // Race: webhook may not have fired yet — check Stripe directly
-if ($pass && $pass['status'] === 'pending_payment' && !empty($pass['payment_reference'])) {
+// Limited founding passes are fulfilled only by the capacity-aware webhook.
+if ($pass && $pass['status'] === 'pending_payment' && !empty($pass['payment_reference']) && !( !empty($pass['is_founding']) && (int)$pass['founding_qty_limit'] > 0)) {
     try {
         $session = stripe_retrieve_session((string)$pass['payment_reference']);
         if (($session['payment_status'] ?? '') === 'paid') {
