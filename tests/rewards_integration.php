@@ -249,6 +249,8 @@ expect($welcomeMail['subject'] === 'Welcome to Roost Rewards', 'welcome email co
 expect(str_contains($welcomeMail['html'], '25 points'), 'welcome visit rule');
 expect($welcomeMail['opts']['unsubscribe'] === false, 'service email not marketing');
 $reminderMail = bcrf_roost_expiration_email_content(30, 675, '2027-01-31 09:30:00', 'https://batcaveroadfarm.com/roost-rewards/');
+expect(($welcomeMail['opts']['transport'] ?? '')==='smtp_required', 'welcome mail requires strict SMTP');
+expect(($reminderMail['opts']['transport'] ?? '')==='smtp_required', 'reminder mail requires strict SMTP');
 expect(str_contains($reminderMail['html'], '675 points'), 'reminder includes current balance');
 expect(str_contains($reminderMail['html'], 'January 31, 2027'), 'reminder includes UTC expiry');
 expect($reminderMail['opts']['unsubscribe'] === false, 'reminder service email not marketing');
