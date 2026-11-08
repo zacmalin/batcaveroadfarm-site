@@ -112,3 +112,20 @@ function bcrf_rewards_sale_verified_household(PDO $pdo, int $saleId): array {
     if (count($rows) !== 1) throw new BcrfRewardError('Sale has no unique verified active household.');
     return ['customer_id'=>(int)$rows[0]['customer_id'], 'household_id'=>(int)$rows[0]['household_id']];
 }
+
+/**
+ * Read-only claim preview for a customer authenticated by a trusted caller.
+ * Never accept the customer ID from an unauthenticated browser request.
+ * Does not establish payment ownership or award points.
+ *
+ * @return array{customer_id:int,household_id:int,eligible_cents:int}
+ */
+function bcrf_rewards_sale_claim_preview(PDO $pdo, int $saleId, int $authenticatedCustomerId): array {
+    if ($authenticatedCustomerId <= 0) throw new BcrfRewardError('Authenticated customer required.');
+    $owner = bcrf_rewards_sale_verified_household($pdo, $saleId);
+    if ($owner['customer_id'] !== $authenticatedCustomerId) {
+        throw new BcrfRewardError('Sale customer does not match authenticated customer.');
+    }
+    $eligible = bcrf_rewards_sale_eligible_cents($pdo, $saleId);
+    return ['customer_id'=>$owner['customer_id'],'household_id'=>$owner['household_id'],'eligible_cents'=>$eligible];
+}
