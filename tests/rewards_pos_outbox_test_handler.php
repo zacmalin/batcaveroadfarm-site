@@ -91,16 +91,25 @@ if ((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE refund
 // Queue-level crash-after-commit simulation, still no automatic dispatcher.
 // Earlier integration scripts leave queue fixtures behind; isolate this scenario.
 $pdo->exec('DELETE FROM reward_pos_outbox');
+$pdo->exec("INSERT INTO sales (id,customer_id,status,subtotal_cents,discount_cents,total_cents)
+ VALUES (903,1,'completed',2100,0,2100)");
+$pdo->exec("INSERT INTO sale_lines (sale_id,product_type,gross_cents,discount_cents,refunded_net_cents)
+ VALUES (903,'retail',2100,0,0)");
+$pdo->exec("INSERT INTO payments (sale_id,tender,amount_cents,status) VALUES (903,'cash',2100,'completed')");
+$queuedSale=['event_type'=>'sale.completed','source_id'=>903];
+$queuedPosted=bcrf_roost_outbox_handle_test_event($pdo,$queuedSale,1,true);
+if ($queuedPosted['replayed'] || $queuedPosted['outcome']!=='completed')
+    throw new RuntimeException('Queue fixture sale was not posted.');
 require_once __DIR__.'/../includes/roost-pos-outbox.php';
 require_once __DIR__.'/../includes/roost-pos-outbox-worker.php';
 $pdo->beginTransaction();
-bcrf_roost_pos_outbox_enqueue($pdo,'sale.completed',902);
+bcrf_roost_pos_outbox_enqueue($pdo,'sale.completed',903);
 $pdo->commit();
 $claim=bcrf_roost_outbox_claim($pdo);
-if (!$claim || $claim['event_type']!=='sale.completed' || (int)$claim['source_id']!==902)
+if (!$claim || $claim['event_type']!=='sale.completed' || (int)$claim['source_id']!==903)
     throw new RuntimeException('Expected sale queue claim missing.');
-$recovered=bcrf_roost_outbox_handle_test_event($pdo,$valid,1,true);
-if (!$recovered['replayed'] || $recovered['ledger_entry_id']!==$first['ledger_entry_id'])
+$recovered=bcrf_roost_outbox_handle_test_event($pdo,$queuedSale,1,true);
+if (!$recovered['replayed'] || $recovered['ledger_entry_id']!==$queuedPosted['ledger_entry_id'])
     throw new RuntimeException('Claimed event did not recover committed award.');
 // Simulate crash before acknowledgment, then expire lease and reclaim.
 $pdo->prepare("UPDATE reward_pos_outbox SET available_at=UTC_TIMESTAMP(3)-INTERVAL 1 SECOND WHERE id=?")->execute([$claim['id']]);
@@ -112,6 +121,6 @@ if (bcrf_roost_outbox_finish($pdo,(int)$claim['id'],1,'completed'))
 $recoveredAgain=bcrf_roost_outbox_handle_test_event($pdo,$valid,1,true);
 if (!$recoveredAgain['replayed'] || !bcrf_roost_outbox_finish($pdo,(int)$retry['id'],2,'completed'))
     throw new RuntimeException('Recovered queue event not acknowledged.');
-if ((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger WHERE source_type='sale' AND source_id='902'")->fetchColumn()!==1)
+if ((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger WHERE source_type='sale' AND source_id='903'")->fetchColumn()!==1)
     throw new RuntimeException('Queue retry duplicated ledger award.');
 echo "POS handler refund and queue crash-recovery guards passed.\\n";
