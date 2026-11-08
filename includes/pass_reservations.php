@@ -50,7 +50,7 @@ function bcrf_pass_confirm_payment(PDO $pdo, int $passId, string $sessionId): st
         $q = $pdo->prepare('SELECT id FROM pass_types WHERE id=? FOR UPDATE');
         $q->execute([$typeId]);
         if (!$q->fetchColumn()) throw new RuntimeException('Pass type missing');
-        $q = $pdo->prepare('SELECT p.*, t.is_founding, t.founding_qty_limit, t.duration_months FROM passes p JOIN pass_types t ON t.id=p.pass_type_id WHERE p.id=? FOR UPDATE');
+        $q = $pdo->prepare('SELECT p.*, t.is_founding, t.founding_qty_limit, t.duration_months, (p.reservation_expires_at <= NOW()) AS hold_expired FROM passes p JOIN pass_types t ON t.id=p.pass_type_id WHERE p.id=? FOR UPDATE');
         $q->execute([$passId]);
         $pass = $q->fetch(PDO::FETCH_ASSOC);
         if (!$pass || $pass['status'] !== 'pending_payment') {
@@ -58,8 +58,7 @@ function bcrf_pass_confirm_payment(PDO $pdo, int $passId, string $sessionId): st
             return 'already';
         }
         $limited = !empty($pass['is_founding']) && (int)$pass['founding_qty_limit'] > 0;
-        $late = $limited && ($pass['reservation_expires_at'] === null ||
-            strtotime($pass['reservation_expires_at'] . ' UTC') <= time());
+        $late = $limited && ($pass['reservation_expires_at'] === null || (bool)$pass['hold_expired']);
         if ($late) {
             $q = $pdo->prepare("UPDATE passes SET payment_status='paid', payment_provider='stripe', payment_reference=? WHERE id=? AND status='pending_payment'");
             $q->execute([$sessionId, $passId]);
