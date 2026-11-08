@@ -1,6 +1,8 @@
 <?php
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 require_once '../../config.php';
+require_once __DIR__ . '/../../includes/site_info.php';
+$thriftDays = site_hours_summary('thrift_shop')['open_days'] ?? '';
 $pageTitle     = "Thrift Shop Finds - Bat Cave Road Farm";
 $metaDesc      = "Browse available thrift shop finds at Bat Cave Road Farm in Old Fort, NC — vintage, antiques, and one-of-a-kind treasures, updated as our shelves change.";
 $canonicalUrl  = (bcrf_farm_url() . "/thrift-shop/items/");
@@ -73,9 +75,9 @@ if ($__li) {
   <div class="stand-grid">
     <?php if (empty($items)): ?>
       <?php if ($search !== ''): ?>
-        <p class="stand-empty">No thrift finds match “<?= htmlspecialchars($search) ?>.” Try a different search — or come browse our shelves in person, Tuesday through Sunday!</p>
+        <p class="stand-empty">No thrift finds match “<?= htmlspecialchars($search) ?>.” Try a different search — or come browse our shelves in person<?= $thriftDays !== '' ? ', ' . htmlspecialchars($thriftDays) : '' ?>!</p>
       <?php else: ?>
-        <p class="stand-empty">No thrift items are listed online right now — but our shelves are always full in person. Come visit us Tuesday through Sunday!</p>
+        <p class="stand-empty">No thrift items are listed online right now — but our shelves are always full in person. Come visit us<?= $thriftDays !== '' ? ' ' . htmlspecialchars($thriftDays) : '' ?>!</p>
       <?php endif; ?>
     <?php endif; ?>
     <?php foreach ($items as $it):
