@@ -2,6 +2,7 @@
 // Dormant Rewards service-email outbox writer. No sending or scheduler.
 require_once __DIR__ . '/roost-email-events.php';
 require_once __DIR__ . '/roost-email-recipient.php';
+require_once __DIR__ . '/roost-email-suppressions.php';
 
 /**
  * Caller must verify the committed membership and recipient before enqueue.
@@ -56,6 +57,9 @@ function bcrf_roost_email_enqueue(
         bcrf_roost_verified_service_recipient((string)$recipient['email'],
             $recipient['email_verified_at'] !== null, false, (string)$recipient['role']) === null) {
         throw new BcrfRewardError('Verified active adult recipient required.');
+    }
+    if (bcrf_roost_email_service_suppressed($pdo, (string)$recipient['email'])) {
+        throw new BcrfRewardError('Service email recipient suppressed.');
     }
 
     // Recheck the exact millisecond activity epoch before queueing.
