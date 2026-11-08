@@ -42,6 +42,8 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
         throw new BcrfRewardError('Invalid customer.');
     }
     if ($type === 'redeem' && $customer === null) throw new BcrfRewardError('Redeemer required.');
+    if ($delta === PHP_INT_MIN) throw new BcrfRewardError('Points outside safe range.');
+    if ($type === 'refund_reversal' && empty($event['related_entry_id'])) throw new BcrfRewardError('Refund reversal requires original earning entry.');
     if ($pdo->inTransaction()) throw new BcrfRewardError('Reward posting requires its own transaction.');
 
     $pdo->beginTransaction();
@@ -56,17 +58,37 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
         $existing->execute([$event['idempotency_key']]);
         if ($old = $existing->fetch(PDO::FETCH_ASSOC)) {
             if ((int)$old['household_id'] !== (int)$household) throw new BcrfRewardError('Event key belongs to another household.');
+            $check = $pdo->prepare("SELECT policy_id, customer_id, entry_type, points_delta, source_type, source_id, related_entry_id FROM reward_ledger WHERE id = ?");
+            $check->execute([$old['id']]);
+            $saved = $check->fetch(PDO::FETCH_ASSOC);
+            foreach (['policy_id'=>$policy,'customer_id'=>$customer,'entry_type'=>$type,'points_delta'=>$delta,'source_type'=>$event['source_type'],'source_id'=>$event['source_id'],'related_entry_id'=>$event['related_entry_id'] ?? null] as $field=>$expected) {
+                if ((string)($saved[$field] ?? '') !== (string)($expected ?? '')) throw new BcrfRewardError('Idempotency key reused with different event.');
+            }
             $pdo->commit();
             return ['id'=>(int)$old['id'],'balance'=>(int)$account['balance_points'],'replayed'=>true];
         }
 
+        $active = $pdo->prepare("SELECT 1 FROM reward_policies WHERE id = ? AND status = 'active' AND (effective_at IS NULL OR effective_at <= UTC_TIMESTAMP(3)) LIMIT 1");
+        $active->execute([$policy]);
+        if (!$active->fetchColumn()) throw new BcrfRewardError('Reward policy is not active.');
+
         $balance = (int)$account['balance_points'];
+        if (($delta > 0 && $balance > PHP_INT_MAX - $delta) || ($delta < 0 && $balance < PHP_INT_MIN - $delta)) throw new BcrfRewardError('Reward balance overflow.');
         if ($type === 'redeem') {
             // Recheck permission inside the same transaction, after balance lock.
             $member = $pdo->prepare("SELECT 1 FROM reward_household_members WHERE household_id = ? AND customer_id = ? AND revoked_at IS NULL AND verification_status = 'verified' AND role IN ('manager','adult') AND can_redeem = 1 LIMIT 1");
             $member->execute([$household, $customer]);
             if (!$member->fetchColumn()) throw new BcrfRewardError('Not authorized to redeem household rewards.');
             if ($balance <= 0 || $balance < -$delta) throw new BcrfRewardError('Insufficient reward points.');
+        }
+        if ($type === 'refund_reversal') {
+            $origin = $pdo->prepare("SELECT household_id, entry_type, points_delta FROM reward_ledger WHERE id = ? FOR UPDATE");
+            $origin->execute([$event['related_entry_id']]);
+            $earned = $origin->fetch(PDO::FETCH_ASSOC);
+            if (!$earned || (int)$earned['household_id'] !== (int)$household || !in_array($earned['entry_type'], ['earn_spend','earn_visit'], true)) throw new BcrfRewardError('Invalid earning to reverse.');
+            $prior = $pdo->prepare("SELECT COALESCE(SUM(points_delta),0) FROM reward_ledger WHERE related_entry_id = ? AND entry_type = 'refund_reversal'");
+            $prior->execute([$event['related_entry_id']]);
+            if (-$delta > (int)$earned['points_delta'] + (int)$prior->fetchColumn()) throw new BcrfRewardError('Refund exceeds earned points.');
         }
         $newBalance = $balance + $delta;
         $metadata = isset($event['metadata']) ? json_encode($event['metadata'], JSON_THROW_ON_ERROR) : null;
