@@ -18,7 +18,6 @@ $pdo->exec("UPDATE reward_policies SET status='retired' WHERE id=1");
 if (bcrf_roost_outbox_resolve_policy($pdo,$refund)!==1)
     throw new RuntimeException('Retired original refund policy was not preserved.');
 $pdo->exec("UPDATE reward_policies SET status='active' WHERE id=1");
-$pdo->exec("UPDATE reward_policies SET status='active' WHERE id=1");
 $pdo->exec("INSERT INTO reward_policies (id,version,config_json,status,effective_at,created_at) VALUES (99,'policy-test-duplicate','{}','active',NULL,UTC_TIMESTAMP(3))");
 try { bcrf_roost_outbox_resolve_policy($pdo,$sale); throw new RuntimeException('Ambiguous policy accepted.'); }
 catch(RuntimeException $e) { if ($e->getMessage()==='Ambiguous policy accepted.') throw $e; }
