@@ -38,10 +38,12 @@ function bcrf_roost_refund_reversal_preview(PDO $pdo, int $saleId): array {
         }
     }
     if (!$byId || $original <= 0) throw new BcrfRewardError('No eligible original sale lines.');
-    $refunds = $pdo->prepare("SELECT id, net_cents, total_cents FROM refunds WHERE sale_id=?".$suffix);
+    $refunds = $pdo->prepare("SELECT id, net_cents, total_cents FROM refunds WHERE sale_id=? ORDER BY id ASC".$suffix);
     $refunds->execute([$saleId]);
     $sumByLine = [];
     $eligibleRefunds = [];
+    $runningEligibleRefund = 0;
+    $pointsByRefund = [];
     foreach ($refunds->fetchAll(PDO::FETCH_ASSOC) as $refund) {
         $refundId = (int)$refund['id'];
         if ($refundId <= 0 || array_key_exists($refundId, $eligibleRefunds) ||
@@ -87,6 +89,15 @@ function bcrf_roost_refund_reversal_preview(PDO $pdo, int $saleId): array {
         if ($payoutCount === 0 || $payoutTotal !== (int)$refund['total_cents']) {
             throw new BcrfRewardError('Refund payouts do not reconcile.');
         }
+        if ($runningEligibleRefund > PHP_INT_MAX - $eligible || $runningEligibleRefund + $eligible > $original) {
+            throw new BcrfRewardError('Cumulative eligible refund exceeds original sale.');
+        }
+        $before = $runningEligibleRefund;
+        $runningEligibleRefund += $eligible;
+        $pointsByRefund[$refundId] = [
+            'points_before' => bcrf_rewards_cumulative_refund_points($original, $original - $before),
+            'points_after' => bcrf_rewards_cumulative_refund_points($original, $original - $runningEligibleRefund)
+        ];
         $eligibleRefunds[$refundId] = $eligible;
     }
     foreach ($byId as $id=>$line) {
@@ -101,7 +112,8 @@ function bcrf_roost_refund_reversal_preview(PDO $pdo, int $saleId): array {
         'original_eligible_cents'=>$original,
         'remaining_eligible_cents'=>$remaining,
         'cumulative_points_to_reverse'=>bcrf_rewards_cumulative_refund_points($original,$remaining),
-        'eligible_refunds_cents'=>$eligibleRefunds
+        'eligible_refunds_cents'=>$eligibleRefunds,
+        'refund_point_boundaries'=>$pointsByRefund
     ];
 }
 
@@ -131,4 +143,16 @@ function bcrf_roost_refund_is_points_noop(PDO $pdo, int $saleId, int $earnedPoin
         (int)$preview['cumulative_points_to_reverse'],
         $alreadyReversedPoints
     ) === 0;
+}
+
+/** A refund may only reverse its own change in points, after prior reversals. */
+function bcrf_roost_refund_points_for_id(array $preview, int $refundId, int $alreadyReversedPoints): int {
+    $bounds = $preview['refund_point_boundaries'][$refundId] ?? null;
+    if (!$bounds) throw new BcrfRewardError('Refund not found in reconciled sale.');
+    $before = (int)$bounds['points_before'];
+    $after = (int)$bounds['points_after'];
+    if ($alreadyReversedPoints !== $before || $after < $before) {
+        throw new BcrfRewardError('Earlier refund reversals must be processed in order.');
+    }
+    return $after - $before;
 }
