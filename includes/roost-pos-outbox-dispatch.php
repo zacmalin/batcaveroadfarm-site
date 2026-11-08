@@ -81,8 +81,8 @@ function bcrf_roost_outbox_dispatch_refund_preflight(PDO $pdo, array $event): ar
             l.entry_type AS ledger_type,l.source_type AS ledger_source,
             l.source_id AS ledger_refund,l.idempotency_key
         FROM reward_refund_processing p
-        JOIN refunds r ON r.id=p.refund_id
-        JOIN reward_ledger e ON e.id=p.original_earning_entry_id
+        LEFT JOIN refunds r ON r.id=p.refund_id
+        LEFT JOIN reward_ledger e ON e.id=p.original_earning_entry_id
         LEFT JOIN reward_ledger l ON l.id=p.reversal_entry_id
         WHERE p.refund_id=?");
     $receipt->execute([(int)$sourceId]);
