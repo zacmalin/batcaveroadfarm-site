@@ -17,15 +17,15 @@ function bcrf_roost_record_zero_point_refund(PDO $pdo, int $refundId, int $earni
         $lock = $pdo->prepare("SELECT balance_points FROM reward_accounts WHERE household_id=? FOR UPDATE");
         $lock->execute([$household]);
         if ($lock->fetchColumn() === false) throw new BcrfRewardError('Reward account unavailable.');
-        // Lock in the same account -> earning -> refund order as ledger posting.
-        $originLock = $pdo->prepare("SELECT id FROM reward_ledger WHERE id=? FOR UPDATE");
-        $originLock->execute([$earningEntryId]);
-        if (!$originLock->fetchColumn()) throw new BcrfRewardError('Original earning unavailable.');
         $refund = $pdo->prepare("SELECT sale_id FROM refunds WHERE id=? FOR UPDATE");
         $refund->execute([$refundId]);
         $saleId = $refund->fetchColumn();
         if ($saleId === false || (string)$saleId !== (string)$earned['source_id'])
             throw new BcrfRewardError('Refund does not match original sale.');
+        // Match ledger posting lock order: account, refund, then original earning.
+        $originLock = $pdo->prepare("SELECT id FROM reward_ledger WHERE id=? FOR UPDATE");
+        $originLock->execute([$earningEntryId]);
+        if (!$originLock->fetchColumn()) throw new BcrfRewardError('Original earning unavailable.');
         $existing = $pdo->prepare("SELECT original_earning_entry_id, points_reversed FROM reward_refund_processing WHERE refund_id=?");
         $existing->execute([$refundId]);
         if ($saved = $existing->fetch(PDO::FETCH_ASSOC)) {
