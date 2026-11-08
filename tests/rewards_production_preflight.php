@@ -8,7 +8,8 @@ try {
         getenv('BCRF_REWARDS_PREFLIGHT_PASSWORD') ?: '',
         [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
     $version = (string)$pdo->query('SELECT VERSION()')->fetchColumn();
-    $collation = (string)$pdo->query("SHOW COLLATION LIKE 'utf8mb4_0900_ai_ci'")->fetch(PDO::FETCH_ASSOC)['Collation'] ?? '';
+    $collationRow = $pdo->query("SHOW COLLATION LIKE 'utf8mb4_0900_ai_ci'")->fetch(PDO::FETCH_ASSOC);
+    $collation = $collationRow ? (string)$collationRow['Collation'] : '';
     $required = [
         'customers'=>['id'=>'int'],
         'sales'=>['id'=>'bigint','customer_id'=>'int'],
@@ -26,7 +27,7 @@ try {
             if (!isset($found[$name])) $issues[] = "$table.$name missing";
             elseif ($found[$name]['DATA_TYPE'] !== $type) $issues[] = "$table.$name type mismatch (expected $type)";
         }
-        if (isset($found['id']) && in_array($table,['refunds','check_ins'],true)
+        if (isset($found['id']) && in_array($table,['sales','refunds','check_ins'],true)
             && !str_contains($found['id']['COLUMN_TYPE'],'unsigned')) {
             $issues[] = "$table.id must be UNSIGNED for reward foreign keys";
         }
