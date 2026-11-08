@@ -7,6 +7,10 @@ try {
     $pdo = new PDO($dsn, getenv('BCRF_REWARDS_PREFLIGHT_USER') ?: '',
         getenv('BCRF_REWARDS_PREFLIGHT_PASSWORD') ?: '',
         [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+    $schema = (string)$pdo->query('SELECT DATABASE()')->fetchColumn();
+    if ($schema === '' || strtolower($schema) === 'information_schema') {
+        throw new RuntimeException('Select the application database explicitly in the DSN, not information_schema.');
+    }
     $version = (string)$pdo->query('SELECT VERSION()')->fetchColumn();
     $collationRow = $pdo->query("SHOW COLLATION LIKE 'utf8mb4_0900_ai_ci'")->fetch(PDO::FETCH_ASSOC);
     $collation = $collationRow ? (string)$collationRow['Collation'] : '';
@@ -47,6 +51,7 @@ try {
         $issues[] = 'MariaDB detected: migration SQL is MySQL 8-specific; verify separately before deployment';
     }
     if ($collation === '') $issues[] = 'utf8mb4_0900_ai_ci collation unavailable';
+    echo "Selected database: $schema\n";
     echo "Database engine: $version\n";
     echo "Collation: ".($collation ?: 'unavailable')."\n";
     foreach ($issues as $issue) echo "BLOCKER: $issue\n";
