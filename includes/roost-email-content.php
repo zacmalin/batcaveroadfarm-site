@@ -24,7 +24,7 @@ function bcrf_roost_welcome_email_content(string $dashboardUrl): array {
     return [
         'subject'=>'Welcome to Roost Rewards',
         'html'=>$html,
-        'opts'=>['subtitle'=>'Roost Rewards', 'unsubscribe'=>false,
+        'opts'=>['subtitle'=>'Roost Rewards', 'unsubscribe'=>false, 'transport'=>'smtp_required',
             'text'=>"Welcome to Roost Rewards! Earn 5 whole points per eligible dollar, rounded down per sale, and 25 points per eligible verified visit. Your verified household shares points. Qualifying purchases and verified visits reset the 12-month inactivity clock. View your account: $dashboardUrl"],
     ];
 }
@@ -53,7 +53,7 @@ function bcrf_roost_expiration_email_content(int $days, int $balance, string $ex
     return [
         'subject'=>"Roost Rewards: $days days until points expiration",
         'html'=>$html,
-        'opts'=>['subtitle'=>'Roost Rewards', 'unsubscribe'=>false,
+        'opts'=>['subtitle'=>'Roost Rewards', 'unsubscribe'=>false, 'transport'=>'smtp_required',
             'text'=>"Roost Rewards: $balance points may expire on $when unless your household has a qualifying purchase or verified visit. A redemption or newsletter click does not reset inactivity. Review your account: $dashboardUrl"],
     ];
 }
