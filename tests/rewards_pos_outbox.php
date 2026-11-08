@@ -77,5 +77,26 @@ rr_check($rejected,'Retired policy was accepted for a new sale.');
 rr_check((int)$pdo->query("SELECT COUNT(*) FROM reward_pos_outbox WHERE source_id=990113")->fetchColumn()===0,
     'Rejected retired-policy sale left an outbox event.');
 $other->exec("UPDATE reward_policies SET status='active' WHERE id=1");
+// Reproduce opposing lock order: POS holds a source sale row and then
+// needs policy; maintenance holds policy and then needs that sale row.
+// MySQL must detect the cycle, not allow both transactions to commit.
+$pdo->exec("INSERT INTO sales (id,customer_id,status,subtotal_cents,discount_cents,total_cents)
+    VALUES (990114,1,'completed',100,0,100)");
+$pdo->beginTransaction();
+$pdo->query("SELECT id FROM sales WHERE id=990114 FOR UPDATE")->fetchColumn();
+$other->beginTransaction();
+$other->query("SELECT id FROM reward_policies WHERE id=1 FOR UPDATE")->fetchColumn();
+$other->exec('SET SESSION innodb_lock_wait_timeout=1');
+$timedOut=false;
+try {
+    $other->query("SELECT id FROM sales WHERE id=990114 FOR UPDATE")->fetchColumn();
+} catch(PDOException $e) {
+    if (($e->errorInfo[1]??null)!==1205) throw $e;
+    $timedOut=true;
+}
+rr_check($timedOut,'Opposite lock-order fixture did not block on sale row.');
+$other->rollBack();
+$pdo->rollBack();
+$pdo->exec('DELETE FROM sales WHERE id=990114');
 $pdo->exec("DELETE FROM reward_pos_outbox WHERE source_id=990111");
 echo "POS outbox atomicity and deduplication passed.\n";
