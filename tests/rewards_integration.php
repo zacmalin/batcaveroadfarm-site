@@ -343,6 +343,26 @@ expect(!bcrf_roost_record_zero_point_refund($pdo,5,$zeroEarnId)['replayed'],
     'fresh zero-point processing succeeds after reactivation');
 expect(bcrf_roost_record_zero_point_refund($pdo,5,$zeroEarnId)['replayed'],
     'active household may safely replay the same refund');
+if (!function_exists('proc_open')) throw new RuntimeException('Parallel worker test requires proc_open.');
+$workers = [];
+for ($worker=0; $worker<4; $worker++) {
+    $pipes = [];
+    $cmd = [PHP_BINARY, __DIR__.'/rewards_concurrency_worker.php', '5', (string)$zeroEarnId];
+    $process = proc_open($cmd, [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']], $pipes);
+    if (!is_resource($process)) throw new RuntimeException('Unable to start concurrent rewards worker.');
+    fclose($pipes[0]);
+    $workers[] = [$process,$pipes];
+}
+foreach ($workers as [$process,$pipes]) {
+    $stdout = stream_get_contents($pipes[1]);
+    $stderr = stream_get_contents($pipes[2]);
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+    expect(proc_close($process)===0, 'concurrent worker failed: '.$stdout.' '.$stderr);
+}
+expect((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE refund_id=5")->fetchColumn()===1,
+    'four simultaneous replay workers preserve exactly one refund receipt');
+
 
 
 rejected(fn()=>bcrf_roost_record_zero_point_refund($pdo,5,$a['id']),
