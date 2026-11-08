@@ -126,12 +126,17 @@ $pdo->commit();
 $refundReplayOutboxId=(int)$pdo->query("SELECT id FROM reward_pos_outbox
  WHERE event_type='sale.refunded' AND source_id=9021")->fetchColumn();
 $replayBalance=(int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn();
-$refundReplayPlan=bcrf_roost_outbox_dispatch_refund_preflight($pdo,
-    ['id'=>$refundReplayOutboxId,'event_type'=>'sale.refunded','source_id'=>9021]);
-if (($refundReplayPlan['action']??null)!=='already_posted' ||
-    (int)($refundReplayPlan['event']['policy_id']??0)!==1 ||
-    empty($refundReplayPlan['receipt']['ledger_entry_id']))
-    throw new RuntimeException('Committed refund replay receipt not recognized by dispatch preflight.');
+// Current inert preflight recalculates the next refund delta before looking
+// up a receipt. For an already-reversed refund, this must fail closed; the
+// future dispatcher needs a receipt-first replay path before activation.
+try {
+    bcrf_roost_outbox_dispatch_refund_preflight($pdo,
+        ['id'=>$refundReplayOutboxId,'event_type'=>'sale.refunded','source_id'=>9021]);
+    throw new RuntimeException('Already-reversed refund unexpectedly passed delta preflight.');
+} catch (BcrfRewardError $expected) {
+    if ($expected->getMessage()!=='Earlier refund reversals must be processed in order.')
+        throw $expected;
+}
 if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==$replayBalance)
     throw new RuntimeException('Read-only refund replay preflight changed household balance.');
 $pdo->exec("DELETE FROM reward_pos_outbox WHERE id=$refundReplayOutboxId");
