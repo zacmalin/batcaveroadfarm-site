@@ -230,7 +230,7 @@ expect((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger WHERE entry_type='ea
 
 
 // Read-only expiration preview: only positive-balance, active, stale households.
-require __DIR__ . '/../includes/roost-expiration-preview.php';
+require_once __DIR__ . '/../includes/roost-expiration-preview.php';
 expect(!bcrf_roost_is_inactive_at('2025-11-08 12:00:00','2026-11-08 11:59:59'), 'not expired before anniversary');
 expect(bcrf_roost_is_inactive_at('2025-11-08 12:00:00','2026-11-08 12:00:00'), 'expires on 12-month anniversary');
 expect(bcrf_roost_is_inactive_at('2024-02-29 12:00:00','2025-02-28 12:00:00'), 'leap-day anniversary clamps');
