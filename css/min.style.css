@@ -395,4 +395,6 @@ nav.open .hamburger-label .hl-close{display:inline}
 .hamburger:focus-visible{outline:3px solid var(--cream);outline-offset:3px}
 
 /* Keep homepage booking calls to action equal-width on mobile and desktop. */
-.home-visit-actions .cta-btn{display:block;box-sizing:border-box;width:100%;max-width:420px;margin-left:auto;margin-right:auto}
+.home-visit-actions{display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:22px}
+.home-visit-actions .cta-btn{display:flex;align-items:center;justify-content:center;box-sizing:border-box;width:min(100%,320px);max-width:100%;margin:0;text-align:center}
+@media (min-width:768px){.home-visit-actions{flex-direction:row;justify-content:center;gap:12px}.home-visit-actions .cta-btn{flex:1 1 0;min-width:0;max-width:220px;width:auto;padding-left:10px;padding-right:10px}}
