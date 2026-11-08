@@ -109,6 +109,12 @@ $claim = bcrf_roost_email_claim($pdo);
 expect($claim !== null && $claim['event_type']==='welcome', 'oldest welcome event claimed');
 expect(strlen($claim['claim_token'])===64, 'claim uses random 256-bit token');
 require_once __DIR__ . '/../includes/roost-email-delivery-eligibility.php';
+require_once __DIR__ . '/../includes/roost-email-recipient.php';
+expect(bcrf_roost_verified_service_recipient(' Adult@Example.com ',true,false,'adult') === 'adult@example.com', 'independently verified adult address allowed');
+expect(bcrf_roost_verified_service_recipient('adult@example.com',false,false,'adult') === null, 'membership alone does not verify email ownership');
+expect(bcrf_roost_verified_service_recipient('adult@example.com',true,true,'manager') === null, 'suppressed recipient denied');
+expect(bcrf_roost_verified_service_recipient('child@example.com',true,false,'dependent') === null, 'dependent not a service recipient');
+
 expect(bcrf_roost_email_claim_eligible($pdo,(int)$claim['id'],$claim['claim_token']), 'verified welcome claim eligible');
 expect(!bcrf_roost_email_claim_eligible($pdo,(int)$claim['id'],str_repeat('0',64)), 'incorrect claim token denied');
 $pdo->exec("UPDATE reward_households SET status='suspended' WHERE id=1");
