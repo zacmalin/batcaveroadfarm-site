@@ -17,6 +17,21 @@ $pdo->exec("INSERT INTO refunds VALUES (1,100),(2,101)");
 $schema = require __DIR__ . '/../admin/migrations/0016_farm_rewards_foundation.php';
 $schema($pdo);
 $schema($pdo); // rerunnable
+$pdo->exec("CREATE TABLE check_ins (id BIGINT UNSIGNED NOT NULL PRIMARY KEY, business_date DATE NOT NULL) ENGINE=InnoDB");
+$pdo->exec("INSERT INTO check_ins VALUES (1,'2026-11-08'),(2,'2026-11-08'),(3,'2026-11-09')");
+$attendanceSchema = require __DIR__ . '/../admin/migrations/0017_roost_rewards_attendance.php';
+$attendanceSchema($pdo);
+$attendanceSchema($pdo); // rerunnable
+$pdo->exec("INSERT INTO reward_verified_attendance (check_in_id,customer_id,business_date,verified_by_staff_id,verified_at,created_at) VALUES (1,1,'2026-11-08',7,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
+try {
+    $pdo->exec("INSERT INTO reward_verified_attendance (check_in_id,customer_id,business_date,verified_by_staff_id,verified_at,created_at) VALUES (2,1,'2026-11-08',7,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
+    throw new RuntimeException('Duplicate attendee on same operating day accepted');
+} catch (PDOException $e) {
+    if ($e->getCode() !== '23000') throw $e;
+}
+$pdo->exec("INSERT INTO reward_verified_attendance (check_in_id,customer_id,business_date,verified_by_staff_id,verified_at,created_at) VALUES (2,2,'2026-11-08',7,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
+$pdo->exec("INSERT INTO reward_verified_attendance (check_in_id,customer_id,business_date,verified_by_staff_id,verified_at,created_at) VALUES (3,1,'2026-11-09',7,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
+
 $pdo->exec("INSERT INTO reward_households (id, status, created_at) VALUES (1,'active',UTC_TIMESTAMP(3))");
 $pdo->exec("INSERT INTO reward_accounts (household_id, updated_at) VALUES (1,UTC_TIMESTAMP(3))");
 $pdo->exec("INSERT INTO reward_household_members (household_id,customer_id,role,verification_status,can_redeem,joined_at) VALUES (1,1,'manager','verified',1,UTC_TIMESTAMP(3)),(1,2,'adult','verified',1,UTC_TIMESTAMP(3))");
