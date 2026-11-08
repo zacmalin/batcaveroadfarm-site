@@ -203,4 +203,27 @@ $preview = bcrf_roost_refund_reversal_preview($pdo,100);
 expect($preview['cumulative_points_to_reverse']===200 && $preview['remaining_eligible_cents']===0,'full refund preview matches original points');
 $pdo->exec("UPDATE refund_lines SET net_cents=3900 WHERE refund_id=1");
 rejected(fn()=>bcrf_roost_refund_reversal_preview($pdo,100),'refund amount mismatch fails closed');
+// Partial refunds must reverse only the change in floored points.
+$pdo->exec("UPDATE refunds SET net_cents=1001 WHERE id=1");
+$pdo->exec("UPDATE refund_lines SET net_cents=1001 WHERE refund_id=1");
+$pdo->exec("UPDATE sale_lines SET refunded_net_cents=1001 WHERE id=1");
+$partial = bcrf_roost_refund_reversal_preview($pdo,100);
+expect($partial['original_eligible_cents']===4000 && $partial['remaining_eligible_cents']===2999 &&
+    $partial['cumulative_points_to_reverse']===51,'partial refund rounds cumulative points correctly');
+// A second refund changes the cumulative reversal by only the newly lost points.
+$pdo->exec("INSERT INTO refunds VALUES (3,100,999)");
+$pdo->exec("INSERT INTO refund_lines VALUES (3,1,999)");
+$pdo->exec("UPDATE sale_lines SET refunded_net_cents=2000 WHERE id=1");
+$twice = bcrf_roost_refund_reversal_preview($pdo,100);
+expect($twice['cumulative_points_to_reverse']===100 && count($twice['eligible_refunds_cents'])===2,
+    'multiple partial refunds reconcile cumulatively');
+// Ineligible items may be refunded without reducing eligible points.
+$pdo->exec("INSERT INTO sales VALUES (104,1,'partially_refunded',3000,0,3000)");
+$pdo->exec("INSERT INTO sale_lines (sale_id,product_type,gross_cents,discount_cents,refunded_net_cents)
+    VALUES (104,'retail',2000,0,0),(104,'gift_card',1000,0,1000)");
+$pdo->exec("INSERT INTO refunds VALUES (4,104,1000)");
+$pdo->exec("INSERT INTO refund_lines VALUES (4,6,1000)");
+$mixed = bcrf_roost_refund_reversal_preview($pdo,104);
+expect($mixed['cumulative_points_to_reverse']===0 && $mixed['remaining_eligible_cents']===2000,
+    'ineligible refund does not reverse eligible points');
 echo "Farm Rewards integration checks passed.\\n";
