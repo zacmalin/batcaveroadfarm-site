@@ -13,6 +13,15 @@ $pdo->exec("INSERT INTO payments (sale_id,tender,amount_cents,status) VALUES (1,
 require __DIR__.'/../includes/rewards-pos-preview.php';
 function check(bool $ok,string $message):void {if(!$ok)throw new RuntimeException($message);}
 function mustReject(callable $fn,string $message):void {try {$fn();}catch(BcrfRewardError $e){return;}throw new RuntimeException($message);}
+check(bcrf_rewards_points_for_eligible_cents(1099)===54,'round down 10.99 dollars');
+check(bcrf_rewards_points_for_eligible_cents(1)===0,'tiny purchase earns zero, no carry');
+check(bcrf_rewards_points_for_eligible_cents(19)===0,'nineteen cents earns zero');
+check(bcrf_rewards_points_for_eligible_cents(20)===1,'twenty cents earns one');
+check(bcrf_rewards_points_for_eligible_cents(199)===9,'one dollar ninety-nine earns nine');
+check(bcrf_rewards_points_for_eligible_cents(100)===5,'one dollar earns five');
+check(bcrf_rewards_points_for_eligible_cents(PHP_INT_MAX)===intdiv(PHP_INT_MAX,100)*5+intdiv((PHP_INT_MAX%100)*5,100),'large integer exact conversion');
+mustReject(fn()=>bcrf_rewards_points_for_eligible_cents(0),'zero eligible cents');
+mustReject(fn()=>bcrf_rewards_points_for_eligible_cents(-1),'negative eligible cents');
 check(bcrf_rewards_sale_eligible_cents($pdo,1)===2150,'net eligible cents excludes gift card and refunded amount');
 mustReject(fn()=>bcrf_rewards_sale_eligible_cents($pdo,2),'unpaid sale');
 mustReject(fn()=>bcrf_rewards_sale_eligible_cents($pdo,3),'voided sale');
@@ -51,7 +60,7 @@ $pdo->exec("INSERT INTO reward_household_members VALUES (7,11,'verified',NULL),(
 mustReject(fn()=>bcrf_rewards_sale_verified_household($pdo,1),'anonymous sale has no household');
 $pdo->exec("UPDATE sales SET customer_id=11 WHERE id=1");
 check(bcrf_rewards_sale_verified_household($pdo,1)===['customer_id'=>11,'household_id'=>7],'verified sale owner');
-check(bcrf_rewards_sale_claim_preview($pdo,1,11)===['customer_id'=>11,'household_id'=>7,'eligible_cents'=>2150],'authenticated customer can preview own eligible sale');
+check(bcrf_rewards_sale_claim_preview($pdo,1,11)===['customer_id'=>11,'household_id'=>7,'eligible_cents'=>2150,'points'=>107],'authenticated customer can preview own eligible sale');
 mustReject(fn()=>bcrf_rewards_sale_claim_preview($pdo,1,12),'other authenticated customer cannot claim sale');
 mustReject(fn()=>bcrf_rewards_sale_claim_preview($pdo,1,0),'missing authenticated customer');
 $pdo->exec("UPDATE sales SET customer_id=12 WHERE id=1");
