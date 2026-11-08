@@ -106,6 +106,9 @@ function bcrf_rewards_sale_verified_household(PDO $pdo, int $saleId): array {
           AND h.status = 'active'");
     $st->execute([$saleId]);
     $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+    // An unverified or revoked second membership must not be silently
+    // treated as a valid alternate household; only verified active rows count.
+
     if (count($rows) !== 1) throw new BcrfRewardError('Sale has no unique verified active household.');
     return ['customer_id'=>(int)$rows[0]['customer_id'], 'household_id'=>(int)$rows[0]['household_id']];
 }
