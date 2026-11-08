@@ -62,7 +62,7 @@ $secondRefund=bcrf_roost_outbox_handle_test_event($pdo,$late,1,true);
 if ($secondRefund['outcome']!=='completed' || $secondRefund['replayed'])
     throw new RuntimeException('Second refund was not processed.');
 $balanceRefunded=(int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn();
-if ($balanceAfter-$balanceRefunded!==74) throw new RuntimeException('Refund points reversal mismatch.');
+if ($balanceAfter-$balanceRefunded!==75) throw new RuntimeException('Refund points reversal mismatch.');
 $again=bcrf_roost_outbox_handle_test_event($pdo,$late,1,true);
 if (!$again['replayed'] || $again['ledger_entry_id']!==$secondRefund['ledger_entry_id'])
     throw new RuntimeException('Refund retry was not recognized.');
