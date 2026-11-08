@@ -48,4 +48,19 @@ if ($mailer===false || $content===false || $eligibility===false || $claim===fals
     !str_contains($eligibility, 'bcrf_roost_email_service_suppressed') ||
     !str_contains($claim, 'FOR UPDATE SKIP LOCKED'))
     throw new RuntimeException('Dormant service-email strict SMTP, suppression or claim safety gate missing.');
+// Keep the admin delivery-review route permission-gated and disconnected.
+$registry=file_get_contents($root.'/admin/includes/permission_checks.php');
+$controller=file_get_contents($root.'/admin/admin.php');
+$view=file_get_contents($root.'/admin/views/rewards_delivery_review.php');
+$access=file_get_contents($root.'/includes/roost-email-dsn-review-access.php');
+if ($registry===false || $controller===false || $view===false || $access===false ||
+    !str_contains($registry, "'rewards_delivery_review' =>") ||
+    !str_contains($controller, "'rewards_delivery_review' => __DIR__ . '/views/rewards_delivery_review.php'") ||
+    !str_contains($view, 'bcrf_roost_delivery_review_access') ||
+    !str_contains($view, 'http_response_code(403)') ||
+    !str_contains($access, "\$role === 'administrator'") ||
+    !str_contains($view, 'Mailbox integration and delivery-failure records are not connected.') ||
+    str_contains($view, '\$_POST') ||
+    str_contains($view, 'bcrf_roost_email_record_suppression('))
+    throw new RuntimeException('Admin delivery-review preview must remain gated, read-only and disconnected.');
 echo "Offline rewards release safety audit passed.\\n";
