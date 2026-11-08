@@ -261,6 +261,14 @@ function bcf_send_mail(string $to, string $subject, string $innerHtml, array $op
         : trim(preg_replace('/\n{3,}/', "\n\n", html_entity_decode(strip_tags(
             str_replace(['<br>', '<br/>', '<br />', '</p>', '</div>', '</h1>', '</h2>'], "\n", $innerHtml)), ENT_QUOTES)));
 
+    // Strict SMTP is opt-in for service notifications; unlike the legacy
+    // default, it must never fall back to PHP mail() after an SMTP failure.
+    $strictSmtp = ($opts['transport'] ?? 'auto') === 'smtp_required';
+    if ($strictSmtp && (!bcf_smtp_available() || !bcf_phpmailer_ready())) {
+        $GLOBALS['bcf_mail_last_error'] = 'Required SMTP transport unavailable';
+        return false;
+    }
+
     // ── Preferred path: authenticated SMTP via PHPMailer (best deliverability) ──
     if (($opts['transport'] ?? 'auto') !== 'mail' && bcf_smtp_available() && bcf_phpmailer_ready()) {
         try {
@@ -292,10 +300,12 @@ function bcf_send_mail(string $to, string $subject, string $innerHtml, array $op
         } catch (\Throwable $e) {
             error_log('[bcf_send_mail] SMTP send failed, falling back to mail(): ' . $e->getMessage());
             $GLOBALS['bcf_mail_last_error'] = 'SMTP: ' . mb_substr($e->getMessage(), 0, 200);
+            if ($strictSmtp) return false;
             // fall through to mail()
         }
     }
 
+    // Only legacy/auto transport reaches PHP mail(); strict SMTP fails closed.
     // ── Fallback path: PHP mail() multipart (resilient, dependency-free) ──
     $boundary = 'bcrf_' . bin2hex(random_bytes(8));
     $body  = "--{$boundary}\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n" . $text . "\r\n";
