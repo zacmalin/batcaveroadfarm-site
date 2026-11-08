@@ -134,6 +134,23 @@ if (($refundReplayPlan['action']??null)!=='already_posted' ||
     throw new RuntimeException('Committed refund replay receipt not recognized by dispatch preflight.');
 if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==$replayBalance)
     throw new RuntimeException('Read-only refund replay preflight changed household balance.');
+// A replayed refund must remain attached to the sale that earned the points.
+// This mutation is FK-valid, unlike referencing a nonexistent sale.
+$pdo->exec("UPDATE refunds SET sale_id=905 WHERE id=9021");
+try {
+    bcrf_roost_outbox_dispatch_refund_preflight($pdo,
+        ['id'=>$refundReplayOutboxId,'event_type'=>'sale.refunded','source_id'=>9021]);
+    throw new RuntimeException('Reassociated refund receipt was acknowledged.');
+} catch (RuntimeException $expected) {
+    if ($expected->getMessage()!=='Refund requires one original sale policy.' &&
+        $expected->getMessage()!=='Committed refund provenance mismatch.') throw $expected;
+} finally {
+    $pdo->exec("UPDATE refunds SET sale_id=902 WHERE id=9021");
+}
+$reassociatedRestored=bcrf_roost_outbox_dispatch_refund_preflight($pdo,
+    ['id'=>$refundReplayOutboxId,'event_type'=>'sale.refunded','source_id'=>9021]);
+if (($reassociatedRestored['action']??null)!=='already_posted')
+    throw new RuntimeException('Restored refund association did not replay.');
 // Corrupting the durable receipt must never produce an already-posted
 // acknowledgment, even when the ledger reversal itself still exists.
 $pdo->exec("UPDATE reward_refund_processing SET points_reversed=points_reversed+1 WHERE refund_id=9021");
