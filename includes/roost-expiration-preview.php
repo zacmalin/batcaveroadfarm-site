@@ -1,7 +1,9 @@
 <?php
 // Roost Rewards inactivity eligibility preview; no mutation, no scheduled execution.
 // Uses UTC calendar months, not a fixed 365-day approximation.
-if (!class_exists('BcrfRewardError')) class BcrfRewardError extends RuntimeException {}
+if (!class_exists('BcrfRewardError')) {
+    class BcrfRewardError extends RuntimeException {}
+}
 
 /** Returns whether 12 complete calendar months have elapsed since activity. */
 function bcrf_roost_is_inactive_at(string $lastActivityUtc, string $nowUtc): bool {
