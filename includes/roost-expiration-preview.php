@@ -27,6 +27,40 @@ function bcrf_roost_is_inactive_at(string $lastActivityUtc, string $nowUtc): boo
 }
 
 /**
+ * Shared UTC anniversary for expiration and future service-email reminders.
+ * Pure calculation only: does not schedule, send, or expire points.
+ */
+function bcrf_roost_expiration_at(string $lastActivityUtc): DateTimeImmutable {
+    $tz = new DateTimeZone('UTC');
+    $last = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s.u', $lastActivityUtc, $tz);
+    if ($last === false) $last = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $lastActivityUtc, $tz);
+    if ($last === false) throw new BcrfRewardError('Invalid UTC activity timestamp.');
+    $year = (int)$last->format('Y') + 1;
+    $month = (int)$last->format('m');
+    $day = min((int)$last->format('d'), cal_days_in_month(CAL_GREGORIAN, $month, $year));
+    return $last->setDate($year, $month, $day);
+}
+
+/**
+ * Returns the exact reminder milestone (60, 30 or 7 calendar days remaining),
+ * or null outside a milestone day. Callers must independently recheck household
+ * status, balance, recipient authorization and activity before any future send.
+ */
+function bcrf_roost_expiration_reminder_day(string $lastActivityUtc, string $nowUtc): ?int {
+    $expiration = bcrf_roost_expiration_at($lastActivityUtc);
+    $tz = new DateTimeZone('UTC');
+    $now = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s.u', $nowUtc, $tz);
+    if ($now === false) $now = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $nowUtc, $tz);
+    if ($now === false) throw new BcrfRewardError('Invalid UTC reminder timestamp.');
+    if ($now >= $expiration) return null;
+    foreach ([60, 30, 7] as $days) {
+        $start = $expiration->modify("-$days days");
+        if ($now >= $start && $now < $start->modify('+1 day')) return $days;
+    }
+    return null;
+}
+
+/**
  * Read-only candidate listing. Missing activity dates require manual reconciliation,
  * not automatic expiration. No points are removed by this function.
  */
