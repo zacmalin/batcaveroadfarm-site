@@ -159,4 +159,13 @@ if (function_exists('pcntl_fork') && function_exists('stream_socket_pair')) {
     $pdo = new PDO($dsn, getenv('BCRF_REWARDS_TEST_USER') ?: '', getenv('BCRF_REWARDS_TEST_PASSWORD') ?: '', [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
     expect((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()===0,'concurrent balance never overspent');
 }
+
+// Trusted visit-award orchestration: provenance, fixed points, replay and fabricated sources.
+require __DIR__ . '/../includes/roost-visit-awards.php';
+$visitAward = bcrf_roost_award_verified_visit($pdo, $staffAttendance);
+expect(!$visitAward['replayed'] && $visitAward['id'] > 0, 'verified individual visit awards 25 points');
+$visitReplay = bcrf_roost_award_verified_visit($pdo, $staffAttendance);
+expect($visitReplay['replayed'] && $visitReplay['id'] === $visitAward['id'], 'same attendance never awards twice');
+rejected(fn()=>bcrf_roost_award_verified_visit($pdo, 999999), 'fabricated attendance cannot earn');
+expect((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger WHERE entry_type='earn_visit' AND source_id='".(int)$staffAttendance."'")->fetchColumn()===1, 'single verified visit ledger award');
 echo "Farm Rewards integration checks passed.\\n";
