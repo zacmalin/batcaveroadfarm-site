@@ -15,6 +15,6 @@ return function (PDO $pdo): void {
         UNIQUE KEY uq_reward_pos_event (event_type, source_id),
         KEY idx_reward_pos_pending (status, available_at, id),
         CONSTRAINT chk_reward_pos_event CHECK (event_type IN ('sale.completed','sale.refunded')),
-        CONSTRAINT chk_reward_pos_status CHECK (status IN ('pending','processing','completed','skipped','failed'))
+        CONSTRAINT chk_reward_pos_status CHECK (status IN ('pending','processing','completed','skipped','failed','dead'))
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci");
 };
