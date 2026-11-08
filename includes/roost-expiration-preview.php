@@ -8,22 +8,10 @@ if (!class_exists('BcrfRewardError')) {
 /** Returns whether 12 complete calendar months have elapsed since activity. */
 function bcrf_roost_is_inactive_at(string $lastActivityUtc, string $nowUtc): bool {
     $tz = new DateTimeZone('UTC');
-    $parse = static function (string $value) use ($tz): DateTimeImmutable {
-        $date = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s.u', $value, $tz);
-        if ($date === false) $date = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $value, $tz);
-        if ($date === false) throw new BcrfRewardError('Invalid UTC activity timestamp.');
-        return $date;
-    };
-    $last = $parse($lastActivityUtc);
-    $now = $parse($nowUtc);
-    if ($now < $last) return false;
-    // Clamp month-end anniversaries: Jan 31 -> Jan 31 next year,
-    // Feb 29 -> Feb 28 on non-leap years.
-    $anniversaryYear = (int)$last->format('Y') + 1;
-    $month = (int)$last->format('m');
-    $day = min((int)$last->format('d'), cal_days_in_month(CAL_GREGORIAN, $month, $anniversaryYear));
-    $anniversary = $last->setDate($anniversaryYear, $month, $day);
-    return $now >= $anniversary;
+    $now = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s.u', $nowUtc, $tz);
+    if ($now === false) $now = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $nowUtc, $tz);
+    if ($now === false) throw new BcrfRewardError('Invalid UTC activity timestamp.');
+    return $now >= bcrf_roost_expiration_at($lastActivityUtc);
 }
 
 /**
