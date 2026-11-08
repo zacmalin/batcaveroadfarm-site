@@ -233,6 +233,20 @@ $pdo->exec("INSERT INTO refund_lines VALUES (4,6,1000)");
 $mixed = bcrf_roost_refund_reversal_preview($pdo,104);
 expect($mixed['cumulative_points_to_reverse']===0 && $mixed['remaining_eligible_cents']===2000,
     'ineligible refund does not reverse eligible points');
+// Sub-dollar refunds may not cross a points boundary; no ledger debit is due.
+$pdo->exec("INSERT INTO sales VALUES (105,1,'partially_refunded',100,0,100)");
+$pdo->exec("INSERT INTO sale_lines (sale_id,product_type,gross_cents,discount_cents,refunded_net_cents)
+    VALUES (105,'retail',100,0,1)");
+$pdo->exec("INSERT INTO refunds VALUES (5,105,1)");
+$pdo->exec("INSERT INTO refund_lines VALUES (5,7,1)");
+$zeroRefund = bcrf_roost_refund_reversal_preview($pdo,105);
+expect($zeroRefund['cumulative_points_to_reverse']===1, 'one-cent refund crossing a whole-point threshold reverses one point');
+$pdo->exec("UPDATE refund_lines SET net_cents=0 WHERE refund_id=5");
+$pdo->exec("UPDATE refunds SET net_cents=0 WHERE id=5");
+$pdo->exec("UPDATE sale_lines SET refunded_net_cents=0 WHERE id=7");
+$zeroRefund = bcrf_roost_refund_reversal_preview($pdo,105);
+expect($zeroRefund['cumulative_points_to_reverse']===0 &&
+    bcrf_roost_refund_points_due(5,0,0)===0,'zero-point refund requires no ledger debit');
 expect(bcrf_roost_refund_points_due(200,100,51)===49,'incremental reversal accounts for prior refund');
 expect(bcrf_roost_refund_points_due(200,100,100)===0,'no points deducted twice');
 rejected(fn()=>bcrf_roost_refund_points_due(200,100,101),'over-reversal rejected');
