@@ -18,14 +18,15 @@ function bcrf_roost_pos_outbox_enqueue(PDO $pdo, string $kind, int $sourceId): v
 /**
  * Future activation path: atomically pin a validated sale policy at enqueue.
  * Duplicate events must retain their first policy; never silently repin.
- * Not called by the disabled POS adapter.
+ * The disabled POS adapter returns before invoking this path.
  */
 function bcrf_roost_pos_outbox_enqueue_pinned_sale(PDO $pdo, int $saleId, int $policyId): void {
     if (!$pdo->inTransaction()) throw new LogicException('Pinned enqueue requires source transaction.');
     if ($saleId<=0 || $policyId<=0) throw new InvalidArgumentException('Positive sale and policy IDs required.');
     $policy=$pdo->prepare("SELECT id FROM reward_policies
         WHERE id=? AND status='active'
-          AND (effective_at IS NULL OR effective_at <= UTC_TIMESTAMP(3))");
+          AND (effective_at IS NULL OR effective_at <= UTC_TIMESTAMP(3))
+        FOR UPDATE");
     $policy->execute([$policyId]);
     if (!$policy->fetchColumn()) throw new RuntimeException('Cannot pin inactive or future reward policy.');
     $st=$pdo->prepare("INSERT INTO reward_pos_outbox (event_type,source_id,policy_id)
