@@ -126,6 +126,12 @@ function bcrf_rewards_sale_claim_preview(PDO $pdo, int $saleId, int $authenticat
     if ($owner['customer_id'] !== $authenticatedCustomerId) {
         throw new BcrfRewardError('Sale customer does not match authenticated customer.');
     }
+    // A claim preview must be internally consistent if the sale's customer
+    // assignment changes during the read-only validation sequence.
     $eligible = bcrf_rewards_sale_eligible_cents($pdo, $saleId);
+    $recheck = bcrf_rewards_sale_verified_household($pdo, $saleId);
+    if ($recheck !== $owner) {
+        throw new BcrfRewardError('Sale household changed during claim preview.');
+    }
     return ['customer_id'=>$owner['customer_id'],'household_id'=>$owner['household_id'],'eligible_cents'=>$eligible];
 }
