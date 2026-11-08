@@ -3,7 +3,9 @@ require_once __DIR__.'/../includes/roost-pos-lifecycle.php';
 function rr_assert(bool $ok, string $message): void {
     if (!$ok) throw new RuntimeException($message);
 }
-$pdo = new PDO('sqlite::memory:');
+$dsn = getenv('BCRF_REWARDS_TEST_DSN');
+if (!$dsn) { fwrite(STDERR, "Set BCRF_REWARDS_TEST_DSN for disposable database.\n"); exit(2); }
+$pdo = new PDO($dsn, getenv('BCRF_REWARDS_TEST_USER') ?: '', getenv('BCRF_REWARDS_TEST_PASSWORD') ?: '');
 rr_assert(bcrf_roost_pos_integration_enabled() === false, 'Integration must default disabled.');
 foreach (['sale.completed','sale.refunded'] as $kind) {
     $result = bcrf_roost_pos_postcommit_signal($pdo,$kind,123);
