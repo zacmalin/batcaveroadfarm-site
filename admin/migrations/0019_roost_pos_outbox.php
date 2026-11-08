@@ -6,6 +6,7 @@ return function (PDO $pdo): void {
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
         event_type VARCHAR(40) NOT NULL,
         source_id BIGINT UNSIGNED NOT NULL,
+        policy_id BIGINT UNSIGNED NULL COMMENT 'Immutable sale policy snapshot; null means not pinned',
         status VARCHAR(20) NOT NULL DEFAULT 'pending',
         attempts INT UNSIGNED NOT NULL DEFAULT 0,
         available_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
