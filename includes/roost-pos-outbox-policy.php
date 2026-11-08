@@ -25,3 +25,23 @@ function bcrf_roost_outbox_resolve_policy(PDO $pdo, array $event): int {
     if (count($policies)!==1) throw new RuntimeException('Exactly one effective active reward policy required.');
     return (int)$policies[0];
 }
+
+// Fail closed for delayed queued sales if the current policy was created or
+// became effective after the event was durably recorded. Historical policy
+// snapshots are not yet stored in the outbox, so never silently substitute a
+// newer policy for an earlier sale.
+function bcrf_roost_outbox_assert_sale_policy_not_newer(PDO $pdo, int $outboxId, int $policyId): void {
+    if ($pdo->inTransaction()) throw new LogicException('Policy age check requires autocommit.');
+    if ($outboxId<=0 || $policyId<=0) throw new InvalidArgumentException('Positive outbox and policy IDs required.');
+    $q=$pdo->prepare("SELECT o.created_at AS queued_at,p.created_at AS policy_created_at,
+        p.effective_at AS policy_effective_at,p.status AS policy_status
+        FROM reward_pos_outbox o JOIN reward_policies p ON p.id=?
+        WHERE o.id=? AND o.event_type='sale.completed'");
+    $q->execute([$policyId,$outboxId]);
+    $row=$q->fetch(PDO::FETCH_ASSOC);
+    if (!$row || $row['policy_status']!=='active' ||
+        $row['policy_created_at']===null ||
+        $row['policy_created_at']>$row['queued_at'] ||
+        ($row['policy_effective_at']!==null && $row['policy_effective_at']>$row['queued_at']))
+        throw new RuntimeException('Queued sale cannot use a newer or inactive reward policy.');
+}
