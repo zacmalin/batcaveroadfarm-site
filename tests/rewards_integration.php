@@ -199,7 +199,7 @@ $pdo->exec("UPDATE reward_households SET last_qualifying_activity_at=UTC_TIMESTA
 $fresh = bcrf_roost_expire_household($pdo, 1);
 expect(!$fresh['expired'] && $fresh['balance']===50, 'recent activity blocks expiration');
 // Reconciled refund preview uses actual refund lines and sale-line running totals.
-require __DIR__ . '/../includes/roost-refund-preview.php';
+require_once __DIR__ . '/../includes/roost-refund-preview.php';
 $preview = bcrf_roost_refund_reversal_preview($pdo,100);
 expect($preview['cumulative_points_to_reverse']===200 && $preview['remaining_eligible_cents']===0,'full refund preview matches original points');
 $pdo->exec("UPDATE refund_lines SET net_cents=3900 WHERE refund_id=1");
