@@ -134,6 +134,22 @@ if (($refundReplayPlan['action']??null)!=='already_posted' ||
     throw new RuntimeException('Committed refund replay receipt not recognized by dispatch preflight.');
 if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==$replayBalance)
     throw new RuntimeException('Read-only refund replay preflight changed household balance.');
+// Corrupting the durable receipt must never produce an already-posted
+// acknowledgment, even when the ledger reversal itself still exists.
+$pdo->exec("UPDATE reward_refund_processing SET points_reversed=points_reversed+1 WHERE refund_id=9021");
+try {
+    bcrf_roost_outbox_dispatch_refund_preflight($pdo,
+        ['id'=>$refundReplayOutboxId,'event_type'=>'sale.refunded','source_id'=>9021]);
+    throw new RuntimeException('Corrupted refund receipt was acknowledged.');
+} catch (RuntimeException $expected) {
+    if ($expected->getMessage()!=='Committed refund ledger receipt mismatch') throw $expected;
+} finally {
+    $pdo->exec("UPDATE reward_refund_processing SET points_reversed=points_reversed-1 WHERE refund_id=9021");
+}
+$restored=bcrf_roost_outbox_dispatch_refund_preflight($pdo,
+    ['id'=>$refundReplayOutboxId,'event_type'=>'sale.refunded','source_id'=>9021]);
+if (($restored['action']??null)!=='already_posted')
+    throw new RuntimeException('Restored refund receipt was not recognized.');
 $pdo->exec("DELETE FROM reward_pos_outbox WHERE id=$refundReplayOutboxId");
 $secondRefund=bcrf_roost_outbox_handle_test_event($pdo,$late,1,true);
 if ($secondRefund['outcome']!=='completed' || $secondRefund['replayed'])
