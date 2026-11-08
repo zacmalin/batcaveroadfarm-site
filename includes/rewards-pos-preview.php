@@ -31,6 +31,8 @@ function bcrf_rewards_sale_eligible_cents(PDO $pdo, int $saleId): int {
     $allowed = ['retail','produce','kitchen_good','admission','thrift_item'];
     $eligible = 0;
     $lineCount = 0;
+    $grossTotal = 0;
+    $discountTotal = 0;
     while ($line = $lines->fetch(PDO::FETCH_ASSOC)) {
         $lineCount++;
         $gross = (int)$line['gross_cents'];
@@ -39,12 +41,20 @@ function bcrf_rewards_sale_eligible_cents(PDO $pdo, int $saleId): int {
         if ($gross < 0 || $discount < 0 || $discount > $gross || $refunded < 0 || $refunded > $gross - $discount) {
             throw new BcrfRewardError('Invalid sale line amounts.');
         }
+        if ($grossTotal > PHP_INT_MAX - $gross || $discountTotal > PHP_INT_MAX - $discount) {
+            throw new BcrfRewardError('Sale line total overflow.');
+        }
+        $grossTotal += $gross;
+        $discountTotal += $discount;
         if (!in_array($line['product_type'], $allowed, true)) continue;
         $net = $gross - $discount - $refunded;
         if ($eligible > PHP_INT_MAX - $net) throw new BcrfRewardError('Eligible amount overflow.');
         $eligible += $net;
     }
     if ($lineCount === 0) throw new BcrfRewardError('Sale has no line items.');
+    if ($grossTotal !== (int)$sale['subtotal_cents'] || $discountTotal !== (int)$sale['discount_cents']) {
+        throw new BcrfRewardError('Sale lines do not match recorded subtotal or discounts.');
+    }
     if ($eligible > $saleNet) throw new BcrfRewardError('Eligible amount exceeds sale net subtotal.');
     // Gift-card/store-credit/reward payment allocation is not yet safely
     // reconciled by line. Fail closed rather than overaward on mixed tenders.
