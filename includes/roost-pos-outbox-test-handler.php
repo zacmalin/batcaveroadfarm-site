@@ -16,7 +16,7 @@ function bcrf_roost_outbox_handle_test_event(PDO $pdo, array $event, int $policy
         $refundId=filter_var($event['source_id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
         if (!$refundId) throw new InvalidArgumentException('Invalid refund ID.');
         $zero=$pdo->prepare("SELECT p.household_id,p.original_earning_entry_id,p.points_reversed,
-            p.reversal_entry_id,e.source_id AS original_sale_id,e.household_id AS earned_household_id,
+            p.reversal_entry_id,e.source_id AS original_sale_id,e.household_id AS earned_household_id,e.policy_id AS earned_policy_id,
             r.sale_id FROM reward_refund_processing p
             JOIN reward_ledger e ON e.id=p.original_earning_entry_id
               AND e.entry_type='earn_spend' AND e.source_type='sale'
@@ -25,7 +25,8 @@ function bcrf_roost_outbox_handle_test_event(PDO $pdo, array $event, int $policy
         $zero->execute([$refundId]);
         $zeroReceipt=$zero->fetch(PDO::FETCH_ASSOC);
         if ($zeroReceipt && (int)$zeroReceipt['points_reversed']===0) {
-            if ($zeroReceipt['reversal_entry_id']!==null ||
+            if ((int)$zeroReceipt['earned_policy_id']!==$policyId ||
+                $zeroReceipt['reversal_entry_id']!==null ||
                 (int)$zeroReceipt['household_id']!==(int)$zeroReceipt['earned_household_id'] ||
                 (string)$zeroReceipt['original_sale_id']!==(string)$zeroReceipt['sale_id'])
                 throw new RuntimeException('Zero-point refund receipt provenance mismatch.');
