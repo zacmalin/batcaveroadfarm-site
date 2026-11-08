@@ -2,7 +2,13 @@
 require_once __DIR__.'/../includes/roost-pos-outbox-test-handler.php';
 $pdo=new PDO(getenv('BCRF_REWARDS_TEST_DSN'),getenv('BCRF_REWARDS_TEST_USER')?:'',getenv('BCRF_REWARDS_TEST_PASSWORD')?:'');
 $pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
-$event=['event_type'=>'sale.completed','source_id'=>901];
+// Independent unsettled sale: other test suites may already have awarded 901.
+$pdo->exec("INSERT INTO sales (id,customer_id,status,subtotal_cents,discount_cents,total_cents)
+ VALUES (904,1,'completed',1000,0,1000)");
+$pdo->exec("INSERT INTO sale_lines (sale_id,product_type,gross_cents,discount_cents,refunded_net_cents)
+ VALUES (904,'retail',1000,0,0)");
+$pdo->exec("INSERT INTO payments (sale_id,tender,amount_cents,status) VALUES (904,'cash',1000,'pending')");
+$event=['event_type'=>'sale.completed','source_id'=>904];
 try {
     bcrf_roost_outbox_handle_test_event($pdo,$event,1);
     throw new RuntimeException('Unauthorized test posting accepted.');
@@ -11,14 +17,14 @@ try {
 }
 // The sale fixture is intentionally unsettled by prior tests. A test-only
 // handler must fail closed and leave the reward ledger unchanged.
-$before=(int)$pdo->query("SELECT COUNT(*) FROM reward_ledger WHERE source_type='sale' AND source_id='901'")->fetchColumn();
+$before=(int)$pdo->query("SELECT COUNT(*) FROM reward_ledger WHERE source_type='sale' AND source_id='904'")->fetchColumn();
 try {
     bcrf_roost_outbox_handle_test_event($pdo,$event,1,true);
     throw new RuntimeException('Unsettled sale was posted.');
 } catch(BcrfRewardError $expected) {
     // Expected: payment remains pending.
 }
-$after=(int)$pdo->query("SELECT COUNT(*) FROM reward_ledger WHERE source_type='sale' AND source_id='901'")->fetchColumn();
+$after=(int)$pdo->query("SELECT COUNT(*) FROM reward_ledger WHERE source_type='sale' AND source_id='904'")->fetchColumn();
 if ($before!==$after) throw new RuntimeException('Rejected event modified ledger.');
 // Successful award, lost acknowledgment, and retry use a fresh sale fixture.
 $pdo->exec("INSERT INTO sales (id,customer_id,status,subtotal_cents,discount_cents,total_cents)
