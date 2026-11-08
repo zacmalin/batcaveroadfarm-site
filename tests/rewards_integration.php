@@ -56,6 +56,8 @@ rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['idempotency_key'=>'diff
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['points_delta'=>300])),'conflicting replay');
 $v = bcrf_reward_post($pdo,array_merge($base,['source_type'=>'visit','source_id'=>'person-1:2026-11-08','entry_type'=>'earn_visit','points_delta'=>25,'idempotency_key'=>'test-visit-1']));
 expect($v['balance']===225,'visit award');
+rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_type'=>'visit','source_id'=>'invalid-visit-award','entry_type'=>'earn_visit','points_delta'=>26,'idempotency_key'=>'invalid-visit-award'])),'visit cannot earn more than 25 points');
+rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_type'=>'visit','source_id'=>'underpaid-visit-award','entry_type'=>'earn_visit','points_delta'=>24,'idempotency_key'=>'underpaid-visit-award'])),'visit cannot earn fewer than 25 points');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['household_id'=>2,'customer_id'=>3,'source_type'=>'visit','source_id'=>'person-1:2026-11-08','entry_type'=>'earn_visit','points_delta'=>25,'idempotency_key'=>'other-household-same-visit'])),'same visit cannot award another household');
 
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_type'=>'visit','source_id'=>'person-1:2026-11-08','entry_type'=>'earn_visit','points_delta'=>25,'idempotency_key'=>'different-key-same-visit'])),'duplicate visit source with different key');
