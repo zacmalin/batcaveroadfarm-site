@@ -160,6 +160,11 @@ expect(bcrf_roost_verified_service_recipient('adult@example.com',true,true,'mana
 expect(bcrf_roost_verified_service_recipient('child@example.com',true,false,'dependent') === null, 'dependent not a service recipient');
 
 expect(bcrf_roost_email_claim_eligible($pdo,(int)$claim['id'],$claim['claim_token']), 'verified welcome claim eligible');
+$pdo->exec("UPDATE customers SET email='replacement@example.test',email_verified_at=NULL WHERE id=1");
+expect(!bcrf_roost_email_claim_eligible($pdo,(int)$claim['id'],$claim['claim_token']), 'changed unverified recipient cannot receive queued welcome');
+$pdo->exec("UPDATE customers SET email='customer1@example.test',email_verified_at=UTC_TIMESTAMP() WHERE id=1");
+expect(bcrf_roost_email_claim_eligible($pdo,(int)$claim['id'],$claim['claim_token']), 'restored verified recipient passes preflight');
+
 $pdo->prepare("UPDATE reward_email_suppressions SET cleared_at=NULL WHERE email_hash=?")->execute([$hash]);
 expect(!bcrf_roost_email_claim_eligible($pdo,(int)$claim['id'],$claim['claim_token']), 'suppression added after claim blocks delivery');
 $pdo->prepare("UPDATE reward_email_suppressions SET cleared_at=UTC_TIMESTAMP(3) WHERE email_hash=?")->execute([$hash]);
