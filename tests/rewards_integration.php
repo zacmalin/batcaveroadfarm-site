@@ -96,6 +96,14 @@ $pdo->exec("UPDATE reward_households SET status='active' WHERE id=1");
 $pdo->exec("UPDATE reward_accounts SET balance_points=0 WHERE household_id=1");
 expect(!bcrf_roost_email_enqueue($pdo,1,2,'expiration_reminder',60,$reminderActivity,
     bcrf_roost_expiration_event_key(1,2,$reminderActivity,60)), 'zero-balance reminder not queued');
+// Claiming is transactional and never sends email.
+require_once __DIR__ . '/../includes/roost-email-claim.php';
+$claim = bcrf_roost_email_claim($pdo);
+expect($claim !== null && $claim['event_type']==='welcome', 'oldest welcome event claimed');
+expect(strlen($claim['claim_token'])===64, 'claim uses random 256-bit token');
+expect(bcrf_roost_email_suppress($pdo,(int)$claim['id'],$claim['claim_token'],'test suppression'), 'claimed event can be suppressed');
+expect(!bcrf_roost_email_suppress($pdo,(int)$claim['id'],$claim['claim_token'],'duplicate suppression'), 'suppression cannot replay');
+expect((string)$pdo->query("SELECT status FROM reward_email_outbox WHERE id=".(int)$claim['id'])->fetchColumn()==='suppressed', 'suppression persisted');
 $pdo->exec("UPDATE reward_households SET last_qualifying_activity_at=NULL WHERE id=1");
 $pdo->exec("UPDATE reward_accounts SET balance_points=0 WHERE household_id=1");
 
