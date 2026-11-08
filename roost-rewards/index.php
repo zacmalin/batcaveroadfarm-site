@@ -11,6 +11,7 @@ include __DIR__ . '/../includes/header.php';
 ?>
 <div id="page-roost-rewards" class="page1">
   <div class="hero"><span class="hero-deco" aria-hidden="true">🐓</span><div class="hero-content">
+    <img src="<?= htmlspecialchars(bcrf_farm_url(), ENT_QUOTES, 'UTF-8') ?>/img/logos/roost_rewards.jpg" alt="Roost Rewards logo" width="240" height="240" loading="eager" decoding="async" style="display:block;max-width:min(240px,65vw);height:auto;margin:0 auto 1rem;border-radius:12px">
     <h1>Roost Rewards</h1><p>Good things are coming home to roost.</p>
   </div></div>
   <div class="divider" aria-hidden="true">✦ ✦ ✦</div>
