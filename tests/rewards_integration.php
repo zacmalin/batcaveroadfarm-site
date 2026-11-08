@@ -190,6 +190,21 @@ $pdo->exec("UPDATE reward_households SET status='active' WHERE id=1");
 expect(bcrf_roost_email_suppress($pdo,(int)$claim['id'],$claim['claim_token'],'test suppression'), 'claimed event can be suppressed');
 expect(!bcrf_roost_email_suppress($pdo,(int)$claim['id'],$claim['claim_token'],'duplicate suppression'), 'suppression cannot replay');
 expect((string)$pdo->query("SELECT status FROM reward_email_outbox WHERE id=".(int)$claim['id'])->fetchColumn()==='suppressed', 'suppression persisted');
+require_once __DIR__ . '/../includes/roost-email-dsn-review.php';
+foreach ([
+    '5.1.1'=>'mailbox_unknown_review',
+    '5.1.10'=>'mailbox_unknown_review',
+    '5.7.1'=>'permanent_failure_review',
+    '5.2.2'=>'permanent_failure_review',
+    '4.2.2'=>'transient_review',
+    '4.4.1'=>'transient_review',
+    '2.0.0'=>'success',
+    '550'=>'unrecognized',
+    '5.1.1 forged'=>'unrecognized',
+    ''=>'unrecognized',
+] as $dsn=>$category) {
+    expect(bcrf_roost_dsn_review_category($dsn) === $category, 'SMTP delivery status is review-only: '.$dsn);
+}
 require_once __DIR__ . '/../includes/roost-email-provider-feedback.php';
 expect(bcrf_roost_verified_provider_feedback_reason('hard_bounce') === 'hard_bounce', 'verified hard bounce maps to permanent suppression');
 expect(bcrf_roost_verified_provider_feedback_reason('spam_complaint') === 'complaint', 'verified complaint maps to permanent suppression');
