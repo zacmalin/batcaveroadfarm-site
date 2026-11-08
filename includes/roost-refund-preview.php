@@ -38,7 +38,7 @@ function bcrf_roost_refund_reversal_preview(PDO $pdo, int $saleId): array {
         }
     }
     if (!$byId || $original <= 0) throw new BcrfRewardError('No eligible original sale lines.');
-    $refunds = $pdo->prepare("SELECT id, net_cents FROM refunds WHERE sale_id=?".$suffix);
+    $refunds = $pdo->prepare("SELECT id, net_cents, total_cents FROM refunds WHERE sale_id=?".$suffix);
     $refunds->execute([$saleId]);
     $sumByLine = [];
     $eligibleRefunds = [];
@@ -67,6 +67,26 @@ function bcrf_roost_refund_reversal_preview(PDO $pdo, int $saleId): array {
         }
         if ($count === 0 || $sum !== (int)$refund['net_cents'])
             throw new BcrfRewardError('Refund line totals do not reconcile.');
+        // Production refunds have no separate status column: they are written
+        // atomically with refund_payments in bcrf_refund_complete(). Reconcile
+        // those recorded payouts with the committed refund total.
+        $payouts = $pdo->prepare("SELECT tender, amount_cents, reference FROM refund_payments WHERE refund_id=?" . $suffix);
+        $payouts->execute([$refundId]);
+        $payoutTotal = 0;
+        $payoutCount = 0;
+        foreach ($payouts->fetchAll(PDO::FETCH_ASSOC) as $payout) {
+            $amount = (int)$payout['amount_cents'];
+            if ($amount <= 0 || $payoutTotal > PHP_INT_MAX - $amount ||
+                !in_array($payout['tender'], ['cash','paypal','venmo','cashapp','check'], true) ||
+                (in_array($payout['tender'], ['paypal','venmo','cashapp'], true) && empty($payout['reference']))) {
+                throw new BcrfRewardError('Invalid refund payout record.');
+            }
+            $payoutTotal += $amount;
+            $payoutCount++;
+        }
+        if ($payoutCount === 0 || $payoutTotal !== (int)$refund['total_cents']) {
+            throw new BcrfRewardError('Refund payouts do not reconcile.');
+        }
         $eligibleRefunds[$refundId] = $eligible;
     }
     foreach ($byId as $id=>$line) {
