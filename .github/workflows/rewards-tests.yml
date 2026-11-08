@@ -1,4 +1,4 @@
-name: Farm Rewards integration tests
+name: Roost Rewards integration tests
 on:
   pull_request:
     paths:
