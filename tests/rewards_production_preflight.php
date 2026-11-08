@@ -20,7 +20,7 @@ try {
         'refunds'=>['id'=>'bigint','sale_id'=>'bigint'],
         'check_ins'=>['id'=>'bigint','business_date'=>'date'],
     ];
-    $stmt = $pdo->prepare("SELECT COLUMN_NAME, DATA_TYPE, COLUMN_TYPE FROM information_schema.COLUMNS
+    $stmt = $pdo->prepare("SELECT COLUMN_NAME, DATA_TYPE, COLUMN_TYPE, IS_NULLABLE FROM information_schema.COLUMNS
         WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?");
     $issues = [];
     foreach ($required as $table=>$columns) {
@@ -62,6 +62,25 @@ try {
             $issues[]='Existing reward_pos_outbox lacks BIGINT UNSIGNED policy_id; CREATE TABLE IF NOT EXISTS will not upgrade it';
         if (strtoupper((string)$existingOutbox['ENGINE'])!=='INNODB')
             $issues[]='Existing reward_pos_outbox must use InnoDB';
+        if (isset($outboxColumns['policy_id']) &&
+            strtoupper((string)($outboxColumns['policy_id']['IS_NULLABLE']??''))!=='YES')
+            $issues[]='Existing reward_pos_outbox.policy_id must be nullable for refund events';
+        $indexes=$pdo->query("SELECT INDEX_NAME,COLUMN_NAME,SEQ_IN_INDEX,NON_UNIQUE
+            FROM information_schema.STATISTICS
+            WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='reward_pos_outbox'
+            ORDER BY INDEX_NAME,SEQ_IN_INDEX")->fetchAll(PDO::FETCH_ASSOC);
+        $byIndex=[];
+        foreach ($indexes as $index) {
+            $name=$index['INDEX_NAME'];
+            $byIndex[$name]['unique']=((int)$index['NON_UNIQUE']===0);
+            $byIndex[$name]['columns'][]=$index['COLUMN_NAME'];
+        }
+        $hasEventUniqueness=false;
+        foreach ($byIndex as $index)
+            if ($index['unique'] && $index['columns']===['event_type','source_id'])
+                $hasEventUniqueness=true;
+        if (!$hasEventUniqueness)
+            $issues[]='Existing reward_pos_outbox lacks unique event_type/source_id constraint';
     }
     if (stripos($version, 'MariaDB') !== false) {
         $issues[] = 'MariaDB detected: migration SQL is MySQL 8-specific; verify separately before deployment';
