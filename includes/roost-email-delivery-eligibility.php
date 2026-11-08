@@ -1,6 +1,6 @@
 <?php
 // Read-only pre-delivery eligibility check for claimed Roost service emails.
-// This does not resolve or verify recipient addresses and never sends mail.
+// Resolves the current verified recipient and checks service suppression; never sends mail.
 require_once __DIR__ . '/roost-email-claim.php';
 require_once __DIR__ . '/roost-email-recipient.php';
 require_once __DIR__ . '/roost-email-suppressions.php';
@@ -8,7 +8,8 @@ require_once __DIR__ . '/roost-email-suppressions.php';
 /**
  * Re-read live membership and household state after a claim. Fail closed.
  * This is a prerequisite, not sufficient authorization to deliver: a future
- * sender must additionally verify global delivery suppression state.
+ * sender must recheck eligibility immediately before dispatch and apply any
+ * additional transport-level suppression state.
  */
 function bcrf_roost_email_claim_eligible(PDO $pdo, int $id, string $token): bool {
     if ($id < 1 || !preg_match('/^[a-f0-9]{64}$/D', $token)) return false;
