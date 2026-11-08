@@ -23,6 +23,22 @@ function bcrf_rewards_points_for_eligible_cents(int $eligibleCents): int {
 }
 
 /**
+ * Calculate the cumulative points to reverse after refunds, preserving the
+ * original per-sale rounding. Callers must supply verified eligible cents
+ * before and after refunds; this does not validate refund provenance.
+ */
+function bcrf_rewards_cumulative_refund_points(int $originalEligibleCents, int $remainingEligibleCents): int {
+    if ($originalEligibleCents <= 0 || $remainingEligibleCents < 0 ||
+        $remainingEligibleCents > $originalEligibleCents) {
+        throw new BcrfRewardError('Invalid eligible refund amounts.');
+    }
+    $originalPoints = bcrf_rewards_points_for_eligible_cents($originalEligibleCents);
+    $remainingPoints = $remainingEligibleCents === 0
+        ? 0 : bcrf_rewards_points_for_eligible_cents($remainingEligibleCents);
+    return $originalPoints - $remainingPoints;
+}
+
+/**
  * Returns eligible paid net cents from a completed POS sale, excluding tax,
  * tips, gift cards, passes, refunded amounts and reward-funded payments.
  * Conservative by design: unclassified types are not eligible.
