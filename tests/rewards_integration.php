@@ -347,7 +347,7 @@ if (!function_exists('proc_open')) throw new RuntimeException('Parallel worker t
 $workers = [];
 for ($worker=0; $worker<4; $worker++) {
     $pipes = [];
-    $cmd = [PHP_BINARY, __DIR__.'/rewards_concurrency_worker.php', '5', (string)$zeroEarnId];
+    $cmd = [PHP_BINARY, __DIR__.'/rewards_concurrency_worker.php', '5', (string)$zeroEarnId, 'replay'];
     $process = proc_open($cmd, [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']], $pipes);
     if (!is_resource($process)) throw new RuntimeException('Unable to start concurrent rewards worker.');
     fclose($pipes[0]);
@@ -362,6 +362,30 @@ foreach ($workers as [$process,$pipes]) {
 }
 expect((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE refund_id=5")->fetchColumn()===1,
     'four simultaneous replay workers preserve exactly one refund receipt');
+$pdo->exec("DELETE FROM reward_refund_processing WHERE refund_id=5");
+$workers = [];
+for ($worker=0; $worker<4; $worker++) {
+    $pipes = [];
+    $cmd = [PHP_BINARY, __DIR__.'/rewards_concurrency_worker.php', '5', (string)$zeroEarnId, 'create'];
+    $process = proc_open($cmd, [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']], $pipes);
+    if (!is_resource($process)) throw new RuntimeException('Unable to start first-write worker.');
+    fclose($pipes[0]);
+    $workers[] = [$process,$pipes];
+}
+$createdCount = 0;
+foreach ($workers as [$process,$pipes]) {
+    $stdout = trim(stream_get_contents($pipes[1]));
+    $stderr = stream_get_contents($pipes[2]);
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+    expect(proc_close($process)===0, 'first-write worker failed: '.$stdout.' '.$stderr);
+    expect(in_array($stdout, ['0','1'], true), 'worker must report valid creation count');
+    $createdCount += (int)$stdout;
+}
+expect($createdCount===1, 'exactly one of four simultaneous workers creates refund receipt');
+expect((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE refund_id=5")->fetchColumn()===1,
+    'first-write race produces exactly one durable refund receipt');
+
 
 
 
