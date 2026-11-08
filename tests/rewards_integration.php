@@ -113,6 +113,15 @@ expect($claim !== null && $claim['event_type']==='welcome', 'oldest welcome even
 expect(strlen($claim['claim_token'])===64, 'claim uses random 256-bit token');
 require_once __DIR__ . '/../includes/roost-email-delivery-eligibility.php';
 require_once __DIR__ . '/../includes/roost-email-recipient.php';
+require_once __DIR__ . '/../includes/roost-email-delivery-policy.php';
+expect(bcrf_roost_service_delivery_permitted('adult@example.com',true,false,false,'manager'), 'verified service recipient allowed without marketing subscription');
+expect(!bcrf_roost_service_delivery_permitted('adult@example.com',true,true,false,'manager'), 'service suppression blocks service mail');
+expect(!bcrf_roost_service_delivery_permitted('adult@example.com',true,false,true,'manager'), 'transport suppression blocks service mail');
+expect(bcrf_roost_marketing_delivery_permitted(true,true,true,false,false), 'explicit marketing consent allows eligible delivery');
+expect(!bcrf_roost_marketing_delivery_permitted(true,false,true,false,false), 'newsletter alone cannot opt into Rewards marketing');
+expect(!bcrf_roost_marketing_delivery_permitted(true,true,false,false,false), 'global newsletter unsubscribe blocks marketing');
+expect(!bcrf_roost_marketing_delivery_permitted(true,true,true,false,true), 'rolling promotional cap blocks marketing');
+
 expect(bcrf_roost_verified_service_recipient(' Adult@Example.com ',true,false,'adult') === 'adult@example.com', 'independently verified adult address allowed');
 expect(bcrf_roost_verified_service_recipient('adult@example.com',false,false,'adult') === null, 'membership alone does not verify email ownership');
 expect(bcrf_roost_verified_service_recipient('adult@example.com',true,true,'manager') === null, 'suppressed recipient denied');
