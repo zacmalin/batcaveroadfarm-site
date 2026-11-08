@@ -42,7 +42,7 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
         ($type === 'earn_visit' && $event['source_type'] !== 'visit')) {
         throw new BcrfRewardError('Earning source type does not match reward event.');
     }
-    // Purchase sources must be real positive database sale IDs, not arbitrary labels.
+    // Purchase source IDs must have positive integer syntax; existence and ownership are checked inside the transaction.
     if ($type === 'earn_spend' &&
         (!ctype_digit($event['source_id']) ||
          !filter_var($event['source_id'], FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]]))) {
