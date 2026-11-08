@@ -256,8 +256,8 @@ rejected(fn()=>bcrf_roost_refund_points_for_id($twice,3,0), 'later refund cannot
 expect(bcrf_roost_refund_points_for_id($twice,3,51)===49, 'second refund reverses only incremental points');
 rejected(fn()=>bcrf_roost_record_zero_point_refund($pdo,1,1),
     'point-bearing refund cannot be recorded as zero-point processed');
-expect((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE refund_id=1")->fetchColumn()===0,
-    'rejected false zero-point processing rolls back its receipt');
+expect((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE refund_id=1")->fetchColumn()===1,
+    'rejected false zero-point processing preserves existing point-bearing receipt');
 
 $zeroThenDebit = ['refund_point_boundaries'=>[
     10=>['points_before'=>0,'points_after'=>0],
