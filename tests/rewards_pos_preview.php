@@ -9,7 +9,7 @@ $pdo->exec("CREATE TABLE sale_lines (sale_id BIGINT,product_type VARCHAR(20),gro
 $pdo->exec("CREATE TABLE payments (sale_id BIGINT,tender VARCHAR(20),amount_cents BIGINT,status VARCHAR(12),reconciled_at DATETIME NULL,reconcile_flag VARCHAR(20) NULL)");
 $pdo->exec("INSERT INTO sales VALUES (1,'completed',2150),(2,'completed',500),(3,'voided',500)");
 $pdo->exec("INSERT INTO sale_lines VALUES (1,'retail',2000,200,100),(1,'gift_card',500,0,0),(1,'admission',500,50,0),(2,'retail',500,0,0),(3,'retail',500,0,0)");
-$pdo->exec("INSERT INTO payments VALUES (1,'cash',2150,'completed'),(2,'cash',500,'pending'),(3,'cash',500,'completed')");
+$pdo->exec("INSERT INTO payments (sale_id,tender,amount_cents,status) VALUES (1,'cash',2150,'completed'),(2,'cash',500,'pending'),(3,'cash',500,'completed')");
 require __DIR__.'/../includes/rewards-pos-preview.php';
 function check(bool $ok,string $message):void {if(!$ok)throw new RuntimeException($message);}
 function mustReject(callable $fn,string $message):void {try {$fn();}catch(BcrfRewardError $e){return;}throw new RuntimeException($message);}
