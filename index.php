@@ -160,7 +160,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.ph
                         <div class="icon" aria-hidden="true">📞</div>
                         <h3>Call Us</h3>
                         <p>
-                            <a href="tel:+18282165488">(828) 216-5488</a>
+                            <a href="tel:<?= htmlspecialchars(site_tel('general'), ENT_QUOTES) ?>"><?= htmlspecialchars(site_phone_display('general')) ?></a>
                             <br>We'd love to hear from you!
                         </p>
                     </div>
