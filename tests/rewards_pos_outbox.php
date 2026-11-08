@@ -25,4 +25,23 @@ $pdo->beginTransaction();
 try {bcrf_roost_pos_outbox_enqueue($pdo,'bad',7);throw new RuntimeException('Invalid event accepted');}
 catch(InvalidArgumentException $expected) {}
 $pdo->rollBack();
+// Pinned sale policy is immutable, including across duplicate enqueue attempts.
+$pdo->exec("UPDATE reward_policies SET status='active',effective_at=NULL WHERE id=1");
+$pdo->beginTransaction();
+bcrf_roost_pos_outbox_enqueue_pinned_sale($pdo,990111,1);
+bcrf_roost_pos_outbox_enqueue_pinned_sale($pdo,990111,1);
+$pdo->commit();
+rr_check((int)$pdo->query("SELECT policy_id FROM reward_pos_outbox WHERE event_type='sale.completed' AND source_id=990111")->fetchColumn()===1,
+    'Sale policy snapshot was not persisted.');
+$pdo->beginTransaction();
+try {
+    bcrf_roost_pos_outbox_enqueue_pinned_sale($pdo,7,1);
+    throw new RuntimeException('Unpinned existing event silently upgraded.');
+} catch(RuntimeException $expected) {
+    if($expected->getMessage()==='Unpinned existing event silently upgraded.') throw $expected;
+}
+$pdo->rollBack();
+rr_check($pdo->query("SELECT policy_id FROM reward_pos_outbox WHERE event_type='sale.completed' AND source_id=7")->fetchColumn()===null,
+    'Existing unpinned event was mutated.');
+$pdo->exec("DELETE FROM reward_pos_outbox WHERE source_id=990111");
 echo "POS outbox atomicity and deduplication passed.\n";
