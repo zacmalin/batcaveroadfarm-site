@@ -127,6 +127,38 @@ function bcrfBreedCards(PDO $pdo): void {
 }
 }
 
+    // Use the same inventory records as ticketing; omit unavailable items rather than advertise stale prices.
+    $zooSeoOffers = [];
+    try {
+        $seoItems = $pdo->query(
+            "SELECT i.name, i.price, i.stock_quantity, ic.slug AS category_slug
+             FROM inventory i
+             JOIN inventory_categories ic ON ic.id = i.category_id
+             WHERE i.is_active = 1
+               AND (ic.slug = 'admissions'
+                    OR LOWER(i.name) IN ('adult admission', 'childs admission', 'child admission', 'under 3 admission')
+                    OR LOWER(i.name) LIKE '%feed%'
+                    OR LOWER(i.name) LIKE '%souvenir cup%')
+             ORDER BY i.id ASC"
+        )->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($seoItems as $seoItem) {
+            $name = trim((string)$seoItem['name']);
+            $isAdmission = $seoItem['category_slug'] === 'admissions'
+                || preg_match('/admission$/i', $name);
+            if (!$isAdmission && !preg_match('/feed|souvenir cup/i', $name)) continue;
+            $zooSeoOffers[] = [
+                '@type' => 'Offer',
+                'name' => $name,
+                'price' => number_format((float)$seoItem['price'], 2, '.', ''),
+                'priceCurrency' => 'USD',
+                'url' => bcrf_farm_url() . ($isAdmission ? '/tickets/' : '/petting-zoo/'),
+                'availability' => $isAdmission || (float)$seoItem['stock_quantity'] > 0
+                    ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+            ];
+        }
+    } catch (Throwable $e) {
+        // No pricing offers is safer than publishing prices that may be wrong.
+    }
 	$pageTitle    = "Petting Zoo | Bat Cave Road Farm — Old Fort, NC";
 	$preloadImage = (bcrf_farm_url() . "/img/animals1.webp"); // hero photo = mobile LCP (Nov 3 perf fix)
 	$metaDesc = "Meet goats, pigs, donkeys, chickens, ducks, turkeys, and a rare white peacock at Bat Cave Road Farm petting zoo in Old Fort, NC near Asheville.";
@@ -175,49 +207,7 @@ function bcrfBreedCards(PDO $pdo): void {
       "isPartOf": {
         "@id": "<?= bcrf_farm_url() ?>/#business"
       },
-      "offers": [
-        {
-          "@type": "Offer",
-          "name": "Adult Admission",
-          "description": "General admission for adults to the Bat Cave Road Farm petting zoo",
-          "price": "8.00",
-          "priceCurrency": "USD",
-          "eligibleCustomerType": "https://schema.org/Adult",
-          "url": "<?= bcrf_farm_url() ?>/petting-zoo/",
-          "availability": "https://schema.org/InStock",
-          "validFrom": "2025-01-01"
-        },
-        {
-          "@type": "Offer",
-          "name": "Child Admission (Ages 3–12)",
-          "description": "Admission for children ages 3 to 12",
-          "price": "5.00",
-          "priceCurrency": "USD",
-          "url": "<?= bcrf_farm_url() ?>/petting-zoo/",
-          "availability": "https://schema.org/InStock",
-          "validFrom": "2025-01-01"
-        },
-        {
-          "@type": "Offer",
-          "name": "Under 3 — Free",
-          "description": "Children under 3 years old are admitted free",
-          "price": "0.00",
-          "priceCurrency": "USD",
-          "url": "<?= bcrf_farm_url() ?>/petting-zoo/",
-          "availability": "https://schema.org/InStock",
-          "validFrom": "2025-01-01"
-        },
-        {
-          "@type": "Offer",
-          "name": "Animal Feed Bag",
-          "description": "Bag of animal feed available for purchase at the petting zoo entrance",
-          "price": "5.00",
-          "priceCurrency": "USD",
-          "url": "<?= bcrf_farm_url() ?>/petting-zoo/",
-          "availability": "https://schema.org/InStock",
-          "validFrom": "2025-01-01"
-        }
-      ]
+      "offers": <?= json_encode($zooSeoOffers, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>
     },
     {
       "@type": "Service",
