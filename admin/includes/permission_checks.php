@@ -20,6 +20,7 @@ $admin_view_registry = [
     'timesheet'           => ['label' => 'Staff Timesheet',          'icon' => '📋', 'admin_only' => false],
     'comment_moderation'  => ['label' => 'Comment Moderation',        'icon' => '💬', 'admin_only' => false],
     'audit_log'           => ['label' => 'Audit Log',                  'icon' => '📜', 'admin_only' => true],
+    'rewards_delivery_review' => ['label' => 'Rewards Delivery Review (Preview)', 'icon' => '📨', 'admin_only' => true],
     'sales_analytics'     => ['label' => 'Sales Analytics',            'icon' => '📈', 'admin_only' => false],
     'search_analytics'    => ['label' => 'Search & Analytics',         'icon' => '🔎', 'admin_only' => false],
     'schema'           => ['label' => 'Schema Table Editor',     'icon' => '🗄️', 'admin_only' => true],
