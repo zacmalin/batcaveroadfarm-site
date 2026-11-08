@@ -9,6 +9,37 @@ require_once __DIR__.'/roost-refund-processing.php';
 function bcrf_roost_outbox_handle_test_event(PDO $pdo, array $event, int $policyId, bool $explicitTestAuthorization=false): array {
     if (!$explicitTestAuthorization) throw new LogicException('Explicit test authorization required.');
     if ($pdo->inTransaction()) throw new LogicException('Handler requires autocommit.');
+    // A sale can be partially or fully refunded after its earning commits.
+    // Recomputing current net eligibility would misidentify the old award as
+    // conflicting. Match the immutable receipt and original sale identity.
+    if (($event['event_type']??null)==='sale.completed') {
+        $saleId=filter_var($event['source_id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+        if (!$saleId) throw new InvalidArgumentException('Invalid sale ID.');
+        $saleReceipt=$pdo->prepare("SELECT l.id,l.household_id,l.customer_id,l.policy_id,
+            l.entry_type,l.points_delta,l.source_type,l.source_id,l.related_entry_id,
+            l.idempotency_key,s.customer_id AS sale_customer_id
+            FROM reward_ledger l JOIN sales s ON s.id=?
+            WHERE l.idempotency_key=? AND l.entry_type='earn_spend'
+              AND l.source_type='sale' AND l.source_id=?");
+        $saleReceipt->execute([$saleId,'roost:pos:sale:'.$saleId,(string)$saleId]);
+        $committedSale=$saleReceipt->fetch(PDO::FETCH_ASSOC);
+        if ($committedSale) {
+            if ((int)$committedSale['policy_id']!==$policyId ||
+                (int)$committedSale['customer_id']!==(int)$committedSale['sale_customer_id'] ||
+                (int)$committedSale['points_delta']<=0 ||
+                $committedSale['related_entry_id']!==null)
+                throw new RuntimeException('Sale receipt provenance or policy mismatch.');
+            $mapped=['household_id'=>(int)$committedSale['household_id'],
+                'customer_id'=>(int)$committedSale['customer_id'],
+                'policy_id'=>$policyId,'entry_type'=>'earn_spend',
+                'points_delta'=>(int)$committedSale['points_delta'],
+                'source_type'=>'sale','source_id'=>(string)$saleId,
+                'idempotency_key'=>'roost:pos:sale:'.$saleId];
+            $receipt=bcrf_roost_outbox_ledger_receipt($pdo,$mapped);
+            if (!$receipt) throw new RuntimeException('Sale ledger receipt missing.');
+            return ['outcome'=>'completed','replayed'=>true,'ledger_entry_id'=>$receipt['ledger_entry_id']];
+        }
+    }
     // A committed refund cannot pass the ordinary pending-refund preview:
     // its cumulative points have already been reversed. Verify the durable
     // receipt and source provenance before considering it acknowledged.
