@@ -1,7 +1,8 @@
 <?php
 // Explicitly disabled adapter for POS transaction integration.
-// The live sale/refund paths must not call this until a separate approved
-// release has applied migration 0019 and enabled the durable outbox.
+// Sale/refund paths already call this adapter inside their transactions,
+// but the hard-disabled gate returns before any reward table query or write.
+// Enabling requires a separate approved release and migration 0019.
 require_once __DIR__.'/roost-pos-outbox.php';
 function bcrf_roost_pos_enqueue_enabled(): bool { return false; }
 function bcrf_roost_pos_enqueue_if_enabled(PDO $pdo, string $kind, int $sourceId): bool {
