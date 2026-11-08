@@ -8,7 +8,7 @@
                     <div class="footer-logo"><span aria-hidden="true">🌿</span> Bat Cave Road Farm</div>
                     <p>
                         <a rel="noopener" target="_blank" href="https://maps.google.com/?q=4132 Bat Cave Road, Old Fort, North Carolina, 28762">4132 Bat Cave Road<br>Old Fort, NC 28762</a><br>
-                        <a href="tel:+18282165488">(828) 216-5488</a><br>
+                        <a href="tel:<?= htmlspecialchars(site_tel('general'), ENT_QUOTES) ?>"><?= htmlspecialchars(site_phone_display('general')) ?></a><br>
                         <a href="mailto:<?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?>"><?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?></a>
                     </p>
                     © 2026 Bat Cave Road Farm - All Rights Reserved
