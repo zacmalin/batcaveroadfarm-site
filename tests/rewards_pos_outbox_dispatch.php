@@ -53,5 +53,19 @@ try {
     if($e->getMessage()==='Mismatched queued refund identity accepted.') throw $e;
     if($e->getMessage()!=='Queued refund source does not match outbox identity.') throw $e;
 }
+// The full inert preflight must preserve the historical earning policy
+// when that policy is retired, without switching to an active replacement.
+$pdo->exec("UPDATE reward_policies SET status='retired' WHERE id=1");
+try {
+    $refundPlan=bcrf_roost_outbox_dispatch_refund_preflight($pdo,
+        ['id'=>$refundOutboxId,'event_type'=>'sale.refunded','source_id'=>9021]);
+    if (!in_array($refundPlan['action']??null,
+        ['posting_required','already_posted','zero_point_receipt_required'],true))
+        throw new RuntimeException('Refund preflight returned unsupported action.');
+    if (isset($refundPlan['event']) && (int)$refundPlan['event']['policy_id']!==1)
+        throw new RuntimeException('Refund preflight substituted historical policy.');
+} finally {
+    $pdo->exec("UPDATE reward_policies SET status='active' WHERE id=1");
+}
 $pdo->exec("DELETE FROM reward_pos_outbox WHERE id=$refundOutboxId");
 echo "Inert outbox dispatch guards passed.\n";
