@@ -1,0 +1,86 @@
+<?php
+// Farm Rewards internal ledger service. NOT wired to checkout or public routes.
+// All mutations must be called with an explicit verified household and approved policy.
+// InnoDB row locks serialize balance changes; caller supplies stable event idempotency keys.
+
+if (!class_exists('BcrfRewardError')) {
+    class BcrfRewardError extends RuntimeException {}
+}
+
+/**
+ * Post a signed ledger delta and update the pooled balance in ONE transaction.
+ * Duplicate event keys return the original entry without posting again.
+ * A reversal may make the balance negative; redemptions may never do so.
+ * Caller is responsible for trusted source verification, eligibility, and permission checks.
+ *
+ * @return array{id:int,balance:int,replayed:bool}
+ */
+function bcrf_reward_post(PDO $pdo, array $event): array {
+    $required = ['household_id','policy_id','entry_type','points_delta','source_type','source_id','idempotency_key'];
+    foreach ($required as $key) {
+        if (!array_key_exists($key, $event) || $event[$key] === '' || $event[$key] === null) {
+            throw new BcrfRewardError('Missing reward event field: ' . $key);
+        }
+    }
+    $household = filter_var($event['household_id'], FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]]);
+    $policy = filter_var($event['policy_id'], FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]]);
+    $delta = filter_var($event['points_delta'], FILTER_VALIDATE_INT);
+    $type = (string)$event['entry_type'];
+    if (!$household || !$policy || $delta === false || $delta === 0) throw new BcrfRewardError('Invalid reward event values.');
+    if (!in_array($type, ['earn_spend','earn_visit','redeem','refund_reversal','expire','adjustment'], true)) {
+        throw new BcrfRewardError('Unknown reward event type.');
+    }
+    if (in_array($type, ['earn_spend','earn_visit'], true) && $delta <= 0) throw new BcrfRewardError('Earnings must be positive.');
+    if (in_array($type, ['redeem','refund_reversal','expire'], true) && $delta >= 0) throw new BcrfRewardError('Deductions must be negative.');
+    foreach (['source_type'=>40,'source_id'=>100,'idempotency_key'=>160] as $key=>$max) {
+        if (!is_string($event[$key]) || strlen($event[$key]) > $max || trim($event[$key]) === '') {
+            throw new BcrfRewardError('Invalid reward source or event key.');
+        }
+    }
+    $customer = $event['customer_id'] ?? null;
+    if ($customer !== null && !filter_var($customer, FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]])) {
+        throw new BcrfRewardError('Invalid customer.');
+    }
+    if ($type === 'redeem' && $customer === null) throw new BcrfRewardError('Redeemer required.');
+    if ($pdo->inTransaction()) throw new BcrfRewardError('Reward posting requires its own transaction.');
+
+    $pdo->beginTransaction();
+    try {
+        // This lock serializes every mutation for one household.
+        $lock = $pdo->prepare("SELECT a.balance_points, h.status FROM reward_accounts a JOIN reward_households h ON h.id = a.household_id WHERE a.household_id = ? FOR UPDATE");
+        $lock->execute([$household]);
+        $account = $lock->fetch(PDO::FETCH_ASSOC);
+        if (!$account || $account['status'] !== 'active') throw new BcrfRewardError('Reward account unavailable.');
+
+        $existing = $pdo->prepare("SELECT id, household_id FROM reward_ledger WHERE idempotency_key = ?");
+        $existing->execute([$event['idempotency_key']]);
+        if ($old = $existing->fetch(PDO::FETCH_ASSOC)) {
+            if ((int)$old['household_id'] !== (int)$household) throw new BcrfRewardError('Event key belongs to another household.');
+            $pdo->commit();
+            return ['id'=>(int)$old['id'],'balance'=>(int)$account['balance_points'],'replayed'=>true];
+        }
+
+        $balance = (int)$account['balance_points'];
+        if ($type === 'redeem') {
+            // Recheck permission inside the same transaction, after balance lock.
+            $member = $pdo->prepare("SELECT 1 FROM reward_household_members WHERE household_id = ? AND customer_id = ? AND revoked_at IS NULL AND verification_status = 'verified' AND role IN ('manager','adult') AND can_redeem = 1 LIMIT 1");
+            $member->execute([$household, $customer]);
+            if (!$member->fetchColumn()) throw new BcrfRewardError('Not authorized to redeem household rewards.');
+            if ($balance <= 0 || $balance < -$delta) throw new BcrfRewardError('Insufficient reward points.');
+        }
+        $newBalance = $balance + $delta;
+        $metadata = isset($event['metadata']) ? json_encode($event['metadata'], JSON_THROW_ON_ERROR) : null;
+        $ins = $pdo->prepare("INSERT INTO reward_ledger (household_id, customer_id, policy_id, entry_type, points_delta, source_type, source_id, idempotency_key, related_entry_id, metadata_json, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(3), ?)");
+        $ins->execute([$household, $customer, $policy, $type, $delta, $event['source_type'], $event['source_id'], $event['idempotency_key'], $event['related_entry_id'] ?? null, $metadata, $event['created_by'] ?? null]);
+        $id = (int)$pdo->lastInsertId();
+        $upd = $pdo->prepare("UPDATE reward_accounts SET balance_points = ?, lifetime_earned = lifetime_earned + ?, lifetime_redeemed = lifetime_redeemed + ?, updated_at = UTC_TIMESTAMP(3) WHERE household_id = ?");
+        $upd->execute([$newBalance, in_array($type,['earn_spend','earn_visit'],true) ? $delta : 0, $type === 'redeem' ? -$delta : 0, $household]);
+        $pdo->commit();
+        return ['id'=>$id,'balance'=>$newBalance,'replayed'=>false];
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        // A simultaneous first insert of the same key may hit the unique constraint.
+        // Let the caller retry the whole operation; it will then see the existing row.
+        throw $e;
+    }
+}
