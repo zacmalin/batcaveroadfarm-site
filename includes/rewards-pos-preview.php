@@ -31,12 +31,21 @@ function bcrf_rewards_sale_eligible_cents(PDO $pdo, int $saleId): int {
     }
     // Gift-card/store-credit/reward payment allocation is not yet safely
     // reconciled by line. Fail closed rather than overaward on mixed tenders.
-    $tenders = $pdo->prepare("SELECT tender FROM payments WHERE sale_id = ?");
+    $tenders = $pdo->prepare("SELECT tender, amount_cents, status FROM payments WHERE sale_id = ?");
     $tenders->execute([$saleId]);
-    while (($tender = $tenders->fetchColumn()) !== false) {
-        if (in_array($tender, ['gift_card','store_credit','reward','rewards'], true)) {
+    $paid = 0;
+    while ($payment = $tenders->fetch(PDO::FETCH_ASSOC)) {
+        if ($payment['status'] !== 'completed') continue;
+        if (in_array($payment['tender'], ['gift_card','store_credit','reward','rewards'], true)) {
             throw new BcrfRewardError('Sale has unallocated non-earning tender.');
         }
+        if (!in_array($payment['tender'], ['cash','paypal','venmo','cashapp','check','card_online'], true)) {
+            throw new BcrfRewardError('Unverified payment method.');
+        }
+        $amount = (int)$payment['amount_cents'];
+        if ($amount <= 0 || $paid > PHP_INT_MAX - $amount) throw new BcrfRewardError('Invalid payment amount.');
+        $paid += $amount;
     }
+    if ($paid < (int)$sale['total_cents']) throw new BcrfRewardError('Sale payment not fully recorded.');
     return $eligible;
 }
