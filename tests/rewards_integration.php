@@ -72,6 +72,9 @@ if (function_exists('pcntl_fork') && function_exists('stream_socket_pair')) {
         else throw new RuntimeException('Race child error code '.$code);
     }
     expect($success===1 && $insufficient===1,'exactly one concurrent redemption succeeds');
+    // Forked children inherit the parent's MySQL socket; child shutdown can close it.
+    // Reconnect in the parent before asserting the final persisted balance.
+    $pdo = new PDO($dsn, getenv('BCRF_REWARDS_TEST_USER') ?: '', getenv('BCRF_REWARDS_TEST_PASSWORD') ?: '', [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
     expect((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()===0,'concurrent balance never overspent');
 }
 echo "Farm Rewards integration checks passed.\\n";
