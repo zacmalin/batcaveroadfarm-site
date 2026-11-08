@@ -50,3 +50,24 @@ function bcrf_roost_outbox_dispatch_pinned_sale_preflight(PDO $pdo, array $event
     $policy=bcrf_roost_outbox_pinned_sale_policy($pdo,(int)$id);
     return bcrf_roost_outbox_dispatch_preflight($pdo,$event,$policy);
 }
+
+
+/**
+ * Inert queued-refund preflight: bind the outbox identity to the refund and
+ * derive policy from the original sale earning, never the active policy.
+ */
+function bcrf_roost_outbox_dispatch_refund_preflight(PDO $pdo, array $event): array {
+    if (($event['event_type']??null)!=='sale.refunded')
+        throw new InvalidArgumentException('Refund preflight requires refund event.');
+    $id=filter_var($event['id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+    $sourceId=filter_var($event['source_id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+    if (!$id || !$sourceId) throw new InvalidArgumentException('Queued refund identity required.');
+    if ($pdo->inTransaction()) throw new LogicException('Refund preflight requires autocommit.');
+    $st=$pdo->prepare("SELECT source_id FROM reward_pos_outbox WHERE id=? AND event_type='sale.refunded'");
+    $st->execute([(int)$id]);
+    if ((string)$st->fetchColumn()!==(string)$sourceId)
+        throw new RuntimeException('Queued refund source does not match outbox identity.');
+    require_once __DIR__.'/roost-pos-outbox-policy.php';
+    $policy=bcrf_roost_outbox_resolve_policy($pdo,$event);
+    return bcrf_roost_outbox_dispatch_preflight($pdo,$event,$policy);
+}
