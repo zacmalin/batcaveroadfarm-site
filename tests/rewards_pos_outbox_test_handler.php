@@ -26,6 +26,22 @@ try {
 }
 $after=(int)$pdo->query("SELECT COUNT(*) FROM reward_ledger WHERE source_type='sale' AND source_id='904'")->fetchColumn();
 if ($before!==$after) throw new RuntimeException('Rejected event modified ledger.');
+// A delayed, genuinely pinned sale may post after policy retirement.
+$pdo->exec("INSERT INTO sales (id,customer_id,status,subtotal_cents,discount_cents,total_cents)
+ VALUES (905,1,'completed',1200,0,1200)");
+$pdo->exec("INSERT INTO sale_lines (sale_id,product_type,gross_cents,discount_cents,refunded_net_cents)
+ VALUES (905,'retail',1200,0,0)");
+$pdo->exec("INSERT INTO payments (sale_id,tender,amount_cents,status)
+ VALUES (905,'cash',1200,'completed')");
+require_once __DIR__.'/../includes/roost-pos-outbox.php';
+$pdo->beginTransaction();
+bcrf_roost_pos_outbox_enqueue_pinned_sale($pdo,905,1);
+$pdo->commit();
+$pdo->exec("UPDATE reward_policies SET status='draft' WHERE id=1");
+$delayed=bcrf_roost_outbox_handle_test_event($pdo,['event_type'=>'sale.completed','source_id'=>905],1,true);
+if ($delayed['outcome']!=='completed' || $delayed['replayed'])
+    throw new RuntimeException('Pinned delayed sale failed after policy retirement.');
+$pdo->exec("UPDATE reward_policies SET status='active' WHERE id=1");
 // Successful award, lost acknowledgment, and retry use a fresh sale fixture.
 $pdo->exec("INSERT INTO sales (id,customer_id,status,subtotal_cents,discount_cents,total_cents)
  VALUES (902,1,'completed',2300,0,2300)");
