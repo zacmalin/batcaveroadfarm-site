@@ -46,7 +46,9 @@ function bcrf_rewards_cumulative_refund_points(int $originalEligibleCents, int $
  */
 function bcrf_rewards_sale_eligible_cents(PDO $pdo, int $saleId): int {
     if ($saleId <= 0) throw new BcrfRewardError('Invalid sale.');
-    // Lock the sale header as well as its lines/payments during transactional validation.\n    // This prevents concurrent edits to header totals or status before posting commits.\n    $st = $pdo->prepare("SELECT id, status, subtotal_cents, discount_cents, total_cents FROM sales WHERE id = ?" . ($pdo->inTransaction() ? " FOR UPDATE" : ""));
+    // Lock the sale header as well as its lines/payments during transactional validation.
+    // This prevents concurrent edits to header totals or status before posting commits.
+    $st = $pdo->prepare("SELECT id, status, subtotal_cents, discount_cents, total_cents FROM sales WHERE id = ?" . ($pdo->inTransaction() ? " FOR UPDATE" : ""));
     $st->execute([$saleId]);
     $sale = $st->fetch(PDO::FETCH_ASSOC);
     if (!$sale || !in_array($sale['status'], ['completed','partially_refunded'], true)) {
