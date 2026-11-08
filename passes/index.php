@@ -40,6 +40,7 @@ $errMap = [
     'email'    => 'Please enter a valid email address.',
     'sold_out' => 'Sorry, Founding Member passes are sold out.',
     'db'       => 'Something went wrong — please call ' . site_phone_display('general') . '.',
+    'stripe'   => 'Secure checkout could not be started. Please try again or call ' . site_phone_display('general') . ' for help.',
 ];
 $errKey = trim((string)($_GET['error'] ?? ''));
 $errMsg = $errMap[$errKey] ?? '';
