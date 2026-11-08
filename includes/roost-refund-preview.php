@@ -38,6 +38,10 @@ function bcrf_roost_refund_reversal_preview(PDO $pdo, int $saleId): array {
     $eligibleRefunds = [];
     foreach ($refunds->fetchAll(PDO::FETCH_ASSOC) as $refund) {
         $refundId = (int)$refund['id'];
+        if ($refundId <= 0 || array_key_exists($refundId, $eligibleRefunds) ||
+            (int)$refund['net_cents'] < 0) {
+            throw new BcrfRewardError('Invalid refund header.');
+        }
         $detail = $pdo->prepare("SELECT sale_line_id, net_cents FROM refund_lines WHERE refund_id=?".$suffix);
         $detail->execute([$refundId]);
         $sum = 0;
@@ -46,7 +50,9 @@ function bcrf_roost_refund_reversal_preview(PDO $pdo, int $saleId): array {
         foreach ($detail->fetchAll(PDO::FETCH_ASSOC) as $item) {
             $lineId = (int)$item['sale_line_id'];
             $cents = (int)$item['net_cents'];
-            if (!isset($byId[$lineId]) || $cents < 0 || $sum > PHP_INT_MAX-$cents)
+            if (!isset($byId[$lineId]) || $cents < 0 || $sum > PHP_INT_MAX-$cents ||
+                ($sumByLine[$lineId] ?? 0) > PHP_INT_MAX-$cents ||
+                ($byId[$lineId]['eligible'] && $eligible > PHP_INT_MAX-$cents))
                 throw new BcrfRewardError('Invalid refund line provenance or amount.');
             $sum += $cents;
             $count++;
@@ -65,7 +71,7 @@ function bcrf_roost_refund_reversal_preview(PDO $pdo, int $saleId): array {
     // minus reversals already committed for this original sale earning.
     // This helper is read-only; the caller must hold the account lock and
     // recheck all source rows in the same posting transaction.
-        return [
+    return [
         'original_eligible_cents'=>$original,
         'remaining_eligible_cents'=>$remaining,
         'cumulative_points_to_reverse'=>bcrf_rewards_cumulative_refund_points($original,$remaining),
