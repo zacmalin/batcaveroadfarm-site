@@ -198,6 +198,12 @@ $pdo->exec("UPDATE reward_accounts SET balance_points=50 WHERE household_id=1");
 $pdo->exec("UPDATE reward_households SET last_qualifying_activity_at=UTC_TIMESTAMP(3) WHERE id=1");
 $fresh = bcrf_roost_expire_household($pdo, 1);
 expect(!$fresh['expired'] && $fresh['balance']===50, 'recent activity blocks expiration');
+// A POS refund must never reverse visit points, even if a caller forges a related entry.
+rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,[
+    'entry_type'=>'refund_reversal','points_delta'=>-25,'source_type'=>'refund',
+    'source_id'=>'2','idempotency_key'=>'refund-visit-forgery',
+    'related_entry_id'=>$visitAward['id']
+])), 'refund cannot reverse a visit award');
 // Reconciled refund preview uses actual refund lines and sale-line running totals.
 require_once __DIR__ . '/../includes/roost-refund-preview.php';
 $preview = bcrf_roost_refund_reversal_preview($pdo,100);
