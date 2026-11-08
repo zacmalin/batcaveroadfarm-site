@@ -302,6 +302,26 @@ expect($replayedZero['replayed'] && $replayedZero['points_reversed']===0,
     'zero-point refund processing replay is idempotent');
 expect((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE refund_id=5")->fetchColumn()===1,
     'zero-point refund has exactly one processing receipt');
+$otherPdo = new PDO($dsn, getenv('BCRF_REWARDS_TEST_USER') ?: '',
+    getenv('BCRF_REWARDS_TEST_PASSWORD') ?: '', [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
+$otherPdo->beginTransaction();
+$otherPdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1 FOR UPDATE")->fetchColumn();
+$pdo->exec("SET SESSION innodb_lock_wait_timeout=1");
+$lockBlocked = false;
+try {
+    bcrf_roost_record_zero_point_refund($pdo,5,$zeroEarnId);
+} catch (PDOException $e) {
+    $lockBlocked = in_array((string)$e->getCode(), ['HY000','40001'], true);
+} finally {
+    $otherPdo->rollBack();
+    $pdo->exec("SET SESSION innodb_lock_wait_timeout=50");
+}
+expect($lockBlocked, 'concurrent account lock blocks duplicate refund processing');
+expect(bcrf_roost_record_zero_point_refund($pdo,5,$zeroEarnId)['replayed'],
+    'refund replay succeeds after competing transaction releases account lock');
+expect((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE refund_id=5")->fetchColumn()===1,
+    'account contention does not create duplicate receipts');
+
 rejected(fn()=>bcrf_roost_record_zero_point_refund($pdo,5,$a['id']),
     'processed refund cannot be rebound to a different earning');
 
