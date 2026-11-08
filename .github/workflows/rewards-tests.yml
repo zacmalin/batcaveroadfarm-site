@@ -8,6 +8,9 @@ on:
       - 'admin/migrations/0017_roost_rewards_attendance.php'
       - 'admin/migrations/0018_roost_refund_processing.php'
       - 'admin/migrations/0019_roost_pos_outbox.php'
+      - 'admin/migrations/0020_roost_email_outbox.php'
+      - 'admin/migrations/0021_roost_email_suppressions.php'
+      - 'admin/includes/email_template.php'
       - 'passes/roost_*.php'
       - 'roost-rewards/**'
       - 'faq/index.php'
@@ -61,7 +64,7 @@ jobs:
           coverage: none
       - name: PHP syntax
         run: |
-          for file in includes/rewards.php includes/rewards-pos-preview.php includes/roost-*.php admin/migrations/0016_farm_rewards_foundation.php admin/migrations/0017_roost_rewards_attendance.php admin/migrations/0018_roost_refund_processing.php admin/migrations/0019_roost_pos_outbox.php passes/roost_*.php roost-rewards/index.php tests/rewards_integration.php tests/rewards_concurrency_worker.php tests/rewards_production_preflight.php tests/rewards_pos_preview.php tests/rewards_pos_lifecycle.php tests/rewards_pos_outbox.php tests/rewards_pos_outbox_worker.php tests/rewards_pos_outbox_health.php tests/rewards_pos_outbox_preview.php tests/rewards_pos_outbox_ledger_map.php tests/rewards_pos_outbox_receipt.php tests/rewards_pos_outbox_dispatch.php tests/rewards_pos_outbox_test_handler.php tests/rewards_pos_outbox_policy.php tests/rewards_pos_outbox_integration.php tests/rewards_pos_source_guards.php tests/rewards_release_audit.php; do
+          for file in includes/rewards.php includes/rewards-pos-preview.php includes/roost-*.php admin/migrations/0016_farm_rewards_foundation.php admin/migrations/0017_roost_rewards_attendance.php admin/migrations/0018_roost_refund_processing.php admin/migrations/0019_roost_pos_outbox.php admin/migrations/0020_roost_email_outbox.php admin/migrations/0021_roost_email_suppressions.php admin/includes/email_template.php passes/roost_*.php roost-rewards/index.php tests/rewards_integration.php tests/rewards_concurrency_worker.php tests/rewards_production_preflight.php tests/rewards_pos_preview.php tests/rewards_pos_lifecycle.php tests/rewards_pos_outbox.php tests/rewards_pos_outbox_worker.php tests/rewards_pos_outbox_health.php tests/rewards_pos_outbox_preview.php tests/rewards_pos_outbox_ledger_map.php tests/rewards_pos_outbox_receipt.php tests/rewards_pos_outbox_dispatch.php tests/rewards_pos_outbox_test_handler.php tests/rewards_pos_outbox_policy.php tests/rewards_pos_outbox_integration.php tests/rewards_pos_source_guards.php tests/rewards_release_audit.php; do
             php -l "$file" || exit 1
           done
       - name: Rewards MySQL integration
