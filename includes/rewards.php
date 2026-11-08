@@ -208,6 +208,14 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
         $id = (int)$pdo->lastInsertId();
         $upd = $pdo->prepare("UPDATE reward_accounts SET balance_points = ?, lifetime_earned = lifetime_earned + ?, lifetime_redeemed = lifetime_redeemed + ?, updated_at = UTC_TIMESTAMP(3) WHERE household_id = ?");
         $upd->execute([$newBalance, in_array($type,['earn_spend','earn_visit'],true) ? $delta : 0, $type === 'redeem' ? -$delta : 0, $household]);
+        // Only confirmed earning events reset household inactivity. A replay
+        // exits earlier, so it cannot refresh activity a second time.
+        if (in_array($type, ['earn_spend','earn_visit'], true)) {
+            $activity = $pdo->prepare("UPDATE reward_households
+                SET last_qualifying_activity_at = UTC_TIMESTAMP(3), updated_at = UTC_TIMESTAMP(3)
+                WHERE id = ?");
+            $activity->execute([$household]);
+        }
         $pdo->commit();
         return ['id'=>$id,'balance'=>$newBalance,'replayed'=>false];
     } catch (Throwable $e) {
