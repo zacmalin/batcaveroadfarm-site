@@ -33,6 +33,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
                   <li><a href="#ip">Our content</a></li>
                   <li><a href="#products">Products &amp; pricing</a></li>
                   <li><a href="#purchases">Tickets, passes &amp; bookings</a></li>
+                  <li><a href="#roost-rewards">Roost Rewards</a></li>
                   <li><a href="#visits">Farm visits &amp; the petting zoo</a></li>
                   <li><a href="#risk">Assumption of risk</a></li>
                   <li><a href="#disclaimer">Disclaimers</a></li>
@@ -74,6 +75,13 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
                 <li><strong>Weather:</strong> we're open rain or shine. If the weather looks bad on the day of your
                   booking, you may reschedule to a day within two weeks after your booked date.</li>
               </ul>
+
+              <h2 id="roost-rewards">Roost Rewards</h2>
+              <p>Roost Rewards is not yet open for enrollment. These are the planned terms for when the program launches. Participation is optional and subject to published eligibility and redemption rules.</p>
+              <p>Qualifying purchases earn five points per dollar of eligible net spending after discounts and before tax, rounded down to whole points once per sale with no carryover. Eligible staff-verified farm visits earn 25 points per person per operating day. Some purchases, fees, and visits are excluded; final exclusions will be disclosed at launch.</p>
+              <p>Verified household members share a balance; only authorized verified adults may redeem. Redemption tiers are 250, 500, 1,000, and 2,000 points, with benefits and restrictions to be published before launch. Points are promotional benefits, not cash, and cannot be sold or transferred outside an approved household.</p>
+              <p>Points expire after 12 months without a qualifying purchase or verified visit. Refunds may reverse earned points, including a temporary negative balance. We may correct duplicate, mistaken, or fraudulent awards and investigate suspected misuse. Material program changes will be disclosed as required by law.</p>
+              <p>See our <a href="<?= bcrf_farm_url() ?>/privacy/#rewards">Privacy Policy</a> or <a href="<?= bcrf_farm_url() ?>/contact-us/">contact us</a> with questions.</p>
 
               <h2 id="visits">Farm visits &amp; the petting zoo</h2>
               <p>A working farm is a hands-on environment with live animals, uneven ground, equipment, and the
