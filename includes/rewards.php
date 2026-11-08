@@ -101,6 +101,18 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
             $earningMember->execute([$household, $customer]);
             if (!$earningMember->fetchColumn()) throw new BcrfRewardError('Earning customer has no verified active membership.');
         }
+        // A recorded sale ID alone is not sufficient: confirm the sale exists,
+        // remains completed, and is still assigned to the earning customer.
+        // Locking the row prevents concurrent reassignment until commit.
+        if ($type === 'earn_spend') {
+            $saleCheck = $pdo->prepare("SELECT customer_id, status FROM sales WHERE id = ? FOR UPDATE");
+            $saleCheck->execute([(int)$event['source_id']]);
+            $sourceSale = $saleCheck->fetch(PDO::FETCH_ASSOC);
+            if (!$sourceSale || !in_array($sourceSale['status'], ['completed','partially_refunded'], true) ||
+                (int)$sourceSale['customer_id'] !== (int)$customer) {
+                throw new BcrfRewardError('Earning sale is not completed or assigned to this customer.');
+            }
+        }
         if ($type === 'redeem') {
             // Recheck permission inside the same transaction, after balance lock.
             $member = $pdo->prepare("SELECT id FROM reward_household_members WHERE household_id = ? AND customer_id = ? AND revoked_at IS NULL AND verification_status = 'verified' AND role IN ('manager','adult') AND can_redeem = 1 FOR UPDATE");
