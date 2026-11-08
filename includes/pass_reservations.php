@@ -14,7 +14,7 @@ function bcrf_pass_reserve(PDO $pdo, int $typeId, string $name, string $email, ?
         $limited = !empty($type['is_founding']) && (int)($type['founding_qty_limit'] ?? 0) > 0;
         if ($limited) {
             $q = $pdo->prepare("SELECT COUNT(*) FROM passes WHERE pass_type_id=?
-                AND ((payment_status IN ('paid','waived'))
+                AND ((payment_status IN ('paid','waived') AND status <> 'pending_payment')
                   OR (status='pending_payment' AND payment_status='pending'
                       AND (reservation_expires_at > NOW()
                            OR (reservation_expires_at IS NULL))))");
