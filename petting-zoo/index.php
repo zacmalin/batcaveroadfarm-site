@@ -159,6 +159,8 @@ function bcrfBreedCards(PDO $pdo): void {
     } catch (Throwable $e) {
         // No pricing offers is safer than publishing prices that may be wrong.
     }
+	require_once __DIR__ . '/../includes/site_info.php';
+	$zooHours = site_hours_summary('general');
 	$pageTitle    = "Petting Zoo | Bat Cave Road Farm — Old Fort, NC";
 	$preloadImage = (bcrf_farm_url() . "/img/animals1.webp"); // hero photo = mobile LCP (Nov 3 perf fix)
 	$metaDesc = "Meet goats, pigs, donkeys, chickens, ducks, turkeys, and a rare white peacock at Bat Cave Road Farm petting zoo in Old Fort, NC near Asheville.";
@@ -188,22 +190,7 @@ function bcrfBreedCards(PDO $pdo): void {
         "postalCode": "28762",
         "addressCountry": "US"
       },
-      "openingHoursSpecification": [
-        {
-          "@type": "OpeningHoursSpecification",
-          "dayOfWeek": [
-            "Tuesday",
-            "Wednesday",
-            "Thursday",
-            "Friday",
-            "Saturday",
-            "Sunday"
-          ],
-          "opens": "10:00",
-          "closes": "16:00",
-          "description": "Last admission 30 minutes before closing at 4:00 PM"
-        }
-      ],
+      "openingHoursSpecification": <?= json_encode(site_hours_schema('general'), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
       "isPartOf": {
         "@id": "<?= bcrf_farm_url() ?>/#business"
       },
@@ -300,7 +287,7 @@ function bcrfBreedCards(PDO $pdo): void {
                   <h3><span aria-hidden="true">🕐</span> Petting Zoo Hours & Admission</h3>
                   <ul>
                     <li>Appointments available</li>
-                    <li>Open Tuesday – Sunday, 10:00 AM – 4:00 PM</li>
+                    <li>Hours: <?= htmlspecialchars($zooHours['sentence'] ?? '') ?></li>
                     <li>Adults: $8 · Children (3 - 12): $5 - Under 3: Free</li>
                     <li>Group rates available · call ahead to arrange</li>
                     <li>Last admission 30 minutes before closing</li>
