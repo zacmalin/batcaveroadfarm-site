@@ -45,6 +45,14 @@ $pdo->commit();
 $pinnedId=(int)$pdo->query("SELECT id FROM reward_pos_outbox WHERE event_type='sale.completed' AND source_id=990092")->fetchColumn();
 if(bcrf_roost_outbox_pinned_sale_policy($pdo,$pinnedId)!==1)
     throw new RuntimeException('Pinned sale policy was not recovered.');
+if(bcrf_roost_outbox_authorize_sale_policy($pdo,$pinnedId,1)!==1)
+    throw new RuntimeException('Matching sale snapshot was rejected.');
+try {
+    bcrf_roost_outbox_authorize_sale_policy($pdo,$pinnedId,2);
+    throw new RuntimeException('Mismatched sale snapshot was accepted.');
+} catch(RuntimeException $e) {
+    if($e->getMessage()==='Mismatched sale snapshot was accepted.') throw $e;
+}
 $pdo->exec("UPDATE reward_policies SET status='draft' WHERE id=1");
 if(bcrf_roost_outbox_pinned_sale_policy($pdo,$pinnedId)!==1)
     throw new RuntimeException('Retired pinned sale policy was replaced.');
@@ -55,6 +63,12 @@ try {
     throw new RuntimeException('Unpinned sale accepted.');
 } catch(RuntimeException $e) {
     if($e->getMessage()==='Unpinned sale accepted.') throw $e;
+}
+try {
+    bcrf_roost_outbox_authorize_sale_policy($pdo,$pinnedId,1);
+    throw new RuntimeException('Null sale snapshot was authorized.');
+} catch(RuntimeException $e) {
+    if($e->getMessage()==='Null sale snapshot was authorized.') throw $e;
 }
 $pdo->exec("DELETE FROM reward_pos_outbox WHERE id=$pinnedId");
 echo "POS policy resolver guards passed.\\n";
