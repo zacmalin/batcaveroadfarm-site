@@ -20,13 +20,13 @@ function bcrf_rewards_sale_eligible_cents(PDO $pdo, int $saleId): int {
     if (!$sale || !in_array($sale['status'], ['completed','partially_refunded'], true)) {
         throw new BcrfRewardError('Sale is not eligible for rewards.');
     }
-    $lines = $pdo->prepare("SELECT product_type, gross_cents, discount_cents, refunded_cents FROM sale_lines WHERE sale_id = ?");
+    $lines = $pdo->prepare("SELECT product_type, gross_cents, discount_cents, refunded_net_cents FROM sale_lines WHERE sale_id = ?");
     $lines->execute([$saleId]);
     $allowed = ['retail','produce','kitchen_good','admission','thrift_item'];
     $eligible = 0;
     while ($line = $lines->fetch(PDO::FETCH_ASSOC)) {
         if (!in_array($line['product_type'], $allowed, true)) continue;
-        $net = max(0, (int)$line['gross_cents'] - (int)$line['discount_cents'] - (int)($line['refunded_cents'] ?? 0));
+        $net = max(0, (int)$line['gross_cents'] - (int)$line['discount_cents'] - (int)($line['refunded_net_cents'] ?? 0));
         $eligible += $net;
     }
     // Gift-card/store-credit/reward payment allocation is not yet safely
