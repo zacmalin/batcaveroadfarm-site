@@ -49,7 +49,7 @@ try {
     if (empty($session['url'])) throw new RuntimeException('No checkout URL returned by Stripe.');
 } catch (Throwable $e) {
     error_log('[BCRF stripe_session] Stripe error: ' . $e->getMessage());
-    _stripe_bail('Payment could not be started: ' . $e->getMessage(), $token);
+    _stripe_bail('Payment could not be started. Please try again or contact us for help.', $token);
 }
 
 try {
