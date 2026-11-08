@@ -208,6 +208,11 @@ rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,[
 require_once __DIR__ . '/../includes/roost-refund-preview.php';
 $pdo->exec("UPDATE sales SET status='voided' WHERE id=100");
 rejected(fn()=>bcrf_roost_refund_reversal_preview($pdo,100),'voided sale refund rejected');
+$pdo->exec("UPDATE sales SET status='pending' WHERE id=100");
+rejected(fn()=>bcrf_roost_refund_reversal_preview($pdo,100),'pending sale refund rejected');
+$pdo->exec("UPDATE sales SET status='refunded' WHERE id=100");
+expect(bcrf_roost_refund_reversal_preview($pdo,100)['cumulative_points_to_reverse']===200,
+    'fully refunded sale may be reconciled');
 $pdo->exec("UPDATE sales SET status='completed' WHERE id=100");
 $preview = bcrf_roost_refund_reversal_preview($pdo,100);
 expect($preview['cumulative_points_to_reverse']===200 && $preview['remaining_eligible_cents']===0,'full refund preview matches original points');
