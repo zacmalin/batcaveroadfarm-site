@@ -17,7 +17,7 @@ function bcrf_pass_reserve(PDO $pdo, int $typeId, string $name, string $email, ?
                 AND ((payment_status IN ('paid','waived'))
                   OR (status='pending_payment' AND payment_status='pending'
                       AND (reservation_expires_at > NOW()
-                           OR (reservation_expires_at IS NULL AND created_at > DATE_SUB(NOW(), INTERVAL 30 MINUTE)))))");
+                           OR (reservation_expires_at IS NULL))))");
             $q->execute([$typeId]);
             if ((int)$q->fetchColumn() >= (int)$type['founding_qty_limit']) {
                 $pdo->rollBack();
@@ -58,7 +58,9 @@ function bcrf_pass_confirm_payment(PDO $pdo, int $passId, string $sessionId): st
             return 'already';
         }
         $limited = !empty($pass['is_founding']) && (int)$pass['founding_qty_limit'] > 0;
-        $late = $limited && ($pass['reservation_expires_at'] === null || (bool)$pass['hold_expired']);
+        // NULL holds predate the migration and must remain fulfillable. They are
+        // conservatively counted against capacity until manually reconciled.
+        $late = $limited && $pass['reservation_expires_at'] !== null && (bool)$pass['hold_expired'];
         if ($late) {
             $q = $pdo->prepare("UPDATE passes SET payment_status='paid', payment_provider='stripe', payment_reference=? WHERE id=? AND status='pending_payment'");
             $q->execute([$sessionId, $passId]);
