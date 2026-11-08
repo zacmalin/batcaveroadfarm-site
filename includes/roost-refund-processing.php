@@ -8,7 +8,7 @@ function bcrf_roost_record_zero_point_refund(PDO $pdo, int $refundId, int $earni
     $pdo->beginTransaction();
     try {
         $origin = $pdo->prepare("SELECT household_id, entry_type, source_type, source_id, points_delta
-            FROM reward_ledger WHERE id=? FOR UPDATE");
+            FROM reward_ledger WHERE id=?");
         $origin->execute([$earningEntryId]);
         $earned = $origin->fetch(PDO::FETCH_ASSOC);
         if (!$earned || $earned['entry_type'] !== 'earn_spend' || $earned['source_type'] !== 'sale')
@@ -17,6 +17,10 @@ function bcrf_roost_record_zero_point_refund(PDO $pdo, int $refundId, int $earni
         $lock = $pdo->prepare("SELECT balance_points FROM reward_accounts WHERE household_id=? FOR UPDATE");
         $lock->execute([$household]);
         if ($lock->fetchColumn() === false) throw new BcrfRewardError('Reward account unavailable.');
+        // Lock in the same account -> earning -> refund order as ledger posting.
+        $originLock = $pdo->prepare("SELECT id FROM reward_ledger WHERE id=? FOR UPDATE");
+        $originLock->execute([$earningEntryId]);
+        if (!$originLock->fetchColumn()) throw new BcrfRewardError('Original earning unavailable.');
         $refund = $pdo->prepare("SELECT sale_id FROM refunds WHERE id=? FOR UPDATE");
         $refund->execute([$refundId]);
         $saleId = $refund->fetchColumn();
