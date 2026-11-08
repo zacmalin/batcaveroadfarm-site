@@ -183,4 +183,15 @@ $pdo->exec("UPDATE reward_accounts SET balance_points=75 WHERE household_id=1");
 $candidates = bcrf_roost_expiration_candidates($pdo);
 expect(count($candidates)===1 && (int)$candidates[0]['household_id']===1, 'stale positive household appears in preview');
 expect((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()===75, 'preview does not deduct points');
+// Expiration processor must lock and recheck activity; replay cannot deduct twice.
+require __DIR__ . '/../includes/roost-expiration-processor.php';
+$expired = bcrf_roost_expire_household($pdo, 1);
+expect($expired['expired'] && $expired['points']===75 && $expired['balance']===0, 'stale positive points expire exactly once');
+$again = bcrf_roost_expire_household($pdo, 1);
+expect(!$again['expired'] && $again['points']===0, 'expiration replay is a no-op');
+expect((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger WHERE entry_type='expire' AND household_id=1")->fetchColumn()===1, 'one expiration ledger event');
+$pdo->exec("UPDATE reward_accounts SET balance_points=50 WHERE household_id=1");
+$pdo->exec("UPDATE reward_households SET last_qualifying_activity_at=UTC_TIMESTAMP(3) WHERE id=1");
+$fresh = bcrf_roost_expire_household($pdo, 1);
+expect(!$fresh['expired'] && $fresh['balance']===50, 'recent activity blocks expiration');
 echo "Farm Rewards integration checks passed.\\n";
