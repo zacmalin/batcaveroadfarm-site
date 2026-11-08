@@ -213,6 +213,12 @@ expect(bcrf_roost_dsn_review_summary('5.1.1','outbound:123',false,true)['review_
 expect(bcrf_roost_dsn_review_summary('4.2.2','outbound:123',true,true)['review_state'] === 'investigate_transient', 'transient delivery does not become hard bounce');
 expect(bcrf_roost_dsn_review_summary('5.7.1','outbound:123',true,true)['review_state'] === 'investigate_permanent', 'policy reject is not mailbox unknown');
 expect(bcrf_roost_dsn_review_summary('garbage','outbound:123',true,true)['review_state'] === 'no_suppression_recommended', 'unrecognized code is not suppression evidence');
+require_once __DIR__ . '/../includes/roost-email-dsn-review-access.php';
+expect(bcrf_roost_delivery_review_access('administrator',true), 'active administrator can review delivery failures');
+foreach (['moderator','Shopkeep','Media','Staff','user','Administrator',''] as $role) {
+    expect(!bcrf_roost_delivery_review_access($role,true), 'non-administrator cannot review sensitive delivery failures');
+}
+expect(!bcrf_roost_delivery_review_access('administrator',false), 'disabled administrator cannot review delivery failures');
 require_once __DIR__ . '/../includes/roost-email-dsn-review-preview.php';
 $preview = bcrf_roost_dsn_review_preview_html(bcrf_roost_dsn_review_summary('5.1.1','ref:<script>alert(1)</script>',true,true));
 expect(str_contains($preview,'&lt;script&gt;') && !str_contains($preview,'<script>'), 'staff delivery review escapes untrusted references');
