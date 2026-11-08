@@ -42,7 +42,7 @@ function bcrf_rewards_sale_eligible_cents(PDO $pdo, int $saleId): int {
     if ($lineCount === 0) throw new BcrfRewardError('Sale has no line items.');
     // Gift-card/store-credit/reward payment allocation is not yet safely
     // reconciled by line. Fail closed rather than overaward on mixed tenders.
-    $tenders = $pdo->prepare("SELECT tender, amount_cents, status FROM payments WHERE sale_id = ?");
+    $tenders = $pdo->prepare("SELECT tender, amount_cents, status, reconciled_at, reconcile_flag FROM payments WHERE sale_id = ?");
     $tenders->execute([$saleId]);
     $paid = 0;
     while ($payment = $tenders->fetch(PDO::FETCH_ASSOC)) {
@@ -52,6 +52,14 @@ function bcrf_rewards_sale_eligible_cents(PDO $pdo, int $saleId): int {
         }
         if (!in_array($payment['tender'], ['cash','paypal','venmo','cashapp','check','card_online'], true)) {
             throw new BcrfRewardError('Unverified payment method.');
+        }
+        // Cash is accepted at the register. Noncash tenders require explicit
+        // reconciliation before reward eligibility; completed != settled.
+        if ($payment['tender'] !== 'cash' && empty($payment['reconciled_at'])) {
+            throw new BcrfRewardError('Noncash payment not reconciled.');
+        }
+        if (!empty($payment['reconcile_flag'])) {
+            throw new BcrfRewardError('Payment has reconciliation exception.');
         }
         $amount = (int)$payment['amount_cents'];
         if ($amount <= 0 || $paid > PHP_INT_MAX - $amount) throw new BcrfRewardError('Invalid payment amount.');
