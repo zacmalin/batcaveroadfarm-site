@@ -68,6 +68,12 @@ if (!$again['replayed'] || $again['ledger_entry_id']!==$secondRefund['ledger_ent
     throw new RuntimeException('Refund retry was not recognized.');
 if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==$balanceRefunded)
     throw new RuntimeException('Refund retry deducted points twice.');
+// A lost sale acknowledgment can arrive after its sale was refunded.
+$afterRefundSale=bcrf_roost_outbox_handle_test_event($pdo,$valid,1,true);
+if (!$afterRefundSale['replayed'] || $afterRefundSale['ledger_entry_id']!==$first['ledger_entry_id'])
+    throw new RuntimeException('Refunded sale receipt replay failed.');
+if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==$balanceRefunded)
+    throw new RuntimeException('Refunded sale replay changed balance.');
 if ((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE refund_id IN (9021,9022)")->fetchColumn()!==2)
     throw new RuntimeException('Missing or duplicate refund receipts.');
 // From $8.01 remaining to $8.00, one cent crosses no point threshold but requires a receipt.
