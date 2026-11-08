@@ -1,0 +1,42 @@
+<?php
+// Farm Rewards: read-only POS eligibility preview. Does not award points.
+// Caller must authenticate the sale/customer association and enforce the
+// approved policy before calling the ledger writer.
+if (!class_exists('BcrfRewardError')) {
+    class BcrfRewardError extends RuntimeException {}
+}
+
+/**
+ * Returns eligible paid net cents from a completed POS sale, excluding tax,
+ * tips, gift cards, passes, refunded amounts and reward-funded payments.
+ * Conservative by design: unclassified types are not eligible.
+ * Does not round to points: fractional-point policy remains undecided.
+ */
+function bcrf_rewards_sale_eligible_cents(PDO $pdo, int $saleId): int {
+    if ($saleId <= 0) throw new BcrfRewardError('Invalid sale.');
+    $st = $pdo->prepare("SELECT id, status, total_cents FROM sales WHERE id = ?");
+    $st->execute([$saleId]);
+    $sale = $st->fetch(PDO::FETCH_ASSOC);
+    if (!$sale || !in_array($sale['status'], ['completed','partially_refunded'], true)) {
+        throw new BcrfRewardError('Sale is not eligible for rewards.');
+    }
+    $lines = $pdo->prepare("SELECT product_type, gross_cents, discount_cents, refunded_cents FROM sale_lines WHERE sale_id = ?");
+    $lines->execute([$saleId]);
+    $allowed = ['retail','produce','kitchen_good','admission','thrift_item'];
+    $eligible = 0;
+    while ($line = $lines->fetch(PDO::FETCH_ASSOC)) {
+        if (!in_array($line['product_type'], $allowed, true)) continue;
+        $net = max(0, (int)$line['gross_cents'] - (int)$line['discount_cents'] - (int)($line['refunded_cents'] ?? 0));
+        $eligible += $net;
+    }
+    // Gift-card/store-credit/reward payment allocation is not yet safely
+    // reconciled by line. Fail closed rather than overaward on mixed tenders.
+    $tenders = $pdo->prepare("SELECT tender FROM payments WHERE sale_id = ?");
+    $tenders->execute([$saleId]);
+    while (($tender = $tenders->fetchColumn()) !== false) {
+        if (in_array($tender, ['gift_card','store_credit','reward','rewards'], true)) {
+            throw new BcrfRewardError('Sale has unallocated non-earning tender.');
+        }
+    }
+    return $eligible;
+}
