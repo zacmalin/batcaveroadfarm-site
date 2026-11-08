@@ -205,6 +205,14 @@ foreach ([
 ] as $statusCode=>$category) {
     expect(bcrf_roost_dsn_review_category($statusCode) === $category, 'SMTP delivery status is review-only: '.$statusCode);
 }
+require_once __DIR__ . '/../includes/roost-email-dsn-review-summary.php';
+$review = bcrf_roost_dsn_review_summary('5.1.1', 'outbound:123', true, true);
+expect($review['review_state'] === 'manual_hard_bounce_review' && $review['automatic_suppression_allowed'] === false, 'verified mailbox unknown still requires manual review');
+expect(bcrf_roost_dsn_review_summary('5.1.1','outbound:123',true,false)['review_state'] === 'evidence_incomplete', 'unverified provenance blocks review decision');
+expect(bcrf_roost_dsn_review_summary('5.1.1','outbound:123',false,true)['review_state'] === 'evidence_incomplete', 'uncorrelated recipient blocks review decision');
+expect(bcrf_roost_dsn_review_summary('4.2.2','outbound:123',true,true)['review_state'] === 'investigate_transient', 'transient delivery does not become hard bounce');
+expect(bcrf_roost_dsn_review_summary('5.7.1','outbound:123',true,true)['review_state'] === 'investigate_permanent', 'policy reject is not mailbox unknown');
+expect(bcrf_roost_dsn_review_summary('garbage','outbound:123',true,true)['review_state'] === 'no_suppression_recommended', 'unrecognized code is not suppression evidence');
 require_once __DIR__ . '/../includes/roost-email-provider-feedback.php';
 expect(bcrf_roost_verified_provider_feedback_reason('hard_bounce') === 'hard_bounce', 'verified hard bounce maps to permanent suppression');
 expect(bcrf_roost_verified_provider_feedback_reason('spam_complaint') === 'complaint', 'verified complaint maps to permanent suppression');
