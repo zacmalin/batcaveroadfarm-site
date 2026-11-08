@@ -15,7 +15,7 @@ try {
             throw new RuntimeException('Concurrent refund replay was not idempotent.');
         }
     }
-    echo $created."\\n";
+    echo $created."\n";
 } catch (Throwable $e) {
     fwrite(STDERR, $e->getMessage()."\n");
     exit(1);
