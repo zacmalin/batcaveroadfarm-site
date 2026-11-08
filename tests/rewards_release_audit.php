@@ -26,4 +26,26 @@ if(!str_contains($worker,'BCRF_ROOST_OUTBOX_MAX_ATTEMPTS = 8') ||
    !str_contains($adapter,'ORDER BY id LIMIT 2 FOR UPDATE') ||
    !str_contains($adapter,'bcrf_roost_pos_outbox_enqueue_pinned_sale($pdo,$sourceId,(int)$policies[0])'))
     throw new RuntimeException('Required worker safety or dormant release gate missing.');
+// Offline service-email launch guard; does not connect or send.
+foreach ([
+ 'admin/migrations/0020_roost_email_outbox.php'=>'reward_email_outbox',
+ 'admin/migrations/0021_roost_email_suppressions.php'=>'reward_email_suppressions',
+] as $path=>$table) {
+ $source=file_get_contents($root.'/'.$path);
+ if ($source===false || !str_contains($source,'return function (PDO $pdo): void') ||
+     !str_contains($source,'CREATE TABLE IF NOT EXISTS '.$table))
+     throw new RuntimeException("Missing dormant service-email schema: $path");
+}
+$mailer=file_get_contents($root.'/admin/includes/email_template.php');
+$content=file_get_contents($root.'/includes/roost-email-content.php');
+$eligibility=file_get_contents($root.'/includes/roost-email-delivery-eligibility.php');
+$claim=file_get_contents($root.'/includes/roost-email-claim.php');
+if ($mailer===false || $content===false || $eligibility===false || $claim===false ||
+    !str_contains($mailer, "'smtp_required'") ||
+    !str_contains($mailer, 'if ($strictSmtp) return false;') ||
+    !str_contains($mailer, 'Required SMTP transport unavailable') ||
+    !str_contains($content, "'transport'=>'smtp_required'") ||
+    !str_contains($eligibility, 'bcrf_roost_email_service_suppressed') ||
+    !str_contains($claim, 'FOR UPDATE SKIP LOCKED'))
+    throw new RuntimeException('Dormant service-email strict SMTP, suppression or claim safety gate missing.');
 echo "Offline rewards release safety audit passed.\\n";
