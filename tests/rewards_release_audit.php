@@ -22,6 +22,8 @@ if(!str_contains($worker,'BCRF_ROOST_OUTBOX_MAX_ATTEMPTS = 8') ||
    !str_contains($worker,'FOR UPDATE SKIP LOCKED') ||
    !str_contains($worker,"status='dead'") ||
    !str_contains($dispatch,'function bcrf_roost_outbox_dispatch_enabled(): bool { return false; }') ||
-   !str_contains($adapter,'function bcrf_roost_pos_enqueue_enabled(): bool { return false; }'))
+   !str_contains($adapter,'function bcrf_roost_pos_enqueue_enabled(): bool { return false; }') ||
+   !str_contains($adapter,'ORDER BY id LIMIT 2 FOR UPDATE') ||
+   !str_contains($adapter,'bcrf_roost_pos_outbox_enqueue_pinned_sale($pdo,$sourceId,(int)$policies[0])'))
     throw new RuntimeException('Required worker safety or dormant release gate missing.');
 echo "Offline rewards release safety audit passed.\\n";
