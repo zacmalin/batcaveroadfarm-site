@@ -219,9 +219,11 @@ function bcf_phpmailer_ready(): bool {
 /**
  * Send one branded HTML+plaintext email. Single sender for the whole site.
  * Uses authenticated SMTP when configured (far better deliverability), and
- * falls back to PHP mail() otherwise — so dependency-free callers still work.
+ * falls back to PHP mail() for legacy auto mode. 'smtp_required' fails closed
+ * if authenticated SMTP is unavailable or rejects the message.
  * $opts: subtitle, unsubscribe (bool), from_name, from_email, reply_to, text, list_unsubscribe,
- *        transport ('auto' = SMTP when set up, else mail(); 'mail' = always mail(), for bulk sends),
+ *        transport ('auto' = legacy SMTP/mail() fallback; 'mail' = PHP mail();
+ *                   'smtp_required' = authenticated SMTP only, no fallback),
  *        headers (extra header lines, e.g. ['Precedence: bulk']).
  * This is the email adapter (Farm OS Phase 0): every email the site sends goes through here.
  */
@@ -298,7 +300,7 @@ function bcf_send_mail(string $to, string $subject, string $innerHtml, array $op
             $m->send();
             return true;
         } catch (\Throwable $e) {
-            error_log('[bcf_send_mail] SMTP send failed, falling back to mail(): ' . $e->getMessage());
+            error_log('[bcf_send_mail] SMTP send failed' . ($strictSmtp ? ' (strict mode, no fallback): ' : ' (legacy fallback to mail()): ') . $e->getMessage());
             $GLOBALS['bcf_mail_last_error'] = 'SMTP: ' . mb_substr($e->getMessage(), 0, 200);
             if ($strictSmtp) return false;
             // fall through to mail()
