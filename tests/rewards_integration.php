@@ -362,32 +362,31 @@ foreach ($workers as [$process,$pipes]) {
 }
 expect((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE refund_id=5")->fetchColumn()===1,
     'four simultaneous replay workers preserve exactly one refund receipt');
-$pdo->exec("DELETE FROM reward_refund_processing WHERE refund_id=5");
-$workers = [];
-for ($worker=0; $worker<4; $worker++) {
-    $pipes = [];
-    $cmd = [PHP_BINARY, __DIR__.'/rewards_concurrency_worker.php', '5', (string)$zeroEarnId, 'create'];
-    $process = proc_open($cmd, [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']], $pipes);
-    if (!is_resource($process)) throw new RuntimeException('Unable to start first-write worker.');
-    fclose($pipes[0]);
-    $workers[] = [$process,$pipes];
+for ($round=1; $round<=5; $round++) {
+    $pdo->exec("DELETE FROM reward_refund_processing WHERE refund_id=5");
+    $workers = [];
+    for ($worker=0; $worker<4; $worker++) {
+        $pipes = [];
+        $cmd = [PHP_BINARY, __DIR__.'/rewards_concurrency_worker.php', '5', (string)$zeroEarnId, 'create'];
+        $process = proc_open($cmd, [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']], $pipes);
+        if (!is_resource($process)) throw new RuntimeException('Unable to start first-write worker.');
+        fclose($pipes[0]);
+        $workers[] = [$process,$pipes];
+    }
+    $createdCount = 0;
+    foreach ($workers as [$process,$pipes]) {
+        $stdout = trim(stream_get_contents($pipes[1]));
+        $stderr = stream_get_contents($pipes[2]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        expect(proc_close($process)===0, 'first-write worker failed: '.$stdout.' '.$stderr);
+        expect(in_array($stdout, ['0','1'], true), 'worker must report valid creation count');
+        $createdCount += (int)$stdout;
+    }
+    expect($createdCount===1, 'exactly one first-write creator in round '.$round);
+    expect((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE refund_id=5")->fetchColumn()===1,
+        'one durable refund receipt in round '.$round);
 }
-$createdCount = 0;
-foreach ($workers as [$process,$pipes]) {
-    $stdout = trim(stream_get_contents($pipes[1]));
-    $stderr = stream_get_contents($pipes[2]);
-    fclose($pipes[1]);
-    fclose($pipes[2]);
-    expect(proc_close($process)===0, 'first-write worker failed: '.$stdout.' '.$stderr);
-    expect(in_array($stdout, ['0','1'], true), 'worker must report valid creation count');
-    $createdCount += (int)$stdout;
-}
-expect($createdCount===1, 'exactly one of four simultaneous workers creates refund receipt');
-expect((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE refund_id=5")->fetchColumn()===1,
-    'first-write race produces exactly one durable refund receipt');
-
-
-
 
 rejected(fn()=>bcrf_roost_record_zero_point_refund($pdo,5,$a['id']),
     'processed refund cannot be rebound to a different earning');
