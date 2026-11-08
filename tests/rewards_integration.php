@@ -332,7 +332,15 @@ expect((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE ref
 $pdo->exec("UPDATE reward_households SET status='suspended' WHERE id=1");
 rejected(fn()=>bcrf_roost_record_zero_point_refund($pdo,5,$zeroEarnId),
     'suspended household cannot replay zero-point processing');
+// Simulate an unprocessed refund while suspended, then restore the fixture.
+$pdo->exec("DELETE FROM reward_refund_processing WHERE refund_id=5");
+rejected(fn()=>bcrf_roost_record_zero_point_refund($pdo,5,$zeroEarnId),
+    'suspended household cannot create a zero-point refund receipt');
+expect((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE refund_id=5")->fetchColumn()===0,
+    'rejected suspended-household refund creates no receipt');
 $pdo->exec("UPDATE reward_households SET status='active' WHERE id=1");
+expect(!bcrf_roost_record_zero_point_refund($pdo,5,$zeroEarnId)['replayed'],
+    'fresh zero-point processing succeeds after reactivation');
 expect(bcrf_roost_record_zero_point_refund($pdo,5,$zeroEarnId)['replayed'],
     'active household may safely replay the same refund');
 
