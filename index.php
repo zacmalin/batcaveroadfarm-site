@@ -141,7 +141,11 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.ph
                     <div class="info-tile reveal">
                         <div class="icon" aria-hidden="true">🕐</div>
                         <h3>Farm Hours</h3>
-                        <p>Tuesday – Sunday<br>10:00 AM – 4:00 PM<br>Closed Mondays</p>
+                        <?php
+                        require_once __DIR__ . '/includes/site_info.php';
+                        $homeHours = site_hours_summary('general');
+                        ?>
+                        <p><?= htmlspecialchars($homeHours['open_days'] ?? 'Tuesday – Sunday') ?><br><?= htmlspecialchars($homeHours['open_time'] ?? '10:00 AM – 4:00 PM') ?><?php if (!empty($homeHours['closed_phrase'])): ?><br><?= htmlspecialchars($homeHours['closed_phrase']) ?><?php endif; ?></p>
                     </div>
                     <div class="info-tile reveal">
                         <div class="icon" aria-hidden="true">📍</div>
