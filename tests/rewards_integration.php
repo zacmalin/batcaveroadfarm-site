@@ -208,6 +208,9 @@ rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,[
 require_once __DIR__ . '/../includes/roost-refund-preview.php';
 $preview = bcrf_roost_refund_reversal_preview($pdo,100);
 expect($preview['cumulative_points_to_reverse']===200 && $preview['remaining_eligible_cents']===0,'full refund preview matches original points');
+$pdo->exec("UPDATE refunds SET net_cents=-1 WHERE id=1");
+rejected(fn()=>bcrf_roost_refund_reversal_preview($pdo,100),'negative refund header rejected');
+$pdo->exec("UPDATE refunds SET net_cents=4000 WHERE id=1");
 $pdo->exec("UPDATE refund_lines SET net_cents=3900 WHERE refund_id=1");
 rejected(fn()=>bcrf_roost_refund_reversal_preview($pdo,100),'refund amount mismatch fails closed');
 // Partial refunds must reverse only the change in floored points.
