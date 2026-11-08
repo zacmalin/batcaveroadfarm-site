@@ -187,6 +187,22 @@ if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household
     throw new RuntimeException('Zero-point refund changed balance.');
 if ((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE refund_id=9023 AND points_reversed=0 AND reversal_entry_id IS NULL")->fetchColumn()!==1)
     throw new RuntimeException('Zero-point refund receipt duplicated or missing.');
+// The inert queued dispatcher must recognize a durable zero-point receipt
+// without attempting to recalculate an already-processed refund.
+$pdo->beginTransaction();
+bcrf_roost_pos_outbox_enqueue($pdo,'sale.refunded',9023);
+$pdo->commit();
+$zeroQueuedId=(int)$pdo->query("SELECT id FROM reward_pos_outbox
+ WHERE event_type='sale.refunded' AND source_id=9023")->fetchColumn();
+$zeroPlan=bcrf_roost_outbox_dispatch_refund_preflight($pdo,
+    ['id'=>$zeroQueuedId,'event_type'=>'sale.refunded','source_id'=>9023]);
+if (($zeroPlan['action']??null)!=='zero_point_already_processed' ||
+    (int)($zeroPlan['refund_id']??0)!==9023 ||
+    (int)($zeroPlan['original_earning_entry_id']??0)!==(int)$first['ledger_entry_id'])
+    throw new RuntimeException('Zero-point committed refund receipt not recognized.');
+if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==$balanceRefunded)
+    throw new RuntimeException('Zero-point queued replay preflight changed balance.');
+$pdo->exec("DELETE FROM reward_pos_outbox WHERE id=$zeroQueuedId");
 // Queue-level crash-after-commit simulation, still no automatic dispatcher.
 // Earlier integration scripts leave queue fixtures behind; isolate this scenario.
 $pdo->exec('DELETE FROM reward_pos_outbox');
