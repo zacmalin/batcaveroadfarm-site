@@ -144,12 +144,13 @@ expect(!bcrf_roost_email_suppress($pdo,(int)$claim['id'],$claim['claim_token'],'
 expect((string)$pdo->query("SELECT status FROM reward_email_outbox WHERE id=".(int)$claim['id'])->fetchColumn()==='suppressed', 'suppression persisted');
 require_once __DIR__ . '/../includes/roost-email-delivery-audit.php';
 require_once __DIR__ . '/../includes/roost-email-reconciliation.php';
-expect(bcrf_roost_email_review_queue($pdo) !== [], 'uncertain claimed deliveries appear in review');
-expect(!bcrf_roost_email_mark_failed($pdo,(int)$claim['id'],str_repeat('0',64),'transport failure'), 'wrong token cannot mark failed');
 
 expect(!bcrf_roost_email_mark_sent($pdo,(int)$claim['id'],$claim['claim_token']), 'suppressed email cannot become sent');
 $reminderClaim = bcrf_roost_email_claim($pdo);
 expect($reminderClaim !== null && $reminderClaim['event_type']==='expiration_reminder', 'reminder claim available for audit test');
+expect(bcrf_roost_email_review_queue($pdo) !== [], 'uncertain claimed deliveries appear in review');
+expect(!bcrf_roost_email_mark_failed($pdo,(int)$claim['id'],str_repeat('0',64),'transport failure'), 'wrong token cannot mark failed');
+
 expect(!bcrf_roost_email_mark_sent($pdo,(int)$reminderClaim['id'],str_repeat('0',64)), 'wrong token cannot mark delivery');
 expect(bcrf_roost_email_mark_sent($pdo,(int)$reminderClaim['id'],$reminderClaim['claim_token']), 'confirmed delivery can be audited');
 expect(!bcrf_roost_email_mark_sent($pdo,(int)$reminderClaim['id'],$reminderClaim['claim_token']), 'delivery confirmation cannot replay');
