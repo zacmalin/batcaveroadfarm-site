@@ -17,8 +17,8 @@ $pdo->exec("INSERT INTO refunds VALUES (1,100),(2,101)");
 $schema = require __DIR__ . '/../admin/migrations/0016_farm_rewards_foundation.php';
 $schema($pdo);
 $schema($pdo); // rerunnable
-$pdo->exec("CREATE TABLE check_ins (id BIGINT UNSIGNED NOT NULL PRIMARY KEY, business_date DATE NOT NULL) ENGINE=InnoDB");
-$pdo->exec("INSERT INTO check_ins VALUES (1,'2026-11-08'),(2,'2026-11-08'),(3,'2026-11-09')");
+$pdo->exec("CREATE TABLE check_ins (id BIGINT UNSIGNED NOT NULL PRIMARY KEY, business_date DATE NOT NULL, party_size INT NOT NULL) ENGINE=InnoDB");
+$pdo->exec("INSERT INTO check_ins VALUES (1,'2026-11-08',1),(2,'2026-11-08',2),(3,'2026-11-09',1),(4,'2026-11-10',1),(5,'2026-11-11',1)");
 $attendanceSchema = require __DIR__ . '/../admin/migrations/0017_roost_rewards_attendance.php';
 $attendanceSchema($pdo);
 $attendanceSchema($pdo); // rerunnable
@@ -37,6 +37,20 @@ $pdo->exec("INSERT INTO reward_accounts (household_id, updated_at) VALUES (1,UTC
 $pdo->exec("INSERT INTO reward_household_members (household_id,customer_id,role,verification_status,can_redeem,joined_at) VALUES (1,1,'manager','verified',1,UTC_TIMESTAMP(3)),(1,2,'adult','verified',1,UTC_TIMESTAMP(3))");
 $pdo->exec("INSERT INTO reward_policies (id,version,config_json,status,created_at) VALUES (1,'test-1','{}','active',UTC_TIMESTAMP(3))");
 require __DIR__ . '/../includes/rewards.php';
+// Staff-only verification service: no public endpoint, no implicit point award.
+require __DIR__ . '/../includes/roost-attendance.php';
+if (session_status() !== PHP_SESSION_ACTIVE) session_start();
+$_SESSION['user_id'] = 7;
+$_SESSION['user_role'] = 'administrator';
+$staffAttendance = bcrf_roost_verify_attendee($pdo, 4, 2);
+expect($staffAttendance > 0, 'staff can verify an eligible attendee');
+rejected(fn()=>bcrf_roost_verify_attendee($pdo,4,1),'full check-in cannot accept another attendee');
+rejected(fn()=>bcrf_roost_verify_attendee($pdo,5,3),'unverified household member cannot be verified'); // customer 3 not yet enrolled
+$_SESSION['user_role'] = 'visitor';
+rejected(fn()=>bcrf_roost_verify_attendee($pdo,5,2),'visitor cannot verify attendance');
+$_SESSION['user_role'] = 'administrator';
+expect((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger WHERE entry_type='earn_visit'")->fetchColumn()===0,'attendance verification does not silently award points');
+
 function expect(bool $condition, string $message): void { if (!$condition) throw new RuntimeException($message); }
 function rejected(callable $run, string $message): void { try { $run(); } catch (BcrfRewardError $e) { return; } throw new RuntimeException('Expected rejection: '.$message); }
 $base = ['household_id'=>1,'policy_id'=>1,'customer_id'=>1,'source_type'=>'sale','source_id'=>'100','entry_type'=>'earn_spend','points_delta'=>200,'idempotency_key'=>'test-sale-100'];
