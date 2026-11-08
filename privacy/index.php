@@ -23,8 +23,9 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
               <p class="legal-updated">Last updated: November 4, 2026</p>
               <p class="legal-intro">Bat Cave Road Farm ("we," "us," or "our") runs the website at
                 <strong><?= bcrf_farm_domain() ?></strong>. This policy explains what information the website
-                collects, how we use it, and the choices you have. It applies to this website only — not to
-                anything that happens in person at the farm.</p>
+                collects, how we use it, and the choices you have. It covers our website and, once Roost Rewards launches, the personal information
+                collected when staff verify eligible farm visits for the optional rewards program.
+                Other in-person farm activities are outside this website privacy notice unless described below.</p>
 
               <nav class="legal-toc" aria-label="On this page">
                 <h2>On this page</h2>
