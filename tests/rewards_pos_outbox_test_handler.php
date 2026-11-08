@@ -89,6 +89,8 @@ if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household
 if ((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE refund_id=9023 AND points_reversed=0 AND reversal_entry_id IS NULL")->fetchColumn()!==1)
     throw new RuntimeException('Zero-point refund receipt duplicated or missing.');
 // Queue-level crash-after-commit simulation, still no automatic dispatcher.
+// Earlier integration scripts leave queue fixtures behind; isolate this scenario.
+$pdo->exec('DELETE FROM reward_pos_outbox');
 require_once __DIR__.'/../includes/roost-pos-outbox.php';
 require_once __DIR__.'/../includes/roost-pos-outbox-worker.php';
 $pdo->beginTransaction();
