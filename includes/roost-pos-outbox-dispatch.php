@@ -28,3 +28,25 @@ function bcrf_roost_outbox_dispatch_preflight(PDO $pdo, array $event, int $polic
     return ['action'=>$receipt===null?'posting_required':'already_posted',
         'event'=>$mapped,'receipt'=>$receipt];
 }
+
+
+/**
+ * Production-boundary preflight for queued sales only. The event must carry
+ * its actual outbox row ID; policy comes from the immutable snapshot.
+ * The legacy test-only preflight remains inert and separately authorized.
+ */
+function bcrf_roost_outbox_dispatch_pinned_sale_preflight(PDO $pdo, array $event): array {
+    if (($event['event_type']??null)!=='sale.completed')
+        throw new InvalidArgumentException('Pinned sale preflight requires sale event.');
+    $id=filter_var($event['id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+    $sourceId=filter_var($event['source_id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+    if (!$id || !$sourceId) throw new InvalidArgumentException('Queued sale identity required.');
+    if ($pdo->inTransaction()) throw new LogicException('Pinned preflight requires autocommit.');
+    $st=$pdo->prepare("SELECT source_id FROM reward_pos_outbox WHERE id=? AND event_type='sale.completed'");
+    $st->execute([(int)$id]);
+    if ((string)$st->fetchColumn()!==(string)$sourceId)
+        throw new RuntimeException('Queued sale source does not match outbox identity.');
+    require_once __DIR__.'/roost-pos-outbox-policy.php';
+    $policy=bcrf_roost_outbox_pinned_sale_policy($pdo,(int)$id);
+    return bcrf_roost_outbox_dispatch_preflight($pdo,$event,$policy);
+}
