@@ -1,7 +1,12 @@
 <?php
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
+	require_once __DIR__ . '/../includes/site_info.php';
+	$contactHours = site_hours_summary('general');
+	$contactDays = $contactHours['open_days'] ?? '';
+	$contactTime = $contactHours['open_time'] ?? '';
+	$contactClosed = $contactHours['closed_phrase'] ?? '';
 	$pageTitle = "Contact Us - Bat Cave Road Farm";
-	$metaDesc = "Reach out to Bat Cave Road Farm — your family farm in Old Fort, NC. Call (828) 216-5488 or visit Tue–Sun, 10AM–4PM.";
+	$metaDesc = "Reach out to Bat Cave Road Farm — your family farm in Old Fort, NC. Call " . site_phone_display('general') . " or check our current visiting hours.";
 	$canonicalUrl = (bcrf_farm_url() . "/contact-us/");
 	$pageJS = (bcrf_farm_url() . "/js/min.contact-us.js");
 	$ogImage = (bcrf_farm_url() . "/img/og-contact.jpg");
@@ -11,7 +16,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
 	include('../includes/header.php');
 ?>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"ContactPage","name":"Contact Bat Cave Road Farm","url":"<?= bcrf_farm_url() ?>/contact-us/","description":"Get in touch with Bat Cave Road Farm in Old Fort, NC — call (828) 216-5488 or visit Tuesday through Sunday, 10AM–4PM.","mainEntity":{"@id":"<?= bcrf_farm_url() ?>/#business"}}
+{"@context":"https://schema.org","@type":"ContactPage","name":"Contact Bat Cave Road Farm","url":"<?= bcrf_farm_url() ?>/contact-us/","description":<?= json_encode("Get in touch with Bat Cave Road Farm in Old Fort, NC — call " . site_phone_display('general') . " or visit during our published opening hours.", JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,"mainEntity":{"@id":"<?= bcrf_farm_url() ?>/#business"}}
 </script>
 
         <div id="page-contact-us" class="page1">
@@ -38,7 +43,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
               <div class="info-tile reveal">
                 <div class="icon" aria-hidden="true">📞</div>
                 <h2>Phone</h2>
-                <p><a href="tel:+18282165488">(828) 216-5488</a>
+                <p><a href="tel:<?= htmlspecialchars(site_tel('general'), ENT_QUOTES) ?>"><?= htmlspecialchars(site_phone_display('general')) ?></a>
                 <br>Call or text welcome</p>
               </div>
               <div class="info-tile reveal">
@@ -50,8 +55,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
               <div class="info-tile reveal">
                 <div class="icon" aria-hidden="true">🕐</div>
                 <h2>Hours</h2>
-                <p>Tuesday – Sunday: 10:00 AM – 4:00 PM<br>
-                Closed Mondays</p>
+                <p><?= htmlspecialchars($contactDays) ?><?= $contactDays !== '' && $contactTime !== '' ? ': ' : '' ?><?= htmlspecialchars($contactTime) ?><?php if ($contactClosed !== ''): ?><br><?= htmlspecialchars($contactClosed) ?><?php endif; ?></p>
               </div>
             </div>
         
@@ -118,7 +122,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
     <div class="thanks-emoji" aria-hidden="true"><?= $bcrfErr ? '🌾' : '🌿' ?></div>
     <h2 id="thanksTitle"><?= $bcrfErr ? "That didn't go through" : "Message Sent!" ?></h2>
     <p><?= $bcrfErr
-        ? "Sorry &mdash; something went wrong and we couldn't send your message. Please try again, or call us at (828)&nbsp;216-5488."
+        ? "Sorry &mdash; something went wrong and we couldn't send your message. Please try again, or call us at " . htmlspecialchars(site_phone_display('general')) . "."
         : "Thank you for reaching out! We've received your message and will get back to you within 24 hours." ?></p>
     <a class="cta-btn" href="/contact-us/">Close</a>
   </div>
