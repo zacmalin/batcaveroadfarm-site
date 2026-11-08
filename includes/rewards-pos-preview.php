@@ -7,10 +7,27 @@ if (!class_exists('BcrfRewardError')) {
 }
 
 /**
+ * Approved policy: five whole points per eligible dollar, floored per sale.
+ * Integer-only arithmetic avoids floating point drift and multiplication overflow.
+ * No fractional remainder carries to subsequent purchases.
+ */
+function bcrf_rewards_points_for_eligible_cents(int $eligibleCents): int {
+    if ($eligibleCents <= 0) throw new BcrfRewardError('Eligible cents must be positive.');
+    $wholeDollars = intdiv($eligibleCents, 100);
+    $remainderCents = $eligibleCents % 100;
+    if ($wholeDollars > intdiv(PHP_INT_MAX - 4, 5)) {
+        throw new BcrfRewardError('Reward points overflow.');
+    }
+    $points = $wholeDollars * 5 + intdiv($remainderCents * 5, 100);
+    if ($points <= 0) throw new BcrfRewardError('Sale earns no whole points.');
+    return $points;
+}
+
+/**
  * Returns eligible paid net cents from a completed POS sale, excluding tax,
  * tips, gift cards, passes, refunded amounts and reward-funded payments.
  * Conservative by design: unclassified types are not eligible.
- * Does not round to points: fractional-point policy remains undecided.
+ * Point conversion is separate and floors per sale without carryover.
  */
 function bcrf_rewards_sale_eligible_cents(PDO $pdo, int $saleId): int {
     if ($saleId <= 0) throw new BcrfRewardError('Invalid sale.');
@@ -118,7 +135,7 @@ function bcrf_rewards_sale_verified_household(PDO $pdo, int $saleId): array {
  * Never accept the customer ID from an unauthenticated browser request.
  * Does not establish payment ownership or award points.
  *
- * @return array{customer_id:int,household_id:int,eligible_cents:int}
+ * @return array{customer_id:int,household_id:int,eligible_cents:int,points:int}
  */
 function bcrf_rewards_sale_claim_preview(PDO $pdo, int $saleId, int $authenticatedCustomerId): array {
     if ($authenticatedCustomerId <= 0) throw new BcrfRewardError('Authenticated customer required.');
@@ -133,5 +150,5 @@ function bcrf_rewards_sale_claim_preview(PDO $pdo, int $saleId, int $authenticat
     if ($recheck !== $owner) {
         throw new BcrfRewardError('Sale household changed during claim preview.');
     }
-    return ['customer_id'=>$owner['customer_id'],'household_id'=>$owner['household_id'],'eligible_cents'=>$eligible];
+    return ['customer_id'=>$owner['customer_id'],'household_id'=>$owner['household_id'],'eligible_cents'=>$eligible,'points'=>bcrf_rewards_points_for_eligible_cents($eligible)];
 }
