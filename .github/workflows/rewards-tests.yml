@@ -96,7 +96,14 @@ jobs:
           BCRF_REWARDS_PREFLIGHT_DSN: mysql:host=127.0.0.1;port=3306;dbname=rewards_test;charset=utf8mb4
           BCRF_REWARDS_PREFLIGHT_USER: root
           BCRF_REWARDS_PREFLIGHT_PASSWORD: testpass
-        run: php tests/rewards_production_preflight.php
+        run: |
+          set +e
+          output=$(php tests/rewards_production_preflight.php 2>&1)
+          status=$?
+          set -e
+          echo "$output"
+          test "$status" -eq 1
+          echo "$output" | grep -q 'unresolved sale events without pinned policy'
 
       - name: POS outbox claim and retry tests
         env:
