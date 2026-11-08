@@ -114,6 +114,7 @@ rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'refund_re
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'refund_reversal','points_delta'=>-1,'source_type'=>'refund','source_id'=>'999','idempotency_key'=>'missing-refund','related_entry_id'=>$a['id']])),'refund must exist');
 $pdo->exec("INSERT INTO refund_lines VALUES (1,1,4000)");
 $pdo->exec("UPDATE sale_lines SET refunded_net_cents=4000 WHERE id=1");
+rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'refund_reversal','points_delta'=>-199,'source_type'=>'refund','source_id'=>'1','idempotency_key'=>'incorrect-refund-amount','related_entry_id'=>$a['id']])), 'ledger rejects incorrect reversal amount');
 $refund = bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'refund_reversal','points_delta'=>-200,'source_type'=>'refund','source_id'=>'1','idempotency_key'=>'test-refund-1','related_entry_id'=>$a['id']]));
 expect($refund['balance']===-175,'refund negative balance');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'refund_reversal','points_delta'=>-1,'source_type'=>'refund','source_id'=>'1','idempotency_key'=>'duplicate-refund-different-key','related_entry_id'=>$a['id']])),'same refund cannot reverse twice');
