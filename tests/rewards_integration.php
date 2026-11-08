@@ -218,6 +218,15 @@ expect(bcrf_roost_refund_reversal_preview($pdo,100)['cumulative_points_to_revers
 $pdo->exec("UPDATE sales SET status='completed' WHERE id=100");
 $preview = bcrf_roost_refund_reversal_preview($pdo,100);
 expect($preview['cumulative_points_to_reverse']===200 && $preview['remaining_eligible_cents']===0,'full refund preview matches original points');
+$pdo->exec("UPDATE refund_payments SET amount_cents=3999 WHERE refund_id=1");
+rejected(fn()=>bcrf_roost_refund_reversal_preview($pdo,100),'refund payout total mismatch rejected');
+$pdo->exec("UPDATE refund_payments SET amount_cents=4000 WHERE refund_id=1");
+$pdo->exec("UPDATE refund_payments SET tender='venmo', reference=NULL WHERE refund_id=1");
+rejected(fn()=>bcrf_roost_refund_reversal_preview($pdo,100),'external refund without reference rejected');
+$pdo->exec("UPDATE refund_payments SET reference='refund-confirmed-123' WHERE refund_id=1");
+expect(bcrf_roost_refund_reversal_preview($pdo,100)['cumulative_points_to_reverse']===200,
+    'external refund with recorded reference passes reconciliation');
+$pdo->exec("UPDATE refund_payments SET tender='cash', reference=NULL WHERE refund_id=1");
 $pdo->exec("UPDATE refunds SET net_cents=-1 WHERE id=1");
 rejected(fn()=>bcrf_roost_refund_reversal_preview($pdo,100),'negative refund header rejected');
 $pdo->exec("UPDATE refunds SET net_cents=4000 WHERE id=1");
