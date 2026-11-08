@@ -44,10 +44,10 @@ if ((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger WHERE entry_type='earn_
 // Two committed refunds on the same rewarded sale, deliberately delivered out of order.
 $lineId=(int)$pdo->query("SELECT id FROM sale_lines WHERE sale_id=902")->fetchColumn();
 $pdo->exec("UPDATE sales SET status='partially_refunded' WHERE id=902");
-$pdo->exec("INSERT INTO refunds (id,sale_id,net_cents,total_cents) VALUES (9021,902,1000,1000),(9022,902,500,500)");
-$pdo->exec("INSERT INTO refund_lines (refund_id,sale_line_id,net_cents) VALUES (9021,$lineId,1000),(9022,$lineId,500)");
-$pdo->exec("INSERT INTO refund_payments (refund_id,tender,amount_cents,reference) VALUES (9021,'cash',1000,NULL),(9022,'cash',500,NULL)");
-$pdo->exec("UPDATE sale_lines SET refunded_net_cents=1500 WHERE id=$lineId");
+$pdo->exec("INSERT INTO refunds (id,sale_id,net_cents,total_cents) VALUES (9021,902,1000,1000),(9022,902,499,499)");
+$pdo->exec("INSERT INTO refund_lines (refund_id,sale_line_id,net_cents) VALUES (9021,$lineId,1000),(9022,$lineId,499)");
+$pdo->exec("INSERT INTO refund_payments (refund_id,tender,amount_cents,reference) VALUES (9021,'cash',1000,NULL),(9022,'cash',499,NULL)");
+$pdo->exec("UPDATE sale_lines SET refunded_net_cents=1499 WHERE id=$lineId");
 $late=['event_type'=>'sale.refunded','source_id'=>9022];
 try {
     bcrf_roost_outbox_handle_test_event($pdo,$late,1,true);
@@ -62,7 +62,7 @@ $secondRefund=bcrf_roost_outbox_handle_test_event($pdo,$late,1,true);
 if ($secondRefund['outcome']!=='completed' || $secondRefund['replayed'])
     throw new RuntimeException('Second refund was not processed.');
 $balanceRefunded=(int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn();
-if ($balanceAfter-$balanceRefunded!==75) throw new RuntimeException('Refund points reversal mismatch.');
+if ($balanceAfter-$balanceRefunded!==74) throw new RuntimeException('Refund points reversal mismatch.');
 $again=bcrf_roost_outbox_handle_test_event($pdo,$late,1,true);
 if (!$again['replayed'] || $again['ledger_entry_id']!==$secondRefund['ledger_entry_id'])
     throw new RuntimeException('Refund retry was not recognized.');
@@ -70,11 +70,11 @@ if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household
     throw new RuntimeException('Refund retry deducted points twice.');
 if ((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing WHERE refund_id IN (9021,9022)")->fetchColumn()!==2)
     throw new RuntimeException('Missing or duplicate refund receipts.');
-// One cent crosses no additional whole-point threshold but requires a receipt.
+// From $8.01 remaining to $8.00, one cent crosses no point threshold but requires a receipt.
 $pdo->exec("INSERT INTO refunds (id,sale_id,net_cents,total_cents) VALUES (9023,902,1,1)");
 $pdo->exec("INSERT INTO refund_lines (refund_id,sale_line_id,net_cents) VALUES (9023,$lineId,1)");
 $pdo->exec("INSERT INTO refund_payments (refund_id,tender,amount_cents,reference) VALUES (9023,'cash',1,NULL)");
-$pdo->exec("UPDATE sale_lines SET refunded_net_cents=1501 WHERE id=$lineId");
+$pdo->exec("UPDATE sale_lines SET refunded_net_cents=1500 WHERE id=$lineId");
 $zero=['event_type'=>'sale.refunded','source_id'=>9023];
 $zeroFirst=bcrf_roost_outbox_handle_test_event($pdo,$zero,1,true);
 if ($zeroFirst['outcome']!=='completed' || $zeroFirst['replayed'] ||
