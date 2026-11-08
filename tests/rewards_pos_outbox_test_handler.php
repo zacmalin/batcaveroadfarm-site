@@ -118,7 +118,7 @@ if (!$retry || (int)$retry['id']!==(int)$claim['id'] || (int)$retry['attempts']!
     throw new RuntimeException('Expired queue claim was not recovered.');
 if (bcrf_roost_outbox_finish($pdo,(int)$claim['id'],1,'completed'))
     throw new RuntimeException('Stale queue attempt acknowledged.');
-$recoveredAgain=bcrf_roost_outbox_handle_test_event($pdo,$valid,1,true);
+$recoveredAgain=bcrf_roost_outbox_handle_test_event($pdo,$queuedSale,1,true);
 if (!$recoveredAgain['replayed'] || !bcrf_roost_outbox_finish($pdo,(int)$retry['id'],2,'completed'))
     throw new RuntimeException('Recovered queue event not acknowledged.');
 if ((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger WHERE source_type='sale' AND source_id='903'")->fetchColumn()!==1)
