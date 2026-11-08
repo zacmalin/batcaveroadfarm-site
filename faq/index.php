@@ -132,7 +132,7 @@ foreach ($faqSchemaItems as [$question, $answer]) {
                         <button class="faq-question" id="group-events">
                             Do you host birthday parties or group events? <span class="faq-chevron" aria-hidden="true">▼</span>
                         </button>
-                        <div class="faq-answer">Absolutely! We love hosting birthday parties, school field trips, homeschool groups, and family reunions. We offer group packages that include guided tours, animal feeding sessions, and private barn access. <a href="<?= bcrf_farm_url() ?>/booking/">Request your date</a> and we'll confirm availability and pricing — or give us a call.</div>
+                        <div class="faq-answer">Absolutely! We welcome inquiries for birthday parties, school field trips, homeschool groups, and family reunions. Packages and availability vary, so <a href="<?= bcrf_farm_url() ?>/private-events/">request current event details</a> and our team will help plan your visit.</div>
                     </div>
 
                     <div class="faq-item">
