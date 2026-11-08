@@ -316,6 +316,8 @@ function bcrf_refund_complete(PDO $pdo, array $in): array {
         $pdo->prepare("UPDATE sales SET refunded_cents = refunded_cents + ?, status = ?, updated_at = UTC_TIMESTAMP(), updated_by = ? WHERE id = ?")
             ->execute([$q['total'], $status, $uid, $saleId]);
         if (function_exists('bcrf_event')) bcrf_event('sale.refunded', 'sales', $saleId, ['refund_number' => $number, 'total_cents' => $q['total'], 'tenders' => array_keys($byT)]);
+        require_once __DIR__.'/roost-pos-outbox-integration.php';
+        bcrf_roost_pos_enqueue_if_enabled($pdo,'sale.refunded',$rid);
         $pdo->commit();
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
