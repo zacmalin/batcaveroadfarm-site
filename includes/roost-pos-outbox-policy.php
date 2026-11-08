@@ -59,3 +59,17 @@ function bcrf_roost_outbox_pinned_sale_policy(PDO $pdo, int $outboxId): int {
         throw new RuntimeException('Queued sale has no pinned policy; manual reconciliation required.');
     return (int)$value;
 }
+
+
+/**
+ * Future production-dispatch authority: resolve a queued sale's immutable
+ * policy snapshot and reject caller-supplied substitutions. No side effects.
+ * Refunds must instead resolve the original earning's historical policy.
+ */
+function bcrf_roost_outbox_authorize_sale_policy(PDO $pdo, int $outboxId, int $expectedPolicyId): int {
+    if ($expectedPolicyId<=0) throw new InvalidArgumentException('Positive expected policy required.');
+    $pinned=bcrf_roost_outbox_pinned_sale_policy($pdo,$outboxId);
+    if ($pinned!==$expectedPolicyId)
+        throw new RuntimeException('Queued sale policy does not match immutable snapshot.');
+    return $pinned;
+}
