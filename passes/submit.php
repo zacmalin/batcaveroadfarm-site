@@ -37,13 +37,20 @@ try {
     $reservation = bcrf_pass_reserve($pdo, $typeId, $name, $email, $phone ?: null, $token);
     $passId = $reservation['id'];
     $pt = $reservation['type'];
-    require_once __DIR__ . '/../includes/ga.php';
-    bcrf_ga_store_ids($pdo, 'passes', $passId);
+
 } catch (DomainException $e) {
     _pass_bail(in_array($e->getMessage(), ['type', 'sold_out'], true) ? $e->getMessage() : 'db');
 } catch (Throwable $e) {
     error_log('[BCRF passes/submit] Reservation failed: ' . $e->getMessage());
     _pass_bail('db');
+}
+
+// Analytics must never interrupt checkout after a slot has been reserved.
+try {
+    require_once __DIR__ . '/../includes/ga.php';
+    bcrf_ga_store_ids($pdo, 'passes', $passId);
+} catch (Throwable $e) {
+    error_log('[BCRF passes/submit] Analytics IDs failed for pass #' . $passId . ': ' . $e->getMessage());
 }
 
 // Create Stripe Checkout Session
