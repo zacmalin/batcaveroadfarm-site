@@ -25,7 +25,7 @@ foreach ($passTypes as $pt) {
     if ($pt['is_founding'] && $pt['founding_qty_limit']) {
         try {
             // Audit #2: one prepared count (was a discarded prepare + an interpolated duplicate query)
-            $st = $pdo->prepare("SELECT COUNT(*) FROM passes WHERE pass_type_id=? AND ((payment_status IN ('paid','waived')) OR (status='pending_payment' AND payment_status='pending' AND (reservation_expires_at > NOW() OR (reservation_expires_at IS NULL AND created_at > DATE_SUB(NOW(), INTERVAL 30 MINUTE)))))");
+            $st = $pdo->prepare("SELECT COUNT(*) FROM passes WHERE pass_type_id=? AND ((payment_status IN ('paid','waived')) OR (status='pending_payment' AND payment_status='pending' AND (reservation_expires_at > NOW() OR (reservation_expires_at IS NULL))))");
             $st->execute([(int)$pt['id']]);
             $sold = (int)$st->fetchColumn();
             $foundingLeft = max(0, (int)$pt['founding_qty_limit'] - $sold);
