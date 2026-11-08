@@ -89,6 +89,13 @@ $pdo->exec("UPDATE reward_accounts SET balance_points=250 WHERE household_id=1")
 $reminderEvent = bcrf_roost_expiration_event_key(1,1,$reminderActivity,60);
 expect(bcrf_roost_email_enqueue($pdo,1,1,'expiration_reminder',60,$reminderActivity,$reminderEvent), 'eligible reminder queued');
 expect(!bcrf_roost_email_enqueue($pdo,1,1,'expiration_reminder',60,$reminderActivity,$reminderEvent), 'duplicate reminder suppressed');
+$pdo->prepare("UPDATE reward_households SET last_qualifying_activity_at=? WHERE id=1")
+    ->execute([$reminderActivity.'.001']);
+expect(!bcrf_roost_email_enqueue($pdo,1,2,'expiration_reminder',60,$reminderActivity,
+    bcrf_roost_expiration_event_key(1,2,$reminderActivity,60)), 'millisecond activity change invalidates stale reminder');
+$pdo->prepare("UPDATE reward_households SET last_qualifying_activity_at=? WHERE id=1")
+    ->execute([$reminderActivity]);
+
 $pdo->exec("UPDATE reward_households SET status='suspended' WHERE id=1");
 rejected(fn()=>bcrf_roost_email_enqueue($pdo,1,2,'expiration_reminder',60,$reminderActivity,
     bcrf_roost_expiration_event_key(1,2,$reminderActivity,60)), 'suspended household cannot enqueue');
