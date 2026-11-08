@@ -1,0 +1,27 @@
+<?php
+// Offline release audit: no credentials, production queries, or activation.
+$root=dirname(__DIR__);
+$expected=[
+ 'admin/migrations/0016_farm_rewards_foundation.php'=>['reward_households','reward_household_members','reward_policies','reward_accounts','reward_ledger'],
+ 'admin/migrations/0017_roost_rewards_attendance.php'=>[],
+ 'admin/migrations/0018_roost_refund_processing.php'=>[],
+ 'admin/migrations/0019_roost_pos_outbox.php'=>['reward_pos_outbox'],
+];
+foreach($expected as $path=>$tables){
+    $source=file_get_contents($root.'/'.$path);
+    if($source===false || !str_contains($source,'return function (PDO $pdo): void'))
+        throw new RuntimeException("Missing additive migration: $path");
+    foreach($tables as $table)
+        if(!str_contains($source,'CREATE TABLE IF NOT EXISTS '.$table))
+            throw new RuntimeException("Missing required schema $table in $path");
+}
+$worker=file_get_contents($root.'/includes/roost-pos-outbox-worker.php');
+$dispatch=file_get_contents($root.'/includes/roost-pos-outbox-dispatch.php');
+$adapter=file_get_contents($root.'/includes/roost-pos-outbox-integration.php');
+if(!str_contains($worker,'BCRF_ROOST_OUTBOX_MAX_ATTEMPTS = 8') ||
+   !str_contains($worker,'FOR UPDATE SKIP LOCKED') ||
+   !str_contains($worker,"status='dead'") ||
+   !str_contains($dispatch,'function bcrf_roost_outbox_dispatch_enabled(): bool { return false; }') ||
+   !str_contains($adapter,'function bcrf_roost_pos_enqueue_enabled(): bool { return false; }'))
+    throw new RuntimeException('Required worker safety or dormant release gate missing.');
+echo "Offline rewards release safety audit passed.\\n";
