@@ -86,7 +86,7 @@ $errMsg = $errMap[$errKey] ?? '';
 
     <?php if (empty($ticketTypes)): ?>
     <div class="tickets-unavailable">
-        <p>Ticket pricing isn't configured yet. Please call <a href="tel:+18282165488">(828) 216-5488</a> or stop by during open hours.</p>
+        <p>Ticket pricing isn't configured yet. Please call <a href="tel:<?= htmlspecialchars(site_tel('general'), ENT_QUOTES) ?>"><?= htmlspecialchars(site_phone_display('general')) ?></a> or stop by during open hours.</p>
     </div>
     <?php else: ?>
 
@@ -139,7 +139,7 @@ $errMsg = $errMap[$errKey] ?? '';
                        class="tickets-date-input" aria-describedby="visit-date-note">
                 <div id="date-feedback" class="tickets-date-feedback" aria-live="polite"></div>
             </div>
-            <p class="tickets-date-note" id="visit-date-note">Open <?= htmlspecialchars($openDay) ?> · Last entry 30 min before closing · Closed Mondays and select holidays.<br>Your ticket is good for <strong>any day we're open</strong>. Pick a date if you know when you're coming, or leave it blank.</p>
+            <p class="tickets-date-note" id="visit-date-note">Open <?= htmlspecialchars($openDay) ?> · Last entry 30 min before closing · Holiday hours may vary.<br>Your ticket is good for <strong>any day we're open</strong>. Pick a date if you know when you're coming, or leave it blank.</p>
         </section>
 
         <!-- ── Your details ── -->
