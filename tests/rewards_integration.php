@@ -33,4 +33,45 @@ $refund = bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'refund_reversa
 expect($refund['balance']===-175,'refund negative balance');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'refund_reversal','points_delta'=>-1,'source_type'=>'refund','source_id'=>'refund-2','idempotency_key'=>'test-refund-2','related_entry_id'=>$a['id']])),'over reversal');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'redeem','points_delta'=>-1,'idempotency_key'=>'test-negative-redeem'])),'negative balance redeem');
-echo "Farm Rewards integration checks passed.\n";
+// Race two independent database sessions against the same 100-point balance.
+// Each child starts together and attempts a 100-point redemption. Exactly one succeeds.
+// Skip the concurrency assertion only when CLI pcntl is unavailable (CI installs it).
+if (function_exists('pcntl_fork') && function_exists('stream_socket_pair')) {
+    $topup = bcrf_reward_post($pdo,array_merge($base,['source_type'=>'sale','source_id'=>'topup','points_delta'=>275,'idempotency_key'=>'test-topup']));
+    expect($topup['balance']===100,'race starting balance');
+    $pipes = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, 0);
+    if ($pipes === false) throw new RuntimeException('Cannot create race synchronization pipes.');
+    $children = [];
+    for ($i=0; $i<2; $i++) {
+        $pid = pcntl_fork();
+        if ($pid === -1) throw new RuntimeException('Cannot fork concurrent reward test.');
+        if ($pid === 0) {
+            fclose($pipes[1]);
+            fread($pipes[0],1); // both children wait for parent release
+            fclose($pipes[0]);
+            try {
+                // Never share a fork-inherited PDO connection.
+                $db = new PDO($dsn, getenv('BCRF_REWARDS_TEST_USER') ?: '', getenv('BCRF_REWARDS_TEST_PASSWORD') ?: '', [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
+                bcrf_reward_post($db,array_merge($base,['entry_type'=>'redeem','points_delta'=>-100,'source_type'=>'reward','source_id'=>'race-'.($i+1),'idempotency_key'=>'test-race-'.($i+1)]));
+                exit(0);
+            } catch (BcrfRewardError $e) { exit(3); }
+              catch (Throwable $e) { fwrite(STDERR,$e->getMessage()."\\n"); exit(4); }
+        }
+        $children[] = $pid;
+    }
+    fclose($pipes[0]);
+    fwrite($pipes[1],"XX");
+    fclose($pipes[1]);
+    $success=0; $insufficient=0;
+    foreach ($children as $pid) {
+        pcntl_waitpid($pid,$status);
+        if (!pcntl_wifexited($status)) throw new RuntimeException('Race child failed.');
+        $code=pcntl_wexitstatus($status);
+        if ($code===0) $success++;
+        elseif ($code===3) $insufficient++;
+        else throw new RuntimeException('Race child error code '.$code);
+    }
+    expect($success===1 && $insufficient===1,'exactly one concurrent redemption succeeds');
+    expect((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()===0,'concurrent balance never overspent');
+}
+echo "Farm Rewards integration checks passed.\\n";
