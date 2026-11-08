@@ -7,7 +7,7 @@ require_once __DIR__ . '/roost-email-events.php';
  * Database constraints provide one durable row per event across retries.
  * This method never sends or activates a service-email worker.
  */
-function bcrf_roost_email_enqueue(
+function bcrf_roost_email_activity_epoch(string $value): string {\n    if (!preg_match('/^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?$/D', $value)) {\n        throw new BcrfRewardError('Invalid activity epoch.');\n    }\n    $parsed = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s.u', str_contains($value, '.') ? $value : $value.'.000', new DateTimeZone('UTC'));\n    if ($parsed === false) throw new BcrfRewardError('Invalid activity epoch.');\n    return $parsed->format('Y-m-d H:i:s.v');\n}\n\nfunction bcrf_roost_email_enqueue(
     PDO $pdo,
     int $householdId,
     int $memberId,
@@ -42,9 +42,9 @@ function bcrf_roost_email_enqueue(
     $check->execute([$memberId,$householdId]);
     if (!$check->fetchColumn()) throw new BcrfRewardError('Verified active household membership required.');
 
-    // Recheck that the activity snapshot is still current before queueing.
+    // Recheck the exact millisecond activity epoch before queueing.\n    if ($eventType === 'expiration_reminder') {\n        $activityUtc = bcrf_roost_email_activity_epoch($activityUtc);\n    }\n    // Recheck that the activity snapshot is still current before queueing.
     if ($eventType === 'expiration_reminder') {
-        $activityCheck = $pdo->prepare("SELECT DATE_FORMAT(h.last_qualifying_activity_at, '%Y-%m-%d %H:%i:%s') AS last_qualifying_activity_at,
+        $activityCheck = $pdo->prepare("SELECT DATE_FORMAT(h.last_qualifying_activity_at, '%Y-%m-%d %H:%i:%s.%f') AS last_qualifying_activity_at,
             a.balance_points, h.status, UTC_TIMESTAMP(3) AS now_utc
             FROM reward_households h JOIN reward_accounts a ON a.household_id=h.id
             WHERE h.id=?");
