@@ -1,5 +1,7 @@
 <?php
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
+	require_once __DIR__ . '/../config.php';
+	require_once __DIR__ . '/../includes/site_info.php';
 	$pageTitle    = "Accessibility - Bat Cave Road Farm";
 	$metaDesc     = ("Bat Cave Road Farm's commitment to keeping " . bcrf_farm_domain() . " accessible, the steps we've taken, and how to tell us about any barriers you run into.");
 	$canonicalUrl = (bcrf_farm_url() . "/accessibility/");
@@ -84,7 +86,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
                 <p>Bat Cave Road Farm<br>
                    4132 Bat Cave Road, Old Fort, NC 28762<br>
                    <a href="mailto:<?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?>"><?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?></a><br>
-                   <a href="tel:+18282165488">(828) 216-5488</a></p>
+                   <a href="tel:<?= htmlspecialchars(site_tel('general'), ENT_QUOTES) ?>"><?= htmlspecialchars(site_phone_display('general')) ?></a></p>
               </div>
             </article>
           </div>
