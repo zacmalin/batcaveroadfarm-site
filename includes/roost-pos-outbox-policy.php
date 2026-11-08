@@ -9,7 +9,22 @@ function bcrf_roost_outbox_resolve_policy(PDO $pdo, array $event): int {
     if ($kind==='sale.refunded') {
         $q=$pdo->prepare("SELECT DISTINCT l.policy_id FROM refunds r
             JOIN reward_ledger l ON l.source_type='sale'
-                AND l.entry_type='earn_spend' AND CAST(l.source_id AS UNSIGNED)=r.sale_id
+                AND l.entry_type='earn_spend' AND l.source_id REGEXP '^[1-9][0-9]*
+            WHERE r.id=?");
+        $q->execute([$id]);
+        $policies=$q->fetchAll(PDO::FETCH_COLUMN);
+        if (count($policies)!==1) throw new RuntimeException('Refund requires one original sale policy.');
+        return (int)$policies[0];
+    }
+    // No historical backdating: the current active policy must be unique.
+    // Future effective policies and drafts cannot qualify.
+    $q=$pdo->query("SELECT id FROM reward_policies WHERE status='active'
+        AND (effective_at IS NULL OR effective_at <= UTC_TIMESTAMP(3)) ORDER BY id LIMIT 2");
+    $policies=$q->fetchAll(PDO::FETCH_COLUMN);
+    if (count($policies)!==1) throw new RuntimeException('Exactly one effective active reward policy required.');
+    return (int)$policies[0];
+}
+ AND CAST(l.source_id AS UNSIGNED)=r.sale_id
             WHERE r.id=?");
         $q->execute([$id]);
         $policies=$q->fetchAll(PDO::FETCH_COLUMN);
