@@ -5,6 +5,8 @@ on:
       - 'includes/rewards.php'
       - 'admin/migrations/0016_farm_rewards_foundation.php'
       - 'tests/rewards_integration.php'
+      - 'tests/rewards_pos_preview.php'
+      - 'includes/rewards-pos-preview.php'
       - '.github/workflows/rewards-tests.yml'
   workflow_dispatch:
 permissions:
@@ -33,10 +35,16 @@ jobs:
           extensions: pdo_mysql
           coverage: none
       - name: PHP syntax
-        run: php -l includes/rewards.php && php -l admin/migrations/0016_farm_rewards_foundation.php && php -l tests/rewards_integration.php
+        run: php -l includes/rewards.php && php -l admin/migrations/0016_farm_rewards_foundation.php && php -l tests/rewards_integration.php && php -l tests/rewards_pos_preview.php && php -l includes/rewards-pos-preview.php
       - name: Rewards MySQL integration
         env:
           BCRF_REWARDS_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=rewards_test;charset=utf8mb4
           BCRF_REWARDS_TEST_USER: root
           BCRF_REWARDS_TEST_PASSWORD: testpass
         run: php tests/rewards_integration.php
+      - name: POS eligibility tests
+        env:
+          BCRF_REWARDS_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=rewards_test;charset=utf8mb4
+          BCRF_REWARDS_TEST_USER: root
+          BCRF_REWARDS_TEST_PASSWORD: testpass
+        run: php tests/rewards_pos_preview.php
