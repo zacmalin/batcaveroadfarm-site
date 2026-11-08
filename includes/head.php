@@ -18,6 +18,8 @@ if (!isset($canonicalUrl)) {
     $canonicalUrl = (bcrf_farm_url()) . $__p;
 }
 if (!isset($metaDesc) && isset($pageDescription)) { $metaDesc = $pageDescription; }
+// Keep default SEO text evergreen; business hours belong to the live Settings schedule.
+$defaultMetaDesc = 'Family-owned petting zoo in Old Fort, NC with goats, donkeys and more, plus a seasonal farmstand and thrift shop. Check our website for current visiting hours.';
 // Seasonal theme: resolve once here so header.php can print the body class + banner.
 require_once __DIR__ . '/themes.php';
 $bcrfTheme      = bcrf_active_theme($pdo ?? null);
@@ -46,7 +48,7 @@ require_once __DIR__ . '/ga.php';   // GA4: staff visits tagged internal, queued
         <?php if (isset($pageCSS)): foreach ((array)$pageCSS as $__pcss): ?>
     		<link rel="stylesheet" href="<?php echo $__pcss; ?>?v=<?= bcrf_asset_v((string)$__pcss) ?>">
 	<?php endforeach; endif; ?>
-        <meta name="description" content="<?php echo isset($metaDesc) ? htmlspecialchars($metaDesc) : 'Family-owned petting zoo in Old Fort, NC with goats, donkeys and more, plus a seasonal farmstand and thrift shop. Open Tue–Sun, 10 AM–4 PM.'; ?>">
+        <meta name="description" content="<?php echo isset($metaDesc) ? htmlspecialchars($metaDesc) : $defaultMetaDesc; ?>">
         <meta name="author" content="Bat Cave Road Farm">
         <link rel="icon" href="<?= bcrf_farm_url() ?>/img/favicon.ico" sizes="any">
         <link rel="icon" href="<?= bcrf_farm_url() ?>/img/icon.svg" type="image/svg+xml">
@@ -61,7 +63,7 @@ require_once __DIR__ . '/ga.php';   // GA4: staff visits tagged internal, queued
         <meta property="og:type"        content="website">
         <meta property="og:site_name"   content="Bat Cave Road Farm">
         <meta property="og:title"       content="<?php echo isset($pageTitle) ? htmlspecialchars($pageTitle) : "Bat Cave Road Farm | Petting Zoo, Farmstand & Thrift Shop — Old Fort, NC"; ?>">
-        <meta property="og:description" content="<?php echo isset($metaDesc) ? htmlspecialchars($metaDesc) : 'Family-owned petting zoo in Old Fort, NC with goats, donkeys and more, plus a seasonal farmstand and thrift shop. Open Tue–Sun, 10 AM–4 PM.'; ?>">
+        <meta property="og:description" content="<?php echo isset($metaDesc) ? htmlspecialchars($metaDesc) : $defaultMetaDesc; ?>">
         <meta property="og:url"         content="<?php echo isset($canonicalUrl) ? htmlspecialchars($canonicalUrl) : (bcrf_farm_url() . '/'); ?>">
         <meta property="og:image"       content="<?php echo isset($ogImage) ? htmlspecialchars($ogImage) : (bcrf_farm_url() . "/img/og-home.jpg"); ?>">
         <?php if (empty($ogImageNoSize)): ?>
@@ -78,7 +80,7 @@ require_once __DIR__ . '/ga.php';   // GA4: staff visits tagged internal, queued
         <!-- Twitter / X Card -->
         <meta name="twitter:card"        content="summary_large_image">
         <meta name="twitter:title"       content="<?php echo isset($pageTitle) ? htmlspecialchars($pageTitle) : "Bat Cave Road Farm | Petting Zoo, Farmstand & Thrift Shop — Old Fort, NC"; ?>">
-        <meta name="twitter:description" content="<?php echo isset($metaDesc) ? htmlspecialchars($metaDesc) : 'Family-owned petting zoo in Old Fort, NC with goats, donkeys and more, plus a seasonal farmstand and thrift shop. Open Tue–Sun, 10 AM–4 PM.'; ?>">
+        <meta name="twitter:description" content="<?php echo isset($metaDesc) ? htmlspecialchars($metaDesc) : $defaultMetaDesc; ?>">
         <meta name="twitter:image"       content="<?php echo isset($ogImage) ? htmlspecialchars($ogImage) : (bcrf_farm_url() . "/img/og-home.jpg"); ?>">
         <meta name="twitter:image:alt"   content="Bat Cave Road Farm in Old Fort, NC">  
         
@@ -103,49 +105,24 @@ require_once __DIR__ . '/ga.php';   // GA4: staff visits tagged internal, queued
         "<?= bcrf_farm_url() ?>/img/og-farmstand.jpg",
         "<?= bcrf_farm_url() ?>/img/og-thriftshop.jpg"
       ],
-      "telephone": "+18282165488",
+      "telephone": <?= json_encode(site_phone_e164('general'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
       "email": "<?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?>",
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "4132 Bat Cave Road",
-        "addressLocality": "Old Fort",
-        "addressRegion": "NC",
-        "postalCode": "28762",
-        "addressCountry": "US"
-      },
-      "geo": {
-        "@type": "GeoCoordinates",
-        "latitude": 35.619,
-        "longitude": -82.259
-      },
-      "openingHoursSpecification": [
-        {
-          "@type": "OpeningHoursSpecification",
-          "dayOfWeek": [
-            "Tuesday",
-            "Wednesday",
-            "Thursday",
-            "Friday",
-            "Saturday",
-            "Sunday"
-          ],
-          "opens": "10:00",
-          "closes": "16:00"
-        }
-      ],
+      "address": <?= json_encode(site_schema_address(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+      "geo": <?= json_encode(($__geo = site_geo()) && $__geo['lat'] !== '' && $__geo['lng'] !== '' ? ['@type' => 'GeoCoordinates', 'latitude' => (float)$__geo['lat'], 'longitude' => (float)$__geo['lng']] : null, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+      "openingHoursSpecification": <?= json_encode(site_hours_schema('general'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
       "currenciesAccepted": "USD",
       "paymentAccepted": "Cash, Credit Card, Debit Card, Venmo, PayPal, CashApp",
       "priceRange": "$",
       "sameAs": <?= json_encode(array_values(site_sameas()), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>,
-      "hasMap": "https://maps.google.com/?q=4132+Bat+Cave+Road,+Old+Fort,+NC+28762",
+      "hasMap": <?= json_encode(site_map_query_url(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
       "foundingDate": "2023",
       "keywords": "petting zoo, farmstand, thrift shop, family farm, Old Fort NC, Asheville area farm, farm fresh eggs, farm animals",
       "areaServed": {
         "@type": "GeoCircle",
         "geoMidpoint": {
           "@type": "GeoCoordinates",
-          "latitude": 35.619,
-          "longitude": -82.259
+          "latitude": <?= json_encode(($__geo['lat'] ?? '') !== '' ? (float)$__geo['lat'] : null) ?>,
+          "longitude": <?= json_encode(($__geo['lng'] ?? '') !== '' ? (float)$__geo['lng'] : null) ?>
         },
         "geoRadius": "80000"
       },
