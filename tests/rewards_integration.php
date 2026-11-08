@@ -172,4 +172,14 @@ if (function_exists('pcntl_fork') && function_exists('stream_socket_pair')) {
     expect((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()===0,'concurrent balance never overspent');
 }
 
+// Read-only expiration preview: only positive-balance, active, stale households.
+require __DIR__ . '/../includes/roost-expiration-preview.php';
+expect(!bcrf_roost_is_inactive_at('2025-11-08 12:00:00','2026-11-08 11:59:59'), 'not expired before anniversary');
+expect(bcrf_roost_is_inactive_at('2025-11-08 12:00:00','2026-11-08 12:00:00'), 'expires on 12-month anniversary');
+expect(bcrf_roost_is_inactive_at('2024-02-29 12:00:00','2025-02-28 12:00:00'), 'leap-day anniversary clamps');
+$pdo->exec("UPDATE reward_households SET last_qualifying_activity_at='2024-01-01 00:00:00' WHERE id=1");
+$pdo->exec("UPDATE reward_accounts SET balance_points=75 WHERE household_id=1");
+$candidates = bcrf_roost_expiration_candidates($pdo);
+expect(count($candidates)===1 && (int)$candidates[0]['household_id']===1, 'stale positive household appears in preview');
+expect((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()===75, 'preview does not deduct points');
 echo "Farm Rewards integration checks passed.\\n";
