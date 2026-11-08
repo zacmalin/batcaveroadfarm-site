@@ -40,7 +40,7 @@ if (!empty($_POST['website'])) {
           // single | on purpose: both counters always record the attempt
           && (bcrf_rl_hit('contact_ip10', bcrf_rl_ip(), 3, 600) | bcrf_rl_hit('contact_ipday', bcrf_rl_ip(), 10, 86400))) {
     $isError = true;
-    $errMsg  = "You've sent several messages in a short time. Please wait a few minutes and try again, or call us at (828)&nbsp;216-5488.";
+    $errMsg  = "You've sent several messages in a short time. Please wait a few minutes and try again. Current contact details are on our contact page.";
 } else {
     $name     = trim(strip_tags(isset($_POST['name'])     ? $_POST['name']     : ''));
     $email    = trim(isset($_POST['email'])               ? $_POST['email']    : '');
@@ -87,7 +87,7 @@ if (!empty($_POST['website'])) {
             // someone else's email and use our server to deliver their text to them.
             $ackInner = '<h1 style="font-family:Rye,Georgia,serif;color:#e8b84b;font-size:24px;margin:0 0 14px;">Thanks for reaching out! &#127807;</h1>'
                 . '<p style="margin:0 0 16px;">Hi ' . htmlspecialchars($name) . ", we've received your message and will get back to you within 24 hours.</p>"
-                . '<p style="margin:0;">If you need us sooner, call (828)&nbsp;216-5488. We\'re open Tuesday to Sunday, 10&nbsp;AM to 4&nbsp;PM.</p>';
+                . '<p style="margin:0;">If you need us sooner, please check our <a href="' . htmlspecialchars(bcrf_farm_url('/contact-us/'), ENT_QUOTES, 'UTF-8') . '">contact page</a> for current phone number and opening hours.</p>';
             if (!function_exists('bcrf_rl_hit') || !bcrf_rl_hit('contact_ack', $validEmail, 2, 86400)) {
                 @bcf_send_mail($validEmail, 'Thanks for contacting Bat Cave Road Farm', $ackInner, [
                     'subtitle'   => 'Message Received',
@@ -137,7 +137,7 @@ if (!empty($_POST['website'])) {
     <div class="emoji"><?php echo $isError ? '🌾' : '🌿'; ?></div>
     <h1><?php echo $isError ? "That didn't go through" : "Message Sent!"; ?></h1>
     <p><?php echo $isError
-        ? ($errMsg !== '' ? $errMsg : "Sorry &mdash; something went wrong and we couldn't send your message. Please try again, or call us at (828)&nbsp;216-5488.")
+        ? ($errMsg !== '' ? $errMsg : "Sorry &mdash; something went wrong and we couldn't send your message. Please try again or use the contact details on our contact page.")
         : "Thank you for reaching out! We've received your message and will get back to you within 24 hours."; ?></p>
 <?php if (!$isError): ?>
     <p style="margin-top:14px;">Enjoyed a visit to the farm? <a href="<?= bcrf_farm_url() ?>/review" target="_blank" rel="noopener">Leave us a Google review</a> ⭐ — it really helps a small family farm.</p>
