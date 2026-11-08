@@ -35,6 +35,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
                   <li><a href="#use">How we use information</a></li>
                   <li><a href="#share">How we share information</a></li>
                   <li><a href="#retention">How long we keep it</a></li>
+                  <li><a href="#rewards">Roost Rewards &amp; households</a></li>
                   <li><a href="#jobs">Job applicants</a></li>
                   <li><a href="#choices">Your choices &amp; rights</a></li>
                   <li><a href="#children">Children's privacy</a></li>
@@ -102,6 +103,11 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
               <p>We keep contact-form messages for as long as needed to handle your inquiry and our records.
                 Analytics data is retained according to Google's settings, and server logs are kept for a
                 limited time by our host. You can ask us to delete a message you sent us at any time.</p>
+
+              <h2 id="rewards">Roost Rewards &amp; household information</h2>
+              <p>When our optional Roost Rewards program launches, we may collect and use customer identity and contact information, verified household relationships and adult permissions, qualifying purchase and refund history, verified farm check-ins, points balances, redemption history, and audit records. Staff-verified visits may record the staff member and date. We use these records to operate the program, prevent duplicate awards, and resolve disputes.</p>
+              <p>Verified household members share a rewards balance and may see relevant household rewards activity. Authorized verified adults manage access and redemption. A child need not create an independent online account to participate through a verified household manager. Rewards enrollment does not automatically subscribe anyone to promotional emails.</p>
+              <p>We retain transaction and audit records as reasonably necessary for reconciliation, fraud prevention, disputes, and legal obligations. You may contact us to request access, correction, or deletion where applicable; we will explain any records that must be retained.</p>
 
               <h2 id="jobs">Job applicants</h2>
               <p>When you apply for a job on our <a href="/jobs/">Jobs page</a>, we collect what you type into
