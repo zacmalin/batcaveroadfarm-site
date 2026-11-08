@@ -19,6 +19,8 @@ function rejected(callable $run, string $message): void { try { $run(); } catch 
 $base = ['household_id'=>1,'policy_id'=>1,'customer_id'=>1,'source_type'=>'sale','source_id'=>'100','entry_type'=>'earn_spend','points_delta'=>200,'idempotency_key'=>'test-sale-100'];
 $a = bcrf_reward_post($pdo,$base);
 expect($a['balance']===200 && !$a['replayed'],'first award');
+rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_id'=>'fabricated-label','idempotency_key'=>'invalid-sale-label'])),'purchase source requires numeric sale ID');
+rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_id'=>'0','idempotency_key'=>'invalid-sale-zero'])),'purchase source rejects zero sale ID');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_type'=>'visit','source_id'=>'wrong-kind','idempotency_key'=>'test-wrong-spend-source'])),'purchase earning requires sale source');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'earn_visit','source_type'=>'sale','source_id'=>'wrong-kind','points_delta'=>25,'idempotency_key'=>'test-wrong-visit-source'])),'visit earning requires visit source');
 
@@ -56,7 +58,7 @@ rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'redeem','
 // Each child starts together and attempts a 100-point redemption. Exactly one succeeds.
 // Skip the concurrency assertion only when CLI pcntl is unavailable (CI installs it).
 if (function_exists('pcntl_fork') && function_exists('stream_socket_pair')) {
-    $topup = bcrf_reward_post($pdo,array_merge($base,['source_type'=>'sale','source_id'=>'topup','points_delta'=>275,'idempotency_key'=>'test-topup']));
+    $topup = bcrf_reward_post($pdo,array_merge($base,['source_type'=>'sale','source_id'=>'101','points_delta'=>275,'idempotency_key'=>'test-topup']));
     expect($topup['balance']===100,'race starting balance');
     $pipes = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, 0);
     if ($pipes === false) throw new RuntimeException('Cannot create race synchronization pipes.');
