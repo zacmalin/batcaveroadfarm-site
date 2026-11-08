@@ -46,7 +46,6 @@ rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'earn_spen
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'earn_visit','points_delta'=>25,'source_id'=>'revoked-visit','idempotency_key'=>'test-revoked-visit','customer_id'=>2])),'revoked customer cannot receive visit points');
 $refund = bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'refund_reversal','points_delta'=>-200,'source_type'=>'refund','source_id'=>'refund-1','idempotency_key'=>'test-refund-1','related_entry_id'=>$a['id']]));
 expect($refund['balance']===-175,'refund negative balance');
-$pdo->exec("SELECT COUNT(*) FROM reward_ledger WHERE entry_type='refund_reversal' AND source_type='refund'");
 
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'refund_reversal','points_delta'=>-1,'source_type'=>'refund','source_id'=>'refund-2','idempotency_key'=>'test-refund-2','related_entry_id'=>$a['id']])),'over reversal');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'redeem','points_delta'=>-1,'idempotency_key'=>'test-negative-redeem'])),'negative balance redeem');
