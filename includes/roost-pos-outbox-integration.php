@@ -13,9 +13,12 @@ function bcrf_roost_pos_enqueue_if_enabled(PDO $pdo, string $kind, int $sourceId
     if ($kind==='sale.completed') {
         // Resolve and pin within the original POS transaction, never at
         // delayed dispatch time. Activation remains separately disabled.
+        // Lock candidate policies before choosing one. This prevents a
+        // concurrent retirement from changing the selected policy before
+        // the immutable snapshot is written in this same transaction.
         $q=$pdo->query("SELECT id FROM reward_policies WHERE status='active'
             AND (effective_at IS NULL OR effective_at<=UTC_TIMESTAMP(3))
-            ORDER BY id LIMIT 2");
+            ORDER BY id LIMIT 2 FOR UPDATE");
         $policies=$q->fetchAll(PDO::FETCH_COLUMN);
         if (count($policies)!==1)
             throw new RuntimeException('Exactly one effective sale policy required at enqueue.');
