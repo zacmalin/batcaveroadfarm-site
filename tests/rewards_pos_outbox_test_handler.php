@@ -61,7 +61,16 @@ try {
 } catch(BcrfRewardError $expected) {
     if ($expected->getMessage()==='Out-of-order refund was accepted.') throw $expected;
 }
+// Retiring the earning policy must not prevent a legitimate refund reversal.
+$pdo->exec("UPDATE reward_policies SET status='draft' WHERE id=1");
+try {
+    bcrf_roost_outbox_handle_test_event($pdo,['event_type'=>'sale.refunded','source_id'=>9021],2,true);
+    throw new RuntimeException('Mismatched historical refund policy accepted.');
+} catch (BcrfRewardError|RuntimeException $expected) {
+    if ($expected->getMessage()==='Mismatched historical refund policy accepted.') throw $expected;
+}
 $firstRefund=bcrf_roost_outbox_handle_test_event($pdo,['event_type'=>'sale.refunded','source_id'=>9021],1,true);
+$pdo->exec("UPDATE reward_policies SET status='active' WHERE id=1");
 if ($firstRefund['outcome']!=='completed' || $firstRefund['replayed'])
     throw new RuntimeException('First refund was not processed.');
 $secondRefund=bcrf_roost_outbox_handle_test_event($pdo,$late,1,true);
