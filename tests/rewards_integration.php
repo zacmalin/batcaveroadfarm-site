@@ -202,8 +202,8 @@ foreach ([
     '550'=>'unrecognized',
     '5.1.1 forged'=>'unrecognized',
     ''=>'unrecognized',
-] as $dsn=>$category) {
-    expect(bcrf_roost_dsn_review_category($dsn) === $category, 'SMTP delivery status is review-only: '.$dsn);
+] as $statusCode=>$category) {
+    expect(bcrf_roost_dsn_review_category($statusCode) === $category, 'SMTP delivery status is review-only: '.$statusCode);
 }
 require_once __DIR__ . '/../includes/roost-email-provider-feedback.php';
 expect(bcrf_roost_verified_provider_feedback_reason('hard_bounce') === 'hard_bounce', 'verified hard bounce maps to permanent suppression');
