@@ -39,7 +39,7 @@ $errMap = [
     'name'     => 'Please enter the passholder\'s name.',
     'email'    => 'Please enter a valid email address.',
     'sold_out' => 'Sorry, Founding Member passes are sold out.',
-    'db'       => 'Something went wrong — please call (828) 216-5488.',
+    'db'       => 'Something went wrong — please call ' . site_phone_display('general') . '.',
 ];
 $errKey = trim((string)($_GET['error'] ?? ''));
 $errMsg = $errMap[$errKey] ?? '';
