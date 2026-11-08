@@ -10,9 +10,9 @@ require_once __DIR__ . '/roost-email-claim.php';
  */
 function bcrf_roost_email_claim_eligible(PDO $pdo, int $id, string $token): bool {
     if ($id < 1 || !preg_match('/^[a-f0-9]{64}$/D', $token)) return false;
-    $stmt = $pdo->prepare("SELECT o.event_type,o.milestone_days,DATE_FORMAT(o.activity_at, '%Y-%m-%d %H:%i:%s') AS activity_at,
+    $stmt = $pdo->prepare("SELECT o.event_type,o.milestone_days,DATE_FORMAT(o.activity_at, '%Y-%m-%d %H:%i:%s.%f') AS activity_at,
         m.id AS active_member,h.status AS household_status,
-        DATE_FORMAT(h.last_qualifying_activity_at, '%Y-%m-%d %H:%i:%s') AS last_qualifying_activity_at,a.balance_points,UTC_TIMESTAMP(3) AS now_utc
+        DATE_FORMAT(h.last_qualifying_activity_at, '%Y-%m-%d %H:%i:%s.%f') AS last_qualifying_activity_at,a.balance_points,UTC_TIMESTAMP(3) AS now_utc
         FROM reward_email_outbox o
         JOIN reward_household_members m ON m.id=o.member_id
             AND m.household_id=o.household_id
