@@ -45,6 +45,14 @@ function bcrf_roost_outbox_event_preview(PDO $pdo, array $event): array {
     $refundAgain->execute([(int)$id]);
     if ((string)$refundAgain->fetchColumn() !== (string)$saleId)
         throw new BcrfRewardError('Refund sale association changed during preview.');
+    $originAgain=$pdo->prepare("SELECT id,household_id,customer_id,points_delta FROM reward_ledger WHERE entry_type='earn_spend' AND source_type='sale' AND source_id=?");
+    $originAgain->execute([(string)$saleId]);
+    $latestEarn=$originAgain->fetchAll(PDO::FETCH_ASSOC);
+    if (count($latestEarn)!==1 || $latestEarn[0] !== $earning)
+        throw new BcrfRewardError('Original sale earning changed during refund preview.');
+    $processed->execute([(int)$earning['id']]);
+    if ((int)$processed->fetchColumn() !== $already)
+        throw new BcrfRewardError('Refund processing receipts changed during preview.');
     $saleOwnerAgain=bcrf_rewards_sale_verified_household($pdo,(int)$saleId);
     if ($saleOwnerAgain !== $saleOwner)
         throw new BcrfRewardError('Sale household changed during refund preview.');
