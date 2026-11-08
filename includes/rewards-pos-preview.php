@@ -14,13 +14,18 @@ if (!class_exists('BcrfRewardError')) {
  */
 function bcrf_rewards_sale_eligible_cents(PDO $pdo, int $saleId): int {
     if ($saleId <= 0) throw new BcrfRewardError('Invalid sale.');
-    $st = $pdo->prepare("SELECT id, status, total_cents FROM sales WHERE id = ?");
+    $st = $pdo->prepare("SELECT id, status, subtotal_cents, discount_cents, total_cents FROM sales WHERE id = ?");
     $st->execute([$saleId]);
     $sale = $st->fetch(PDO::FETCH_ASSOC);
     if (!$sale || !in_array($sale['status'], ['completed','partially_refunded'], true)) {
         throw new BcrfRewardError('Sale is not eligible for rewards.');
     }
     if ((int)$sale['total_cents'] <= 0) throw new BcrfRewardError('Nonpositive sale total.');
+    $saleNet = (int)$sale['subtotal_cents'] - (int)$sale['discount_cents'];
+    if ((int)$sale['subtotal_cents'] < 0 || (int)$sale['discount_cents'] < 0 || $saleNet < 0 ||
+        $saleNet > (int)$sale['total_cents']) {
+        throw new BcrfRewardError('Invalid sale totals.');
+    }
     $lines = $pdo->prepare("SELECT product_type, gross_cents, discount_cents, refunded_net_cents FROM sale_lines WHERE sale_id = ?");
     $lines->execute([$saleId]);
     $allowed = ['retail','produce','kitchen_good','admission','thrift_item'];
@@ -40,6 +45,7 @@ function bcrf_rewards_sale_eligible_cents(PDO $pdo, int $saleId): int {
         $eligible += $net;
     }
     if ($lineCount === 0) throw new BcrfRewardError('Sale has no line items.');
+    if ($eligible > $saleNet) throw new BcrfRewardError('Eligible amount exceeds sale net subtotal.');
     // Gift-card/store-credit/reward payment allocation is not yet safely
     // reconciled by line. Fail closed rather than overaward on mixed tenders.
     $tenders = $pdo->prepare("SELECT tender, amount_cents, status, reconciled_at, reconcile_flag FROM payments WHERE sale_id = ?");
