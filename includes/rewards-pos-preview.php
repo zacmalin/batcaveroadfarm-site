@@ -42,7 +42,7 @@ function bcrf_rewards_sale_eligible_cents(PDO $pdo, int $saleId): int {
         $saleNet > (int)$sale['total_cents']) {
         throw new BcrfRewardError('Invalid sale totals.');
     }
-    $lines = $pdo->prepare("SELECT product_type, gross_cents, discount_cents, refunded_net_cents FROM sale_lines WHERE sale_id = ?");
+    $lines = $pdo->prepare("SELECT product_type, gross_cents, discount_cents, refunded_net_cents FROM sale_lines WHERE sale_id = ?" . ($pdo->inTransaction() ? " FOR UPDATE" : ""));
     $lines->execute([$saleId]);
     $allowed = ['retail','produce','kitchen_good','admission','thrift_item'];
     $eligible = 0;
@@ -75,7 +75,7 @@ function bcrf_rewards_sale_eligible_cents(PDO $pdo, int $saleId): int {
     if ($eligible > $saleNet) throw new BcrfRewardError('Eligible amount exceeds sale net subtotal.');
     // Gift-card/store-credit/reward payment allocation is not yet safely
     // reconciled by line. Fail closed rather than overaward on mixed tenders.
-    $tenders = $pdo->prepare("SELECT tender, amount_cents, status, reconciled_at, reconcile_flag FROM payments WHERE sale_id = ?");
+    $tenders = $pdo->prepare("SELECT tender, amount_cents, status, reconciled_at, reconcile_flag FROM payments WHERE sale_id = ?" . ($pdo->inTransaction() ? " FOR UPDATE" : ""));
     $tenders->execute([$saleId]);
     $paid = 0;
     while ($payment = $tenders->fetch(PDO::FETCH_ASSOC)) {
