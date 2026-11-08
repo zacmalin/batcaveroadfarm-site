@@ -8,7 +8,7 @@ function bcrf_roost_record_zero_point_refund(PDO $pdo, int $refundId, int $earni
     $pdo->beginTransaction();
     try {
         $origin = $pdo->prepare("SELECT household_id, entry_type, source_type, source_id, points_delta
-            FROM reward_ledger WHERE id=?");
+            FROM reward_ledger WHERE id=? FOR UPDATE");
         $origin->execute([$earningEntryId]);
         $earned = $origin->fetch(PDO::FETCH_ASSOC);
         if (!$earned || $earned['entry_type'] !== 'earn_spend' || $earned['source_type'] !== 'sale')
