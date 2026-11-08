@@ -114,6 +114,21 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
             }
         }
         if ($type === 'earn_spend') {
+            // Reject an award routed to a different household, or an ambiguous
+            // household assignment, even if the supplied customer is a member.
+            $householdCheck = $pdo->prepare("SELECT m.household_id
+                FROM reward_household_members m
+                JOIN reward_households h ON h.id = m.household_id
+                WHERE m.customer_id = ? AND m.revoked_at IS NULL
+                  AND m.verification_status = 'verified' AND h.status = 'active'
+                FOR UPDATE");
+            $householdCheck->execute([$customer]);
+            $assigned = $householdCheck->fetchAll(PDO::FETCH_COLUMN);
+            if (count($assigned) !== 1 || (int)$assigned[0] !== (int)$household) {
+                throw new BcrfRewardError('Purchase customer has no unique matching verified household.');
+            }
+        }
+        if ($type === 'earn_spend') {
             // Recalculate from sale lines and payment records under the same
             // transaction; a caller cannot choose an arbitrary points award.
             require_once __DIR__ . '/rewards-pos-preview.php';
