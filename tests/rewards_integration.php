@@ -1434,4 +1434,20 @@ if (!$purged || $purged['status']!=='failed' || $purged['payload_nonce']!=='' ||
     throw new RuntimeException('Invitation purge removed audit state or retained secrets.');
 if (bcrf_roost_purge_invitation_delivery_payloads($pdo,7,100)!==0)
     throw new RuntimeException('Invitation payload purge was not idempotent.');
+$expiredPending=bcrf_roost_create_household_invitation($pdo,30,'expired.queue@example.test',
+    ['key'=>$deliveryKey,'key_id'=>'integration-v1']);
+$validPending=bcrf_roost_create_household_invitation($pdo,30,'valid.queue@example.test',
+    ['key'=>$deliveryKey,'key_id'=>'integration-v1']);
+$expireInvite->execute([$expiredPending['invitation_id']]);
+if (bcrf_roost_suppress_inactive_invitation_delivery($pdo,100)<1)
+    throw new RuntimeException('Expired pending invitation job was not suppressed.');
+$pendingStates=$pdo->prepare("SELECT status FROM reward_invitation_delivery_outbox WHERE invitation_id=?");
+$pendingStates->execute([$expiredPending['invitation_id']]);
+if ($pendingStates->fetchColumn()!=='suppressed')
+    throw new RuntimeException('Expired invitation queue status not terminal.');
+$pendingStates->execute([$validPending['invitation_id']]);
+if ($pendingStates->fetchColumn()!=='pending')
+    throw new RuntimeException('Valid pending invitation was incorrectly suppressed.');
+if (bcrf_roost_suppress_inactive_invitation_delivery($pdo,100)!==0)
+    throw new RuntimeException('Expired invitation suppression was not idempotent.');
 echo "Farm Rewards integration checks passed.\\n";
