@@ -15,10 +15,13 @@ $customer = bcrf_customer_find($pdo, current_user_id());
 $verified = $customer && bcrf_customer_active($customer) && !empty($customer['email_verified_at']);
 $balance = null;
 $unavailable = false;
+$history = [];
 if ($verified) {
     try {
         require_once __DIR__.'/../includes/roost-customer-balance.php';
         $balance = bcrf_roost_customer_balance($pdo, (int)$customer['id']);
+        require_once __DIR__.'/../includes/roost-customer-history.php';
+        if ($balance !== null) $history = bcrf_roost_customer_history($pdo, (int)$customer['id']);
     } catch (Throwable $e) {
         // No Rewards tables on production yet; do not expose SQL errors or user data.
         error_log('[Roost customer balance unavailable] '.get_class($e));
@@ -47,6 +50,11 @@ include __DIR__.'/../includes/header.php';
 <p>Lifetime redeemed: <?= number_format($balance['lifetime_redeemed']) ?> points</p>
 <p>Last qualifying activity: <?= $balance['last_qualifying_activity_at'] === null ? 'Not yet recorded' : htmlspecialchars(substr((string)$balance['last_qualifying_activity_at'],0,10),ENT_QUOTES,'UTF-8').' (UTC)' ?></p>
 <p>Redemption and enrollment are not available yet.</p>
+<h2>Recent points activity</h2>
+<?php if (!$history): ?><p>No points activity recorded yet.</p>
+<?php else: ?><table><caption>Most recent household points entries</caption><thead><tr><th scope="col">Date (UTC)</th><th scope="col">Activity</th><th scope="col">Points</th></tr></thead><tbody>
+<?php foreach ($history as $entry): ?><tr><td><?= htmlspecialchars(substr($entry['created_at'],0,10),ENT_QUOTES,'UTF-8') ?></td><td><?= htmlspecialchars(ucwords(str_replace('_',' ',$entry['entry_type'])),ENT_QUOTES,'UTF-8') ?></td><td><?= $entry['points_delta'] > 0 ? '+' : '' ?><?= number_format($entry['points_delta']) ?></td></tr><?php endforeach; ?>
+</tbody></table><?php endif; ?>
 </section>
 <?php endif; ?>
 <p><a href="/roost-rewards/">Program information</a></p>
