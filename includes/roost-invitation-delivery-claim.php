@@ -84,14 +84,16 @@ function bcrf_roost_fail_invitation_delivery(PDO $pdo,int $id,string $claimToken
     if ($pdo->inTransaction()) throw new LogicException('Failure handling requires its own transaction.');
     $pdo->beginTransaction();
     try {
-        $q=$pdo->prepare("SELECT attempts FROM reward_invitation_delivery_outbox
+        $q=$pdo->prepare("SELECT attempts,dispatch_started_at FROM reward_invitation_delivery_outbox
             WHERE id=? AND claim_token=? AND status='processing' FOR UPDATE");
         $q->execute([$id,$claimToken]);
-        $attempts=$q->fetchColumn();
-        if ($attempts===false) { $pdo->commit(); return false; }
-        $retry=$transient && in_array($errorCode,['smtp_timeout','smtp_unavailable'],true)
-            && (int)$attempts<3;
-        $delay=5*(2**max(0,(int)$attempts-1));
+        $claim=$q->fetch(PDO::FETCH_ASSOC);
+        if (!$claim) { $pdo->commit(); return false; }
+        // Once SMTP might have started, never automatically retry, even for timeouts.
+        $retry=$claim['dispatch_started_at']===null && $transient &&
+            in_array($errorCode,['smtp_timeout','smtp_unavailable'],true) &&
+            (int)$claim['attempts']<3;
+        $delay=5*(2**max(0,(int)$claim['attempts']-1));
         $q=$pdo->prepare("UPDATE reward_invitation_delivery_outbox
             SET status=?,claim_token=NULL,claimed_at=NULL,last_error_code=?,
                 available_at=DATE_ADD(UTC_TIMESTAMP(3),INTERVAL ".$delay." MINUTE),
