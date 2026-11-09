@@ -274,6 +274,23 @@ $workerStatus=$pdo->prepare("SELECT status FROM reward_invitation_delivery_outbo
 $workerStatus->execute([$workerInvite['invitation_id']]);
 if ($workerStatus->fetchColumn()!=='sent')
     throw new RuntimeException('Worker did not acknowledge delivered invitation.');
+$unknownInvite=bcrf_roost_create_household_invitation($pdo,30,'unknown.delivery@example.test',
+    ['key'=>$deliveryKey,'key_id'=>'integration-v1']);
+$unknownCalls=0;
+$unknownOutcome=bcrf_roost_run_invitation_delivery_once($pdo,$workerConfig,
+    function () use (&$unknownCalls): bool {
+        $unknownCalls++;
+        throw new RuntimeException('Simulated ambiguous SMTP outcome');
+    });
+if ($unknownOutcome!=='failed' || $unknownCalls!==1)
+    throw new RuntimeException('Ambiguous transport failure not handled safely.');
+$workerStatus->execute([$unknownInvite['invitation_id']]);
+if ($workerStatus->fetchColumn()!=='failed')
+    throw new RuntimeException('Ambiguous delivery was automatically retried.');
+if (bcrf_roost_run_invitation_delivery_once($pdo,$workerConfig,
+    function () use (&$unknownCalls): bool { $unknownCalls++; return true; })!=='empty'
+    || $unknownCalls!==1)
+    throw new RuntimeException('Ambiguous delivery was resent.');
 $queuedHash=$pdo->prepare("SELECT token_hash FROM reward_household_invitations WHERE id=?");
 $queuedHash->execute([$queuedInvitation['invitation_id']]);
 if ($queuedHash->fetchColumn()!==hash('sha256',$decrypted['token']))
