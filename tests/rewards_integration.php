@@ -114,6 +114,16 @@ try {
 if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==300)
     throw new RuntimeException('Request intake deducted points.');
 require_once __DIR__.'/../includes/roost-redemption-review.php';
+$pdo->exec("UPDATE reward_redemption_benefits SET fulfillment_type='external'
+    WHERE code='test-only-benefit'");
+try {
+    bcrf_roost_review_redemption($pdo,$request['id'],7,'approved');
+    throw new RuntimeException('External benefit was approved for internal voucher issuance.');
+} catch (BcrfRewardError $expected) {
+    if ($expected->getMessage()==='External benefit was approved for internal voucher issuance.') throw $expected;
+}
+$pdo->exec("UPDATE reward_redemption_benefits SET fulfillment_type='internal_voucher'
+    WHERE code='test-only-benefit'");
 $review=bcrf_roost_review_redemption($pdo,$request['id'],7,'approved');
 if ($review['status']!=='approved' || $review['replayed'])
     throw new RuntimeException('Staff review did not approve redemption.');
