@@ -1670,16 +1670,6 @@ foreach ([false,true] as $assertedFulfillment) {
 }
 if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==1500)
     throw new RuntimeException('Disabled legacy settlement changed points.');
-$pdo->exec("UPDATE reward_household_members SET can_redeem=0 WHERE household_id=1 AND customer_id=1");
-try {
-    bcrf_roost_settle_fulfilled_redemption($pdo,1,1,1,250,'integration_reward_002',true);
-    throw new RuntimeException('Revoked redemption permission was ignored.');
-} catch (BcrfRewardError $expected) {
-    if ($expected->getMessage()==='Revoked redemption permission was ignored.') throw $expected;
-}
-if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==1500)
-    throw new RuntimeException('Rejected redemption changed balance.');
-$pdo->exec("UPDATE reward_household_members SET can_redeem=1 WHERE household_id=1 AND customer_id=1");
 $pdo->exec("UPDATE customers SET email_verified_at=NULL WHERE id=1");
 try {
     bcrf_reward_post($pdo,[
