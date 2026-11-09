@@ -164,6 +164,11 @@ require_once __DIR__.'/../includes/roost-invitation-delivery-claim.php';
 $claimedDelivery=bcrf_roost_claim_invitation_delivery($pdo);
 if (!$claimedDelivery || !preg_match('/^[a-f0-9]{64}$/D',(string)$claimedDelivery['claim_token']))
     throw new RuntimeException('Invitation delivery was not claimed.');
+require_once __DIR__.'/../includes/roost-invitation-delivery-eligibility.php';
+if (!bcrf_roost_invitation_delivery_eligible($pdo,$claimedDelivery['id'],$claimedDelivery['claim_token']))
+    throw new RuntimeException('Valid claimed invitation was not delivery-eligible.');
+if (bcrf_roost_invitation_delivery_eligible($pdo,$claimedDelivery['id'],str_repeat('0',64)))
+    throw new RuntimeException('Incorrect claim token bypassed delivery authorization.');
 $secondClaim=bcrf_roost_claim_invitation_delivery($pdo);
 if ($secondClaim!==null) throw new RuntimeException('Processing delivery was claimed twice.');
 if (bcrf_roost_complete_invitation_delivery($pdo,$claimedDelivery['id'],str_repeat('0',64),'sent'))
@@ -177,6 +182,11 @@ $staleInvite=bcrf_roost_create_household_invitation($pdo,30,'stale.delivery@exam
     ['key'=>$deliveryKey,'key_id'=>'integration-v1']);
 $staleClaim=bcrf_roost_claim_invitation_delivery($pdo);
 if (!$staleClaim) throw new RuntimeException('Stale delivery fixture was not claimed.');
+$expireInvite=$pdo->prepare("UPDATE reward_household_invitations
+    SET expires_at=DATE_SUB(UTC_TIMESTAMP(3),INTERVAL 1 SECOND) WHERE id=?");
+$expireInvite->execute([$staleInvite['invitation_id']]);
+if (bcrf_roost_invitation_delivery_eligible($pdo,$staleClaim['id'],$staleClaim['claim_token']))
+    throw new RuntimeException('Expired invitation remained delivery-eligible.');
 $staleMark=$pdo->prepare("UPDATE reward_invitation_delivery_outbox
     SET claimed_at=DATE_SUB(UTC_TIMESTAMP(3),INTERVAL 20 MINUTE) WHERE id=?");
 $staleMark->execute([$staleClaim['id']]);
