@@ -195,6 +195,16 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
             }
         }
         if ($type === 'redeem') {
+            // A fulfillment receipt may be settled only once, even if a caller
+            // mistakenly generates a different idempotency key on retry.
+            if ($event['source_type'] !== 'reward_fulfillment')
+                throw new BcrfRewardError('Redemption requires a fulfillment receipt source.');
+            $redeemedSource=$pdo->prepare("SELECT id FROM reward_ledger
+                WHERE entry_type='redeem' AND source_type='reward_fulfillment'
+                  AND source_id=? LIMIT 1");
+            $redeemedSource->execute([$event['source_id']]);
+            if ($redeemedSource->fetchColumn())
+                throw new BcrfRewardError('Reward fulfillment already redeemed.');
             // Recheck permission inside the same transaction, after balance lock.
             $member = $pdo->prepare("SELECT m.id FROM reward_household_members m JOIN customers c ON c.id=m.customer_id WHERE m.household_id = ? AND m.customer_id = ? AND m.revoked_at IS NULL AND m.verification_status = 'verified' AND m.role IN ('manager','adult') AND m.can_redeem = 1 AND c.account_status='active' AND c.email_verified_at IS NOT NULL FOR UPDATE");
             $member->execute([$household, $customer]);
