@@ -67,4 +67,14 @@ if ($registry===false || $controller===false || $view===false || $access===false
     !str_contains($view, "'recipient_correlated' => false") ||
     !str_contains($view, 'bcrf_roost_delivery_review_admin_preview'))
     throw new RuntimeException('Admin delivery-review preview must remain gated, read-only and disconnected.');
+$verificationPage=file_get_contents($root.'/admin/roost_adult_verification.php');
+if ($verificationPage===false ||
+    !str_contains($verificationPage, "BCRF_ROOST_STAFF_VERIFICATION_ENABLED") ||
+    !str_contains($verificationPage, 'bcrf_roost_staff_verification_access') ||
+    !str_contains($verificationPage, 'csrf_verify(') ||
+    !str_contains($verificationPage, 'bcrf_rl_hit(') ||
+    !str_contains($verificationPage, 'bcrf_roost_record_staff_adult_verification(') ||
+    !str_contains($verificationPage, "SELECT role,account_status FROM users WHERE id=?") ||
+    !str_contains($verificationPage, 'adult_evidence_confirmed'))
+    throw new RuntimeException('Staff verification form must remain gated, audited and CSRF protected.');
 echo "Offline rewards release safety audit passed.\\n";
