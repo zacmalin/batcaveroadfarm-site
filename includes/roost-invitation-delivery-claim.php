@@ -70,3 +70,39 @@ function bcrf_roost_recover_invitation_delivery(PDO $pdo,int $staleMinutes=15,in
         throw $e;
     }
 }
+
+/**
+ * Record a transport failure without exposing message, address, or invitation code.
+ * A worker may retry only explicit transient error categories; no sends happen here.
+ */
+function bcrf_roost_fail_invitation_delivery(PDO $pdo,int $id,string $claimToken,
+    string $errorCode,bool $transient): bool {
+    if ($id<1 || !preg_match('/^[a-f0-9]{64}$/D',$claimToken) ||
+        !in_array($errorCode,['smtp_timeout','smtp_unavailable','smtp_rejected',
+            'configuration_error','delivery_unknown'],true))
+        throw new InvalidArgumentException('Invalid invitation delivery failure.');
+    if ($pdo->inTransaction()) throw new LogicException('Failure handling requires its own transaction.');
+    $pdo->beginTransaction();
+    try {
+        $q=$pdo->prepare("SELECT attempts FROM reward_invitation_delivery_outbox
+            WHERE id=? AND claim_token=? AND status='processing' FOR UPDATE");
+        $q->execute([$id,$claimToken]);
+        $attempts=$q->fetchColumn();
+        if ($attempts===false) { $pdo->commit(); return false; }
+        $retry=$transient && in_array($errorCode,['smtp_timeout','smtp_unavailable'],true)
+            && (int)$attempts<3;
+        $delay=5*(2**max(0,(int)$attempts-1));
+        $q=$pdo->prepare("UPDATE reward_invitation_delivery_outbox
+            SET status=?,claim_token=NULL,claimed_at=NULL,last_error_code=?,
+                available_at=DATE_ADD(UTC_TIMESTAMP(3),INTERVAL ".$delay." MINUTE),
+                updated_at=UTC_TIMESTAMP(3)
+            WHERE id=? AND claim_token=? AND status='processing'");
+        $q->execute([$retry?'pending':'failed',$errorCode,$id,$claimToken]);
+        $changed=$q->rowCount()===1;
+        $pdo->commit();
+        return $changed;
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $e;
+    }
+}
