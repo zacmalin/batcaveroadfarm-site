@@ -69,6 +69,8 @@ $pdo->exec("INSERT INTO reward_policies (id,version,config_json,status,created_a
 $pdo->exec('ALTER TABLE reward_households AUTO_INCREMENT=100');
 (require __DIR__ . '/../admin/migrations/0022_roost_household_invitations.php')($pdo);
 require_once __DIR__ . '/../includes/roost-household-invitations.php';
+(require __DIR__ . '/../admin/migrations/0023_roost_verification_consent.php')($pdo);
+require_once __DIR__ . '/../includes/roost-verification-consent.php';
 require_once __DIR__ . '/../includes/roost-household-enrollment.php';
 require_once __DIR__ . '/../includes/roost-redemption-tier-preview.php';
 foreach ([[-5,[false,false,false,false]],[0,[false,false,false,false]],[249,[false,false,false,false]],[250,[true,false,false,false]],[500,[true,true,false,false]],[2000,[true,true,true,true]]] as $case) {
@@ -183,6 +185,24 @@ try {
     bcrf_roost_accept_household_invitation($pdo,$expiredInvite['token'],51,true,true);
     throw new RuntimeException('Expired invitation accepted.');
 } catch (DomainException $expected) {}
+
+if (bcrf_roost_verified_adult_with_consent($pdo,50,'household_join'))
+    throw new RuntimeException('Missing verification evidence was accepted.');
+$pdo->exec("INSERT INTO reward_adult_verifications
+    (customer_id,status,method,evidence_reference,verified_by_staff_id,verified_at,created_at)
+    VALUES (50,'verified','staff_review','test-reference',7,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
+if (bcrf_roost_verified_adult_with_consent($pdo,50,'household_join'))
+    throw new RuntimeException('Missing consent evidence was accepted.');
+$pdo->exec("INSERT INTO reward_consent_events
+    (customer_id,purpose,policy_version,status,source,created_at)
+    VALUES (50,'household_join','test-1','granted','authenticated_account',UTC_TIMESTAMP(3))");
+if (!bcrf_roost_verified_adult_with_consent($pdo,50,'household_join'))
+    throw new RuntimeException('Verified adult with consent rejected.');
+$pdo->exec("INSERT INTO reward_consent_events
+    (customer_id,purpose,policy_version,status,source,created_at)
+    VALUES (50,'household_join','test-1','withdrawn','authenticated_account',DATE_ADD(UTC_TIMESTAMP(3),INTERVAL 1 SECOND))");
+if (bcrf_roost_verified_adult_with_consent($pdo,50,'household_join'))
+    throw new RuntimeException('Withdrawn consent was ignored.');
 
 require_once __DIR__ . '/../includes/roost-customer-balance.php';
 require_once __DIR__ . '/../includes/roost-customer-history.php';
