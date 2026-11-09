@@ -18,6 +18,7 @@ function bcrf_roost_purge_invitation_delivery_payloads(PDO $pdo,int $minimumAgeD
         $u=$pdo->prepare("UPDATE reward_invitation_delivery_outbox
             SET payload_nonce='',payload_ciphertext='',payload_tag=''
             WHERE id IN ($marks) AND status IN ('sent','suppressed','failed')
+              AND updated_at<DATE_SUB(UTC_TIMESTAMP(3),INTERVAL ".$minimumAgeDays." DAY)
               AND payload_ciphertext<>''");
         $u->execute($ids);
         $count=$u->rowCount();
