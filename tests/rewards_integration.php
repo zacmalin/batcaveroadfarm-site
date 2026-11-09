@@ -1140,7 +1140,7 @@ rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['household_id'=>2,'custo
 
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['source_type'=>'visit','source_id'=>'1','entry_type'=>'earn_visit','points_delta'=>25,'idempotency_key'=>'different-key-same-visit'])),'duplicate visit source with different key');
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'redeem','points_delta'=>-250,'idempotency_key'=>'test-redeem-too-much'])),'overspend');
-$d = bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'redeem','points_delta'=>-200,'source_type'=>'reward','source_id'=>'r1','idempotency_key'=>'test-redeem-1','customer_id'=>2]));
+$d = bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'redeem','points_delta'=>-200,'source_type'=>'reward_fulfillment','source_id'=>'test_receipt_r1','idempotency_key'=>'test-redeem-1','customer_id'=>2]));
 expect($d['balance']===25,'shared adult redemption');
 $pdo->exec("UPDATE reward_household_members SET can_redeem=0 WHERE customer_id=2");
 rejected(fn()=>bcrf_reward_post($pdo,array_merge($base,['entry_type'=>'redeem','points_delta'=>-1,'source_type'=>'reward','source_id'=>'disabled','idempotency_key'=>'test-disabled-redeem','customer_id'=>2])),'disabled redemption permission');
