@@ -174,6 +174,9 @@ if ($dashboard===false ||
     !str_contains($dashboard, "BCRF_ROOST_ENROLLMENT_ENABLED") ||
     !str_contains($dashboard, "BCRF_ROOST_INVITATION_ACCEPTANCE_ENABLED") ||
     !str_contains($dashboard, "BCRF_ROOST_INVITATION_REVOCATION_ENABLED") ||
+    !str_contains($dashboard, "BCRF_ROOST_INVITATION_ISSUANCE_ENABLED") ||
+    !str_contains($dashboard, '$issuanceOpen') ||
+    !str_contains($dashboard, '/roost-rewards/invite-adult.php') ||
     !str_contains($dashboard, "$revocationOpen") ||
     !str_contains($dashboard, "/roost-rewards/revoke-invitation.php") ||
     !str_contains($dashboard, '$enrollmentOpen ?') ||
