@@ -164,6 +164,26 @@ try {
     throw new RuntimeException('Revoked invitation was accepted.');
 } catch (DomainException $expected) {}
 
+require_once __DIR__ . '/../includes/roost-household-invitation-expiration.php';
+$expiredInvite=bcrf_roost_create_household_invitation($pdo,30,'expire.me@example.test');
+$setExpired=$pdo->prepare("UPDATE reward_household_invitations SET expires_at=DATE_SUB(UTC_TIMESTAMP(3),INTERVAL 1 SECOND) WHERE id=?");
+$setExpired->execute([$expiredInvite['invitation_id']]);
+if (bcrf_roost_expire_household_invitations($pdo,1)!==1)
+    throw new RuntimeException('Expired invitation not marked.');
+if (bcrf_roost_expire_household_invitations($pdo,1)!==0)
+    throw new RuntimeException('Invitation expiration not idempotent.');
+$state=$pdo->prepare("SELECT status FROM reward_household_invitations WHERE id=?");
+$state->execute([$expiredInvite['invitation_id']]);
+if ($state->fetchColumn()!=='expired') throw new RuntimeException('Expiration state missing.');
+$state->execute([$invitation['invitation_id']]);
+if ($state->fetchColumn()!=='accepted') throw new RuntimeException('Accepted invitation altered by expiration.');
+$state->execute([$revokeInvite['invitation_id']]);
+if ($state->fetchColumn()!=='revoked') throw new RuntimeException('Revoked invitation altered by expiration.');
+try {
+    bcrf_roost_accept_household_invitation($pdo,$expiredInvite['token'],51,true,true);
+    throw new RuntimeException('Expired invitation accepted.');
+} catch (DomainException $expected) {}
+
 require_once __DIR__ . '/../includes/roost-customer-balance.php';
 require_once __DIR__ . '/../includes/roost-customer-history.php';
 require_once __DIR__ . '/../includes/roost-customer-household-summary.php';
