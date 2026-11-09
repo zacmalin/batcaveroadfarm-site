@@ -292,6 +292,24 @@ bcrf_roost_record_customer_consent($pdo,60,'rewards_enrollment','test-1',true);
 if (bcrf_roost_verified_adult_with_consent($pdo,60,'rewards_enrollment'))
     throw new RuntimeException('Superseding adult revocation was ignored.');
 
+require_once __DIR__ . '/../includes/roost-consent-form-config.php';
+putenv('BCRF_ROOST_CONSENT_FORMS_ENABLED');
+putenv('BCRF_ROOST_CONSENT_POLICY_VERSION');
+putenv('BCRF_ROOST_CONSENT_POLICY_URL');
+if (bcrf_roost_consent_form_config()!==null)
+    throw new RuntimeException('Consent form enabled without explicit approval.');
+putenv('BCRF_ROOST_CONSENT_FORMS_ENABLED=1');
+putenv('BCRF_ROOST_CONSENT_POLICY_VERSION=test-1');
+putenv('BCRF_ROOST_CONSENT_POLICY_URL=https://evil.example/policy');
+if (bcrf_roost_consent_form_config()!==null)
+    throw new RuntimeException('Off-site consent policy was allowed.');
+putenv('BCRF_ROOST_CONSENT_POLICY_URL=https://batcaveroadfarm.com/roost-rewards/policy.php');
+if (bcrf_roost_consent_form_config()===null)
+    throw new RuntimeException('Valid versioned consent policy was rejected.');
+putenv('BCRF_ROOST_CONSENT_FORMS_ENABLED');
+putenv('BCRF_ROOST_CONSENT_POLICY_VERSION');
+putenv('BCRF_ROOST_CONSENT_POLICY_URL');
+
 require_once __DIR__ . '/../includes/roost-customer-balance.php';
 require_once __DIR__ . '/../includes/roost-customer-history.php';
 require_once __DIR__ . '/../includes/roost-customer-household-summary.php';
