@@ -139,6 +139,40 @@ try {
     bcrf_roost_enroll_verified_adult($pdo,30,true,true);
     throw new RuntimeException('Duplicate enrollment unexpectedly succeeded.');
 } catch (DomainException $expected) {}
+// Encrypted delivery intent must be committed with invitation creation.
+$deliveryKey=random_bytes(32);
+$queuedInvitation=bcrf_roost_create_household_invitation($pdo,30,'queued.invitee@example.test',
+    ['key'=>$deliveryKey,'key_id'=>'integration-v1']);
+if ($queuedInvitation['token']!==null || $queuedInvitation['delivery_queued']!==true)
+    throw new RuntimeException('Queued invitation exposed a bearer token.');
+$queuedRow=$pdo->prepare("SELECT encryption_key_id,payload_version,payload_nonce,payload_ciphertext,payload_tag
+    FROM reward_invitation_delivery_outbox WHERE invitation_id=?");
+$queuedRow->execute([$queuedInvitation['invitation_id']]);
+$queuedPayload=$queuedRow->fetch(PDO::FETCH_ASSOC);
+if (!$queuedPayload) throw new RuntimeException('Invitation delivery intent was not committed.');
+require_once __DIR__.'/../includes/roost-invitation-delivery-crypto.php';
+$decrypted=json_decode(bcrf_roost_invite_decrypt([
+    'version'=>(int)$queuedPayload['payload_version'],
+    'key_id'=>$queuedPayload['encryption_key_id'],'nonce'=>$queuedPayload['payload_nonce'],
+    'ciphertext'=>$queuedPayload['payload_ciphertext'],'tag'=>$queuedPayload['payload_tag']
+],$deliveryKey,'integration-v1'),true,512,JSON_THROW_ON_ERROR);
+if ($decrypted['recipient']!=='queued.invitee@example.test' ||
+    !preg_match('/^[a-f0-9]{64}$/D',$decrypted['token']))
+    throw new RuntimeException('Queued invitation delivery payload was invalid.');
+$queuedHash=$pdo->prepare("SELECT token_hash FROM reward_household_invitations WHERE id=?");
+$queuedHash->execute([$queuedInvitation['invitation_id']]);
+if ($queuedHash->fetchColumn()!==hash('sha256',$decrypted['token']))
+    throw new RuntimeException('Queued token does not match persisted invitation digest.');
+try {
+    bcrf_roost_create_household_invitation($pdo,30,'failed.queue@example.test',
+        ['key'=>'invalid','key_id'=>'integration-v1']);
+    throw new RuntimeException('Invalid encryption key unexpectedly issued invitation.');
+} catch (InvalidArgumentException $expected) {}
+$failedQueue=$pdo->prepare("SELECT COUNT(*) FROM reward_household_invitations
+    WHERE invitee_email_hash=?");
+$failedQueue->execute([hash('sha256','failed.queue@example.test')]);
+if ((int)$failedQueue->fetchColumn()!==0)
+    throw new RuntimeException('Failed encrypted queue left an orphan invitation.');
 $invitation=bcrf_roost_create_household_invitation($pdo,30,' Other.Adult@Example.Test ');
 if (strlen($invitation['token'])!==64 || $invitation['expires_in_days']!==7)
     throw new RuntimeException('Invitation token format invalid.');
