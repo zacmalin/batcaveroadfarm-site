@@ -10,6 +10,13 @@ function bcrf_roost_pos_dispatch_once(PDO $pdo): string {
     if ($pdo->inTransaction()) throw new LogicException('POS dispatch requires autocommit.');
     $claim=bcrf_roost_outbox_claim($pdo);
     if ($claim===null) return 'empty';
+    return bcrf_roost_pos_dispatch_claimed_event($pdo,$claim);
+}
+
+// Internal handler for an already claimed queue row. No public entry point.
+// Tests exercise this against disposable MySQL without enabling dispatch.
+function bcrf_roost_pos_dispatch_claimed_event(PDO $pdo,array $claim): string {
+    if ($pdo->inTransaction()) throw new LogicException('POS claim handling requires autocommit.');
     $id=(int)$claim['id'];
     $attempt=(int)$claim['attempts'];
     try {
