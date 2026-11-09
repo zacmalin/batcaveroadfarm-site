@@ -17,6 +17,7 @@ $balance = null;
 $unavailable = false;
 $history = [];
 $householdSummary = null;
+$redemptionTiers = [];
 if ($verified) {
     try {
         require_once __DIR__.'/../includes/roost-customer-balance.php';
@@ -26,6 +27,8 @@ if ($verified) {
             $history = bcrf_roost_customer_history($pdo, (int)$customer['id']);
             require_once __DIR__.'/../includes/roost-customer-household-summary.php';
             $householdSummary = bcrf_roost_customer_household_summary($pdo, (int)$customer['id']);
+            require_once __DIR__.'/../includes/roost-redemption-tier-preview.php';
+            $redemptionTiers = bcrf_roost_redemption_tier_preview($balance['balance_points']);
         }
     } catch (Throwable $e) {
         // No Rewards tables on production yet; do not expose SQL errors or user data.
@@ -62,6 +65,13 @@ include __DIR__.'/../includes/header.php';
 <p>Pending verifications: <?= number_format($householdSummary['pending_members']) ?></p>
 <p>Invitations and membership changes are not available yet.</p>
 <?php endif; ?>
+<h2>Planned redemption tiers</h2>
+<p>Tier benefits are still being finalized. No redemptions can be submitted yet.</p>
+<ul>
+<?php foreach ($redemptionTiers as $tier): ?>
+<li><strong><?= number_format($tier['points']) ?> points:</strong> <?= $tier['available'] ? 'Points threshold met' : number_format($tier['points_needed']).' more points needed' ?></li>
+<?php endforeach; ?>
+</ul>
 <h2>Recent points activity</h2>
 <?php if (!$history): ?><p>No points activity recorded yet.</p>
 <?php else: ?><table><caption>Most recent household points entries</caption><thead><tr><th scope="col">Date (UTC)</th><th scope="col">Activity</th><th scope="col">Points</th></tr></thead><tbody>
