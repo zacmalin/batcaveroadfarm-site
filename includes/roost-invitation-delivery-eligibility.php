@@ -4,7 +4,6 @@
 function bcrf_roost_invitation_delivery_eligible(PDO $pdo,int $jobId,string $claimToken): bool {
     if ($jobId<1 || !preg_match('/^[a-f0-9]{64}$/D',$claimToken)) return false;
     $q=$pdo->prepare("SELECT i.status AS invitation_status,i.expires_at,
-        i.invitee_email_hash,i.token_hash,
         m.role,m.verification_status,m.revoked_at,
         h.status AS household_status,c.account_status,c.email_verified_at,
         UTC_TIMESTAMP(3) AS now_utc
