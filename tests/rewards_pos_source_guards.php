@@ -20,7 +20,7 @@ foreach ($cases as [$path,$hook]) {
 }
 $adapter=file_get_contents($root.'/includes/roost-pos-outbox-integration.php');
 $dispatch=file_get_contents($root.'/includes/roost-pos-outbox-dispatch.php');
-if (!str_contains($adapter,'function bcrf_roost_pos_enqueue_enabled(): bool { return false; }') ||
-    !str_contains($dispatch,'function bcrf_roost_outbox_dispatch_enabled(): bool { return false; }'))
+if (!str_contains($adapter,'getenv('BCRF_ROOST_POS_ENQUEUE_ENABLED') === '1' && getenv('BCRF_ROOST_POS_ACTIVATION_APPROVED') === '1'') ||
+    !str_contains($dispatch,'getenv('BCRF_ROOST_POS_DISPATCH_ENABLED') === '1' && getenv('BCRF_ROOST_POS_ACTIVATION_APPROVED') === '1''))
     throw new RuntimeException('A production rewards gate was activated.');
 echo "POS source hook and disabled activation guards passed.\\n";
