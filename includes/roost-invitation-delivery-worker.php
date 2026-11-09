@@ -44,6 +44,7 @@ function bcrf_roost_run_invitation_delivery_once(PDO $pdo,array $config,callable
             bcrf_roost_complete_invitation_delivery($pdo,$id,$claimToken,'suppressed');
             return 'suppressed';
         }
+        // The callback may have sent before throwing; never retry an ambiguous outcome.
         $accepted=$transport($payload['recipient'],$message);
         if ($accepted!==true) {
             bcrf_roost_fail_invitation_delivery($pdo,$id,$claimToken,'delivery_unknown',false);
@@ -54,7 +55,11 @@ function bcrf_roost_run_invitation_delivery_once(PDO $pdo,array $config,callable
         return 'sent';
     } catch (Throwable $e) {
         // Do not log secrets or exception messages. Ambiguous outcomes are not retried.
-        bcrf_roost_fail_invitation_delivery($pdo,$id,$claimToken,'delivery_unknown',false);
+        try {
+            bcrf_roost_fail_invitation_delivery($pdo,$id,$claimToken,'delivery_unknown',false);
+        } catch (Throwable $ignored) {
+            // Preserve a non-secret failure result; stale-claim recovery is separately bounded.
+        }
         return 'failed';
     }
 }
