@@ -21,7 +21,7 @@ return function (PDO $pdo): void {
     ) $cs");
     $pdo->exec("CREATE TABLE IF NOT EXISTS reward_redemption_requests (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-        request_token CHAR(36) NOT NULL,
+        request_token VARCHAR(64) NOT NULL,
         household_id BIGINT UNSIGNED NOT NULL,
         customer_id INT NOT NULL,
         policy_id BIGINT UNSIGNED NOT NULL,
