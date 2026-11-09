@@ -69,6 +69,7 @@ $pdo->exec("INSERT INTO reward_policies (id,version,config_json,status,created_a
 // Reserve fixture household IDs 2 onward for existing ledger tests.
 $pdo->exec('ALTER TABLE reward_households AUTO_INCREMENT=100');
 (require __DIR__ . '/../admin/migrations/0022_roost_household_invitations.php')($pdo);
+(require __DIR__ . '/../admin/migrations/0024_roost_invitation_delivery_outbox.php')($pdo);
 require_once __DIR__ . '/../includes/roost-household-invitations.php';
 (require __DIR__ . '/../admin/migrations/0023_roost_verification_consent.php')($pdo);
 require_once __DIR__ . '/../includes/roost-verification-consent.php';
@@ -161,8 +162,7 @@ if ($decrypted['recipient']!=='queued.invitee@example.test' ||
     throw new RuntimeException('Queued invitation delivery payload was invalid.');
 require_once __DIR__.'/../includes/roost-invitation-delivery-claim.php';
 $claimedDelivery=bcrf_roost_claim_invitation_delivery($pdo);
-if (!$claimedDelivery || !hash_equals((string)$claimedDelivery['claim_token'],
-    (string)$claimedDelivery['claim_token']))
+if (!$claimedDelivery || !preg_match('/^[a-f0-9]{64}$/D',(string)$claimedDelivery['claim_token']))
     throw new RuntimeException('Invitation delivery was not claimed.');
 $secondClaim=bcrf_roost_claim_invitation_delivery($pdo);
 if ($secondClaim!==null) throw new RuntimeException('Processing delivery was claimed twice.');
