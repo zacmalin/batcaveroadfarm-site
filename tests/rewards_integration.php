@@ -178,6 +178,16 @@ try {
 }
 $proofRestore=$pdo->prepare("UPDATE reward_ledger SET points_delta=-250 WHERE id=?");
 $proofRestore->execute([(int)$issued['ledger_entry_id']]);
+$proofSource=$pdo->prepare("UPDATE reward_ledger SET source_id='tampered_voucher_receipt' WHERE id=?");
+$proofSource->execute([(int)$issued['ledger_entry_id']]);
+try {
+    bcrf_roost_issue_redemption_receipt($pdo,$request['id'],7);
+    throw new RuntimeException('Tampered voucher source identity was accepted.');
+} catch (BcrfRewardError $expected) {
+    if ($expected->getMessage()==='Tampered voucher source identity was accepted.') throw $expected;
+}
+$proofSourceRestore=$pdo->prepare("UPDATE reward_ledger SET source_id=? WHERE id=?");
+$proofSourceRestore->execute([$issued['receipt'],(int)$issued['ledger_entry_id']]);
 $verifiedReplay=bcrf_roost_issue_redemption_receipt($pdo,$request['id'],7);
 if (!$verifiedReplay['replayed'] || $verifiedReplay['ledger_entry_id']!==$issued['ledger_entry_id'])
     throw new RuntimeException('Valid redemption replay failed after ledger proof restoration.');
