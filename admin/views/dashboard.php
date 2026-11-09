@@ -93,9 +93,11 @@ if ($isAdmin) {
             $failed=$rm['status_counts']['failed'];
             $stale=$rm['stale'];
             $delayed=$rm['delayed'];
+            $ambiguous=$rm['ambiguous'];
             if ($failed || $stale || $delayed) {
                 $items=[];
                 if ($failed) $items[]=$failed.' invitation delivery job(s) failed; review before manual action.';
+                if ($ambiguous) $items[]=$ambiguous.' failed job(s) crossed the SMTP dispatch boundary; delivery may have occurred. Never resend automatically.';
                 if ($stale) $items[]=$stale.' invitation delivery job(s) have stale claims.';
                 if ($delayed) $items[]=$delayed.' pending invitation delivery job(s) are older than one hour.';
                 $add(['id'=>'roost_invitation_delivery',
