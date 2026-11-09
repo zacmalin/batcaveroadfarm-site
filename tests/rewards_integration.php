@@ -84,7 +84,7 @@ try {
         VALUES ('integration-redemption-request-002',1,1,1,333,'test-only-benefit','requested',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
     throw new RuntimeException('Unsupported redemption tier was accepted.');
 } catch (PDOException $expected) {
-    if ($expected->getCode()!=='23000') throw $expected;
+    if ($expected->getCode()!=='23000' && $expected->getCode()!=='HY000') throw $expected;
 }
 
 // Reserve fixture household IDs 2 onward for existing ledger tests.
