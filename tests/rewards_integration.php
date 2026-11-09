@@ -96,8 +96,8 @@ try {
     if ($expected->getMessage()==='Unapproved benefit accepted.') throw $expected;
 }
 $pdo->exec("INSERT INTO reward_redemption_benefits
-    (code,tier_points,title,status,approved_by_staff_id,approved_at,created_at,updated_at)
-    VALUES ('test-only-benefit',250,'Integration fixture','active',7,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
+    (code,tier_points,title,status,fulfillment_type,approved_by_staff_id,approved_at,created_at,updated_at)
+    VALUES ('test-only-benefit',250,'Integration fixture','active','internal_voucher',7,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
 $pdo->exec("UPDATE reward_accounts SET balance_points=300 WHERE household_id=1");
 $request=bcrf_roost_request_redemption($pdo,1,1,1,250,'test-only-benefit','request-integration-0001');
 if ($request['replayed'] || $request['status']!=='requested')
@@ -140,6 +140,7 @@ try {
     if ($expected->getMessage()==='Insufficient points issued a redemption.') throw $expected;
 }
 $pdo->exec("UPDATE reward_accounts SET balance_points=300 WHERE household_id=1");
+$pdo->exec("UPDATE reward_redemption_benefits SET fulfillment_type='unconfigured' WHERE code='test-only-benefit'");
 try {
     bcrf_roost_issue_redemption_receipt($pdo,$request['id'],7);
     throw new RuntimeException('Unconfigured fulfillment type was issued.');
