@@ -98,6 +98,14 @@ if ($acceptPage===false ||
     !str_contains($acceptPage, 'bcrf_roost_accept_household_invitation(') ||
     !str_contains($acceptPage, 'Referrer-Policy: no-referrer'))
     throw new RuntimeException('Invitation acceptance must remain launch-gated, private and evidence-based.');
+$inviteMail=file_get_contents($root.'/includes/roost-household-invitation-email.php');
+if ($inviteMail===false ||
+    !str_contains($inviteMail, 'smtp_required') ||
+    !str_contains($inviteMail, '/roost-rewards/accept-invitation.php') ||
+    !str_contains($inviteMail, 'Invitation code:') ||
+    str_contains($inviteMail, '?token=') ||
+    str_contains($inviteMail, 'bcf_send_mail('))
+    throw new RuntimeException('Invitation content must remain dormant and bearer codes must stay out of URLs.');
 $revokePage=file_get_contents($root.'/roost-rewards/revoke-invitation.php');
 if ($revokePage===false ||
     !str_contains($revokePage, 'BCRF_ROOST_INVITATION_REVOCATION_ENABLED') ||
