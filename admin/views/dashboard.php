@@ -81,6 +81,35 @@ if ($isAdmin) {
     } catch (Throwable $e) {}
 }
 
+// Roost Rewards invitation delivery (aggregate-only, administrators).
+// Remains hidden until migration 0024 is present; never starts a worker.
+if ($isAdmin) {
+    try {
+        $hasOutbox=$pdo->query("SELECT COUNT(*) FROM information_schema.TABLES
+            WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='reward_invitation_delivery_outbox'")->fetchColumn();
+        if ($hasOutbox) {
+            require_once dirname(__DIR__, 2) . '/includes/roost-invitation-delivery-monitor.php';
+            $rm=bcrf_roost_invitation_delivery_metrics($pdo);
+            $failed=$rm['status_counts']['failed'];
+            $stale=$rm['stale'];
+            $delayed=$rm['delayed'];
+            if ($failed || $stale || $delayed) {
+                $items=[];
+                if ($failed) $items[]=$failed.' invitation delivery job(s) failed; review before manual action.';
+                if ($stale) $items[]=$stale.' invitation delivery job(s) have stale claims.';
+                if ($delayed) $items[]=$delayed.' pending invitation delivery job(s) are older than one hour.';
+                $add(['id'=>'roost_invitation_delivery',
+                    'priority'=>$stale || $failed ? 'today' : 'fyi',
+                    'icon'=>'✉️',
+                    'title'=>'Roost Rewards invitation delivery needs review',
+                    'items'=>$items,'count'=>$failed+$stale+$delayed]);
+            }
+        }
+    } catch (Throwable $e) {
+        // Optional, not-yet-deployed Rewards schema must never break the dashboard.
+    }
+}
+
 // Facebook & Instagram posting (was social_health_banner)
 if ($canV('social')) {
     try {
