@@ -202,22 +202,22 @@ try {
     throw new RuntimeException('Expired invitation accepted.');
 } catch (DomainException $expected) {}
 
-if (bcrf_roost_verified_adult_with_consent($pdo,50,'household_join'))
-    throw new RuntimeException('Missing verification evidence was accepted.');
+if (bcrf_roost_verified_adult_with_consent($pdo,40,'household_join'))
+    throw new RuntimeException('Unverified email or missing join consent was accepted.');
 $pdo->exec("UPDATE reward_adult_verifications SET status='revoked',revoked_at=UTC_TIMESTAMP(3) WHERE customer_id=50");
 if (bcrf_roost_verified_adult_with_consent($pdo,50,'household_join'))
     throw new RuntimeException('Revoked adult verification was accepted.');
 $pdo->exec("UPDATE reward_adult_verifications SET status='verified',revoked_at=NULL WHERE customer_id=50");
-if (bcrf_roost_verified_adult_with_consent($pdo,50,'household_join'))
-    throw new RuntimeException('Missing consent evidence was accepted.');
+if (!bcrf_roost_verified_adult_with_consent($pdo,50,'household_join'))
+    throw new RuntimeException('Restored verified adult with existing consent rejected.');
 $pdo->exec("INSERT INTO reward_consent_events
     (customer_id,purpose,policy_version,status,source,created_at)
-    VALUES (50,'household_join','test-1','granted','authenticated_account',DATE_ADD(UTC_TIMESTAMP(3),INTERVAL 1 SECOND))");
+    VALUES (50,'household_join','test-1','granted','authenticated_account',DATE_ADD(UTC_TIMESTAMP(3),INTERVAL 2 SECOND))");
 if (!bcrf_roost_verified_adult_with_consent($pdo,50,'household_join'))
     throw new RuntimeException('Verified adult with consent rejected.');
 $pdo->exec("INSERT INTO reward_consent_events
     (customer_id,purpose,policy_version,status,source,created_at)
-    VALUES (50,'household_join','test-1','withdrawn','authenticated_account',DATE_ADD(UTC_TIMESTAMP(3),INTERVAL 1 SECOND))");
+    VALUES (50,'household_join','test-1','withdrawn','authenticated_account',DATE_ADD(UTC_TIMESTAMP(3),INTERVAL 3 SECOND))");
 if (bcrf_roost_verified_adult_with_consent($pdo,50,'household_join'))
     throw new RuntimeException('Withdrawn consent was ignored.');
 
