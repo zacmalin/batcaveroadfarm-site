@@ -8,6 +8,7 @@ require_once __DIR__.'/../config.php';
 require_once __DIR__.'/../includes/auth.php';
 require_once __DIR__.'/../includes/customer_auth.php';
 require_once __DIR__.'/../includes/farm.php';
+require_once __DIR__.'/../includes/rate_limit.php';
 if (!is_logged_in()) {
     // Do not put invitation bearer tokens in login redirect URLs.
     header('Location: /account/login.php?next=%2Froost-rewards%2Finvitation.php');
@@ -16,11 +17,17 @@ if (!is_logged_in()) {
 $token=(string)($_POST['invitation_token'] ?? '');
 $preview=null;
 $unavailable=false;
+$rateLimited=false;
 $customer=bcrf_customer_find($pdo,current_user_id());
 $verified=$customer && bcrf_customer_active($customer) && !empty($customer['email_verified_at']);
 $csrfValid=$_SERVER['REQUEST_METHOD']==='POST' && csrf_verify($_POST['csrf_token'] ?? null);
 if ($csrfValid && $verified) {
-    try {
+    // Fail closed if the existing server-side limiter cannot persist counters.
+    if (bcrf_rl_dir()===''
+        || bcrf_rl_hit('roost_invite_ip',bcrf_rl_ip(),12,900)
+        || bcrf_rl_hit('roost_invite_customer',(string)current_user_id(),8,900)) {
+        $rateLimited=true;
+    } else try {
         require_once __DIR__.'/../includes/roost-customer-invitation-preview.php';
         $preview=bcrf_roost_customer_invitation_preview($pdo,(int)$customer['id'],$token);
     } catch (Throwable $e) {
@@ -50,6 +57,7 @@ include __DIR__.'/../includes/header.php';
 </form>
 <?php if ($_SERVER['REQUEST_METHOD']==='POST'): ?>
 <?php if (!$csrfValid): ?><p role="alert">Your session expired. Please try again.</p>
+<?php elseif ($rateLimited): ?><p role="alert">Too many attempts. Please wait 15 minutes and try again.</p>
 <?php elseif ($preview): ?>
 <section aria-label="Invitation details">
 <h2>Invitation found</h2>
