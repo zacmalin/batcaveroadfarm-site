@@ -27,3 +27,25 @@ function bcrf_roost_invitation_delivery_eligible(PDO $pdo,int $jobId,string $cla
         $row['account_status']==='active' &&
         $row['email_verified_at']!==null;
 }
+
+/**
+ * Check a claimed delivery payload against the original invitation digests.
+ * This is required in addition to manager eligibility and service suppression.
+ * Do not expose the recipient or bearer code to logs.
+ */
+function bcrf_roost_invitation_delivery_payload_matches(PDO $pdo,int $jobId,
+    string $claimToken,string $recipientEmail,string $token): bool {
+    if ($jobId<1 || !preg_match('/^[a-f0-9]{64}$/D',$claimToken) ||
+        !preg_match('/^[a-f0-9]{64}$/D',$token)) return false;
+    $email=strtolower(trim($recipientEmail));
+    if (strlen($email)>254 || !filter_var($email,FILTER_VALIDATE_EMAIL)) return false;
+    $q=$pdo->prepare("SELECT i.invitee_email_hash,i.token_hash
+        FROM reward_invitation_delivery_outbox o
+        JOIN reward_household_invitations i ON i.id=o.invitation_id
+        WHERE o.id=? AND o.claim_token=? AND o.status='processing'");
+    $q->execute([$jobId,$claimToken]);
+    $row=$q->fetch(PDO::FETCH_ASSOC);
+    if (!$row) return false;
+    return hash_equals((string)$row['invitee_email_hash'],hash('sha256',$email)) &&
+        hash_equals((string)$row['token_hash'],hash('sha256',$token));
+}
