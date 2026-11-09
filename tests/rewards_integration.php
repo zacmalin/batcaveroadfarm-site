@@ -269,6 +269,20 @@ $workerInvite=bcrf_roost_create_household_invitation($pdo,30,'worker.delivery@ex
     ['key'=>$deliveryKey,'key_id'=>'integration-v1']);
 $workerConfig=['enabled'=>true,'key'=>$deliveryKey,'key_id'=>'integration-v1',
     'base_url'=>'https://batcaveroadfarm.com'];
+try {
+    bcrf_roost_run_invitation_delivery_once($pdo,
+        array_merge($workerConfig,['base_url'=>'https://attacker.example']),
+        function (): bool { throw new RuntimeException('Transport must not be called.'); });
+    throw new RuntimeException('Invalid base URL was accepted before claim.');
+} catch (InvalidArgumentException $expected) {
+    // Queued invitation remains pending, with zero attempts.
+}
+$preflightStatus=$pdo->prepare("SELECT status,attempts FROM reward_invitation_delivery_outbox
+    WHERE invitation_id=?");
+$preflightStatus->execute([$workerInvite['invitation_id']]);
+$preflightRow=$preflightStatus->fetch(PDO::FETCH_ASSOC);
+if (!$preflightRow || $preflightRow['status']!=='pending' || (int)$preflightRow['attempts']!==0)
+    throw new RuntimeException('Invalid worker configuration consumed an invitation claim.');
 $workerOutcome=bcrf_roost_run_invitation_delivery_once($pdo,$workerConfig,
     function (string $recipient,array $message) use (&$transportCalled): bool {
         $transportCalled=true;
