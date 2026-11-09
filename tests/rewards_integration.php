@@ -355,7 +355,7 @@ $_SESSION['user_role'] = 'administrator';
 $staffAttendance = bcrf_roost_verify_attendee($pdo, 4, 2);
 expect($staffAttendance > 0, 'staff can verify an eligible attendee');
 rejected(fn()=>bcrf_roost_verify_attendee($pdo,4,1),'full check-in cannot accept another attendee');
-rejected(fn()=>bcrf_roost_verify_attendee($pdo,5,3),'unverified household member cannot be verified'); // customer 3 not yet enrolled
+rejected(fn()=>bcrf_roost_verify_attendee($pdo,5,4),'unverified household member cannot be verified'); // customer 4 has no membership
 $_SESSION['user_role'] = 'visitor';
 rejected(fn()=>bcrf_roost_verify_attendee($pdo,5,2),'visitor cannot verify attendance');
 $_SESSION['user_role'] = 'administrator';
