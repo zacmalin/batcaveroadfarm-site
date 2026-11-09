@@ -147,6 +147,25 @@ function bcrf_product_save(PDO $pdo, ?int $id, array $in, ?int $uid): int {
         $re = (string)($in['rewards_eligible'] ?? 'auto');
         $v['rewards_eligible'] = $re === '1' ? 1 : ($re === '0' ? 0 : null);
     }
+    // Vendors & cost (Phase 2 slice 2.1 / migration 0018)
+    require_once __DIR__ . '/vendors.php';
+    $costDollars = null;
+    if (bcrf_vendors_ready($pdo)) {
+        $vid = (int)($in['preferred_vendor_id'] ?? 0) ?: null;
+        if ($vid) {
+            $st = $pdo->prepare('SELECT COUNT(*) FROM vendors WHERE id = ? AND archived_at IS NULL');
+            $st->execute([$vid]);
+            if (!(int)$st->fetchColumn()) $bad('Pick a vendor from the list.');
+        }
+        $v['preferred_vendor_id'] = $vid;
+        $vSku = $str('vendor_sku', 80);
+        $v['vendor_sku'] = $vSku !== '' ? $vSku : null;
+        $pack = $num('pack_size');
+        if ($pack !== null && ($pack <= 0 || $pack > 1000000)) $bad('Pack size must be above 0.');
+        $v['pack_size'] = $pack;
+        $costDollars = $num('avg_cost');
+        if ($costDollars !== null && ($costDollars < 0 || $costDollars > 1000000)) $bad('Cost must be between $0 and $1,000,000.');
+    }
     $start = $num('starting_stock');
     if ($start !== null && ($start < 0 || $start > 1000000)) $bad('Starting stock must be 0 or more.');
 
@@ -177,6 +196,9 @@ function bcrf_product_save(PDO $pdo, ?int $id, array $in, ?int $uid): int {
                 $pdo->prepare("UPDATE inventory SET stock_quantity = ? WHERE id = ?")->execute([(float)($start ?? 0), $id]);
                 if ($stockReady) bcrf_stock_lock($pdo, $id, $uid);   // writes the opening balance at the default location
             }
+        }
+        if (bcrf_vendors_ready($pdo) && $costDollars !== null) {
+            bcrf_product_set_cost($pdo, $id, (int)round($costDollars * 100), $uid, 'manual', null, 'Set on product editor');
         }
         $pdo->commit();
     } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }

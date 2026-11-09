@@ -16,6 +16,11 @@ $_sections = [
         ['label'=>'Products & Inventory','short'=>'Inventory','icon'=>'📦','tabs'=>[
             ['Products',   '/admin/products.php',                     'table', 'inventory'],          // Farm OS slice 10: product editor
             ['Stock',      '/admin/stock.php',                        'view',  'inventory_update'],   // Farm OS slice 8: by location, counts, history
+            ['Vendors',    '/admin/vendors.php',                      'table', 'inventory'],          // Farm OS Phase 2 slice 2.1
+            ['Receive',    '/admin/receive.php',                      'table', 'inventory'],          // Farm OS Phase 2 slice 2.2
+            ['Thrift',     '/admin/thrift.php',                       'table', 'inventory'],          // Farm OS Phase 2 slice 2.3
+            ['Settlements','/admin/settlements.php',                  'table', 'inventory'],          // Farm OS Phase 2 consignor payouts
+            ['Orders',     '/admin/purchase_orders.php',              'table', 'inventory'],          // Farm OS Phase 2 slice 2.4 PO-lite
             ['Counts',     '?view=inventory_update',                  'view',  'inventory_update'],
             ['Full editor','?view=schema&table=inventory',            'table', 'inventory'],          // C-10: administrator fallback
             ['Categories', '?view=schema&table=inventory_categories', 'table', 'inventory_categories'],

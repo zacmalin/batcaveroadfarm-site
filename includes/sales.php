@@ -18,6 +18,8 @@
  * sale records that location, so refunds and voids put it back in the same place.
  * Slice 9 (Nov 6): discounts other than the preset % buttons need an Owner or Manager (includes/receipts.php).
  * Nov 6: payment types turned off in Settings › Payments & Register are refused for new sales (bcrf_tenders_active()).
+ * Phase 2 slice 2.1 (Nov 9): unit_cost_cents on each sale line is a snapshot of inventory.avg_cost_cents at sale time
+ *   (vendors + cost; migration 0018). Null when cost is unknown. Margin reports use this, not the live average.
  */
 require_once __DIR__ . '/stock.php';
 
@@ -111,14 +113,16 @@ function bcrf_sale_price(array $cart, array $products, array $taxCats, int $disc
             $open  = ($p['pricing_mode'] ?? 'each') === 'open_price';
             $price = $open ? (int)$c['unit_price_cents'] : (int)round(((float)$p['price']) * 100);
             $taxId = $p['tax_category_id'] !== null ? (int)$p['tax_category_id'] : $customTaxId;
+            $cost  = array_key_exists('avg_cost_cents', $p) && $p['avg_cost_cents'] !== null && $p['avg_cost_cents'] !== ''
+                   ? (int)$p['avg_cost_cents'] : null;
             $line  = ['product_id' => (int)$p['id'], 'description' => (string)$p['name'], 'unit' => (string)($p['unit'] ?? 'each'),
                       'product_type' => (string)($p['product_type'] ?? 'retail'), 'category_label' => (string)($p['cat_label'] ?? ''),
-                      'track' => (int)($p['track_inventory'] ?? 1) === 1];
+                      'track' => (int)($p['track_inventory'] ?? 1) === 1, 'unit_cost_cents' => $cost];
         } else {
             $price = (int)$c['unit_price_cents'];
             $taxId = $customTaxId;
             $line  = ['product_id' => null, 'description' => (string)$c['name'], 'unit' => 'each', 'product_type' => 'fee',
-                      'category_label' => 'Custom', 'track' => false];
+                      'category_label' => 'Custom', 'track' => false, 'unit_cost_cents' => null];
         }
         $gross = bcrf_muldiv($qtyMilli, $price, 1000);
         $lineBp = max(0, min(10000, (int)($c['disc_bp'] ?? 0)));
@@ -286,8 +290,12 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
         $products = [];
         if ($ids) {
             $in = implode(',', array_fill(0, count($ids), '?'));
+            // avg_cost_cents only after migration 0018 (Phase 2 slice 2.1); null cost is fine either way.
+            require_once __DIR__ . '/vendors.php';
+            $costCol = bcrf_vendors_ready($pdo) ? ', i.avg_cost_cents' : ', NULL AS avg_cost_cents';
             $st = $pdo->prepare("SELECT i.id, i.name, i.price, i.stock_quantity, i.is_active, i.pricing_mode, i.unit, i.tax_category_id,
-                                        i.product_type, i.track_inventory, COALESCE(ic.name, i.category) AS cat_label
+                                        i.product_type, i.track_inventory{$costCol},
+                                        COALESCE(ic.name, i.category) AS cat_label
                                  FROM inventory i LEFT JOIN inventory_categories ic ON ic.id = i.category_id
                                  WHERE i.id IN ($in) FOR UPDATE");
             $st->execute($ids);
@@ -344,9 +352,9 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
 
         $lineDiscCol = bcrf_sales_line_disc_ready($pdo);
         $insLine = $pdo->prepare("INSERT INTO sale_lines (sale_id, line_no, product_id, description, quantity, unit, unit_price_cents, gross_cents,
-                                         discount_cents, tax_category_id, tax_rate_bp, tax_cents, line_total_cents, product_type, category_label, note"
+                                         discount_cents, tax_category_id, tax_rate_bp, tax_cents, line_total_cents, unit_cost_cents, product_type, category_label, note"
                                          . ($lineDiscCol ? ", line_discount_bp" : "") . ")
-                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?" . ($lineDiscCol ? ", ?" : "") . ")");
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?" . ($lineDiscCol ? ", ?" : "") . ")");
         $setStock = $pdo->prepare("UPDATE inventory SET stock_quantity = ? WHERE id = ?");
         $ledger   = $pdo->prepare("INSERT INTO inventory_adjustments (product_id, quantity_change, quantity_before, quantity_after, reason,
                                           source_type, source_id, note, created_at, created_by)
@@ -356,7 +364,7 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
         foreach ($priced['lines'] as $l) {
             $insLine->execute(array_merge([$saleId, $l['line_no'], $l['product_id'], mb_substr($l['description'], 0, 255), $l['quantity'], $l['unit'],
                                $l['unit_price_cents'], $l['gross_cents'], $l['discount_cents'], $l['tax_category_id'], $l['tax_rate_bp'],
-                               $l['tax_cents'], $l['line_total_cents'], $l['product_type'], mb_substr($l['category_label'], 0, 100), $l['note']],
+                               $l['tax_cents'], $l['line_total_cents'], $l['unit_cost_cents'] ?? null, $l['product_type'], mb_substr($l['category_label'], 0, 100), $l['note']],
                                $lineDiscCol ? [$l['line_discount_bp']] : []));
             if ($l['product_id'] && $l['track'] && $stockLoc) {   // slice 8: off the register's location; stops at zero there, as before
                 $mv = bcrf_stock_move($pdo, (int)$l['product_id'], $stockLoc, -$l['quantity'], 'sale', 'sale', $saleId, null, $uid, 'clamp');
@@ -374,6 +382,11 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
                                   $short > 0 ? "Sold {$l['quantity']} with {$before} on hand (short by {$short})" : null, $uid]);
                 $p['stock_quantity'] = $after;
                 unset($p);
+            }
+            // Phase 2 slice 2.3: thrift items leave the for-sale list when sold (qty-1 products).
+            if ($l['product_id'] && ($l['product_type'] ?? '') === 'thrift_item') {
+                require_once __DIR__ . '/thrift.php';
+                bcrf_thrift_mark_sold($pdo, (int)$l['product_id']);
             }
             if ($l['product_id']) $history->execute([$l['product_id'], $l['quantity']]);
             $legacyCart[] = ['id' => $l['product_id'] ?? 0, 'name' => $l['description'], 'price' => $l['unit_price_cents'] / 100,

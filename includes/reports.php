@@ -264,6 +264,80 @@ function bcrf_rpt_ticket_liability(PDO $pdo): array {
     return $out;
 }
 
+/**
+ * Margin from sale_lines.unit_cost_cents snapshot (Phase 2 cost tracking).
+ * Revenue = gross − discounts (before tax). Cost only counted when unit_cost_cents is known.
+ * Returns: totals + rows by product_type and by category_label.
+ */
+function bcrf_rpt_margin(PDO $pdo, string $from, string $to): array {
+    $empty = ['revenue' => 0, 'cost' => 0, 'margin' => 0, 'qty' => 0.0,
+              'lines_with_cost' => 0, 'lines_no_cost' => 0, 'revenue_no_cost' => 0,
+              'by_type' => [], 'by_category' => []];
+    if (!bcrf_sales_ready($pdo)) return $empty;
+
+    // unit_cost_cents exists from migration 0009; still defensive.
+    $hasCost = true;
+    try {
+        $hasCost = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE()
+                                     AND table_name = 'sale_lines' AND column_name = 'unit_cost_cents'")->fetchColumn() === 1;
+    } catch (Throwable $e) { $hasCost = false; }
+    if (!$hasCost) return $empty;
+
+    $st = $pdo->prepare("SELECT l.product_type, COALESCE(NULLIF(l.category_label, ''), 'Uncategorized') AS cat,
+                                l.quantity, l.gross_cents, l.discount_cents, l.unit_cost_cents
+                         FROM sale_lines l JOIN sales s ON s.id = l.sale_id
+                         WHERE s.status <> 'voided' AND s.business_date BETWEEN ? AND ?");
+    $st->execute([$from, $to]);
+
+    $tot = $empty;
+    $byType = []; $byCat = [];
+    $bump = function (array &$bucket, string $key, int $rev, ?int $costCents, float $qty) {
+        $bucket[$key] ??= ['label' => $key, 'revenue' => 0, 'cost' => 0, 'margin' => 0, 'qty' => 0.0,
+                           'lines_with_cost' => 0, 'lines_no_cost' => 0, 'revenue_no_cost' => 0];
+        $bucket[$key]['revenue'] += $rev;
+        $bucket[$key]['qty'] += $qty;
+        if ($costCents !== null) {
+            $bucket[$key]['cost'] += $costCents;
+            $bucket[$key]['margin'] += $rev - $costCents;
+            $bucket[$key]['lines_with_cost']++;
+        } else {
+            $bucket[$key]['lines_no_cost']++;
+            $bucket[$key]['revenue_no_cost'] += $rev;
+        }
+    };
+
+    foreach ($st as $r) {
+        $rev = (int)$r['gross_cents'] - (int)$r['discount_cents'];
+        $qty = (float)$r['quantity'];
+        $unitCost = $r['unit_cost_cents'] !== null && $r['unit_cost_cents'] !== '' ? (int)$r['unit_cost_cents'] : null;
+        // cost for the line = unit_cost × quantity, half-up in milli-units to match sales rounding spirit
+        $lineCost = $unitCost !== null ? (int)round($unitCost * $qty) : null;
+
+        $tot['revenue'] += $rev;
+        $tot['qty'] += $qty;
+        if ($lineCost !== null) {
+            $tot['cost'] += $lineCost;
+            $tot['margin'] += $rev - $lineCost;
+            $tot['lines_with_cost']++;
+        } else {
+            $tot['lines_no_cost']++;
+            $tot['revenue_no_cost'] += $rev;
+        }
+
+        $type = (string)($r['product_type'] ?: 'retail');
+        $bump($byType, $type, $rev, $lineCost, $qty);
+        $bump($byCat, (string)$r['cat'], $rev, $lineCost, $qty);
+    }
+
+    $sort = function (array $rows): array {
+        usort($rows, fn($a, $b) => $b['revenue'] <=> $a['revenue'] ?: strcmp($a['label'], $b['label']));
+        return $rows;
+    };
+    $tot['by_type'] = $sort(array_values($byType));
+    $tot['by_category'] = $sort(array_values($byCat));
+    return $tot;
+}
+
 /** Cents as a plain decimal for CSV (no $ or commas, so spreadsheets read it as a number). */
 function bcrf_rpt_csv_money(int $c): string { return number_format($c / 100, 2, '.', ''); }
 

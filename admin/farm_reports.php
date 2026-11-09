@@ -22,7 +22,7 @@ $m  = fn($c) => ((int)$c < 0 ? '−$' : '$') . number_format(abs((int)$c) / 100,
 $mc = 'bcrf_rpt_csv_money';
 $today = bcrf_business_date();
 $isDate  = fn($s) => is_string($s) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $s) && strtotime($s) !== false;
-$r = in_array($_GET['r'] ?? '', ['daily', 'month', 'log', 'visitors'], true) ? $_GET['r'] : 'daily';
+$r = in_array($_GET['r'] ?? '', ['daily', 'month', 'log', 'visitors', 'margin'], true) ? $_GET['r'] : 'daily';
 $date  = $isDate($_GET['date'] ?? null) ? $_GET['date'] : $today;
 $month = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', (string)($_GET['month'] ?? '')) ? $_GET['month'] : substr($today, 0, 7);
 $from  = $isDate($_GET['from'] ?? null) ? $_GET['from'] : date('Y-m-d', strtotime($today . ' -6 days'));
@@ -68,6 +68,17 @@ if ($csv !== '') {
                           bcrf_rpt_log($pdo, $from, $to));
         bcrf_rpt_send_csv($pdo, "refunds-voids-discounts-$from-to-$to.csv", ['business_date', 'time', 'type', 'number', 'sale_number', 'staff', 'approved_by', 'reason', 'refunded_by', 'amount'], $rows, "Refunds, voids & discounts $from to $to");
     }
+    if ($r === 'margin') {
+        $mg = bcrf_rpt_margin($pdo, $from, $to);
+        $rows = [];
+        foreach ($mg['by_category'] as $x) {
+            $rows[] = [$from, $to, $x['label'], $mc($x['revenue']), $mc($x['cost']), $mc($x['margin']),
+                       (int)$x['lines_with_cost'], (int)$x['lines_no_cost'], $mc($x['revenue_no_cost']), number_format($x['qty'], 3, '.', '')];
+        }
+        bcrf_rpt_send_csv($pdo, "margin-$from-to-$to.csv",
+            ['from', 'to', 'category', 'revenue', 'cost', 'margin', 'lines_with_cost', 'lines_no_cost', 'revenue_no_cost', 'qty'],
+            $rows, "Margin $from to $to");
+    }
     if ($r === 'visitors' && $admission) {
         $v = bcrf_rpt_visitors($pdo, $date);
         if ($csv === 'hours') {
@@ -89,7 +100,7 @@ if ($csv !== '') {
 }
 
 // -- Page --
-$titles = ['daily' => 'Daily sales', 'month' => 'Monthly & tax', 'log' => 'Refunds, voids, discounts', 'visitors' => 'Visitors'];
+$titles = ['daily' => 'Daily sales', 'month' => 'Monthly & tax', 'margin' => 'Margin', 'log' => 'Refunds, voids, discounts', 'visitors' => 'Visitors'];
 $row = fn($label, $val, $cls = '') => '<tr' . ($cls ? ' class="' . $cls . '"' : '') . '><td>' . $label . '</td><td class="r">' . $val . '</td></tr>';
 $q = fn(array $p) => 'farm_reports.php?' . http_build_query($p);
 $pl = fn(int $n, string $w) => $n . ' ' . $w . ($n === 1 ? '' : 's');
@@ -284,4 +295,39 @@ if ($r === 'visitors') {
     }
     if ($o['limit'] && $date !== $today) echo '<p class="muted">Full/peak use today\'s limit of ', (int)$o['limit'], ' guests.</p>';
 }
-echo '</main></body></html>';
+
+if ($r === 'margin') {
+    $mg = bcrf_rpt_margin($pdo, $from, $to);
+    echo '<h1>Margin</h1><p><b>', $h(bcrf_farm_name()), '</b> · ', $h(date('M j', strtotime($from))), $from !== $to ? ' – ' . $h(date('M j, Y', strtotime($to))) : ', ' . $h(date('Y', strtotime($from))), '</p>';
+    echo '<form class="rform noprint" method="GET" action="farm_reports.php"><input type="hidden" name="r" value="margin">',
+         '<input type="date" name="from" value="', $h($from), '" aria-label="From"><span>to</span><input type="date" name="to" value="', $h($to), '" aria-label="To">',
+         '<button class="btn sm" type="submit">Show</button></form>';
+    echo '<p class="rbar noprint"><button type="button" class="btn sm" id="btnPrint">Print</button>', $csvLink(['r' => 'margin', 'from' => $from, 'to' => $to, 'csv' => 1]), '</p>';
+    echo '<p class="muted">Revenue is sale lines after discounts, before tax. Cost uses the unit cost snapshotted on each line at sale time (not the live average). Lines with no cost are shown separately so they do not inflate margin.</p>';
+    echo '<h2>Totals</h2><table class="rt">',
+         $row('Revenue <small class="muted">(with known cost)</small>', $m($mg['revenue'] - $mg['revenue_no_cost'])),
+         $row('Cost of goods', $m($mg['cost'])),
+         $row('Margin', $m($mg['margin']), 'b'),
+         $mg['revenue'] - $mg['cost'] !== 0 && $mg['cost'] ? $row('Margin % of revenue with cost', number_format(100 * $mg['margin'] / max(1, $mg['revenue'] - $mg['revenue_no_cost']), 1) . '%') : '',
+         $mg['lines_no_cost'] ? $row('Revenue with no cost on file', $m($mg['revenue_no_cost']) . ' <small class="muted">(' . (int)$mg['lines_no_cost'] . ' lines)</small>') : '',
+         $row('All revenue (incl. unknown cost)', $m($mg['revenue'])),
+         '</table>';
+    if ($mg['by_type']) {
+        echo '<h2>By product type</h2><table class="rt"><tr class="th"><td>Type</td><td class="r">Revenue</td><td class="r">Cost</td><td class="r">Margin</td></tr>';
+        foreach ($mg['by_type'] as $x) {
+            echo '<tr><td>', $h($x['label']), $x['lines_no_cost'] ? ' <small class="muted">(' . (int)$x['lines_no_cost'] . ' no cost)</small>' : '',
+                 '</td><td class="r">', $m($x['revenue']), '</td><td class="r">', $m($x['cost']), '</td><td class="r">', $m($x['margin']), '</td></tr>';
+        }
+        echo '</table>';
+    }
+    if ($mg['by_category']) {
+        echo '<h2>By category</h2><table class="rt"><tr class="th"><td>Category</td><td class="r">Revenue</td><td class="r">Cost</td><td class="r">Margin</td></tr>';
+        foreach ($mg['by_category'] as $x) {
+            echo '<tr><td>', $h($x['label']), $x['lines_no_cost'] ? ' <small class="muted">(' . (int)$x['lines_no_cost'] . ' no cost)</small>' : '',
+                 '</td><td class="r">', $m($x['revenue']), '</td><td class="r">', $m($x['cost']), '</td><td class="r">', $m($x['margin']), '</td></tr>';
+        }
+        echo '</table>';
+    }
+    if (!$mg['revenue'] && !$mg['lines_no_cost']) echo '<p class="muted">No sales in this period.</p>';
+}
+echo '</main></body></html';

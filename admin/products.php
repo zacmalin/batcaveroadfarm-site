@@ -66,7 +66,7 @@ $sel = function (string $name, array $opts, $cur, string $blank = '', array $att
 $editing = isset($_GET['id']) || isset($_GET['new']);
 
 echo $head, '<title>Products</title></head><body class="page"><main class="narrow wide">';
-echo '<p><a href="admin.php">← Admin</a> · <a href="stock.php">Stock</a> · <a href="register.php">Register</a></p>';
+echo '<p><a href="admin.php">← Admin</a> · <a href="stock.php">Stock</a> · <a href="vendors.php">Vendors</a> · <a href="register.php">Register</a></p>';
 
 if (!$editing) {
     $f = ['q' => trim((string)($_GET['q'] ?? '')), 'category_id' => (int)($_GET['cat'] ?? 0) ?: null,
@@ -136,6 +136,23 @@ if (!$isAdm) {
     }
     echo '<label>Minimum <small class="muted">(low-stock alert at or below this)</small><input type="number" name="min_stock_level" value="', $num('min_stock_level'), '" min="0" step="any" inputmode="decimal"></label>',
          '<label class="check"><input type="checkbox" name="is_alert_enabled" value="1"', $chk('is_alert_enabled'), '> Include in the daily low-stock email</label></fieldset>';
+}
+require_once __DIR__ . '/../includes/vendors.php';
+if (bcrf_vendors_ready($pdo)) {
+    $vendors = bcrf_vendor_options($pdo);
+    $costShow = '';
+    if (isset($d['avg_cost_cents']) && $d['avg_cost_cents'] !== null && $d['avg_cost_cents'] !== '') {
+        $costShow = rtrim(rtrim(number_format(((int)$d['avg_cost_cents']) / 100, 4, '.', ''), '0'), '.');
+    } elseif (isset($typed['avg_cost'])) {
+        $costShow = $h($typed['avg_cost']);
+    }
+    echo '<fieldset class="grp"><legend>Vendor & cost</legend>',
+         '<label>Preferred vendor', $sel('preferred_vendor_id', $vendors, $d['preferred_vendor_id'] ?? '', '— none —'), '</label>',
+         '<p class="muted"><a href="vendors.php">Manage vendors</a></p>',
+         '<label>Vendor SKU / part #<input type="text" name="vendor_sku" value="', $val('vendor_sku'), '" maxlength="80" autocomplete="off"></label>',
+         '<label>Pack size <small class="muted">(units per case from this vendor)</small><input type="number" name="pack_size" value="', $num('pack_size'), '" min="0" step="any" inputmode="decimal"></label>',
+         '<label>Average cost <small class="muted">(per unit; moving average after you start receiving)</small><input type="number" name="avg_cost" value="', $costShow, '" min="0" step="0.01" inputmode="decimal" placeholder="leave blank to keep"></label>',
+         '<p class="muted">Cost is stored in cents and copied onto each sale line for margin reports. Receiving (next slice) updates the average automatically.</p></fieldset>';
 }
 echo '<fieldset class="grp"><legend>Website and labels</legend>',
      '<label>Description<textarea name="description" rows="3" maxlength="5000">', $val('description'), '</textarea></label>',

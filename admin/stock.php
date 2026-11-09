@@ -146,7 +146,7 @@ $histTable = function (array $rows, bool $showItem = true) use ($h, $q3, $pdo) {
 
 $title = ['stock' => 'Stock', 'item' => 'Stock', 'counts' => 'Counts', 'count' => 'Count', 'history' => 'Stock history', 'locations' => 'Locations'][$tab];
 echo $head, '<title>', $h($title), '</title></head><body class="page"><main class="narrow wide">';
-echo '<p><a href="admin.php">← Admin</a> · <a href="register.php">Register</a></p>';
+echo '<p><a href="admin.php">← Admin</a> · <a href="register.php">Register</a> · <a href="receive.php">Receive</a></p>';
 echo '<h1>Stock</h1>';
 if ($flash) echo '<p class="flash', $flash[0] === 'err' ? ' err' : '', '">', $h($flash[1]), '</p>';
 if ($synced) echo '<p class="flash">', $synced, ' item', $synced === 1 ? '' : 's', ' had been changed outside Stock (old register, Full Editor or connector); the difference is now on ', $h($locById[bcrf_location_default($pdo)]['name'] ?? 'the default location'), ' and in the history.</p>';
@@ -203,6 +203,7 @@ if ($tab === 'item') {
             echo '<div class="lrow"><span>', $h($l['name']), (int)$l['sellable'] ? '' : ' <small class="muted">not sold here</small>', '</span><span class="r">', $h($q3($p['levels'][$lid] ?? 0)), '</span></div>';
         }
         echo '<div class="lrow"><b>Total</b><span class="r">', $h($q3($p['stock_quantity'])), '</span></div></div>';
+        echo '<p><a class="btn sm primary" href="receive.php?new=1&amp;product=', (int)$p['id'], '">Receive this item</a> <span class="muted">(with unit cost → updates average cost)</span></p>';
 
         $reasons = bcrf_stock_manual_reasons();
         echo '<section class="card"><h3>Add or remove</h3><form class="stackf" method="POST" action="stock.php">', $hid($back),

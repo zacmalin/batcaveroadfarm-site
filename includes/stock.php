@@ -183,11 +183,11 @@ function bcrf_stock_write_level(PDO $pdo, int $productId, int $locationId, int $
 }
 
 function bcrf_stock_ledger(PDO $pdo, int $productId, int $locationId, int $changeM, int $beforeM, int $afterM, string $reason,
-                           ?string $srcType, ?int $srcId, ?string $note, ?int $uid): int {
+                           ?string $srcType, ?int $srcId, ?string $note, ?int $uid, ?int $unitCostCents = null): int {
     $pdo->prepare("INSERT INTO inventory_adjustments (product_id, location_id, quantity_change, quantity_before, quantity_after, reason,
-                          source_type, source_id, note, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(3), ?)")
+                          source_type, source_id, unit_cost_cents, note, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(3), ?)")
         ->execute([$productId, $locationId, bcrf_qf($changeM), bcrf_qf($beforeM), bcrf_qf($afterM), substr($reason, 0, 20), $srcType, $srcId,
-                   $note === null ? null : mb_substr($note, 0, 255), $uid]);
+                   $unitCostCents, $note === null ? null : mb_substr($note, 0, 255), $uid]);
     return (int)$pdo->lastInsertId();
 }
 
@@ -197,7 +197,7 @@ function bcrf_stock_ledger(PDO $pdo, int $productId, int $locationId, int $chang
  * Returns ['before', 'after', 'change' (floats), 'id' (ledger row, 0 if nothing changed), 'short' (float)].
  */
 function bcrf_stock_move(PDO $pdo, int $productId, int $locationId, float $delta, string $reason, ?string $srcType, ?int $srcId,
-                         ?string $note, ?int $uid, string $mode = 'strict', ?array $locked = null): array {
+                         ?string $note, ?int $uid, string $mode = 'strict', ?array $locked = null, ?int $unitCostCents = null): array {
     $L = $locked ?? bcrf_stock_lock($pdo, $productId, $uid);
     $before = $L['lv'][$locationId] ?? 0;
     $d = bcrf_qm($delta);
@@ -215,7 +215,9 @@ function bcrf_stock_move(PDO $pdo, int $productId, int $locationId, float $delta
     $total = array_sum($L['lv']) - $before + $after;
     $pdo->prepare("UPDATE inventory SET stock_quantity = ? WHERE id = ?")->execute([bcrf_qf($total), $productId]);
     if ($short > 0) $note = trim(($note ?? '') . ' (short by ' . bcrf_qtxt(bcrf_qf($short)) . ')');
-    $id = ($after !== $before || $short > 0) ? bcrf_stock_ledger($pdo, $productId, $locationId, $after - $before, $before, $after, $reason, $srcType, $srcId, $note, $uid) : 0;
+    $id = ($after !== $before || $short > 0)
+        ? bcrf_stock_ledger($pdo, $productId, $locationId, $after - $before, $before, $after, $reason, $srcType, $srcId, $note, $uid, $unitCostCents)
+        : 0;
     return ['before' => bcrf_qf($before), 'after' => bcrf_qf($after), 'change' => bcrf_qf($after - $before), 'id' => $id, 'short' => bcrf_qf($short)];
 }
 
