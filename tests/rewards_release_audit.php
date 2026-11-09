@@ -239,11 +239,22 @@ if ($redeemAuth===false ||
     str_contains($redeemAuth, "bcrf_reward_post("))
     throw new RuntimeException('Redemption authorization must remain permission-scoped and read-only.');
 
+// Legacy settlement is disabled: a caller-supplied boolean is not proof.
 $settlement=file_get_contents($root.'/includes/roost-redemption-settlement.php');
 if ($settlement===false ||
-    !str_contains($settlement,'fulfillmentVerified') ||
-    !str_contains($settlement,'bcrf_reward_post(') ||
-    !str_contains($settlement,"'idempotency_key'=>'roost:redeem:'") ||
-    !str_contains($settlement,"'source_type'=>'reward_fulfillment'"))
-    throw new RuntimeException('Redemption settlement missing verified fulfillment or idempotency safeguards.');
+    !str_contains($settlement,'Legacy redemption settlement disabled; use approved voucher issuance.') ||
+    str_contains($settlement,'bcrf_reward_post('))
+    throw new RuntimeException('Legacy settlement must fail closed without ledger posting.');
+
+// The replacement path must bind the debit and durable receipt atomically.
+$issuance=file_get_contents($root.'/includes/roost-redemption-issuance.php');
+if ($issuance===false ||
+    !str_contains($issuance,'beginTransaction()') ||
+    !str_contains($issuance,'commit()') ||
+    !str_contains($issuance,'rollBack()') ||
+    !str_contains($issuance,"'internal_voucher'") ||
+    !str_contains($issuance,"'roost:redeem:'") ||
+    !str_contains($issuance,'fulfillment_receipt') ||
+    !str_contains($issuance,'ledger_entry_id'))
+    throw new RuntimeException('Approved voucher issuance lacks transaction or receipt safeguards.');
 echo "Offline rewards release safety audit passed.\\n";
