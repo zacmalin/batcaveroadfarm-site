@@ -125,6 +125,15 @@ try {
 } catch (BcrfRewardError $expected) {
     if ($expected->getMessage()==='Approved redemption was subsequently rejected.') throw $expected;
 }
+require_once __DIR__.'/../includes/roost-redemption-issuance.php';
+$issued=bcrf_roost_issue_redemption_receipt($pdo,$request['id'],7);
+if ($issued['replayed'] || $issued['ledger_entry_id']<=0)
+    throw new RuntimeException('Redemption receipt not issued.');
+$issuedAgain=bcrf_roost_issue_redemption_receipt($pdo,$request['id'],7);
+if (!$issuedAgain['replayed'] || $issuedAgain['ledger_entry_id']!==$issued['ledger_entry_id'])
+    throw new RuntimeException('Redemption issuance not idempotent.');
+if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==50)
+    throw new RuntimeException('Redemption receipt did not deduct exact points.');
 $pdo->exec("UPDATE reward_accounts SET balance_points=0 WHERE household_id=1");
 
 // Reserve fixture household IDs 2 onward for existing ledger tests.
