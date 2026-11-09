@@ -350,10 +350,12 @@ if ($deliveryMetrics['status_counts']['sent']<1 ||
     $deliveryMetrics['status_counts']['suppressed']<1 ||
     $deliveryMetrics['status_counts']['failed']<1)
     throw new RuntimeException('Invitation queue metrics missed delivery outcomes.');
-foreach (['ready','stale','delayed'] as $metric) {
+foreach (['ready','stale','delayed','ambiguous'] as $metric) {
     if (!isset($deliveryMetrics[$metric]) || !is_int($deliveryMetrics[$metric]))
         throw new RuntimeException('Invitation queue metrics omitted operational count.');
 }
+if ($deliveryMetrics['ambiguous']<2)
+    throw new RuntimeException('Ambiguous post-dispatch failures were not reported.');
 $queuedHash=$pdo->prepare("SELECT token_hash FROM reward_household_invitations WHERE id=?");
 $queuedHash->execute([$queuedInvitation['invitation_id']]);
 if ($queuedHash->fetchColumn()!==hash('sha256',$decrypted['token']))
