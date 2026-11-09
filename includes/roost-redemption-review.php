@@ -9,13 +9,22 @@ function bcrf_roost_review_redemption(
     if ($pdo->inTransaction()) throw new LogicException('Redemption review requires autocommit.');
     if ($requestId<=0 || $staffId<=0 || !in_array($decision,['approved','rejected'],true))
         throw new InvalidArgumentException('Invalid redemption review.');
+    // Match ledger and issuance lock order: account before request.
+    $lookup=$pdo->prepare('SELECT household_id FROM reward_redemption_requests WHERE id=?');
+    $lookup->execute([$requestId]);
+    $householdId=(int)$lookup->fetchColumn();
+    if (!$householdId) throw new BcrfRewardError('Redemption request not found.');
     $pdo->beginTransaction();
     try {
+        $accountLock=$pdo->prepare('SELECT household_id FROM reward_accounts WHERE household_id=? FOR UPDATE');
+        $accountLock->execute([$householdId]);
+        if (!$accountLock->fetchColumn()) throw new BcrfRewardError('Reward account unavailable.');
         $q=$pdo->prepare('SELECT id,household_id,customer_id,tier_points,benefit_code,status
             FROM reward_redemption_requests WHERE id=? FOR UPDATE');
         $q->execute([$requestId]);
         $request=$q->fetch(PDO::FETCH_ASSOC);
-        if (!$request) throw new BcrfRewardError('Redemption request not found.');
+        if (!$request || (int)$request['household_id']!==$householdId)
+            throw new BcrfRewardError('Redemption request changed.');
         if ($request['status']===$decision) {
             $pdo->commit();
             return ['id'=>$requestId,'status'=>$decision,'replayed'=>true];
@@ -40,7 +49,8 @@ function bcrf_roost_review_redemption(
                 (int)$eligibility['balance_points']<(int)$request['tier_points'])
                 throw new BcrfRewardError('Redemption authorization no longer valid.');
             $benefit=$pdo->prepare("SELECT 1 FROM reward_redemption_benefits
-                WHERE code=? AND tier_points=? AND status='active' LIMIT 1");
+                WHERE code=? AND tier_points=? AND status='active'
+                  AND approved_at IS NOT NULL AND fulfillment_type='internal_voucher' LIMIT 1");
             $benefit->execute([$request['benefit_code'],$request['tier_points']]);
             if (!$benefit->fetchColumn())
                 throw new BcrfRewardError('Reward benefit is no longer available.');
