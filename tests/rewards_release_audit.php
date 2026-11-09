@@ -21,8 +21,8 @@ $adapter=file_get_contents($root.'/includes/roost-pos-outbox-integration.php');
 if(!str_contains($worker,'BCRF_ROOST_OUTBOX_MAX_ATTEMPTS = 8') ||
    !str_contains($worker,'FOR UPDATE SKIP LOCKED') ||
    !str_contains($worker,"status='dead'") ||
-   !str_contains($dispatch,'getenv('BCRF_ROOST_POS_DISPATCH_ENABLED') === '1' && getenv('BCRF_ROOST_POS_ACTIVATION_APPROVED') === '1'') ||
-   !str_contains($adapter,'getenv('BCRF_ROOST_POS_ENQUEUE_ENABLED') === '1' && getenv('BCRF_ROOST_POS_ACTIVATION_APPROVED') === '1'') ||
+   !str_contains($dispatch,"getenv('BCRF_ROOST_POS_DISPATCH_ENABLED') === '1' && getenv('BCRF_ROOST_POS_ACTIVATION_APPROVED') === '1'") ||
+   !str_contains($adapter,"getenv('BCRF_ROOST_POS_ENQUEUE_ENABLED') === '1' && getenv('BCRF_ROOST_POS_ACTIVATION_APPROVED') === '1'") ||
    !str_contains($adapter,'ORDER BY id LIMIT 2 FOR UPDATE') ||
    !str_contains($adapter,'bcrf_roost_pos_outbox_enqueue_pinned_sale($pdo,$sourceId,(int)$policies[0])'))
     throw new RuntimeException('Required worker safety or dormant release gate missing.');
