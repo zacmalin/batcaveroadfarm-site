@@ -30,6 +30,13 @@ $faqSchemaItems = [
     ['Can I buy admission tickets online?', 'Yes. See ticket options and booking rules at ' . bcrf_farm_url('/tickets/') . '.'],
     ['How do I plan a birthday party or private event at the farm?', 'Use the inquiry form at ' . bcrf_farm_url('/private-events/') . ' or contact us at ' . bcrf_farm_url('/contact-us/') . '.'],
 ];
+// Roost Rewards questions appear (page and schema) only while the program is switched on.
+$faqRewardsOn = false;
+try { require_once __DIR__ . '/../includes/rewards.php'; $faqRewardsOn = bcrf_rewards_enabled($pdo); } catch (Throwable $e) { $faqRewardsOn = false; }
+if ($faqRewardsOn) {
+    $faqSchemaItems[] = ['What is Roost Rewards?', 'Roost Rewards is our free rewards program: earn 5 points per dollar spent at the farm and 25 points each day you visit, then use points for rewards at the counter. Details at ' . bcrf_farm_url('/roost-rewards/') . '.'];
+    $faqSchemaItems[] = ['Can my family share Roost Rewards points?', 'Yes. Each account is tied to one phone number, and anyone who gives that number at the counter earns points into the same account.'];
+}
 $faqSchema = ['@context' => 'https://schema.org', '@type' => 'FAQPage', 'mainEntity' => []];
 foreach ($faqSchemaItems as [$question, $answer]) {
     $faqSchema['mainEntity'][] = ['@type' => 'Question', 'name' => $question, 'acceptedAnswer' => ['@type' => 'Answer', 'text' => $answer]];
@@ -268,6 +275,58 @@ foreach ($faqSchemaItems as [$question, $answer]) {
 
             </div>
         </div>
+
+        <!-- ── ROOST REWARDS (only while the program is on) ── -->
+<?php if (!empty($faqRewardsOn)): ?>
+        <div class="faq-category reveal" id="roost-rewards">
+            <h2 class="faq-category-title"><span aria-hidden="true">🐓</span> Roost Rewards</h2>
+            <div class="faq-list">
+
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            What is Roost Rewards? <span class="faq-chevron" aria-hidden="true">▼</span>
+                        </button>
+                        <div class="faq-answer">Roost Rewards is our free rewards program. You earn <strong>5 points for every dollar</strong> you spend at the farm and <strong>25 points each day you visit</strong>, then trade points for treats like feed and free admission.</div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            How do I join? <span class="faq-chevron" aria-hidden="true">▼</span>
+                        </button>
+                        <div class="faq-answer">Ask us to sign you up at the farm stand, or <a href="<?= bcrf_farm_url() ?>/roost-rewards/">join online</a> with a free account. All we need is your name, email and mobile number.</div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            Can my family share points? <span class="faq-chevron" aria-hidden="true">▼</span>
+                        </button>
+                        <div class="faq-answer">Yes! Your account is tied to one phone number. Anyone in your family who gives that number at the counter earns points into the same account.</div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            How do I use my points? <span class="faq-chevron" aria-hidden="true">▼</span>
+                        </button>
+                        <div class="faq-answer">Ask at the counter when you pay. You can see your points and the current rewards any time on the <a href="<?= bcrf_farm_url() ?>/roost-rewards/">Roost Rewards page</a>.</div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            What earns points? <span class="faq-chevron" aria-hidden="true">▼</span>
+                        </button>
+                        <div class="faq-answer">Purchases at the farm stand, petting zoo, thrift shop and kitchen earn points on the amount you pay before tax. Annual passes, gift cards, fees and services don't earn points, and points come off again if a purchase is refunded.</div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            Do points expire? <span class="faq-chevron" aria-hidden="true">▼</span>
+                        </button>
+                        <div class="faq-answer">Points expire if your account has no purchases or visits for 12 months. Any visit or purchase keeps them active.</div>
+                    </div>
+
+            </div>
+        </div>
+<?php endif; ?>
 
         <!-- ── STILL HAVE QUESTIONS ── -->
         <div class="feature-band reveal">

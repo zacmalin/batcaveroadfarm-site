@@ -20,7 +20,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
 
           <div class="content-wrap1">
             <article class="legal-doc reveal">
-              <p class="legal-updated">Last updated: November 4, 2026</p>
+              <p class="legal-updated">Last updated: November 9, 2026</p>
               <p class="legal-intro">Bat Cave Road Farm ("we," "us," or "our") runs the website at
                 <strong><?= bcrf_farm_domain() ?></strong>. This policy explains what information the website
                 collects, how we use it, and the choices you have. It applies to this website only — not to
@@ -36,6 +36,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
                   <li><a href="#share">How we share information</a></li>
                   <li><a href="#retention">How long we keep it</a></li>
                   <li><a href="#jobs">Job applicants</a></li>
+                  <li><a href="#rewards">Roost Rewards</a></li>
                   <li><a href="#choices">Your choices &amp; rights</a></li>
                   <li><a href="#children">Children's privacy</a></li>
                   <li><a href="#security">Security</a></li>
@@ -88,6 +89,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
               <h2 id="use">How we use information</h2>
               <ul>
                 <li>To respond to messages and questions you send us.</li>
+                <li>To run your Roost Rewards account, if you join (see below).</li>
                 <li>To operate, maintain, and improve the website.</li>
                 <li>To keep the site secure and prevent abuse.</li>
                 <li>To comply with the law when required.</li>
@@ -123,6 +125,19 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
                 ask to keep your application on file for future openings, we keep it until you ask us to remove it.
                 To ask about, withdraw or delete your application, email
                 <a href="mailto:<?= htmlspecialchars(bcrf_farm_email('jobs'), ENT_QUOTES) ?>"><?= htmlspecialchars(bcrf_farm_email('jobs'), ENT_QUOTES) ?></a>.</p>
+
+              <h2 id="rewards">Roost Rewards</h2>
+              <p>If you join <a href="<?= bcrf_farm_url() ?>/roost-rewards/">Roost Rewards</a>, we keep your name,
+                email address and mobile phone number, together with a record of the points you earn and use and the
+                purchases and visits they came from.</p>
+              <ul>
+                <li>We use your phone number only to find your account at the counter. We don't text you or share it.</li>
+                <li>We send one welcome email when you join. We don't add you to our newsletter unless you sign up for it separately.</li>
+                <li>Anyone who gives your phone number at the counter earns points into your account and can see its
+                  point balance, so share the number only with people you want on your account.</li>
+                <li>We keep your account and points history while your account is open. You can ask us to close it and
+                  delete this information at any time by emailing the address below; any points left are lost.</li>
+              </ul>
 
               <h2 id="choices">Your choices &amp; rights</h2>
               <p>You can:</p>

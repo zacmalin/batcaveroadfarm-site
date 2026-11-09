@@ -1,7 +1,13 @@
 /* css/min.rewards.css — Roost Rewards customer page (/roost-rewards/). Uses sitewide .page1 / .hero / .content-wrap1 / .divider from min.style.css. */
 .rr-hero .hero-content{display:flex;flex-direction:column;align-items:center;gap:14px}
+/* Compact hero: logo beside the title, no tall empty banner. */
+.hero.rr-hero{min-height:0}
+.rr-hero .hero-content{flex-direction:row;justify-content:center;gap:22px;padding:18px 20px;text-align:left}
+.rr-hero h1{margin:0 0 4px}
+.rr-hero .hero-content p{margin:0;max-width:420px}
+@media (max-width:560px){.rr-hero .hero-content{gap:14px;padding:14px 14px}.rr-hero h1{font-size:1.9rem}.rr-hero .hero-content p{font-size:.95rem}}
 /* The logo JPG has a checkerboard baked into its square corners: crop to the round badge and shadow the circle. */
-.rr-logo{width:min(260px,64vw);height:auto;aspect-ratio:1;object-fit:cover;clip-path:circle(46.5% at 50% 50%);filter:drop-shadow(0 8px 18px rgba(0,0,0,.6))}
+.rr-logo{width:clamp(96px,22vw,150px);flex:none;height:auto;aspect-ratio:1;object-fit:cover;clip-path:circle(46.5% at 50% 50%);filter:drop-shadow(0 8px 18px rgba(0,0,0,.6))}
 /* Transparent cut-out (img/logos/roost_rewards.webp/.png): no crop needed. */
 .rr-logo-clean{clip-path:none;object-fit:contain}
 .rr-hero picture{display:block;line-height:0}

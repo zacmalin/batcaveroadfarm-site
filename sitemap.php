@@ -69,6 +69,11 @@ $static = [
     ['/terms/', 'yearly', '0.3', []],
     ['/accessibility/', 'yearly', '0.3', []],
 ];
+// Roost Rewards only while the program is switched on.
+try {
+    require_once __DIR__ . '/includes/rewards.php';
+    if (bcrf_rewards_enabled($pdo)) $static[] = ['/roost-rewards/', 'monthly', '0.7', [sitemapImg($base, '/img/logos/roost_rewards.jpg', 'Roost Rewards — Bat Cave Road Farm loyalty program')]];
+} catch (Throwable $e) { /* rewards not installed */ }
 foreach ($static as $sp) {
     addUrl($urls, $base . $sp[0], sitemapFileDate($sp[0]), $sp[1], $sp[2], $sp[3]);
 }

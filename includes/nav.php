@@ -45,6 +45,15 @@ if (isset($pdo) && $pdo instanceof PDO) {
     } catch (Throwable $e) { $navShowJobs = false; }
 }
 
+// Show Roost Rewards only while the program is switched on (Admin › Roost Rewards › Settings).
+$navShowRewards = false;
+if (isset($pdo) && $pdo instanceof PDO) {
+    try {
+        require_once __DIR__ . '/rewards.php';
+        $navShowRewards = bcrf_rewards_enabled($pdo);
+    } catch (Throwable $e) { $navShowRewards = false; }
+}
+
 // ── Dropdown items ────────────────────────────────────────────────────────────
 $visitDropdown = [
     ['/plan-your-visit/', '📍', 'Plan Your Visit'],
@@ -54,6 +63,7 @@ $visitDropdown = [
     ['/booking/',         '📋', 'Book a Group'],
     ['/private-events/',  '🎈', 'Private Events'],
 ];
+if ($navShowRewards) { array_splice($visitDropdown, 4, 0, [['/roost-rewards/', '🐓', 'Roost Rewards']]); }   // after Annual Passes
 $aboutDropdown = [
     ['/about/',      '🏡', 'About Us'],
     ['/gallery/',    '📷', 'Gallery'],

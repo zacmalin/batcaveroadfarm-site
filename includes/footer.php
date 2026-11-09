@@ -45,6 +45,9 @@
             	<a href="<?= bcrf_farm_url() ?>/booking/"> Book a Visit</a> <span aria-hidden="true">✦</span>
             	<a href="<?= bcrf_farm_url() ?>/tickets/"> Day Tickets</a> <span aria-hidden="true">✦</span>
             	<a href="<?= bcrf_farm_url() ?>/passes/"> Annual Passes</a> <span aria-hidden="true">✦</span>
+<?php if (!empty($navShowRewards)): ?>
+            	<a href="<?= bcrf_farm_url() ?>/roost-rewards/"> Roost Rewards</a> <span aria-hidden="true">✦</span>
+<?php endif; ?>
             	<a href="<?= bcrf_farm_url() ?>/private-events/"> Private Events</a> <span aria-hidden="true">✦</span>
             	<a href="<?= bcrf_farm_url() ?>/petting-zoo/"> Petting Zoo</a> <span aria-hidden="true">✦</span>
             	<a href="<?= bcrf_farm_url() ?>/farm-stand/"> Farmstand</a> <span aria-hidden="true">✦</span>

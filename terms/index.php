@@ -20,7 +20,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
 
           <div class="content-wrap1">
             <article class="legal-doc reveal">
-              <p class="legal-updated">Last updated: November 3, 2026</p>
+              <p class="legal-updated">Last updated: November 9, 2026</p>
               <p class="legal-intro">Welcome to Bat Cave Road Farm. These Terms of Service ("Terms") govern your
                 use of <strong><?= bcrf_farm_domain() ?></strong> (the "Site") and your visit to our farm in Old Fort,
                 North Carolina. By using the Site or visiting the farm, you agree to these Terms. If you don't
@@ -33,6 +33,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
                   <li><a href="#ip">Our content</a></li>
                   <li><a href="#products">Products &amp; pricing</a></li>
                   <li><a href="#purchases">Tickets, passes &amp; bookings</a></li>
+                  <li><a href="#rewards">Roost Rewards</a></li>
                   <li><a href="#visits">Farm visits &amp; the petting zoo</a></li>
                   <li><a href="#risk">Assumption of risk</a></li>
                   <li><a href="#disclaimer">Disclaimers</a></li>
@@ -73,6 +74,24 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
                   your booked date. Cancellations made less than 30 days before the date are not refunded.</li>
                 <li><strong>Weather:</strong> we're open rain or shine. If the weather looks bad on the day of your
                   booking, you may reschedule to a day within two weeks after your booked date.</li>
+              </ul>
+
+              <h2 id="rewards">Roost Rewards</h2>
+              <p>Roost Rewards is free to join. By joining you agree to these terms.</p>
+              <ul>
+                <li><strong>Earning:</strong> 5 points for every dollar of eligible purchases made at the farm, counted
+                  before tax and after discounts and rounded down once per purchase. Annual passes, gift cards, fees and
+                  services don't earn points. You also earn 25 points for a visit, once per account per day.</li>
+                <li><strong>One account per phone number.</strong> Anyone who gives your number at the counter earns into,
+                  and may use points from, your account. You're responsible for who you share it with.</li>
+                <li><strong>Using points:</strong> rewards are redeemed at the counter and are listed on the
+                  <a href="<?= bcrf_farm_url() ?>/roost-rewards/">Roost Rewards page</a>. Points and rewards have no cash
+                  value and can't be sold, transferred or exchanged for cash.</li>
+                <li><strong>Refunds:</strong> if a purchase is refunded or voided, the points it earned are removed, even
+                  if that makes your balance negative. Points can be used only when the balance is positive.</li>
+                <li><strong>Expiration:</strong> points expire after 12 months with no purchases or visits on the account.</li>
+                <li>We may correct points earned in error, remove points obtained through misuse, and change or end the
+                  program or its rewards at any time. Changes are posted on this page.</li>
               </ul>
 
               <h2 id="visits">Farm visits &amp; the petting zoo</h2>
