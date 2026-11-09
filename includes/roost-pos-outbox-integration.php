@@ -4,7 +4,9 @@
 // but the hard-disabled gate returns before any reward table query or write.
 // Enabling requires a separate approved release and migration 0019.
 require_once __DIR__.'/roost-pos-outbox.php';
-function bcrf_roost_pos_enqueue_enabled(): bool { return false; }
+function bcrf_roost_pos_enqueue_enabled(): bool {
+    return getenv('BCRF_ROOST_POS_ENQUEUE_ENABLED') === '1' && getenv('BCRF_ROOST_POS_ACTIVATION_APPROVED') === '1';
+}
 function bcrf_roost_pos_enqueue_if_enabled(PDO $pdo, string $kind, int $sourceId): bool {
     if (!in_array($kind,['sale.completed','sale.refunded'],true) || $sourceId<=0)
         throw new InvalidArgumentException('Invalid Roost POS source event.');
