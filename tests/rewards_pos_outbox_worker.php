@@ -45,4 +45,25 @@ rr_expect(bcrf_roost_outbox_expire_exhausted_lease($pdo)===(int)$crashed['id'],'
 rr_expect(!bcrf_roost_outbox_finish($pdo,(int)$crashed['id'],8,'completed'),'Crashed worker acknowledged dead letter.');
 rr_expect(bcrf_roost_outbox_expire_exhausted_lease($pdo)===null,'Dead letter recovered twice.');
 rr_expect(bcrf_roost_outbox_claim($pdo)===null,'Dead letter was reclaimed.');
+// Verify the production runner actually invokes final-lease recovery.
+require_once __DIR__.'/../includes/roost-pos-dispatch-runner.php';
+$pdo->beginTransaction();
+bcrf_roost_pos_outbox_enqueue($pdo,'sale.completed',75);
+$pdo->commit();
+$pdo->exec("UPDATE reward_pos_outbox SET attempts=8,status='processing',
+    available_at=UTC_TIMESTAMP(3) - INTERVAL 1 SECOND
+    WHERE event_type='sale.completed' AND source_id=75");
+putenv('BCRF_ROOST_POS_DISPATCH_ENABLED=1');
+putenv('BCRF_ROOST_POS_ACTIVATION_APPROVED=1');
+try {
+    rr_expect(bcrf_roost_pos_dispatch_once($pdo)==='dead_lettered',
+        'Runner failed to recover an expired final lease.');
+    rr_expect(bcrf_roost_pos_dispatch_once($pdo)==='empty',
+        'Runner recovered exhausted event more than once.');
+} finally {
+    putenv('BCRF_ROOST_POS_DISPATCH_ENABLED=0');
+    putenv('BCRF_ROOST_POS_ACTIVATION_APPROVED=0');
+}
+rr_expect($pdo->query("SELECT status FROM reward_pos_outbox WHERE source_id=75")->fetchColumn()==='dead',
+    'Runner recovery did not persist dead-letter state.');
 echo "POS outbox worker state machine and final lease recovery passed.\\n";
