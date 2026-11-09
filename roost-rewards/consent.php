@@ -27,7 +27,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     elseif (!$verified) $error='Verify your account email first.';
     elseif (!csrf_verify($_POST['csrf_token'] ?? null)) $error='Your session expired. Please try again.';
     elseif ($purpose==='') $error='Select a consent purpose.';
-    elseif (bcrf_rl_dir()==='' || bcrf_rl_hit('roost_consent_account',(string)current_user_id(),8,3600))
+    elseif (bcrf_rl_dir()==='' || bcrf_rl_hit('roost_consent_ip',bcrf_rl_ip(),24,3600)
+        || bcrf_rl_hit('roost_consent_account',(string)current_user_id(),8,3600))
         $error='Too many attempts. Please try again later.';
     elseif (($_POST['policy_version'] ?? '')!==$config['version'])
         $error='The policy changed. Please review the current policy.';
