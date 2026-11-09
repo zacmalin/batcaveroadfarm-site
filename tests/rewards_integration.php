@@ -121,6 +121,32 @@ try {
     throw new RuntimeException('Non-manager invitation unexpectedly succeeded.');
 } catch (DomainException $expected) {}
 
+require_once __DIR__ . '/../includes/roost-household-invitation-acceptance.php';
+$pdo->exec("INSERT INTO customers (id,email,email_verified_at,account_status)
+    VALUES (50,'other.adult@example.test',UTC_TIMESTAMP(),'active'),
+           (51,'wrong.recipient@example.test',UTC_TIMESTAMP(),'active')");
+foreach ([[50,false,true],[50,true,false],[51,true,true]] as $attempt) {
+    try {
+        bcrf_roost_accept_household_invitation($pdo,$invitation['token'],$attempt[0],$attempt[1],$attempt[2]);
+        throw new RuntimeException('Unauthorized invitation acceptance succeeded.');
+    } catch (InvalidArgumentException|DomainException $expected) {}
+}
+$accepted=bcrf_roost_accept_household_invitation($pdo,$invitation['token'],50,true,true);
+if ($accepted!==['accepted'=>true]) throw new RuntimeException('Invitation acceptance failed.');
+$acceptedCheck=$pdo->prepare("SELECT m.role,m.verification_status,m.can_redeem,i.status
+    FROM reward_household_members m JOIN reward_household_invitations i
+      ON i.household_id=m.household_id AND i.accepted_by_customer_id=m.customer_id
+    WHERE m.customer_id=?");
+$acceptedCheck->execute([50]);
+$acceptedRow=$acceptedCheck->fetch(PDO::FETCH_ASSOC);
+if (!$acceptedRow || $acceptedRow['role']!=='adult' || $acceptedRow['verification_status']!=='verified'
+    || (int)$acceptedRow['can_redeem']!==0 || $acceptedRow['status']!=='accepted')
+    throw new RuntimeException('Invitation acceptance membership mismatch.');
+try {
+    bcrf_roost_accept_household_invitation($pdo,$invitation['token'],50,true,true);
+    throw new RuntimeException('Replay of accepted invitation succeeded.');
+} catch (DomainException $expected) {}
+
 require_once __DIR__ . '/../includes/roost-customer-balance.php';
 require_once __DIR__ . '/../includes/roost-customer-history.php';
 require_once __DIR__ . '/../includes/roost-customer-household-summary.php';
