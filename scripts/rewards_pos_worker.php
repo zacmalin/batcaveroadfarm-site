@@ -26,7 +26,7 @@ if ($limit === false) {
     fwrite(STDERR, "Usage: php rewards_pos_worker.php [1..25]\n");
     exit(2);
 }
-$completed=0; $failed=0;
+$completed=0; $failed=0; $deadLettered=0;
 for ($i=0; $i<$limit; $i++) {
     try {
         $result=bcrf_roost_pos_dispatch_once($pdo);
@@ -42,10 +42,11 @@ for ($i=0; $i<$limit; $i++) {
     }
     if ($result==='completed') $completed++;
     elseif ($result==='failed') $failed++;
+    elseif ($result==='dead_lettered') $deadLettered++;
     else {
         fwrite(STDERR, "Unexpected Rewards POS worker outcome.\n");
         exit(1);
     }
 }
-echo "Rewards POS worker: completed=$completed failed=$failed\n";
-exit($failed > 0 ? 1 : 0);
+echo "Rewards POS worker: completed=$completed failed=$failed dead_lettered=$deadLettered\n";
+exit(($failed > 0 || $deadLettered > 0) ? 1 : 0);
