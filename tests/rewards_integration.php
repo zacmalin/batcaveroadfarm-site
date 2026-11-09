@@ -283,6 +283,15 @@ if (!$consentStatus || $consentStatus['status']!=='withdrawn'
 if (bcrf_roost_customer_consent_status($pdo,61,'household_join')!==null)
     throw new RuntimeException('Absent customer consent incorrectly shown.');
 
+// A newer revoked verification must override an older verified row.
+$pdo->exec("INSERT INTO reward_adult_verifications
+    (customer_id,status,method,evidence_reference,verified_by_staff_id,verified_at,revoked_at,created_at)
+    VALUES (60,'revoked','staff_review','superseding-revocation',7,UTC_TIMESTAMP(3),
+            UTC_TIMESTAMP(3),DATE_ADD(UTC_TIMESTAMP(3),INTERVAL 1 SECOND))");
+bcrf_roost_record_customer_consent($pdo,60,'rewards_enrollment','test-1',true);
+if (bcrf_roost_verified_adult_with_consent($pdo,60,'rewards_enrollment'))
+    throw new RuntimeException('Superseding adult revocation was ignored.');
+
 require_once __DIR__ . '/../includes/roost-customer-balance.php';
 require_once __DIR__ . '/../includes/roost-customer-history.php';
 require_once __DIR__ . '/../includes/roost-customer-household-summary.php';
