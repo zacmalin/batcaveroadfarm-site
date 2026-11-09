@@ -87,6 +87,34 @@ try {
     if ($expected->getCode()!=='23000' && $expected->getCode()!=='HY000') throw $expected;
 }
 
+// Request intake requires an explicitly approved catalog entry; it never spends points.
+require_once __DIR__.'/../includes/roost-redemption-request.php';
+try {
+    bcrf_roost_request_redemption($pdo,1,1,1,250,'test-only-benefit','request-integration-0001');
+    throw new RuntimeException('Unapproved benefit accepted.');
+} catch (BcrfRewardError $expected) {
+    if ($expected->getMessage()==='Unapproved benefit accepted.') throw $expected;
+}
+$pdo->exec("INSERT INTO reward_redemption_benefits
+    (code,tier_points,title,status,approved_by_staff_id,approved_at,created_at,updated_at)
+    VALUES ('test-only-benefit',250,'Integration fixture','active',7,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
+$pdo->exec("UPDATE reward_accounts SET balance_points=300 WHERE household_id=1");
+$request=bcrf_roost_request_redemption($pdo,1,1,1,250,'test-only-benefit','request-integration-0001');
+if ($request['replayed'] || $request['status']!=='requested')
+    throw new RuntimeException('Redemption request not created.');
+$retry=bcrf_roost_request_redemption($pdo,1,1,1,250,'test-only-benefit','request-integration-0001');
+if (!$retry['replayed'] || $retry['id']!==$request['id'])
+    throw new RuntimeException('Redemption request retry not idempotent.');
+try {
+    bcrf_roost_request_redemption($pdo,1,1,1,500,'test-only-benefit','request-integration-0001');
+    throw new RuntimeException('Conflicting redemption request token accepted.');
+} catch (BcrfRewardError $expected) {
+    if ($expected->getMessage()==='Conflicting redemption request token accepted.') throw $expected;
+}
+if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==300)
+    throw new RuntimeException('Request intake deducted points.');
+$pdo->exec("UPDATE reward_accounts SET balance_points=0 WHERE household_id=1");
+
 // Reserve fixture household IDs 2 onward for existing ledger tests.
 $pdo->exec('ALTER TABLE reward_households AUTO_INCREMENT=100');
 (require __DIR__ . '/../admin/migrations/0022_roost_household_invitations.php')($pdo);
