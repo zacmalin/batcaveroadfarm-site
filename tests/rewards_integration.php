@@ -73,6 +73,13 @@ require_once __DIR__ . '/../includes/roost-household-invitations.php';
 require_once __DIR__ . '/../includes/roost-verification-consent.php';
 require_once __DIR__ . '/../includes/roost-household-enrollment.php';
 require_once __DIR__ . '/../includes/roost-staff-adult-verification.php';
+require_once __DIR__ . '/../includes/roost-staff-verification-access.php';
+foreach ([['administrator',true,true],['administrator',false,false],['Staff',true,false],
+    ['Shopkeep',true,false],['moderator',true,false],['user',true,false],['',true,false]] as $case) {
+    if (bcrf_roost_staff_verification_access($case[0],$case[1])!==$case[2])
+        throw new RuntimeException('Adult verification staff authorization mismatch.');
+}
+
 try {
     bcrf_roost_record_staff_adult_verification($pdo,40,7,'self_attested','bad');
     throw new RuntimeException('Unapproved adult verification method accepted.');
