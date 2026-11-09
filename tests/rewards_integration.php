@@ -113,6 +113,18 @@ try {
 }
 if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==300)
     throw new RuntimeException('Request intake deducted points.');
+require_once __DIR__.'/../includes/roost-redemption-review.php';
+$review=bcrf_roost_review_redemption($pdo,$request['id'],7,'approved');
+if ($review['status']!=='approved' || $review['replayed'])
+    throw new RuntimeException('Staff review did not approve redemption.');
+$reviewRetry=bcrf_roost_review_redemption($pdo,$request['id'],7,'approved');
+if (!$reviewRetry['replayed']) throw new RuntimeException('Staff approval retry not idempotent.');
+try {
+    bcrf_roost_review_redemption($pdo,$request['id'],7,'rejected');
+    throw new RuntimeException('Approved redemption was subsequently rejected.');
+} catch (BcrfRewardError $expected) {
+    if ($expected->getMessage()==='Approved redemption was subsequently rejected.') throw $expected;
+}
 $pdo->exec("UPDATE reward_accounts SET balance_points=0 WHERE household_id=1");
 
 // Reserve fixture household IDs 2 onward for existing ledger tests.
