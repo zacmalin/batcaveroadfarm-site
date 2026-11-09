@@ -61,6 +61,10 @@ if ($registry===false || $controller===false || $view===false || $access===false
     !str_contains($access, "\$role === 'administrator'") ||
     !str_contains($view, 'Mailbox integration and delivery-failure records are not connected.') ||
     str_contains($view, '\$_POST') ||
-    str_contains($view, 'bcrf_roost_email_record_suppression('))
+    str_contains($view, 'bcrf_roost_email_record_suppression(') ||
+    !str_contains($view, "'DEMO-ONLY-001'") ||
+    !str_contains($view, "'provenance_verified' => false") ||
+    !str_contains($view, "'recipient_correlated' => false") ||
+    !str_contains($view, 'bcrf_roost_delivery_review_admin_preview'))
     throw new RuntimeException('Admin delivery-review preview must remain gated, read-only and disconnected.');
 echo "Offline rewards release safety audit passed.\\n";
