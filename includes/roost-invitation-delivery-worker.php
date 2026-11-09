@@ -44,6 +44,9 @@ function bcrf_roost_run_invitation_delivery_once(PDO $pdo,array $config,callable
             bcrf_roost_complete_invitation_delivery($pdo,$id,$claimToken,'suppressed');
             return 'suppressed';
         }
+        // Commit a durable no-auto-retry boundary before any external send.
+        if (!bcrf_roost_mark_invitation_dispatch_started($pdo,$id,$claimToken))
+            throw new RuntimeException('Unable to mark invitation dispatch boundary.');
         // The callback may have sent before throwing; never retry an ambiguous outcome.
         $accepted=$transport($payload['recipient'],$message);
         if ($accepted!==true) {
