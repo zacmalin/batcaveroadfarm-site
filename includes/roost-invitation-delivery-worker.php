@@ -14,6 +14,9 @@ function bcrf_roost_run_invitation_delivery_once(PDO $pdo,array $config,callable
         throw new InvalidArgumentException('Invitation delivery encryption key required.');
     $baseUrl=$config['base_url']??'';
     if (!is_string($baseUrl)) throw new InvalidArgumentException('Official farm URL required.');
+    // Validate URL/host before claiming a job. A configuration error must not
+    // consume an attempt or move a queued invitation to failed.
+    bcrf_roost_household_invitation_email(str_repeat('0',64),$baseUrl);
     $claim=bcrf_roost_claim_invitation_delivery($pdo);
     if ($claim===null) return 'empty';
     $id=$claim['id']; $claimToken=$claim['claim_token'];
