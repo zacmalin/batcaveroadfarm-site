@@ -252,6 +252,28 @@ if (!bcrf_roost_fail_invitation_delivery($pdo,$secondFailureClaim['id'],
 $failureState->execute([$failureClaim['id']]);
 if ($failureState->fetch(PDO::FETCH_ASSOC)['status']!=='failed')
     throw new RuntimeException('Permanent delivery failure was retried.');
+require_once __DIR__.'/../includes/roost-invitation-delivery-worker.php';
+$transportCalled=false;
+if (bcrf_roost_run_invitation_delivery_once($pdo,['enabled'=>false],
+    function () use (&$transportCalled) { $transportCalled=true; return true; })!=='disabled'
+    || $transportCalled)
+    throw new RuntimeException('Disabled invitation worker invoked transport.');
+$workerInvite=bcrf_roost_create_household_invitation($pdo,30,'worker.delivery@example.test',
+    ['key'=>$deliveryKey,'key_id'=>'integration-v1']);
+$workerConfig=['enabled'=>true,'key'=>$deliveryKey,'key_id'=>'integration-v1',
+    'base_url'=>'https://batcaveroadfarm.com'];
+$workerOutcome=bcrf_roost_run_invitation_delivery_once($pdo,$workerConfig,
+    function (string $recipient,array $message) use (&$transportCalled): bool {
+        $transportCalled=true;
+        return $recipient==='worker.delivery@example.test' &&
+            str_contains($message['subject'],'Roost Rewards');
+    });
+if ($workerOutcome!=='sent' || !$transportCalled)
+    throw new RuntimeException('Opt-in worker failed to dispatch test callback.');
+$workerStatus=$pdo->prepare("SELECT status FROM reward_invitation_delivery_outbox WHERE invitation_id=?");
+$workerStatus->execute([$workerInvite['invitation_id']]);
+if ($workerStatus->fetchColumn()!=='sent')
+    throw new RuntimeException('Worker did not acknowledge delivered invitation.');
 $queuedHash=$pdo->prepare("SELECT token_hash FROM reward_household_invitations WHERE id=?");
 $queuedHash->execute([$queuedInvitation['invitation_id']]);
 if ($queuedHash->fetchColumn()!==hash('sha256',$decrypted['token']))
