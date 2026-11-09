@@ -13,6 +13,7 @@ function bcrf_roost_request_redemption(
         !preg_match('/^[a-z][a-z0-9_-]{2,63}$/D',$benefitCode) ||
         !preg_match('/^[A-Za-z0-9_-]{12,64}$/D',$requestToken))
         throw new InvalidArgumentException('Invalid redemption request.');
+    $auth=bcrf_roost_redemption_authorization($pdo,$householdId,$customerId,$tier);
     $pdo->beginTransaction();
     try {
         // Serialize with the household balance and redemption ledger. This
@@ -33,8 +34,7 @@ function bcrf_roost_request_redemption(
             $pdo->commit();
             return ['id'=>(int)$prior['id'],'status'=>$prior['status'],'replayed'=>true];
         }
-        $auth=bcrf_roost_redemption_authorization($pdo,$householdId,$customerId,$tier);
-        if (!$auth['authorized']) throw new BcrfRewardError('Redemption request is not authorized.');
+        if (!$auth['authorized'] || (int)$balance<$tier) throw new BcrfRewardError('Redemption request is not authorized.');
         // No benefit catalog has been approved; reject unconfigured benefits.
         $catalog=$pdo->prepare("SELECT 1 FROM reward_redemption_benefits
             WHERE code=? AND tier_points=? AND status='active' LIMIT 1");
