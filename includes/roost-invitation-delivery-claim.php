@@ -38,3 +38,35 @@ function bcrf_roost_complete_invitation_delivery(PDO $pdo,int $id,string $claimT
     $q->execute([$outcome,$id,$claimToken]);
     return $q->rowCount()===1;
 }
+
+/**
+ * Recover abandoned processing claims. Retry at most three total claims.
+ * This only changes queue state; it never sends mail.
+ */
+function bcrf_roost_recover_invitation_delivery(PDO $pdo,int $staleMinutes=15,int $batchSize=50): int {
+    if ($pdo->inTransaction()) throw new LogicException('Recovery requires its own transaction.');
+    $staleMinutes=max(5,min($staleMinutes,1440));
+    $batchSize=max(1,min($batchSize,100));
+    $pdo->beginTransaction();
+    try {
+        $q=$pdo->query("SELECT id,attempts FROM reward_invitation_delivery_outbox
+            WHERE status='processing' AND claimed_at<DATE_SUB(UTC_TIMESTAMP(3),INTERVAL ".$staleMinutes." MINUTE)
+            ORDER BY claimed_at ASC,id ASC LIMIT ".$batchSize." FOR UPDATE SKIP LOCKED");
+        $rows=$q->fetchAll(PDO::FETCH_ASSOC);
+        $update=$pdo->prepare("UPDATE reward_invitation_delivery_outbox
+            SET status=?,claim_token=NULL,claimed_at=NULL,
+                available_at=DATE_ADD(UTC_TIMESTAMP(3),INTERVAL 5 MINUTE),
+                last_error_code='claim_timeout',updated_at=UTC_TIMESTAMP(3)
+            WHERE id=? AND status='processing'");
+        $count=0;
+        foreach ($rows as $row) {
+            $update->execute([(int)$row['attempts']>=3?'failed':'pending',(int)$row['id']]);
+            $count+=$update->rowCount();
+        }
+        $pdo->commit();
+        return $count;
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $e;
+    }
+}
