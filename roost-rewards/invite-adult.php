@@ -20,8 +20,6 @@ $queued=false;
 $manager=false;
 if ($enabled && $verified) {
     try {
-        require_once __DIR__.'/../includes/roost-manager-invitation-summary.php';
-        $manager=bcrf_roost_manager_invitation_summary($pdo,(int)$customer['id'])!==[];
         // An eligible manager may have no invitation history yet.
         $q=$pdo->prepare("SELECT 1 FROM reward_household_members m
             JOIN reward_households h ON h.id=m.household_id AND h.status='active'
