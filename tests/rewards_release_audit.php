@@ -182,6 +182,24 @@ if ($dashboard===false ||
     !str_contains($dashboard, '/roost-rewards/accept-invitation.php') ||
     !str_contains($dashboard, 'Redemption is not available yet.'))
     throw new RuntimeException('Dashboard onboarding links must follow dormant feature gates.');
+
+/* Monitoring is aggregate-only, admin-only and never starts email delivery. */
+$monitor=file_get_contents($root.'/includes/roost-invitation-delivery-monitor.php');
+$dashboardView=file_get_contents($root.'/admin/views/dashboard.php');
+if ($monitor===false || $dashboardView===false ||
+    !str_contains($monitor, 'COUNT(*) AS total') ||
+    !str_contains($monitor, 'GROUP BY status') ||
+    !str_contains($dashboardView, "if (\$isAdmin)") ||
+    !str_contains($dashboardView, 'bcrf_roost_invitation_delivery_metrics($pdo)') ||
+    !str_contains($dashboardView, "TABLE_NAME='reward_invitation_delivery_outbox'") ||
+    str_contains($monitor, 'payload_ciphertext') ||
+    str_contains($monitor, 'invitee_email') ||
+    str_contains($monitor, 'claim_token') ||
+    str_contains($monitor, 'payload_nonce') ||
+    str_contains($monitor, 'payload_tag') ||
+    str_contains($dashboardView, 'bcrf_roost_run_invitation_delivery_once('))
+    throw new RuntimeException('Roost delivery dashboard must remain aggregate-only, admin-only and inert.');
+
 echo "Offline rewards release safety audit passed.\\n";
 
 /* Invitation SMTP must never silently fall back to PHP mail(). */
