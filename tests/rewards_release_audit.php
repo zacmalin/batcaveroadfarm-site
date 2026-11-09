@@ -183,3 +183,12 @@ if ($dashboard===false ||
     !str_contains($dashboard, 'Redemption is not available yet.'))
     throw new RuntimeException('Dashboard onboarding links must follow dormant feature gates.');
 echo "Offline rewards release safety audit passed.\\n";
+
+/* Invitation SMTP must never silently fall back to PHP mail(). */
+$inviteAdapter=file_get_contents($root.'/includes/roost-invitation-delivery-smtp.php');
+$inviteWorker=file_get_contents($root.'/includes/roost-invitation-delivery-worker.php');
+if ($inviteAdapter===false || $inviteWorker===false ||
+    !str_contains($inviteAdapter, "'smtp_enabled'") ||
+    !str_contains($inviteAdapter, "'transport'=>'smtp_required'") ||
+    !str_contains($inviteWorker, "bcrf_roost_mark_invitation_dispatch_started("))
+    throw new RuntimeException('Invitation SMTP strict transport or dispatch boundary missing.');
