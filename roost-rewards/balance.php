@@ -19,8 +19,13 @@ $history = [];
 $householdSummary = null;
 $redemptionTiers = [];
 $invitationSummary = [];
+$consentStatuses = [];
 if ($verified) {
     try {
+        require_once __DIR__.'/../includes/roost-customer-consent-status.php';
+        foreach (['rewards_enrollment','household_join'] as $purpose) {
+            $consentStatuses[$purpose] = bcrf_roost_customer_consent_status($pdo,(int)$customer['id'],$purpose);
+        }
         require_once __DIR__.'/../includes/roost-customer-balance.php';
         $balance = bcrf_roost_customer_balance($pdo, (int)$customer['id']);
         require_once __DIR__.'/../includes/roost-customer-history.php';
@@ -82,6 +87,11 @@ include __DIR__.'/../includes/header.php';
 <li><strong><?= number_format($tier['points']) ?> points:</strong> <?= $tier['available'] ? 'Points threshold met' : number_format($tier['points_needed']).' more points needed' ?></li>
 <?php endforeach; ?>
 </ul>
+<h2>Rewards consent history</h2>
+<p>These records show your latest decisions. Changing consent and household membership are not available on this page.</p>
+<ul><?php foreach (['rewards_enrollment'=>'Rewards enrollment','household_join'=>'Household joining'] as $purpose=>$label): ?>
+<li><?= htmlspecialchars($label,ENT_QUOTES,'UTF-8') ?>: <?= isset($consentStatuses[$purpose]) && $consentStatuses[$purpose] !== null ? htmlspecialchars(ucfirst($consentStatuses[$purpose]['status']),ENT_QUOTES,'UTF-8') . ' (' . htmlspecialchars(substr($consentStatuses[$purpose]['created_at'],0,10),ENT_QUOTES,'UTF-8') . ' UTC)' : 'No decision recorded' ?></li>
+<?php endforeach; ?></ul>
 <h2>Recent points activity</h2>
 <?php if (!$history): ?><p>No points activity recorded yet.</p>
 <?php else: ?><table><caption>Most recent household points entries</caption><thead><tr><th scope="col">Date (UTC)</th><th scope="col">Activity</th><th scope="col">Points</th></tr></thead><tbody>
