@@ -239,4 +239,11 @@ if ($redeemAuth===false ||
     str_contains($redeemAuth, "bcrf_reward_post("))
     throw new RuntimeException('Redemption authorization must remain permission-scoped and read-only.');
 
+$settlement=file_get_contents($root.'/includes/roost-redemption-settlement.php');
+if ($settlement===false ||
+    !str_contains($settlement,'fulfillmentVerified') ||
+    !str_contains($settlement,'bcrf_reward_post(') ||
+    !str_contains($settlement,"'idempotency_key'=>'roost:redeem:'") ||
+    !str_contains($settlement,"'source_type'=>'reward_fulfillment'"))
+    throw new RuntimeException('Redemption settlement missing verified fulfillment or idempotency safeguards.');
 echo "Offline rewards release safety audit passed.\\n";
