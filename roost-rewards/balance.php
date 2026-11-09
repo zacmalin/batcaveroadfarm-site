@@ -20,6 +20,8 @@ $householdSummary = null;
 $redemptionTiers = [];
 $invitationSummary = [];
 $consentStatuses = [];
+$enrollmentOpen = getenv('BCRF_ROOST_ENROLLMENT_ENABLED')==='1';
+$joiningOpen = getenv('BCRF_ROOST_INVITATION_ACCEPTANCE_ENABLED')==='1';
 if ($verified) {
     try {
         require_once __DIR__.'/../includes/roost-customer-consent-status.php';
@@ -59,7 +61,7 @@ include __DIR__.'/../includes/header.php';
 <?php elseif ($unavailable): ?>
 <p>Rewards balances are not available yet. No points have been changed.</p>
 <?php elseif ($balance === null): ?>
-<p>You do not have an active, verified adult Rewards household membership yet. Enrollment is not open.</p>
+<p>You do not have an active, verified adult Rewards household membership yet. <?= $enrollmentOpen ? 'You may <a href="/roost-rewards/enroll.php">request enrollment</a> after staff verification and consent.' : 'Enrollment is not open.' ?></p>
 <?php else: ?>
 <section aria-label="Household points summary">
 <h2>Household points</h2>
@@ -67,13 +69,13 @@ include __DIR__.'/../includes/header.php';
 <p>Lifetime earned: <?= number_format($balance['lifetime_earned']) ?> points</p>
 <p>Lifetime redeemed: <?= number_format($balance['lifetime_redeemed']) ?> points</p>
 <p>Last qualifying activity: <?= $balance['last_qualifying_activity_at'] === null ? 'Not yet recorded' : htmlspecialchars(substr((string)$balance['last_qualifying_activity_at'],0,10),ENT_QUOTES,'UTF-8').' (UTC)' ?></p>
-<p>Redemption and enrollment are not available yet.</p>
+<p>Redemption is not available yet. <?= $enrollmentOpen ? 'Eligible verified adults can <a href="/roost-rewards/enroll.php">request enrollment</a>.' : 'New enrollment is not open.' ?></p>
 <?php if ($householdSummary !== null): ?>
 <h2>Household membership</h2>
 <p>Your role: <?= $householdSummary['role'] === 'manager' ? 'Household manager' : 'Verified adult' ?></p>
 <p>Verified members: <?= number_format($householdSummary['verified_members']) ?></p>
 <p>Pending verifications: <?= number_format($householdSummary['pending_members']) ?></p>
-<p>Sending invitations and changing membership are not available yet.</p>
+<p>Sending new invitations and changing existing membership are not available on this page. <?= $joiningOpen ? 'Invited verified adults may <a href="/roost-rewards/accept-invitation.php">accept an invitation</a> after recording household-join consent.' : 'Invitation acceptance is not open.' ?></p>
 <?php if ($householdSummary['role'] === 'manager'): ?>
 <h3>Recent household invitations</h3>
 <?php if (!$invitationSummary): ?><p>No invitations recorded.</p>
