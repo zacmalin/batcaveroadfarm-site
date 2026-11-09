@@ -335,6 +335,66 @@ putenv('BCRF_ROOST_CONSENT_FORMS_ENABLED');
 putenv('BCRF_ROOST_CONSENT_POLICY_VERSION');
 putenv('BCRF_ROOST_CONSENT_POLICY_URL');
 
+// Full customer journey using real services and disposable database fixtures:
+// staff evidence -> separate consent -> enrollment -> invitation -> adult join
+// -> shared household visibility. No production data or external emails.
+require_once __DIR__ . '/../includes/roost-customer-consent-recording.php';
+require_once __DIR__ . '/../includes/roost-customer-invitation-preview.php';
+require_once __DIR__ . '/../includes/roost-household-invitation-acceptance.php';
+$pdo->exec("INSERT INTO customers (id,email,email_verified_at,account_status)
+    VALUES (80,'journey-manager@example.test',UTC_TIMESTAMP(),'active'),
+           (81,'journey-invitee@example.test',UTC_TIMESTAMP(),'active')");
+$journeyManagerVerification=bcrf_roost_record_staff_adult_verification(
+    $pdo,80,7,'staff_review','journey-manager-80');
+if ($journeyManagerVerification<=0) throw new RuntimeException('Journey manager adult verification failed.');
+$journeyManagerConsent=bcrf_roost_record_customer_consent($pdo,80,'rewards_enrollment','test-1',true);
+if ($journeyManagerConsent<=0) throw new RuntimeException('Journey manager consent not recorded.');
+$journeyHousehold=bcrf_roost_enroll_verified_adult($pdo,80,true,true);
+$journeyId=(int)$journeyHousehold['household_id'];
+if ($journeyId<=0 || $journeyHousehold['balance_points']!==0)
+    throw new RuntimeException('Journey household not initialized with zero points.');
+$journeyInvite=bcrf_roost_create_household_invitation($pdo,80,'journey-invitee@example.test');
+$journeyPreview=bcrf_roost_customer_invitation_preview($pdo,81,$journeyInvite['token']);
+if (!$journeyPreview || $journeyPreview['invitation_id']!==$journeyInvite['invitation_id'])
+    throw new RuntimeException('Journey invitee cannot preview own invitation.');
+if (bcrf_roost_customer_invitation_preview($pdo,80,$journeyInvite['token'])!==null)
+    throw new RuntimeException('Journey manager could preview another recipient invitation.');
+try {
+    bcrf_roost_accept_household_invitation($pdo,$journeyInvite['token'],81,true,true);
+    throw new RuntimeException('Journey invitation accepted without verified adult evidence and consent.');
+} catch (DomainException $expected) {}
+bcrf_roost_record_staff_adult_verification($pdo,81,7,'in_person_id_check','journey-invitee-81');
+try {
+    bcrf_roost_accept_household_invitation($pdo,$journeyInvite['token'],81,true,true);
+    throw new RuntimeException('Journey invitation accepted without household join consent.');
+} catch (DomainException $expected) {}
+bcrf_roost_record_customer_consent($pdo,81,'household_join','test-1',true);
+$journeyAccepted=bcrf_roost_accept_household_invitation($pdo,$journeyInvite['token'],81,true,true);
+if ($journeyAccepted!==['accepted'=>true])
+    throw new RuntimeException('Journey invitation acceptance failed.');
+$journeyBalanceManager=bcrf_roost_customer_balance($pdo,80);
+$journeyBalanceInvitee=bcrf_roost_customer_balance($pdo,81);
+if (!$journeyBalanceManager || !$journeyBalanceInvitee ||
+    $journeyBalanceManager['balance_points']!==0 ||
+    $journeyBalanceInvitee['balance_points']!==0)
+    throw new RuntimeException('Journey household balance not visible to both verified adults.');
+$journeySummaryManager=bcrf_roost_customer_household_summary($pdo,80);
+$journeySummaryInvitee=bcrf_roost_customer_household_summary($pdo,81);
+if (!$journeySummaryManager || !$journeySummaryInvitee ||
+    $journeySummaryManager['role']!=='manager' ||
+    $journeySummaryInvitee['role']!=='adult' ||
+    $journeySummaryManager['verified_members']!==2 ||
+    $journeySummaryInvitee['verified_members']!==2)
+    throw new RuntimeException('Journey household roles or shared member count incorrect.');
+$journeyAccess=$pdo->prepare("SELECT can_redeem FROM reward_household_members WHERE customer_id=?");
+$journeyAccess->execute([81]);
+if ((int)$journeyAccess->fetchColumn()!==0)
+    throw new RuntimeException('Journey invitee received unauthorized redemption rights.');
+try {
+    bcrf_roost_accept_household_invitation($pdo,$journeyInvite['token'],81,true,true);
+    throw new RuntimeException('Journey invitation replay succeeded.');
+} catch (DomainException $expected) {}
+
 require_once __DIR__ . '/../includes/roost-customer-balance.php';
 require_once __DIR__ . '/../includes/roost-customer-history.php';
 require_once __DIR__ . '/../includes/roost-customer-household-summary.php';
