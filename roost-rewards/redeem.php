@@ -30,11 +30,11 @@ if ($enabled && $verified) {
             $householdId=(int)$member['household_id'];
             $balance=(int)$member['balance_points'];
             $p=$pdo->query("SELECT id FROM reward_policies
-                WHERE status='active' AND effective_at<=UTC_TIMESTAMP(3)
+                WHERE status='active' AND (effective_at IS NULL OR effective_at<=UTC_TIMESTAMP(3))
                 ORDER BY effective_at DESC,id DESC LIMIT 1");
             $policyId=(int)$p->fetchColumn();
             $benefits=$pdo->query("SELECT code,title,description,tier_points
-                FROM reward_redemption_benefits WHERE status='active'
+                FROM reward_redemption_benefits WHERE status='active' AND fulfillment_type='internal_voucher'
                 ORDER BY tier_points,code")->fetchAll(PDO::FETCH_ASSOC);
             $h=$pdo->prepare("SELECT r.id,r.tier_points,r.status,r.requested_at,b.title
                 FROM reward_redemption_requests r
@@ -70,6 +70,13 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             bcrf_roost_request_redemption($pdo,$householdId,(int)$customer['id'],
                 $policyId,(int)$selected['tier_points'],$code,$token);
             $success=true;
+            $h=$pdo->prepare("SELECT r.id,r.tier_points,r.status,r.requested_at,b.title
+                FROM reward_redemption_requests r
+                LEFT JOIN reward_redemption_benefits b ON b.code=r.benefit_code
+                WHERE r.household_id=? AND r.customer_id=?
+                ORDER BY r.id DESC LIMIT 20");
+            $h->execute([$householdId,(int)$customer['id']]);
+            $history=$h->fetchAll(PDO::FETCH_ASSOC);
         } catch (Throwable $e) {
             error_log('[Roost redemption request rejected] '.get_class($e));
             $error='Request could not be accepted. Check eligibility and available points.';
