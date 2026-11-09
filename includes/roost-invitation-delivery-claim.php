@@ -49,7 +49,7 @@ function bcrf_roost_recover_invitation_delivery(PDO $pdo,int $staleMinutes=15,in
     $batchSize=max(1,min($batchSize,100));
     $pdo->beginTransaction();
     try {
-        $q=$pdo->query("SELECT id,attempts FROM reward_invitation_delivery_outbox
+        $q=$pdo->query("SELECT id,attempts,dispatch_started_at FROM reward_invitation_delivery_outbox
             WHERE status='processing' AND claimed_at<DATE_SUB(UTC_TIMESTAMP(3),INTERVAL ".$staleMinutes." MINUTE)
             ORDER BY claimed_at ASC,id ASC LIMIT ".$batchSize." FOR UPDATE SKIP LOCKED");
         $rows=$q->fetchAll(PDO::FETCH_ASSOC);
@@ -60,7 +60,7 @@ function bcrf_roost_recover_invitation_delivery(PDO $pdo,int $staleMinutes=15,in
             WHERE id=? AND status='processing'");
         $count=0;
         foreach ($rows as $row) {
-            $update->execute([(int)$row['attempts']>=3?'failed':'pending',(int)$row['id']]);
+            $update->execute([$row['dispatch_started_at']!==null || (int)$row['attempts']>=3?'failed':'pending',(int)$row['id']]);
             $count+=$update->rowCount();
         }
         $pdo->commit();
@@ -105,4 +105,19 @@ function bcrf_roost_fail_invitation_delivery(PDO $pdo,int $id,string $claimToken
         if ($pdo->inTransaction()) $pdo->rollBack();
         throw $e;
     }
+}
+
+/**
+ * Durable boundary before invoking external transport. Once set, a crashed
+ * worker is never automatically retried because SMTP outcome may be unknown.
+ */
+function bcrf_roost_mark_invitation_dispatch_started(PDO $pdo,int $id,string $claimToken): bool {
+    if ($id<1 || !preg_match('/^[a-f0-9]{64}$/D',$claimToken))
+        throw new InvalidArgumentException('Valid delivery claim required.');
+    $q=$pdo->prepare("UPDATE reward_invitation_delivery_outbox
+        SET dispatch_started_at=UTC_TIMESTAMP(3),updated_at=UTC_TIMESTAMP(3)
+        WHERE id=? AND claim_token=? AND status='processing'
+          AND dispatch_started_at IS NULL");
+    $q->execute([$id,$claimToken]);
+    return $q->rowCount()===1;
 }
