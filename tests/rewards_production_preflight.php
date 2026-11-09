@@ -62,6 +62,8 @@ try {
         'reward_refund_processing','reward_pos_outbox','reward_email_outbox',
         'reward_email_suppressions','reward_household_invitations',
         'reward_adult_verifications','reward_consent_events',
+        'reward_invitation_delivery_outbox','reward_redemption_benefits',
+        'reward_redemption_requests',
     ];
     $presentRewardsTables = [];
     foreach ($plannedRewardsTables as $table) {
