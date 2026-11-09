@@ -72,6 +72,24 @@ require_once __DIR__ . '/../includes/roost-household-invitations.php';
 (require __DIR__ . '/../admin/migrations/0023_roost_verification_consent.php')($pdo);
 require_once __DIR__ . '/../includes/roost-verification-consent.php';
 require_once __DIR__ . '/../includes/roost-household-enrollment.php';
+require_once __DIR__ . '/../includes/roost-staff-adult-verification.php';
+try {
+    bcrf_roost_record_staff_adult_verification($pdo,40,7,'self_attested','bad');
+    throw new RuntimeException('Unapproved adult verification method accepted.');
+} catch (InvalidArgumentException $expected) {}
+try {
+    bcrf_roost_record_staff_adult_verification($pdo,40,7,'staff_review','unverified-email');
+    throw new RuntimeException('Unverified customer email accepted for adult verification.');
+} catch (DomainException $expected) {}
+$pdo->exec("INSERT INTO customers (id,email,email_verified_at,account_status)
+    VALUES (41,'staff-reviewed@example.test',UTC_TIMESTAMP(),'active')");
+$staffVerificationId=bcrf_roost_record_staff_adult_verification($pdo,41,7,'staff_review','test-staff-review');
+if ($staffVerificationId<=0) throw new RuntimeException('Staff verification evidence not recorded.');
+try {
+    bcrf_roost_record_staff_adult_verification($pdo,41,7,'staff_review','duplicate');
+    throw new RuntimeException('Duplicate active adult verification accepted.');
+} catch (DomainException $expected) {}
+
 require_once __DIR__ . '/../includes/roost-redemption-tier-preview.php';
 foreach ([[-5,[false,false,false,false]],[0,[false,false,false,false]],[249,[false,false,false,false]],[250,[true,false,false,false]],[500,[true,true,false,false]],[2000,[true,true,true,true]]] as $case) {
     $tiers=bcrf_roost_redemption_tier_preview($case[0]);
