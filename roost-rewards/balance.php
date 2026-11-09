@@ -18,6 +18,7 @@ $unavailable = false;
 $history = [];
 $householdSummary = null;
 $redemptionTiers = [];
+$invitationSummary = [];
 if ($verified) {
     try {
         require_once __DIR__.'/../includes/roost-customer-balance.php';
@@ -27,6 +28,10 @@ if ($verified) {
             $history = bcrf_roost_customer_history($pdo, (int)$customer['id']);
             require_once __DIR__.'/../includes/roost-customer-household-summary.php';
             $householdSummary = bcrf_roost_customer_household_summary($pdo, (int)$customer['id']);
+            if ($householdSummary !== null && $householdSummary['role'] === 'manager') {
+                require_once __DIR__.'/../includes/roost-manager-invitation-summary.php';
+                $invitationSummary = bcrf_roost_manager_invitation_summary($pdo, (int)$customer['id']);
+            }
             require_once __DIR__.'/../includes/roost-redemption-tier-preview.php';
             $redemptionTiers = bcrf_roost_redemption_tier_preview($balance['balance_points']);
         }
@@ -63,7 +68,12 @@ include __DIR__.'/../includes/header.php';
 <p>Your role: <?= $householdSummary['role'] === 'manager' ? 'Household manager' : 'Verified adult' ?></p>
 <p>Verified members: <?= number_format($householdSummary['verified_members']) ?></p>
 <p>Pending verifications: <?= number_format($householdSummary['pending_members']) ?></p>
-<p>Invitations and membership changes are not available yet.</p>
+<p>Sending invitations and changing membership are not available yet.</p>
+<?php if ($householdSummary['role'] === 'manager'): ?>
+<h3>Recent household invitations</h3>
+<?php if (!$invitationSummary): ?><p>No invitations recorded.</p>
+<?php else: ?><ul><?php foreach ($invitationSummary as $invite): ?><li>Invitation #<?= (int)$invite['id'] ?>: <?= htmlspecialchars(ucfirst($invite['display_status']),ENT_QUOTES,'UTF-8') ?> (created <?= htmlspecialchars(substr($invite['created_at'],0,10),ENT_QUOTES,'UTF-8') ?> UTC)</li><?php endforeach; ?></ul><?php endif; ?>
+<?php endif; ?>
 <?php endif; ?>
 <h2>Planned redemption tiers</h2>
 <p>Tier benefits are still being finalized. No redemptions can be submitted yet.</p>
