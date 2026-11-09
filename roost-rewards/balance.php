@@ -22,6 +22,7 @@ $invitationSummary = [];
 $consentStatuses = [];
 $enrollmentOpen = getenv('BCRF_ROOST_ENROLLMENT_ENABLED')==='1';
 $joiningOpen = getenv('BCRF_ROOST_INVITATION_ACCEPTANCE_ENABLED')==='1';
+$revocationOpen = getenv('BCRF_ROOST_INVITATION_REVOCATION_ENABLED')==='1';
 if ($verified) {
     try {
         require_once __DIR__.'/../includes/roost-customer-consent-status.php';
@@ -78,6 +79,7 @@ include __DIR__.'/../includes/header.php';
 <p>Sending new invitations and changing existing membership are not available on this page. <?= $joiningOpen ? 'Invited verified adults may <a href="/roost-rewards/accept-invitation.php">accept an invitation</a> after recording household-join consent.' : 'Invitation acceptance is not open.' ?></p>
 <?php if ($householdSummary['role'] === 'manager'): ?>
 <h3>Recent household invitations</h3>
+<?php if ($revocationOpen): ?><p><a href="/roost-rewards/revoke-invitation.php">Revoke a pending invitation</a></p><?php endif; ?>
 <?php if (!$invitationSummary): ?><p>No invitations recorded.</p>
 <?php else: ?><ul><?php foreach ($invitationSummary as $invite): ?><li>Invitation #<?= (int)$invite['id'] ?>: <?= htmlspecialchars(ucfirst($invite['display_status']),ENT_QUOTES,'UTF-8') ?> (created <?= htmlspecialchars(substr($invite['created_at'],0,10),ENT_QUOTES,'UTF-8') ?> UTC)</li><?php endforeach; ?></ul><?php endif; ?>
 <?php endif; ?>
