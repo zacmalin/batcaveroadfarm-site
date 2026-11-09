@@ -36,7 +36,7 @@ if ($enabled && $verified) {
             $benefits=$pdo->query("SELECT code,title,description,tier_points
                 FROM reward_redemption_benefits WHERE status='active' AND fulfillment_type='internal_voucher'
                 ORDER BY tier_points,code")->fetchAll(PDO::FETCH_ASSOC);
-            $h=$pdo->prepare("SELECT r.id,r.tier_points,r.status,r.requested_at,b.title
+            $h=$pdo->prepare("SELECT r.id,r.tier_points,r.status,r.requested_at,r.fulfillment_receipt,b.title
                 FROM reward_redemption_requests r
                 LEFT JOIN reward_redemption_benefits b ON b.code=r.benefit_code
                 WHERE r.household_id=? AND r.customer_id=?
@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             bcrf_roost_request_redemption($pdo,$householdId,(int)$customer['id'],
                 $policyId,(int)$selected['tier_points'],$code,$token);
             $success=true;
-            $h=$pdo->prepare("SELECT r.id,r.tier_points,r.status,r.requested_at,b.title
+            $h=$pdo->prepare("SELECT r.id,r.tier_points,r.status,r.requested_at,r.fulfillment_receipt,b.title
                 FROM reward_redemption_requests r
                 LEFT JOIN reward_redemption_benefits b ON b.code=r.benefit_code
                 WHERE r.household_id=? AND r.customer_id=?
@@ -122,7 +122,10 @@ include __DIR__.'/../includes/header.php';
 <ul><?php foreach ($history as $item): ?>
 <li><?= htmlspecialchars($item['title']??'Reward',ENT_QUOTES,'UTF-8') ?>:
 <?= number_format((int)$item['tier_points']) ?> points,
-<?= htmlspecialchars($item['status'],ENT_QUOTES,'UTF-8') ?></li>
+<?= htmlspecialchars($item['status'],ENT_QUOTES,'UTF-8') ?>
+<?php if ($item['status']==='fulfilled' && !empty($item['fulfillment_receipt'])): ?>
+— Voucher receipt: <code><?= htmlspecialchars($item['fulfillment_receipt'],ENT_QUOTES,'UTF-8') ?></code>
+<?php endif; ?></li>
 <?php endforeach; ?></ul>
 <?php endif; ?>
 <?php endif; ?>
