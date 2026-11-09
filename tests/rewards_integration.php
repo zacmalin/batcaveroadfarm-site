@@ -1551,4 +1551,20 @@ try {
 }
 if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==1250)
     throw new RuntimeException('Rejected redemption changed balance.');
+$pdo->exec("UPDATE reward_household_members SET can_redeem=1 WHERE household_id=1 AND customer_id=1");
+$pdo->exec("UPDATE customers SET email_verified_at=NULL WHERE id=1");
+try {
+    bcrf_reward_post($pdo,[
+        'household_id'=>1,'customer_id'=>1,'policy_id'=>1,'entry_type'=>'redeem',
+        'points_delta'=>-250,'source_type'=>'reward_fulfillment',
+        'source_id'=>'integration_reward_003',
+        'idempotency_key'=>'roost:redeem:integration_reward_003'
+    ]);
+    throw new RuntimeException('Unverified customer posted redemption directly.');
+} catch (BcrfRewardError $expected) {
+    if ($expected->getMessage()==='Unverified customer posted redemption directly.') throw $expected;
+}
+$pdo->exec("UPDATE customers SET email_verified_at=UTC_TIMESTAMP() WHERE id=1");
+if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==1250)
+    throw new RuntimeException('Unverified redemption changed balance.');
 echo "Farm Rewards integration checks passed.\\n";
