@@ -71,7 +71,11 @@ include __DIR__.'/../includes/header.php';
 <p>Lifetime earned: <?= number_format($balance['lifetime_earned']) ?> points</p>
 <p>Lifetime redeemed: <?= number_format($balance['lifetime_redeemed']) ?> points</p>
 <p>Last qualifying activity: <?= $balance['last_qualifying_activity_at'] === null ? 'Not yet recorded' : htmlspecialchars(substr((string)$balance['last_qualifying_activity_at'],0,10),ENT_QUOTES,'UTF-8').' (UTC)' ?></p>
-<p>Redemption is not available yet. <?= $enrollmentOpen ? 'Eligible verified adults can <a href="/roost-rewards/enroll.php">request enrollment</a>.' : 'New enrollment is not open.' ?></p>
+<?php if (getenv('BCRF_ROOST_REDEMPTION_REQUESTS_ENABLED')==='1'): ?>
+<p><a href="/roost-rewards/redeem.php">Browse available rewards and request redemption</a></p>
+<?php else: ?>
+<p>Redemption is not available yet.</p>
+<?php endif; ?>
 <?php if ($householdSummary !== null): ?>
 <h2>Household membership</h2>
 <p>Your role: <?= $householdSummary['role'] === 'manager' ? 'Household manager' : 'Verified adult' ?></p>
