@@ -122,6 +122,30 @@ foreach (['',str_repeat('a',63),str_repeat('g',64),str_repeat('A',64)] as $inval
 $wwwInvite=bcrf_roost_household_invitation_email($testToken,'https://www.batcaveroadfarm.com');
 if (!str_contains($wwwInvite['html'],'https://www.batcaveroadfarm.com/roost-rewards/accept-invitation.php'))
     throw new RuntimeException('Official www invitation URL was not rendered.');
+require_once $root.'/includes/roost-invitation-delivery-crypto.php';
+$cryptoKey=random_bytes(32);
+$secretPayload=json_encode(['recipient'=>'invitee@example.test','token'=>$testToken],JSON_THROW_ON_ERROR);
+$encrypted=bcrf_roost_invite_encrypt($secretPayload,$cryptoKey,'test-key-1');
+if (bcrf_roost_invite_decrypt($encrypted,$cryptoKey,'test-key-1')!==$secretPayload ||
+    str_contains(json_encode($encrypted,JSON_THROW_ON_ERROR),$testToken) ||
+    str_contains(json_encode($encrypted,JSON_THROW_ON_ERROR),'invitee@example.test'))
+    throw new RuntimeException('Invitation encryption round trip or confidentiality failed.');
+foreach (['ciphertext','nonce','tag'] as $field) {
+    $tampered=$encrypted;
+    $tampered[$field]=base64_encode(str_repeat('z',strlen(base64_decode($encrypted[$field],true))));
+    try {
+        bcrf_roost_invite_decrypt($tampered,$cryptoKey,'test-key-1');
+        throw new RuntimeException('Tampered invitation payload was accepted.');
+    } catch (DomainException|InvalidArgumentException $expected) {}
+}
+try {
+    bcrf_roost_invite_decrypt($encrypted,random_bytes(32),'test-key-1');
+    throw new RuntimeException('Wrong invitation encryption key was accepted.');
+} catch (DomainException $expected) {}
+try {
+    bcrf_roost_invite_decrypt($encrypted,$cryptoKey,'other-key');
+    throw new RuntimeException('Wrong invitation encryption key ID was accepted.');
+} catch (InvalidArgumentException $expected) {}
 $inviteMail=file_get_contents($root.'/includes/roost-household-invitation-email.php');
 if ($inviteMail===false ||
     !str_contains($inviteMail, 'smtp_required') ||
