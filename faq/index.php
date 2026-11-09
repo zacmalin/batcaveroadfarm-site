@@ -314,7 +314,7 @@ foreach ($faqSchemaItems as [$question, $answer]) {
                         <button class="faq-question">
                             What earns points? <span class="faq-chevron" aria-hidden="true">▼</span>
                         </button>
-                        <div class="faq-answer">Purchases at the farm stand, petting zoo, thrift shop and kitchen earn points on the amount you pay before tax. Annual passes, gift cards, fees and services don't earn points, and points come off again if a purchase is refunded.</div>
+                        <div class="faq-answer">Purchases at the farm stand, petting zoo, thrift shop and kitchen, and admission tickets bought online, earn points on the amount you pay before tax. Online tickets earn when you use the same email or phone number as your Roost Rewards account. Annual passes, gift cards, fees and services don't earn points, and points come off again if a purchase is refunded.</div>
                     </div>
 
                     <div class="faq-item">

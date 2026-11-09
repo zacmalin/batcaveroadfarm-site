@@ -79,7 +79,8 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
               <h2 id="rewards">Roost Rewards</h2>
               <p>Roost Rewards is free to join. By joining you agree to these terms.</p>
               <ul>
-                <li><strong>Earning:</strong> 5 points for every dollar of eligible purchases made at the farm, counted
+                <li><strong>Earning:</strong> 5 points for every dollar of eligible purchases made at the farm or online admission tickets bought
+                  with your account's email or phone number, counted
                   before tax and after discounts and rounded down once per purchase. Annual passes, gift cards, fees and
                   services don't earn points. You also earn 25 points for a visit, once per account per day.</li>
                 <li><strong>One account per phone number.</strong> Anyone who gives your number at the counter earns into,
