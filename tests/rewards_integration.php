@@ -221,6 +221,16 @@ $pdo->exec("INSERT INTO reward_consent_events
 if (bcrf_roost_verified_adult_with_consent($pdo,50,'household_join'))
     throw new RuntimeException('Withdrawn consent was ignored.');
 
+require_once __DIR__ . '/../includes/roost-manager-invitation-summary.php';
+$managerInvites=bcrf_roost_manager_invitation_summary($pdo,30);
+if (count($managerInvites)<3) throw new RuntimeException('Manager invitation summary incomplete.');
+foreach ($managerInvites as $row) {
+    if (isset($row['token_hash']) || isset($row['invitee_email_hash']))
+        throw new RuntimeException('Invitation summary leaked secret digest.');
+}
+if (bcrf_roost_manager_invitation_summary($pdo,50)!==[])
+    throw new RuntimeException('Non-manager invitation summary exposed.');
+
 require_once __DIR__ . '/../includes/roost-customer-balance.php';
 require_once __DIR__ . '/../includes/roost-customer-history.php';
 require_once __DIR__ . '/../includes/roost-customer-household-summary.php';
