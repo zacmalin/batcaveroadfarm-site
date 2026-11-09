@@ -67,6 +67,11 @@ $pdo->exec("INSERT INTO reward_household_members (household_id,customer_id,role,
 $pdo->exec("INSERT INTO reward_policies (id,version,config_json,status,created_at) VALUES (1,'test-1','{}','active',UTC_TIMESTAMP(3))");
 require_once __DIR__ . '/../includes/roost-customer-balance.php';
 require_once __DIR__ . '/../includes/roost-customer-history.php';
+require_once __DIR__ . '/../includes/roost-customer-household-summary.php';
+$householdSummary=bcrf_roost_customer_household_summary($pdo,1);
+if ($householdSummary!==['role'=>'manager','verified_members'=>2,'pending_members'=>0])
+    throw new RuntimeException('Household summary must contain only role and aggregate counts.');
+
 if (bcrf_roost_customer_history($pdo,1)!==[]) throw new RuntimeException('New household history must be empty.');
 
 $customerBalance=bcrf_roost_customer_balance($pdo,1);
@@ -74,11 +79,15 @@ if (!$customerBalance || $customerBalance['balance_points']!==0 || $customerBala
     throw new RuntimeException('Verified adult cannot read own household points.');
 $pdo->exec("UPDATE customers SET email_verified_at=NULL WHERE id=2");
 if (bcrf_roost_customer_history($pdo,2)!==[]) throw new RuntimeException('Unverified customer could read ledger history.');
+if (bcrf_roost_customer_household_summary($pdo,2)!==null)
+    throw new RuntimeException('Unverified customer could read household summary.');
 if (bcrf_roost_customer_balance($pdo,2)!==null)
     throw new RuntimeException('Unverified customer could read household points.');
 $pdo->exec("UPDATE customers SET email_verified_at=UTC_TIMESTAMP() WHERE id=2");
 $pdo->exec("UPDATE reward_household_members SET verification_status='pending' WHERE customer_id=2");
 if (bcrf_roost_customer_history($pdo,2)!==[]) throw new RuntimeException('Unverified member could read ledger history.');
+if (bcrf_roost_customer_household_summary($pdo,2)!==null)
+    throw new RuntimeException('Unverified member could read household summary.');
 if (bcrf_roost_customer_balance($pdo,2)!==null)
     throw new RuntimeException('Unverified household member could read points.');
 $pdo->exec("UPDATE reward_household_members SET verification_status='verified' WHERE customer_id=2");
