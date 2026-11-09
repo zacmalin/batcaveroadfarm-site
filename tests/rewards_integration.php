@@ -134,7 +134,10 @@ if (!$issuedAgain['replayed'] || $issuedAgain['ledger_entry_id']!==$issued['ledg
     throw new RuntimeException('Redemption issuance not idempotent.');
 if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==50)
     throw new RuntimeException('Redemption receipt did not deduct exact points.');
-$pdo->exec("UPDATE reward_accounts SET balance_points=0 WHERE household_id=1");
+// Tear down the disposable request fixture before the original empty-ledger tests.
+$pdo->exec("DELETE FROM reward_redemption_requests WHERE id=".(int)$request['id']);
+$pdo->exec("DELETE FROM reward_ledger WHERE id=".(int)$issued['ledger_entry_id']);
+$pdo->exec("UPDATE reward_accounts SET balance_points=0,lifetime_redeemed=0 WHERE household_id=1");
 
 // Reserve fixture household IDs 2 onward for existing ledger tests.
 $pdo->exec('ALTER TABLE reward_households AUTO_INCREMENT=100');
