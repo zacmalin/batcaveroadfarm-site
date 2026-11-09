@@ -18,7 +18,8 @@ $preview=null;
 $unavailable=false;
 $customer=bcrf_customer_find($pdo,current_user_id());
 $verified=$customer && bcrf_customer_active($customer) && !empty($customer['email_verified_at']);
-if ($_SERVER['REQUEST_METHOD']==='POST' && $verified && csrf_verify($_POST['csrf_token'] ?? null)) {
+$csrfValid=$_SERVER['REQUEST_METHOD']==='POST' && csrf_verify($_POST['csrf_token'] ?? null);
+if ($csrfValid && $verified) {
     try {
         require_once __DIR__.'/../includes/roost-customer-invitation-preview.php';
         $preview=bcrf_roost_customer_invitation_preview($pdo,(int)$customer['id'],$token);
@@ -48,7 +49,8 @@ include __DIR__.'/../includes/header.php';
 <button type="submit">Review invitation</button>
 </form>
 <?php if ($_SERVER['REQUEST_METHOD']==='POST'): ?>
-<?php if ($preview): ?>
+<?php if (!$csrfValid): ?><p role="alert">Your session expired. Please try again.</p>
+<?php elseif ($preview): ?>
 <section aria-label="Invitation details">
 <h2>Invitation found</h2>
 <p>This invitation is intended for your verified customer email and is pending.</p>
