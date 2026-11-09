@@ -397,6 +397,33 @@ try {
     throw new RuntimeException('Journey invitation replay succeeded.');
 } catch (DomainException $expected) {}
 
+// Failure recovery: expired invitations cannot mutate membership or invitation
+// state, and a later valid invitation can still be accepted.
+$recoveryInvite=bcrf_roost_create_household_invitation($pdo,80,'journey-recovery@example.test');
+$pdo->exec("INSERT INTO customers (id,email,email_verified_at,account_status)
+    VALUES (82,'journey-recovery@example.test',UTC_TIMESTAMP(),'active')");
+bcrf_roost_record_staff_adult_verification($pdo,82,7,'staff_review','journey-recovery-82');
+bcrf_roost_record_customer_consent($pdo,82,'household_join','test-1',true);
+$expire=$pdo->prepare("UPDATE reward_household_invitations
+    SET expires_at=DATE_SUB(UTC_TIMESTAMP(3),INTERVAL 1 SECOND) WHERE id=?");
+$expire->execute([$recoveryInvite['invitation_id']]);
+try {
+    bcrf_roost_accept_household_invitation($pdo,$recoveryInvite['token'],82,true,true);
+    throw new RuntimeException('Expired invitation was accepted.');
+} catch (DomainException $expected) {}
+$checkRecovery=$pdo->prepare("SELECT COUNT(*) FROM reward_household_members WHERE customer_id=?");
+$checkRecovery->execute([82]);
+if ((int)$checkRecovery->fetchColumn()!==0)
+    throw new RuntimeException('Failed acceptance left a partial membership.');
+$checkRecovery=$pdo->prepare("SELECT status,accepted_by_customer_id FROM reward_household_invitations WHERE id=?");
+$checkRecovery->execute([$recoveryInvite['invitation_id']]);
+$recoveryState=$checkRecovery->fetch(PDO::FETCH_ASSOC);
+if (!$recoveryState || $recoveryState['status']!=='pending' || $recoveryState['accepted_by_customer_id']!==null)
+    throw new RuntimeException('Failed acceptance changed invitation state.');
+$freshInvite=bcrf_roost_create_household_invitation($pdo,80,'journey-recovery@example.test');
+if (bcrf_roost_accept_household_invitation($pdo,$freshInvite['token'],82,true,true)!==['accepted'=>true])
+    throw new RuntimeException('Fresh invitation could not recover after expired attempt.');
+
 require_once __DIR__ . '/../includes/roost-customer-balance.php';
 require_once __DIR__ . '/../includes/roost-customer-history.php';
 require_once __DIR__ . '/../includes/roost-customer-household-summary.php';
