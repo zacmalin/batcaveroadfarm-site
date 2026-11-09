@@ -219,6 +219,24 @@ foreach (['moderator','Shopkeep','Media','Staff','user','Administrator',''] as $
     expect(!bcrf_roost_delivery_review_access($role,true), 'non-administrator cannot review sensitive delivery failures');
 }
 expect(!bcrf_roost_delivery_review_access('administrator',false), 'disabled administrator cannot review delivery failures');
+require_once __DIR__ . '/../includes/roost-email-manual-review-record.php';
+$manualReview = bcrf_roost_manual_delivery_review_record([
+    'enhanced_status'=>'5.1.1','outbound_reference'=>'mail:123',
+    'provenance_verified'=>true,'recipient_correlated'=>true,
+    'email'=>'should-not-be-returned@example.test','raw_body'=>'sensitive report'
+]);
+expect($manualReview['review_state']==='manual_hard_bounce_review', 'verified manual record classified for human review');
+expect(!array_key_exists('email',$manualReview) && !array_key_exists('raw_body',$manualReview), 'manual record discards sensitive extra fields');
+expect(bcrf_roost_manual_delivery_review_record([
+    'enhanced_status'=>'5.1.1','outbound_reference'=>'mail:123',
+    'provenance_verified'=>false,'recipient_correlated'=>true
+])['review_state']==='evidence_incomplete', 'unverified manual record fails closed');
+$invalidManual = false;
+try { bcrf_roost_manual_delivery_review_record([
+    'enhanced_status'=>'5.1.1','outbound_reference'=>'mail:123',
+    'provenance_verified'=>'true','recipient_correlated'=>true
+]); } catch (InvalidArgumentException $e) { $invalidManual=true; }
+expect($invalidManual, 'manual record rejects non-boolean provenance');
 require_once __DIR__ . '/../includes/roost-email-dsn-review-admin-preview.php';
 $adminSummary = bcrf_roost_dsn_review_summary('5.1.1','outbound:admin-review',true,true);
 expect(str_contains(bcrf_roost_delivery_review_admin_preview('administrator',true,$adminSummary),'Delivery failure review'), 'active admin can render dormant review');
