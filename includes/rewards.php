@@ -196,7 +196,7 @@ function bcrf_reward_post(PDO $pdo, array $event): array {
         }
         if ($type === 'redeem') {
             // Recheck permission inside the same transaction, after balance lock.
-            $member = $pdo->prepare("SELECT id FROM reward_household_members WHERE household_id = ? AND customer_id = ? AND revoked_at IS NULL AND verification_status = 'verified' AND role IN ('manager','adult') AND can_redeem = 1 FOR UPDATE");
+            $member = $pdo->prepare("SELECT m.id FROM reward_household_members m JOIN customers c ON c.id=m.customer_id WHERE m.household_id = ? AND m.customer_id = ? AND m.revoked_at IS NULL AND m.verification_status = 'verified' AND m.role IN ('manager','adult') AND m.can_redeem = 1 AND c.account_status='active' AND c.email_verified_at IS NOT NULL FOR UPDATE");
             $member->execute([$household, $customer]);
             if (!$member->fetchColumn()) throw new BcrfRewardError('Not authorized to redeem household rewards.');
             if ($balance <= 0 || $balance < -$delta) throw new BcrfRewardError('Insufficient reward points.');
