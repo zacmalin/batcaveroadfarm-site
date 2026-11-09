@@ -74,6 +74,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 $on = !empty($_POST['enabled']) ? '1' : '0';
                 $pdo->prepare("INSERT INTO site_settings (setting_key, setting_value) VALUES ('rewards_enabled', ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)")->execute([$on]);
                 if (function_exists('erp_audit')) erp_audit($pdo, 'update', 'site_settings', 0, 'Roost Rewards settings saved (' . ($on === '1' ? 'on' : 'off') . ')');
+                // Menu, footer, FAQ and home page links change with the switch: clear the page caches so it shows at once.
+                header('X-LiteSpeed-Purge: *');
+                require_once __DIR__ . '/../includes/adapter_cloudflare.php';
+                require_once __DIR__ . '/../includes/queue.php';
+                if (!bcrf_cdn_purge()) bcrf_queue_push('cdn.purge', [], ['dedupe' => 'cdn.purge:all']);
                 $say('ok', 'Settings saved. Roost Rewards is ' . ($on === '1' ? 'ON' : 'OFF') . '.');
             }
         } catch (BcrfRewardError $e) {

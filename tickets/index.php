@@ -162,6 +162,9 @@ $errMsg = $errMap[$errKey] ?? '';
                            autocomplete="tel" placeholder="(828) 555-0100">
                 </div>
             </div>
+<?php if (!empty($navShowRewards)): ?>
+            <p class="tickets-optional" style="margin-top:12px">🐓 <a href="<?= bcrf_farm_url() ?>/roost-rewards/">Roost Rewards</a> member? Use the email or phone number on your account to earn points on these tickets.</p>
+<?php endif; ?>
         </section>
 
         <p class="purchase-policy">Tickets are <strong>non-refundable</strong> and good for any day we're open for a year, including days when a private event is booked. <a href="<?= bcrf_farm_url() ?>/terms/#purchases">Full policy</a></p>

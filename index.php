@@ -26,6 +26,9 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.ph
                         <a class="cta-btn" href="<?= bcrf_farm_url() ?>/booking/">Book a Group Visit</a>
                         <a class="cta-btn" href="<?= bcrf_farm_url() ?>/private-events/">Birthday Parties</a>
                     </div>
+<?php if (!empty($navShowRewards)): ?>
+                    <p style="margin:16px auto 0;font-style:normal"><a href="<?= bcrf_farm_url() ?>/roost-rewards/" style="color:var(--gold,#c9923a);font-weight:700;text-decoration:underline;text-underline-offset:3px">🐓 New: Roost Rewards. Earn points every visit →</a></p>
+<?php endif; ?>
                 </div>
             </div>
             <div class="divider" aria-hidden="true">✦ ✦ ✦</div>
