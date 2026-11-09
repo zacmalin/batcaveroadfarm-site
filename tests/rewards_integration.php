@@ -147,6 +147,23 @@ try {
     throw new RuntimeException('Replay of accepted invitation succeeded.');
 } catch (DomainException $expected) {}
 
+require_once __DIR__ . '/../includes/roost-household-invitation-revocation.php';
+$revokeInvite=bcrf_roost_create_household_invitation($pdo,30,'revoke.me@example.test');
+try {
+    bcrf_roost_revoke_household_invitation($pdo,2,$revokeInvite['invitation_id']);
+    throw new RuntimeException('Non-manager revoked invitation.');
+} catch (DomainException $expected) {}
+if (!bcrf_roost_revoke_household_invitation($pdo,30,$revokeInvite['invitation_id']))
+    throw new RuntimeException('Manager revocation failed.');
+if (bcrf_roost_revoke_household_invitation($pdo,30,$revokeInvite['invitation_id']))
+    throw new RuntimeException('Revoked invitation was revoked again.');
+if (bcrf_roost_revoke_household_invitation($pdo,30,$invitation['invitation_id']))
+    throw new RuntimeException('Accepted invitation was revoked.');
+try {
+    bcrf_roost_accept_household_invitation($pdo,$revokeInvite['token'],51,true,true);
+    throw new RuntimeException('Revoked invitation was accepted.');
+} catch (DomainException $expected) {}
+
 require_once __DIR__ . '/../includes/roost-customer-balance.php';
 require_once __DIR__ . '/../includes/roost-customer-history.php';
 require_once __DIR__ . '/../includes/roost-customer-household-summary.php';
