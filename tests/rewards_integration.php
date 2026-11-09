@@ -172,6 +172,30 @@ if (!bcrf_roost_complete_invitation_delivery($pdo,$claimedDelivery['id'],$claime
     throw new RuntimeException('Claimed invitation delivery could not be completed.');
 if (bcrf_roost_complete_invitation_delivery($pdo,$claimedDelivery['id'],$claimedDelivery['claim_token'],'sent'))
     throw new RuntimeException('Completed invitation delivery was completed twice.');
+
+$staleInvite=bcrf_roost_create_household_invitation($pdo,30,'stale.delivery@example.test',
+    ['key'=>$deliveryKey,'key_id'=>'integration-v1']);
+$staleClaim=bcrf_roost_claim_invitation_delivery($pdo);
+if (!$staleClaim) throw new RuntimeException('Stale delivery fixture was not claimed.');
+$staleMark=$pdo->prepare("UPDATE reward_invitation_delivery_outbox
+    SET claimed_at=DATE_SUB(UTC_TIMESTAMP(3),INTERVAL 20 MINUTE) WHERE id=?");
+$staleMark->execute([$staleClaim['id']]);
+if (bcrf_roost_recover_invitation_delivery($pdo)!==1)
+    throw new RuntimeException('Stale invitation delivery was not recovered.');
+if (bcrf_roost_complete_invitation_delivery($pdo,$staleClaim['id'],$staleClaim['claim_token'],'sent'))
+    throw new RuntimeException('Recovered stale claim token remained valid.');
+$retryMark=$pdo->prepare("UPDATE reward_invitation_delivery_outbox
+    SET status='processing',attempts=3,claimed_at=DATE_SUB(UTC_TIMESTAMP(3),INTERVAL 20 MINUTE),
+        claim_token=? WHERE id=?");
+$retryMark->execute([str_repeat('b',64),$staleClaim['id']]);
+if (bcrf_roost_recover_invitation_delivery($pdo)!==1)
+    throw new RuntimeException('Exhausted invitation delivery was not recovered.');
+$failedState=$pdo->prepare("SELECT status,claim_token FROM reward_invitation_delivery_outbox WHERE id=?");
+$failedState->execute([$staleClaim['id']]);
+$failedRow=$failedState->fetch(PDO::FETCH_ASSOC);
+if ($failedRow['status']!=='failed' || $failedRow['claim_token']!==null)
+    throw new RuntimeException('Exhausted delivery did not fail closed.');
+
 $queuedHash=$pdo->prepare("SELECT token_hash FROM reward_household_invitations WHERE id=?");
 $queuedHash->execute([$queuedInvitation['invitation_id']]);
 if ($queuedHash->fetchColumn()!==hash('sha256',$decrypted['token']))
