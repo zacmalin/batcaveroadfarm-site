@@ -217,6 +217,18 @@ if (($managerStates[(int)$invitation['invitation_id']]??null)!=='accepted'
     throw new RuntimeException('Manager invitation summary did not preserve accepted/revoked states.');
 if (bcrf_roost_manager_invitation_summary($pdo,2)!==[])
     throw new RuntimeException('Non-manager could list household invitations.');
+$pendingForManager=bcrf_roost_manager_pending_invitations($pdo,30);
+$pendingIds=array_map(static fn(array $row): int => (int)$row['id'],$pendingForManager);
+if (in_array((int)$invitation['invitation_id'],$pendingIds,true)
+    || in_array((int)$revokeInvite['invitation_id'],$pendingIds,true))
+    throw new RuntimeException('Accepted or revoked invitation shown as actionable.');
+if (bcrf_roost_manager_pending_invitations($pdo,2)!==[])
+    throw new RuntimeException('Non-manager could list pending invitations.');
+foreach ($pendingForManager as $row) {
+    if (array_key_exists('token_hash',$row) || array_key_exists('invitee_email_hash',$row))
+        throw new RuntimeException('Pending invitation selector leaked secret or recipient digest.');
+}
+
 require_once __DIR__ . '/../includes/roost-household-invitation-expiration.php';
 $expiredInvite=bcrf_roost_create_household_invitation($pdo,30,'expire.me@example.test');
 $setExpired=$pdo->prepare("UPDATE reward_household_invitations SET expires_at=DATE_SUB(UTC_TIMESTAMP(3),INTERVAL 1 SECOND) WHERE id=?");
