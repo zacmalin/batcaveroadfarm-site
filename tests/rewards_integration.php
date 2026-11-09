@@ -1654,41 +1654,22 @@ $pendingStates->execute([$validPending['invitation_id']]);
 if ($pendingStates->fetchColumn()!=='pending')
     throw new RuntimeException('Bounded suppression touched unrelated valid invitation.');
 
-// Redemption settlement is internal-only and requires a verified receipt.
+// Legacy settlement must fail closed even when a caller asserts delivery.
 require_once __DIR__.'/../includes/roost-redemption-settlement.php';
 $pdo->exec("UPDATE reward_accounts SET balance_points=1500 WHERE household_id=1");
-try {
-    bcrf_roost_settle_fulfilled_redemption($pdo,1,1,1,250,'integration_reward_001');
-    throw new RuntimeException('Unverified redemption settlement was allowed.');
-} catch (LogicException $expected) {
-    if ($expected->getMessage()==='Unverified redemption settlement was allowed.') throw $expected;
+foreach ([false,true] as $assertedFulfillment) {
+    try {
+        bcrf_roost_settle_fulfilled_redemption(
+            $pdo,1,1,1,250,'integration_reward_001',$assertedFulfillment
+        );
+        throw new RuntimeException('Legacy redemption settlement bypassed durable fulfillment proof.');
+    } catch (LogicException $expected) {
+        if ($expected->getMessage()==='Legacy redemption settlement bypassed durable fulfillment proof.')
+            throw $expected;
+    }
 }
-$redeem=bcrf_roost_settle_fulfilled_redemption($pdo,1,1,1,250,'integration_reward_001',true);
-if ($redeem['replayed'] || $redeem['balance']!==1250)
-    throw new RuntimeException('Verified redemption settlement did not deduct 250 points.');
-$again=bcrf_roost_settle_fulfilled_redemption($pdo,1,1,1,250,'integration_reward_001',true);
-if (!$again['replayed'] || $again['id']!==$redeem['id'] || $again['balance']!==1250)
-    throw new RuntimeException('Redemption receipt retry was not idempotent.');
-try {
-    bcrf_roost_settle_fulfilled_redemption($pdo,1,1,1,500,'integration_reward_001',true);
-    throw new RuntimeException('Redemption receipt reused with different tier.');
-} catch (BcrfRewardError $expected) {
-    if ($expected->getMessage()==='Redemption receipt reused with different tier.') throw $expected;
-}
-// An alternate idempotency key cannot redeem the same fulfillment twice.
-try {
-    bcrf_reward_post($pdo,[
-        'household_id'=>1,'customer_id'=>1,'policy_id'=>1,'entry_type'=>'redeem',
-        'points_delta'=>-250,'source_type'=>'reward_fulfillment',
-        'source_id'=>'integration_reward_001',
-        'idempotency_key'=>'alternate:redeem:integration_reward_001'
-    ]);
-    throw new RuntimeException('Duplicate fulfillment accepted with alternate key.');
-} catch (BcrfRewardError $expected) {
-    if ($expected->getMessage()==='Duplicate fulfillment accepted with alternate key.') throw $expected;
-}
-if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==1250)
-    throw new RuntimeException('Duplicate fulfillment changed balance.');
+if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==1500)
+    throw new RuntimeException('Disabled legacy settlement changed points.');
 $pdo->exec("UPDATE reward_household_members SET can_redeem=0 WHERE household_id=1 AND customer_id=1");
 try {
     bcrf_roost_settle_fulfilled_redemption($pdo,1,1,1,250,'integration_reward_002',true);
@@ -1696,7 +1677,7 @@ try {
 } catch (BcrfRewardError $expected) {
     if ($expected->getMessage()==='Revoked redemption permission was ignored.') throw $expected;
 }
-if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==1250)
+if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==1500)
     throw new RuntimeException('Rejected redemption changed balance.');
 $pdo->exec("UPDATE reward_household_members SET can_redeem=1 WHERE household_id=1 AND customer_id=1");
 $pdo->exec("UPDATE customers SET email_verified_at=NULL WHERE id=1");
@@ -1712,6 +1693,6 @@ try {
     if ($expected->getMessage()==='Unverified customer posted redemption directly.') throw $expected;
 }
 $pdo->exec("UPDATE customers SET email_verified_at=UTC_TIMESTAMP() WHERE id=1");
-if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==1250)
+if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==1500)
     throw new RuntimeException('Unverified redemption changed balance.');
 echo "Farm Rewards integration checks passed.\\n";
