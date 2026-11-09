@@ -8,7 +8,7 @@
 - `customers.id` INT signed; `customers.email` VARCHAR(100) NOT NULL; `email_verified_at` DATETIME nullable; `account_status` ENUM(active,disabled).
 - `sales.id`, `refunds.id`, `refunds.sale_id`, `check_ins.id`: BIGINT UNSIGNED. `sales.customer_id`: nullable INT. `check_ins.business_date`: DATE.
 - Existing FK: `refunds.sale_id` -> `sales.id`.
-- User subsequently ran the full ten-name Rewards inventory query: **zero rows**. None of the ten planned Rewards tables exists in the selected production database as of this inspection.
+- User subsequently ran the full ten-name Rewards inventory query: **zero rows**. None of those ten tables existed at inspection. The three newer onboarding tables were not included in that query, so their production absence is **not yet verified**.
 
 ## Migration-by-migration dependency review
 1. `0016_farm_rewards_foundation.php`: five tables: `reward_households`, `reward_household_members`, `reward_policies`, `reward_accounts`, `reward_ledger`. Customer FK expects signed INT: matches observed `customers.id`.
@@ -17,15 +17,17 @@
 4. `0019_roost_pos_outbox.php`: `reward_pos_outbox`; no worker activated by migration; immutable policy snapshot field `policy_id` nullable.
 5. `0020_roost_email_outbox.php`: `reward_email_outbox`; references foundation household/member tables.
 6. `0021_roost_email_suppressions.php`: `reward_email_suppressions`; no email automation activated.
+7. `0022_roost_household_invitations.php`: `reward_household_invitations`; FKs to households and signed INT customer IDs, token hashes only.
+8. `0023_roost_verification_consent.php`: `reward_adult_verifications` and `reward_consent_events`; signed INT customer FKs, opaque verification references and consent audit records.
 
 ## Required before rehearsal or production approval
-- **Complete 10-table Rewards inventory confirmed empty** by read-only phpMyAdmin query. Recheck immediately before any future deployment; `CREATE TABLE IF NOT EXISTS` will not repair mismatched tables.
+- **Earlier 10-table Rewards inventory confirmed empty** by read-only phpMyAdmin query; inspect all 13 tables before any deployment. Recheck immediately before any future deployment; `CREATE TABLE IF NOT EXISTS` will not repair mismatched tables.
 - Confirm migration runner order, migration bookkeeping, failure handling, and privileges.
 - Capture verified backup and restoration procedure, staging snapshot and rollback plan; MySQL DDL may commit independently, so do not assume a transaction can roll back partial migration.
 - Rehearse migrations **in staging only**, check schema and FK definitions, rerun for idempotence, and exercise application tests.
 - Obtain separate approval before any production migration, activation or deployment.
 
-## Next read-only phpMyAdmin query
+## Next read-only phpMyAdmin query (all 13 tables)
 ```sql
 SELECT TABLE_NAME, ENGINE, TABLE_COLLATION
 FROM information_schema.TABLES
@@ -34,8 +36,10 @@ WHERE TABLE_SCHEMA = 'ddailnmy_bat_cave_road_farm_db'
     'reward_households', 'reward_household_members', 'reward_policies',
     'reward_accounts', 'reward_ledger', 'reward_verified_attendance',
     'reward_refund_processing', 'reward_pos_outbox',
-    'reward_email_outbox', 'reward_email_suppressions'
+    'reward_email_outbox', 'reward_email_suppressions',
+    'reward_household_invitations', 'reward_adult_verifications',
+    'reward_consent_events'
   )
 ORDER BY TABLE_NAME;
 ```
-If zero rows, none of these ten exact tables currently exist. If any rows, inspect their full definitions before a migration rehearsal.
+If zero rows, none of these thirteen exact tables currently exist. If any rows, inspect their full definitions before a migration rehearsal.
