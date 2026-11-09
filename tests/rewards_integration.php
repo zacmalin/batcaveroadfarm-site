@@ -66,6 +66,27 @@ $pdo->exec("INSERT INTO reward_households (id, status, created_at) VALUES (1,'ac
 $pdo->exec("INSERT INTO reward_accounts (household_id, updated_at) VALUES (1,UTC_TIMESTAMP(3))");
 $pdo->exec("INSERT INTO reward_household_members (household_id,customer_id,role,verification_status,can_redeem,joined_at) VALUES (1,1,'manager','verified',1,UTC_TIMESTAMP(3)),(1,2,'adult','verified',1,UTC_TIMESTAMP(3))");
 $pdo->exec("INSERT INTO reward_policies (id,version,config_json,status,created_at) VALUES (1,'test-1','{}','active',UTC_TIMESTAMP(3))");
+$redemptionSchema=require __DIR__.'/../admin/migrations/0025_roost_redemption_requests.php';
+$redemptionSchema($pdo);
+$redemptionSchema($pdo); // additive migration is rerunnable
+$pdo->exec("INSERT INTO reward_redemption_requests
+    (request_token,household_id,customer_id,policy_id,tier_points,benefit_code,status,requested_at,updated_at)
+    VALUES ('integration-redemption-request-001',1,1,1,250,'test-only-benefit','requested',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
+try {
+    $pdo->exec("UPDATE reward_redemption_requests SET status='fulfilled' WHERE request_token='integration-redemption-request-001'");
+    throw new RuntimeException('Fulfilled redemption accepted without receipt and ledger entry.');
+} catch (PDOException $expected) {
+    if ($expected->getCode()!=='23000') throw $expected;
+}
+try {
+    $pdo->exec("INSERT INTO reward_redemption_requests
+        (request_token,household_id,customer_id,policy_id,tier_points,benefit_code,status,requested_at,updated_at)
+        VALUES ('integration-redemption-request-002',1,1,1,333,'test-only-benefit','requested',UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
+    throw new RuntimeException('Unsupported redemption tier was accepted.');
+} catch (PDOException $expected) {
+    if ($expected->getCode()!=='23000') throw $expected;
+}
+
 // Reserve fixture household IDs 2 onward for existing ledger tests.
 $pdo->exec('ALTER TABLE reward_households AUTO_INCREMENT=100');
 (require __DIR__ . '/../admin/migrations/0022_roost_household_invitations.php')($pdo);
