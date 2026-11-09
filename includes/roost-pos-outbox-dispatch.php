@@ -1,6 +1,6 @@
 <?php
-// Roost Rewards outbox dispatcher preflight. Inert by design: no claim,
-// acknowledgment, ledger write, or scheduler. Activation is a separate release gate.
+// Read-only POS dispatch preflight. Ledger writes occur only through the
+// separately gated queue runner and verified event handler.
 require_once __DIR__.'/roost-pos-outbox-preview.php';
 require_once __DIR__.'/roost-pos-outbox-ledger-map.php';
 require_once __DIR__.'/roost-pos-outbox-receipt.php';
@@ -14,8 +14,6 @@ function bcrf_roost_outbox_dispatch_enabled(): bool {
  * A missing original sale earning is NOT an excuse to skip a refund.
  */
 function bcrf_roost_outbox_dispatch_preflight(PDO $pdo, array $event, int $policyId): array {
-    if (bcrf_roost_outbox_dispatch_enabled())
-        throw new LogicException('POS outbox dispatch activation is not implemented.');
     if ($pdo->inTransaction()) throw new LogicException('Dispatch preflight requires autocommit.');
     if ($policyId <= 0) throw new InvalidArgumentException('Approved policy ID required.');
     $preview=bcrf_roost_outbox_event_preview($pdo,$event);
