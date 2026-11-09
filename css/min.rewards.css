@@ -1,6 +1,7 @@
 /* css/min.rewards.css — Roost Rewards customer page (/roost-rewards/). Uses sitewide .page1 / .hero / .content-wrap1 / .divider from min.style.css. */
 .rr-hero .hero-content{display:flex;flex-direction:column;align-items:center;gap:14px}
-.rr-logo{width:min(240px,60vw);height:auto;border-radius:18px;border:3px solid var(--gold,#c9923a);box-shadow:0 10px 30px rgba(0,0,0,.55);background:#fffaf0}
+/* The logo JPG has a checkerboard baked into its square corners: crop to the round badge and shadow the circle. */
+.rr-logo{width:min(260px,64vw);height:auto;aspect-ratio:1;object-fit:cover;clip-path:circle(46.5% at 50% 50%);filter:drop-shadow(0 8px 18px rgba(0,0,0,.6))}
 .rr-wrap{max-width:860px;margin:0 auto 64px;padding:0 16px;display:grid;gap:22px}
 .rr-card{background:#fffaf0;border:1px solid var(--cream-dark,#e8d5b0);border-radius:14px;padding:28px 32px;box-shadow:0 10px 26px rgba(59,32,16,.12);color:#3f2a14;line-height:1.65}
 .rr-card h2{font-family:'Playfair Display',serif;font-weight:700;font-size:1.35rem;color:var(--brown-dark,#3b2010);margin:0 0 14px;padding-bottom:7px;border-bottom:2px solid var(--gold,#c9923a)}
@@ -27,8 +28,14 @@
 .rr-bar{height:8px;border-radius:4px;background:#efe3cc;overflow:hidden}
 .rr-bar span{display:block;height:100%;background:var(--gold,#c9923a)}
 .rr-fine{font-size:.9rem;color:var(--brown-light,#8b5c2a)}
-.rr-form{display:grid;gap:10px;max-width:380px}
-.rr-form label{font-weight:600}
+.rr-join{text-align:center}
+.rr-join h2{display:inline-block;padding:0 18px 7px}
+.rr-join-lead{font-family:'Lora',serif;font-size:1.05rem;max-width:520px;margin:0 auto 18px!important}
+.rr-form{display:grid;gap:12px;max-width:380px;margin:0 auto 12px;text-align:left}
+.rr-form label{font-weight:600;text-align:center}
+.rr-form input{text-align:center;letter-spacing:.04em}
+.rr-form .rr-btn{width:100%}
+.rr-join .rr-actions{justify-content:center}
 .rr-form input{width:100%;box-sizing:border-box;padding:11px 12px;font-family:'Lora',serif;font-size:1.05rem;color:var(--brown-dark,#3b2010);background:#fffdf7;border:1px solid var(--brown-light,#8b5c2a);border-radius:8px}
 .rr-form input:focus{outline:none;border-color:var(--gold,#c9923a);box-shadow:0 0 0 3px rgba(201,146,58,.25)}
 .rr-btn{display:inline-block;padding:12px 22px;font-family:'Rye',serif;font-size:1rem;color:var(--cream,#f5ead6)!important;background:var(--brown-dark,#3b2010);border:2px solid var(--gold,#c9923a);border-radius:8px;cursor:pointer;text-decoration:none;text-align:center}

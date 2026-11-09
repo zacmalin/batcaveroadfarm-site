@@ -32,7 +32,7 @@ $pageTitle    = 'Roost Rewards — Bat Cave Road Farm';
 $metaDesc     = 'Roost Rewards: earn 5 points per dollar and 25 points per visit at Bat Cave Road Farm, and share them with your family.';
 $canonicalUrl = bcrf_farm_url() . '/roost-rewards/';
 $ogImage      = bcrf_farm_url() . '/img/logos/roost_rewards.jpg';
-$pageCSS      = bcrf_farm_url() . '/css/min.rewards.css?v=1';
+$pageCSS      = bcrf_farm_url() . '/css/min.rewards.css?v=2';
 $breadcrumbs  = [['label' => 'Roost Rewards']];
 require __DIR__ . '/../includes/head.php';
 include __DIR__ . '/../includes/header.php';
@@ -118,8 +118,9 @@ $tz = new DateTimeZone(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'Ameri
         </ul>
       </section>
 <?php elseif ($cid): ?>
-      <section class="rr-card">
+      <section class="rr-card rr-join">
         <h2>Join Roost Rewards</h2>
+        <p class="rr-join-lead">It's free. Enter the number you'll give at the counter, and start earning on your next visit.</p>
         <form class="rr-form" method="POST" action="/roost-rewards/">
           <?= csrf_field() ?>
           <label for="rr-phone">Mobile phone number</label>
@@ -129,9 +130,9 @@ $tz = new DateTimeZone(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'Ameri
         <p class="rr-fine">We use your number only to find your account at the counter.</p>
       </section>
 <?php else: ?>
-      <section class="rr-card">
+      <section class="rr-card rr-join">
         <h2>Join for free</h2>
-        <p>Sign in or create an account to join online and check your points any time, or just ask us to sign you up at the farm stand.</p>
+        <p class="rr-join-lead">Sign in or create an account to join online and check your points any time, or just ask us to sign you up at the farm stand.</p>
         <div class="rr-actions">
           <a class="rr-btn" href="/account/register.php?next=<?= $h(rawurlencode('/roost-rewards/')) ?>">Create an account</a>
           <a class="rr-btn alt" href="/account/login.php?next=<?= $h(rawurlencode('/roost-rewards/')) ?>">Sign in</a>
