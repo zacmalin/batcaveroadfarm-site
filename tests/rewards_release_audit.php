@@ -77,4 +77,14 @@ if ($verificationPage===false ||
     !str_contains($verificationPage, "SELECT role,account_status FROM users WHERE id=?") ||
     !str_contains($verificationPage, 'adult_evidence_confirmed'))
     throw new RuntimeException('Staff verification form must remain gated, audited and CSRF protected.');
+$enrollPage=file_get_contents($root.'/roost-rewards/enroll.php');
+if ($enrollPage===false ||
+    !str_contains($enrollPage, "BCRF_ROOST_ENROLLMENT_ENABLED") ||
+    !str_contains($enrollPage, 'bcrf_roost_consent_form_config()') ||
+    !str_contains($enrollPage, 'csrf_verify(') ||
+    !str_contains($enrollPage, 'bcrf_rl_hit(') ||
+    !str_contains($enrollPage, 'bcrf_roost_verified_adult_with_consent(') ||
+    !str_contains($enrollPage, "consent['policy_version']") ||
+    !str_contains($enrollPage, 'bcrf_roost_enroll_verified_adult('))
+    throw new RuntimeException('Customer enrollment must remain launch-gated and evidence-based.');
 echo "Offline rewards release safety audit passed.\\n";
