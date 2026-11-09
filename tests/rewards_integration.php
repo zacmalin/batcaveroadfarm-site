@@ -225,6 +225,33 @@ $failedRow=$failedState->fetch(PDO::FETCH_ASSOC);
 if ($failedRow['status']!=='failed' || $failedRow['claim_token']!==null)
     throw new RuntimeException('Exhausted delivery did not fail closed.');
 
+$failureInvite=bcrf_roost_create_household_invitation($pdo,30,'transient.delivery@example.test',
+    ['key'=>$deliveryKey,'key_id'=>'integration-v1']);
+$failureClaim=bcrf_roost_claim_invitation_delivery($pdo);
+if (!$failureClaim) throw new RuntimeException('Transient delivery fixture was not claimed.');
+if (!bcrf_roost_fail_invitation_delivery($pdo,$failureClaim['id'],
+    $failureClaim['claim_token'],'smtp_timeout',true))
+    throw new RuntimeException('Transient delivery failure not recorded.');
+if (bcrf_roost_complete_invitation_delivery($pdo,$failureClaim['id'],
+    $failureClaim['claim_token'],'sent'))
+    throw new RuntimeException('Failed delivery retained old claim token.');
+$failureState=$pdo->prepare("SELECT status,attempts,last_error_code FROM reward_invitation_delivery_outbox WHERE id=?");
+$failureState->execute([$failureClaim['id']]);
+$failureRow=$failureState->fetch(PDO::FETCH_ASSOC);
+if ($failureRow['status']!=='pending' || (int)$failureRow['attempts']!==1 ||
+    $failureRow['last_error_code']!=='smtp_timeout')
+    throw new RuntimeException('Transient delivery was not queued for retry.');
+$pdo->prepare("UPDATE reward_invitation_delivery_outbox SET available_at=UTC_TIMESTAMP(3) WHERE id=?")
+    ->execute([$failureClaim['id']]);
+$secondFailureClaim=bcrf_roost_claim_invitation_delivery($pdo);
+if (!$secondFailureClaim || $secondFailureClaim['id']!==$failureClaim['id'])
+    throw new RuntimeException('Transient delivery retry was not claimed.');
+if (!bcrf_roost_fail_invitation_delivery($pdo,$secondFailureClaim['id'],
+    $secondFailureClaim['claim_token'],'smtp_rejected',false))
+    throw new RuntimeException('Permanent delivery failure not recorded.');
+$failureState->execute([$failureClaim['id']]);
+if ($failureState->fetch(PDO::FETCH_ASSOC)['status']!=='failed')
+    throw new RuntimeException('Permanent delivery failure was retried.');
 $queuedHash=$pdo->prepare("SELECT token_hash FROM reward_household_invitations WHERE id=?");
 $queuedHash->execute([$queuedInvitation['invitation_id']]);
 if ($queuedHash->fetchColumn()!==hash('sha256',$decrypted['token']))
