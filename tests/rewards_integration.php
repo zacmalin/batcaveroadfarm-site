@@ -1465,4 +1465,18 @@ if ($pendingStates->fetchColumn()!=='pending')
     throw new RuntimeException('Valid pending invitation was incorrectly suppressed.');
 if (bcrf_roost_suppress_inactive_invitation_delivery($pdo,100)!==0)
     throw new RuntimeException('Expired invitation suppression was not idempotent.');
+$revokedPending=bcrf_roost_create_household_invitation($pdo,30,'revoked.queue@example.test',
+    ['key'=>$deliveryKey,'key_id'=>'integration-v1']);
+$revokePending=$pdo->prepare("UPDATE reward_household_invitations
+    SET status='revoked' WHERE id=? AND status='pending'");
+$revokePending->execute([$revokedPending['invitation_id']]);
+if (bcrf_roost_suppress_inactive_invitation_delivery($pdo,100)!==1)
+    throw new RuntimeException('Revoked pending invitation job was not suppressed.');
+$pendingStates->execute([$revokedPending['invitation_id']]);
+if ($pendingStates->fetchColumn()!=='suppressed')
+    throw new RuntimeException('Revoked invitation delivery was not terminalized.');
+$pendingStates->execute([$validPending['invitation_id']]);
+if ($pendingStates->fetchColumn()!=='pending')
+    throw new RuntimeException('Revocation suppression changed unrelated valid invitation.');
+
 echo "Farm Rewards integration checks passed.\\n";
