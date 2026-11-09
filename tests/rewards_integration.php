@@ -323,10 +323,12 @@ $pdo->prepare("UPDATE reward_invitation_delivery_outbox
     ->execute([$crashClaim['id']]);
 if (bcrf_roost_recover_invitation_delivery($pdo)!==1)
     throw new RuntimeException('Ambiguous crashed dispatch not recovered.');
-$crashState=$pdo->prepare("SELECT status FROM reward_invitation_delivery_outbox WHERE id=?");
+$crashState=$pdo->prepare("SELECT status,last_error_code FROM reward_invitation_delivery_outbox WHERE id=?");
 $crashState->execute([$crashClaim['id']]);
-if ($crashState->fetchColumn()!=='failed')
-    throw new RuntimeException('Ambiguous crashed dispatch was retried.');
+$crashRow=$crashState->fetch(PDO::FETCH_ASSOC);
+if (!$crashRow || $crashRow['status']!=='failed' ||
+    $crashRow['last_error_code']!=='delivery_unknown')
+    throw new RuntimeException('Ambiguous crashed dispatch was retried or misclassified.');
 $timeoutInvite=bcrf_roost_create_household_invitation($pdo,30,'timeout.after.send@example.test',
     ['key'=>$deliveryKey,'key_id'=>'integration-v1']);
 $timeoutClaim=bcrf_roost_claim_invitation_delivery($pdo);
@@ -337,7 +339,7 @@ if (!bcrf_roost_fail_invitation_delivery($pdo,$timeoutClaim['id'],
     $timeoutClaim['claim_token'],'smtp_timeout',true))
     throw new RuntimeException('Post-dispatch timeout was not recorded.');
 $crashState->execute([$timeoutClaim['id']]);
-if ($crashState->fetchColumn()!=='failed')
+if ($crashState->fetch(PDO::FETCH_ASSOC)['status']!=='failed')
     throw new RuntimeException('Post-dispatch timeout was incorrectly retried.');
 require_once __DIR__.'/../includes/roost-invitation-delivery-monitor.php';
 $deliveryMetrics=bcrf_roost_invitation_delivery_metrics($pdo);
