@@ -1438,7 +1438,9 @@ $expiredPending=bcrf_roost_create_household_invitation($pdo,30,'expired.queue@ex
     ['key'=>$deliveryKey,'key_id'=>'integration-v1']);
 $validPending=bcrf_roost_create_household_invitation($pdo,30,'valid.queue@example.test',
     ['key'=>$deliveryKey,'key_id'=>'integration-v1']);
-$expireInvite->execute([$expiredPending['invitation_id']]);
+$expirePending=$pdo->prepare("UPDATE reward_household_invitations
+    SET expires_at=DATE_SUB(UTC_TIMESTAMP(3),INTERVAL 1 SECOND) WHERE id=?");
+$expirePending->execute([$expiredPending['invitation_id']]);
 if (bcrf_roost_suppress_inactive_invitation_delivery($pdo,100)<1)
     throw new RuntimeException('Expired pending invitation job was not suppressed.');
 $pendingStates=$pdo->prepare("SELECT status FROM reward_invitation_delivery_outbox WHERE invitation_id=?");
