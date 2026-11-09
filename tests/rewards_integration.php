@@ -221,6 +221,8 @@ require_once __DIR__ . '/../includes/roost-household-invitation-expiration.php';
 $expiredInvite=bcrf_roost_create_household_invitation($pdo,30,'expire.me@example.test');
 $setExpired=$pdo->prepare("UPDATE reward_household_invitations SET expires_at=DATE_SUB(UTC_TIMESTAMP(3),INTERVAL 1 SECOND) WHERE id=?");
 $setExpired->execute([$expiredInvite['invitation_id']]);
+if (bcrf_roost_revoke_household_invitation($pdo,30,$expiredInvite['invitation_id']))
+    throw new RuntimeException('Expired pending invitation was revoked.');
 if (bcrf_roost_expire_household_invitations($pdo,1)!==1)
     throw new RuntimeException('Expired invitation not marked.');
 if (bcrf_roost_expire_household_invitations($pdo,1)!==0)
