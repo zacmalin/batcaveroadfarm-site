@@ -1179,7 +1179,7 @@ if (function_exists('pcntl_fork') && function_exists('stream_socket_pair')) {
             try {
                 // Never share a fork-inherited PDO connection.
                 $db = new PDO($dsn, getenv('BCRF_REWARDS_TEST_USER') ?: '', getenv('BCRF_REWARDS_TEST_PASSWORD') ?: '', [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
-                bcrf_reward_post($db,array_merge($base,['entry_type'=>'redeem','points_delta'=>-100,'source_type'=>'reward','source_id'=>'race-'.($i+1),'idempotency_key'=>'test-race-'.($i+1)]));
+                bcrf_reward_post($db,array_merge($base,['entry_type'=>'redeem','points_delta'=>-100,'source_type'=>'reward_fulfillment','source_id'=>'race-'.($i+1),'idempotency_key'=>'test-race-'.($i+1)]));
                 exit(0);
             } catch (BcrfRewardError $e) { exit(3); }
               catch (Throwable $e) { fwrite(STDERR,$e->getMessage()."\\n"); exit(4); }
