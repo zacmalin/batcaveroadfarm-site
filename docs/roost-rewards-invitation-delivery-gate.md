@@ -41,3 +41,9 @@ Record passing CI, a staging issuance-to-acceptance test with an actual sink-del
 
 ## Remaining blockers
 Manager-facing issuing UI and authorized support/revocation flow; encrypted-payload retention and key rotation/purge procedure; controlled staging SMTP sink delivery and browser tests; production read-only schema preflight; migration rehearsal and backup/rollback plan; explicit separate approval to deploy, migrate, enable issuance, and start sending. No live send is authorized.
+
+## Retention and suppression maintenance (not scheduled)
+- `bcrf_roost_suppress_inactive_invitation_delivery($pdo, $batchSize)` moves only **pending** rows linked to expired or non-pending invitations into `suppressed`; it does not interrupt processing claims or send mail. Run with a bounded batch (1–500) and repeat until zero only in an approved maintenance workflow.
+- `bcrf_roost_purge_invitation_delivery_payloads($pdo, $minimumAgeDays, $batchSize)` blanks reversible encrypted nonce/ciphertext/tag for terminal `sent`, `suppressed`, or `failed` rows older than the chosen retention interval (default 7 days), retaining status, dispatch markers, and error codes. It rechecks age and terminal status in the update. The original invitation record remains intact.
+- Neither function is connected to a scheduler or customer request. **Do not activate maintenance automatically** until retention policy, key rotation, backup retention, operational authorization, and staging tests have been approved.
+- Key rotation must preserve the prior decryption key while any unpurged pending or processing jobs use its key ID. This implementation currently accepts one configured key ID per worker; a multi-key decrypting keyring and an operational rotation runbook remain launch gates.
