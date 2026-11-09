@@ -8,8 +8,6 @@ function bcrf_roost_accept_household_invitation(PDO $pdo,string $token,int $cust
     if ($customerId<=0 || !$adultVerified || !$joinConsent || !preg_match('/^[a-f0-9]{64}$/D',$token))
         throw new InvalidArgumentException('Valid invitation, verified adult and consent required.');
     if ($pdo->inTransaction()) throw new LogicException('Acceptance requires its own transaction.');
-    if (!bcrf_roost_verified_adult_with_consent($pdo,$customerId,'household_join'))
-        throw new DomainException('Persisted adult verification and consent evidence required.');
     $pdo->beginTransaction();
     try {
         // Lock the customer first, matching enrollment's lock order.
@@ -18,6 +16,8 @@ function bcrf_roost_accept_household_invitation(PDO $pdo,string $token,int $cust
         $q->execute([$customerId]);
         $email=$q->fetchColumn();
         if (!$email) throw new DomainException('Active verified customer required.');
+        if (!bcrf_roost_verified_adult_with_consent($pdo,$customerId,'household_join'))
+            throw new DomainException('Persisted adult verification and consent evidence required.');
         $q=$pdo->prepare("SELECT household_id FROM reward_household_members
             WHERE customer_id=? AND revoked_at IS NULL FOR UPDATE");
         $q->execute([$customerId]);
