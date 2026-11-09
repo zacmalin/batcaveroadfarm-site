@@ -1521,4 +1521,34 @@ $pendingStates->execute([$validPending['invitation_id']]);
 if ($pendingStates->fetchColumn()!=='pending')
     throw new RuntimeException('Bounded suppression touched unrelated valid invitation.');
 
+// Redemption settlement is internal-only and requires a verified receipt.
+require_once __DIR__.'/../includes/roost-redemption-settlement.php';
+$pdo->exec("UPDATE reward_accounts SET balance_points=1500 WHERE household_id=1");
+try {
+    bcrf_roost_settle_fulfilled_redemption($pdo,1,1,1,250,'integration_reward_001');
+    throw new RuntimeException('Unverified redemption settlement was allowed.');
+} catch (LogicException $expected) {
+    if ($expected->getMessage()==='Unverified redemption settlement was allowed.') throw $expected;
+}
+$redeem=bcrf_roost_settle_fulfilled_redemption($pdo,1,1,1,250,'integration_reward_001',true);
+if ($redeem['replayed'] || $redeem['balance']!==1250)
+    throw new RuntimeException('Verified redemption settlement did not deduct 250 points.');
+$again=bcrf_roost_settle_fulfilled_redemption($pdo,1,1,1,250,'integration_reward_001',true);
+if (!$again['replayed'] || $again['id']!==$redeem['id'] || $again['balance']!==1250)
+    throw new RuntimeException('Redemption receipt retry was not idempotent.');
+try {
+    bcrf_roost_settle_fulfilled_redemption($pdo,1,1,1,500,'integration_reward_001',true);
+    throw new RuntimeException('Redemption receipt reused with different tier.');
+} catch (BcrfRewardError $expected) {
+    if ($expected->getMessage()==='Redemption receipt reused with different tier.') throw $expected;
+}
+$pdo->exec("UPDATE reward_household_members SET can_redeem=0 WHERE household_id=1 AND customer_id=1");
+try {
+    bcrf_roost_settle_fulfilled_redemption($pdo,1,1,1,250,'integration_reward_002',true);
+    throw new RuntimeException('Revoked redemption permission was ignored.');
+} catch (BcrfRewardError $expected) {
+    if ($expected->getMessage()==='Revoked redemption permission was ignored.') throw $expected;
+}
+if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==1250)
+    throw new RuntimeException('Rejected redemption changed balance.');
 echo "Farm Rewards integration checks passed.\\n";
