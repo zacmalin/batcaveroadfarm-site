@@ -31,11 +31,15 @@ function bcrf_roost_run_invitation_delivery_once(PDO $pdo,array $config,callable
         $q->execute([$id,$claimToken]);
         $row=$q->fetch(PDO::FETCH_ASSOC);
         if (!$row) throw new DomainException('Claim no longer valid.');
-        $payload=json_decode(bcrf_roost_invite_decrypt([
+        $envelope=[
             'version'=>(int)$row['payload_version'],'key_id'=>$row['encryption_key_id'],
             'nonce'=>$row['payload_nonce'],'ciphertext'=>$row['payload_ciphertext'],
             'tag'=>$row['payload_tag']
-        ],$config['key'],$config['key_id']),true,512,JSON_THROW_ON_ERROR);
+        ];
+        $decryptionKeys=$config['decryption_keys']??[$config['key_id']=>$config['key']];
+        if (!is_array($decryptionKeys)) throw new InvalidArgumentException('Invalid decryption keyring.');
+        $payload=json_decode(bcrf_roost_invite_decrypt_keyring($envelope,$decryptionKeys),
+            true,512,JSON_THROW_ON_ERROR);
         if (!is_array($payload) || !is_string($payload['recipient']??null) ||
             !is_string($payload['token']??null) ||
             !bcrf_roost_invitation_delivery_payload_matches($pdo,$id,$claimToken,
