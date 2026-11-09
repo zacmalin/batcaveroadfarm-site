@@ -1479,4 +1479,29 @@ $pendingStates->execute([$validPending['invitation_id']]);
 if ($pendingStates->fetchColumn()!=='pending')
     throw new RuntimeException('Revocation suppression changed unrelated valid invitation.');
 
+$batchExpired=[];
+foreach (['batch.one@example.test','batch.two@example.test'] as $address) {
+    $item=bcrf_roost_create_household_invitation($pdo,30,$address,
+        ['key'=>$deliveryKey,'key_id'=>'integration-v1']);
+    $expirePending->execute([$item['invitation_id']]);
+    $batchExpired[]=$item['invitation_id'];
+}
+if (bcrf_roost_suppress_inactive_invitation_delivery($pdo,1)!==1)
+    throw new RuntimeException('Invitation suppression ignored one-row batch limit.');
+$batchStates=$pdo->prepare("SELECT COUNT(*) FROM reward_invitation_delivery_outbox
+    WHERE invitation_id IN (?,?) AND status='suppressed'");
+$batchStates->execute($batchExpired);
+if ((int)$batchStates->fetchColumn()!==1)
+    throw new RuntimeException('Invitation suppression modified more than one batch row.');
+if (bcrf_roost_suppress_inactive_invitation_delivery($pdo,1)!==1)
+    throw new RuntimeException('Second bounded invitation suppression batch did not progress.');
+$batchStates->execute($batchExpired);
+if ((int)$batchStates->fetchColumn()!==2)
+    throw new RuntimeException('Bounded invitation suppression failed to process both rows.');
+if (bcrf_roost_suppress_inactive_invitation_delivery($pdo,1)!==0)
+    throw new RuntimeException('Bounded invitation suppression was not idempotent.');
+$pendingStates->execute([$validPending['invitation_id']]);
+if ($pendingStates->fetchColumn()!=='pending')
+    throw new RuntimeException('Bounded suppression touched unrelated valid invitation.');
+
 echo "Farm Rewards integration checks passed.\\n";
