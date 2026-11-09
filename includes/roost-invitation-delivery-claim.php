@@ -56,11 +56,15 @@ function bcrf_roost_recover_invitation_delivery(PDO $pdo,int $staleMinutes=15,in
         $update=$pdo->prepare("UPDATE reward_invitation_delivery_outbox
             SET status=?,claim_token=NULL,claimed_at=NULL,
                 available_at=DATE_ADD(UTC_TIMESTAMP(3),INTERVAL 5 MINUTE),
-                last_error_code='claim_timeout',updated_at=UTC_TIMESTAMP(3)
+                last_error_code=?,updated_at=UTC_TIMESTAMP(3)
             WHERE id=? AND status='processing'");
         $count=0;
         foreach ($rows as $row) {
-            $update->execute([$row['dispatch_started_at']!==null || (int)$row['attempts']>=3?'failed':'pending',(int)$row['id']]);
+            $update->execute([
+                $row['dispatch_started_at']!==null || (int)$row['attempts']>=3?'failed':'pending',
+                $row['dispatch_started_at']!==null?'delivery_unknown':'claim_timeout',
+                (int)$row['id']
+            ]);
             $count+=$update->rowCount();
         }
         $pdo->commit();
