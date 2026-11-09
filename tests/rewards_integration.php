@@ -325,6 +325,21 @@ if (!bcrf_roost_fail_invitation_delivery($pdo,$timeoutClaim['id'],
 $crashState->execute([$timeoutClaim['id']]);
 if ($crashState->fetchColumn()!=='failed')
     throw new RuntimeException('Post-dispatch timeout was incorrectly retried.');
+require_once __DIR__.'/../includes/roost-invitation-delivery-monitor.php';
+$deliveryMetrics=bcrf_roost_invitation_delivery_metrics($pdo);
+foreach (['pending','processing','sent','suppressed','failed'] as $status) {
+    if (!isset($deliveryMetrics['status_counts'][$status]) ||
+        !is_int($deliveryMetrics['status_counts'][$status]))
+        throw new RuntimeException('Invitation queue metrics omitted a status.');
+}
+if ($deliveryMetrics['status_counts']['sent']<1 ||
+    $deliveryMetrics['status_counts']['suppressed']<1 ||
+    $deliveryMetrics['status_counts']['failed']<1)
+    throw new RuntimeException('Invitation queue metrics missed delivery outcomes.');
+foreach (['ready','stale','delayed'] as $metric) {
+    if (!isset($deliveryMetrics[$metric]) || !is_int($deliveryMetrics[$metric]))
+        throw new RuntimeException('Invitation queue metrics omitted operational count.');
+}
 $queuedHash=$pdo->prepare("SELECT token_hash FROM reward_household_invitations WHERE id=?");
 $queuedHash->execute([$queuedInvitation['invitation_id']]);
 if ($queuedHash->fetchColumn()!==hash('sha256',$decrypted['token']))
