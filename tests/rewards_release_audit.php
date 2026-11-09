@@ -87,4 +87,15 @@ if ($enrollPage===false ||
     !str_contains($enrollPage, "consent['policy_version']") ||
     !str_contains($enrollPage, 'bcrf_roost_enroll_verified_adult('))
     throw new RuntimeException('Customer enrollment must remain launch-gated and evidence-based.');
+$acceptPage=file_get_contents($root.'/roost-rewards/accept-invitation.php');
+if ($acceptPage===false ||
+    !str_contains($acceptPage, 'BCRF_ROOST_INVITATION_ACCEPTANCE_ENABLED') ||
+    !str_contains($acceptPage, 'bcrf_roost_consent_form_config()') ||
+    !str_contains($acceptPage, 'csrf_verify(') ||
+    !str_contains($acceptPage, 'bcrf_rl_hit(') ||
+    !str_contains($acceptPage, "consent['policy_version']") ||
+    !str_contains($acceptPage, 'bcrf_roost_verified_adult_with_consent(') ||
+    !str_contains($acceptPage, 'bcrf_roost_accept_household_invitation(') ||
+    !str_contains($acceptPage, 'Referrer-Policy: no-referrer'))
+    throw new RuntimeException('Invitation acceptance must remain launch-gated, private and evidence-based.');
 echo "Offline rewards release safety audit passed.\\n";
