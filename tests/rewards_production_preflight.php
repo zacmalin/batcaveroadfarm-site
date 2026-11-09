@@ -35,6 +35,12 @@ try {
             && !str_contains($found['id']['COLUMN_TYPE'],'unsigned')) {
             $issues[] = "$table.id must be UNSIGNED for reward foreign keys";
         }
+        if ($table==='refunds' && isset($found['sale_id'])
+            && !str_contains($found['sale_id']['COLUMN_TYPE'],'unsigned'))
+            $issues[]='refunds.sale_id must be UNSIGNED to match sales.id';
+        if ($table==='customers' && isset($found['id'])
+            && str_contains($found['id']['COLUMN_TYPE'],'unsigned'))
+            $issues[]='customers.id must be signed INT for Rewards foreign keys';
     }
     $tableStmt = $pdo->prepare("SELECT ENGINE, TABLE_COLLATION FROM information_schema.TABLES
         WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?");
