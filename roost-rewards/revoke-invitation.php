@@ -20,10 +20,7 @@ $pendingInvitations=[];
 if ($enabled && $verified) {
     try {
         require_once __DIR__.'/../includes/roost-manager-invitation-summary.php';
-        $invitationRows=bcrf_roost_manager_invitation_summary($pdo,(int)$customer['id']);
-        foreach ($invitationRows as $invitation) {
-            if ($invitation['display_status']==='pending') $pendingInvitations[]=$invitation;
-        }
+        $pendingInvitations=bcrf_roost_manager_pending_invitations($pdo,(int)$customer['id']);
     } catch (Throwable $e) {
         error_log('[Roost invitation list unavailable] '.get_class($e));
         $error='Invitation management temporarily unavailable.';
