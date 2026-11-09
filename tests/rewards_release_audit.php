@@ -98,6 +98,21 @@ if ($acceptPage===false ||
     !str_contains($acceptPage, 'bcrf_roost_accept_household_invitation(') ||
     !str_contains($acceptPage, 'Referrer-Policy: no-referrer'))
     throw new RuntimeException('Invitation acceptance must remain launch-gated, private and evidence-based.');
+require_once $root.'/includes/roost-household-invitation-email.php';
+$testToken=str_repeat('a',64);
+$renderedInvite=bcrf_roost_household_invitation_email($testToken,'https://batcaveroadfarm.com');
+if (!str_contains($renderedInvite['html'],$testToken) ||
+    !str_contains($renderedInvite['opts']['text'],$testToken) ||
+    !str_contains($renderedInvite['html'],'/roost-rewards/accept-invitation.php') ||
+    str_contains($renderedInvite['html'],'?token=') ||
+    $renderedInvite['opts']['transport']!=='smtp_required')
+    throw new RuntimeException('Invitation email must use code entry and strict SMTP.');
+foreach (['http://batcaveroadfarm.com','https://evil.example','https://batcaveroadfarm.com@evil.example','https://batcaveroadfarm.com?redirect=evil'] as $unsafeUrl) {
+    try {
+        bcrf_roost_household_invitation_email($testToken,$unsafeUrl);
+        throw new RuntimeException('Unsafe invitation URL was accepted.');
+    } catch (InvalidArgumentException $expected) {}
+}
 $inviteMail=file_get_contents($root.'/includes/roost-household-invitation-email.php');
 if ($inviteMail===false ||
     !str_contains($inviteMail, 'smtp_required') ||
