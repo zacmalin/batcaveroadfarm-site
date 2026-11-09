@@ -305,7 +305,7 @@ if (!$queued || (int)$queued['source_id']!==907 ||
     bcrf_roost_pos_dispatch_claimed_event($pdo,$queued)!=='completed')
     throw new RuntimeException('Claimed POS sale dispatch did not complete.');
 if ((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger
-    WHERE entry_type='earn_spend' AND source_id='907'") !== 1)
+    WHERE entry_type='earn_spend' AND source_id='907'")->fetchColumn() !== 1)
     throw new RuntimeException('Claimed POS sale dispatch failed to post exactly once.');
 if ((string)$pdo->query("SELECT status FROM reward_pos_outbox
     WHERE event_type='sale.completed' AND source_id=907")->fetchColumn()!=='completed')
@@ -314,6 +314,6 @@ if ((string)$pdo->query("SELECT status FROM reward_pos_outbox
 if (bcrf_roost_pos_dispatch_claimed_event($pdo,$queued)!=='failed')
     throw new RuntimeException('Completed POS claim was replayed.');
 if ((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger
-    WHERE entry_type='earn_spend' AND source_id='907'") !== 1)
+    WHERE entry_type='earn_spend' AND source_id='907'")->fetchColumn() !== 1)
     throw new RuntimeException('Stale POS claim duplicated points.');
 echo "POS handler refund and queue crash-recovery guards passed.\\n";
