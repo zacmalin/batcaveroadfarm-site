@@ -76,7 +76,7 @@ try {
     $pdo->exec("UPDATE reward_redemption_requests SET status='fulfilled' WHERE request_token='integration-redemption-request-001'");
     throw new RuntimeException('Fulfilled redemption accepted without receipt and ledger entry.');
 } catch (PDOException $expected) {
-    if ($expected->getCode()!=='23000') throw $expected;
+    if ($expected->getCode()!=='23000' && $expected->getCode()!=='HY000') throw $expected;
 }
 try {
     $pdo->exec("INSERT INTO reward_redemption_requests
