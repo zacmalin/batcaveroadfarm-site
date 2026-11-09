@@ -6,8 +6,7 @@
 require_once __DIR__.'/roost-pos-outbox-dispatch.php';
 require_once __DIR__.'/rewards.php';
 require_once __DIR__.'/roost-refund-processing.php';
-function bcrf_roost_outbox_handle_test_event(PDO $pdo, array $event, int $policyId, bool $explicitTestAuthorization=false): array {
-    if (!$explicitTestAuthorization) throw new LogicException('Explicit test authorization required.');
+function bcrf_roost_outbox_handle_verified_event(PDO $pdo, array $event, int $policyId): array {
     if ($pdo->inTransaction()) throw new LogicException('Handler requires autocommit.');
     // A sale can be partially or fully refunded after its earning commits.
     // Recomputing current net eligibility would misidentify the old award as
@@ -107,4 +106,11 @@ function bcrf_roost_outbox_handle_test_event(PDO $pdo, array $event, int $policy
             return ['outcome'=>'completed','replayed'=>true,'ledger_entry_id'=>$receipt['ledger_entry_id']];
         throw $e;
     }
+}
+
+// Preserve the explicit test-only API; production must use the verified
+// handler through its separately gated and reviewed queue runner.
+function bcrf_roost_outbox_handle_test_event(PDO $pdo, array $event, int $policyId, bool $explicitTestAuthorization=false): array {
+    if (!$explicitTestAuthorization) throw new LogicException('Explicit test authorization required.');
+    return bcrf_roost_outbox_handle_verified_event($pdo,$event,$policyId);
 }
