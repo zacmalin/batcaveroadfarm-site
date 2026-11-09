@@ -79,26 +79,26 @@ foreach ([[-5,[false,false,false,false]],[0,[false,false,false,false]],[249,[fal
 }
 
 $pdo->exec("INSERT INTO customers (id,email,email_verified_at,account_status)
-    VALUES (3,'new-adult@example.test',UTC_TIMESTAMP(),'active'),(4,'unverified@example.test',NULL,'active')");
-foreach ([[3,false,true],[3,true,false],[4,true,true]] as $attempt) {
+    VALUES (30,'new-adult@example.test',UTC_TIMESTAMP(),'active'),(40,'unverified@example.test',NULL,'active')");
+foreach ([[30,false,true],[30,true,false],[40,true,true]] as $attempt) {
     try {
         bcrf_roost_enroll_verified_adult($pdo,$attempt[0],$attempt[1],$attempt[2]);
         throw new RuntimeException('Invalid enrollment unexpectedly succeeded.');
     } catch (InvalidArgumentException|DomainException $expected) {}
 }
-$enrolled=bcrf_roost_enroll_verified_adult($pdo,3,true,true);
+$enrolled=bcrf_roost_enroll_verified_adult($pdo,30,true,true);
 if ($enrolled['balance_points']!==0 || $enrolled['household_id']<=1)
     throw new RuntimeException('Verified adult enrollment did not create a zero-balance household.');
 $check=$pdo->prepare("SELECT m.role,m.verification_status,m.can_redeem,a.balance_points
     FROM reward_household_members m JOIN reward_accounts a ON a.household_id=m.household_id
     WHERE m.customer_id=?");
-$check->execute([3]);
+$check->execute([30]);
 $enrollmentRow=$check->fetch(PDO::FETCH_ASSOC);
 if (!$enrollmentRow || $enrollmentRow['role']!=='manager' || $enrollmentRow['verification_status']!=='verified'
     || (int)$enrollmentRow['can_redeem']!==1 || (int)$enrollmentRow['balance_points']!==0)
     throw new RuntimeException('Enrollment record mismatch.');
 try {
-    bcrf_roost_enroll_verified_adult($pdo,3,true,true);
+    bcrf_roost_enroll_verified_adult($pdo,30,true,true);
     throw new RuntimeException('Duplicate enrollment unexpectedly succeeded.');
 } catch (DomainException $expected) {}
 
@@ -357,7 +357,7 @@ $_SESSION['user_role'] = 'administrator';
 $staffAttendance = bcrf_roost_verify_attendee($pdo, 4, 2);
 expect($staffAttendance > 0, 'staff can verify an eligible attendee');
 rejected(fn()=>bcrf_roost_verify_attendee($pdo,4,1),'full check-in cannot accept another attendee');
-rejected(fn()=>bcrf_roost_verify_attendee($pdo,5,4),'unverified household member cannot be verified'); // customer 4 has no membership
+rejected(fn()=>bcrf_roost_verify_attendee($pdo,5,40),'unverified household member cannot be verified'); // customer 40 has no membership
 $_SESSION['user_role'] = 'visitor';
 rejected(fn()=>bcrf_roost_verify_attendee($pdo,5,2),'visitor cannot verify attendance');
 $_SESSION['user_role'] = 'administrator';
