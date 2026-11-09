@@ -196,13 +196,19 @@ $expireInvite=$pdo->prepare("UPDATE reward_household_invitations
 $expireInvite->execute([$staleInvite['invitation_id']]);
 if (bcrf_roost_invitation_delivery_eligible($pdo,$staleClaim['id'],$staleClaim['claim_token']))
     throw new RuntimeException('Expired invitation remained delivery-eligible.');
+if (!bcrf_roost_suppress_ineligible_invitation_delivery($pdo,$staleClaim['id'],$staleClaim['claim_token']))
+    throw new RuntimeException('Expired claimed invitation was not suppressed.');
+if (bcrf_roost_complete_invitation_delivery($pdo,$staleClaim['id'],$staleClaim['claim_token'],'sent'))
+    throw new RuntimeException('Suppressed invitation was incorrectly marked sent.');
+
 // Restore fixture expiry so later batch-expiration assertions remain isolated.
 $restoreExpiry=$pdo->prepare("UPDATE reward_household_invitations
     SET expires_at=DATE_ADD(UTC_TIMESTAMP(3),INTERVAL 7 DAY) WHERE id=?");
 $restoreExpiry->execute([$staleInvite['invitation_id']]);
 $staleMark=$pdo->prepare("UPDATE reward_invitation_delivery_outbox
-    SET claimed_at=DATE_SUB(UTC_TIMESTAMP(3),INTERVAL 20 MINUTE) WHERE id=?");
-$staleMark->execute([$staleClaim['id']]);
+    SET status='processing',claimed_at=DATE_SUB(UTC_TIMESTAMP(3),INTERVAL 20 MINUTE),
+        claim_token=? WHERE id=?");
+$staleMark->execute([str_repeat('a',64),$staleClaim['id']]);
 if (bcrf_roost_recover_invitation_delivery($pdo)!==1)
     throw new RuntimeException('Stale invitation delivery was not recovered.');
 if (bcrf_roost_complete_invitation_delivery($pdo,$staleClaim['id'],$staleClaim['claim_token'],'sent'))
