@@ -20,8 +20,8 @@ foreach ($cases as [$path,$hook]) {
 }
 $adapter=file_get_contents($root.'/includes/roost-pos-outbox-integration.php');
 $dispatch=file_get_contents($root.'/includes/roost-pos-outbox-dispatch.php');
-if (!str_contains($adapter,'getenv('BCRF_ROOST_POS_ENQUEUE_ENABLED') === '1' && getenv('BCRF_ROOST_POS_ACTIVATION_APPROVED') === '1'') ||
-    !str_contains($dispatch,'getenv('BCRF_ROOST_POS_DISPATCH_ENABLED') === '1' && getenv('BCRF_ROOST_POS_ACTIVATION_APPROVED') === '1''))
+if (!str_contains($adapter,"getenv('BCRF_ROOST_POS_ENQUEUE_ENABLED') === '1' && getenv('BCRF_ROOST_POS_ACTIVATION_APPROVED') === '1'") ||
+    !str_contains($dispatch,"getenv('BCRF_ROOST_POS_DISPATCH_ENABLED') === '1' && getenv('BCRF_ROOST_POS_ACTIVATION_APPROVED') === '1'"))
     throw new RuntimeException('A production rewards gate was activated.');
 
 // Default-off activation must require both a feature switch and explicit approval.
