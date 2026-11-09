@@ -18,4 +18,16 @@ if (!bcrf_roost_delivery_review_access((string)($current_role ?? ''), true)) {
 echo '<section class="p-6"><h1 class="text-xl font-semibold">Farm Rewards delivery review</h1>';
 echo '<p class="mt-3">Preview only. Mailbox integration and delivery-failure records are not connected.</p>';
 echo '<p class="mt-2">Staff must independently verify the original recipient, delivery report provenance, and outbound reference before any manual suppression decision.</p>';
-echo '<p class="mt-2">No automated suppression or email sending is available on this screen.</p></section>';
+echo '<p class="mt-2">No automated suppression or email sending is available on this screen.</p>';
+// Synthetic fixture only: no real customer address, mailbox access or database reads.
+require_once __DIR__ . '/../../includes/roost-email-manual-review-record.php';
+require_once __DIR__ . '/../../includes/roost-email-dsn-review-admin-preview.php';
+$fixture = bcrf_roost_manual_delivery_review_record([
+    'enhanced_status' => '5.1.1',
+    'outbound_reference' => 'DEMO-ONLY-001',
+    'provenance_verified' => false,
+    'recipient_correlated' => false,
+]);
+echo '<div class="mt-5"><h2 class="font-semibold">Synthetic example (not a real delivery report)</h2>';
+echo bcrf_roost_delivery_review_admin_preview((string)$current_role, true, $fixture);
+echo '</div></section>';
