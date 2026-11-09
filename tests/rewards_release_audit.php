@@ -113,6 +113,15 @@ foreach (['http://batcaveroadfarm.com','https://evil.example','https://batcavero
         throw new RuntimeException('Unsafe invitation URL was accepted.');
     } catch (InvalidArgumentException $expected) {}
 }
+foreach (['',str_repeat('a',63),str_repeat('g',64),str_repeat('A',64)] as $invalidToken) {
+    try {
+        bcrf_roost_household_invitation_email($invalidToken,'https://batcaveroadfarm.com');
+        throw new RuntimeException('Invalid invitation bearer code was accepted.');
+    } catch (InvalidArgumentException $expected) {}
+}
+$wwwInvite=bcrf_roost_household_invitation_email($testToken,'https://www.batcaveroadfarm.com');
+if (!str_contains($wwwInvite['html'],'https://www.batcaveroadfarm.com/roost-rewards/accept-invitation.php'))
+    throw new RuntimeException('Official www invitation URL was not rendered.');
 $inviteMail=file_get_contents($root.'/includes/roost-household-invitation-email.php');
 if ($inviteMail===false ||
     !str_contains($inviteMail, 'smtp_required') ||
