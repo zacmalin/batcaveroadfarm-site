@@ -424,6 +424,30 @@ $freshInvite=bcrf_roost_create_household_invitation($pdo,80,'journey-recovery@ex
 if (bcrf_roost_accept_household_invitation($pdo,$freshInvite['token'],82,true,true)!==['accepted'=>true])
     throw new RuntimeException('Fresh invitation could not recover after expired attempt.');
 
+// Revoked invitations must remain unusable even with verified adult and consent.
+$pdo->exec("INSERT INTO customers (id,email,email_verified_at,account_status)
+    VALUES (85,'revoked-invite@example.test',UTC_TIMESTAMP(),'active')");
+bcrf_roost_record_staff_adult_verification($pdo,85,7,'staff_review','revoked-invite-85');
+bcrf_roost_record_customer_consent($pdo,85,'household_join','test-1',true);
+$revokedInvite=bcrf_roost_create_household_invitation($pdo,80,'revoked-invite@example.test');
+$revoke=$pdo->prepare("UPDATE reward_household_invitations
+    SET status='revoked',revoked_at=UTC_TIMESTAMP(3) WHERE id=? AND status='pending'");
+$revoke->execute([$revokedInvite['invitation_id']]);
+if ($revoke->rowCount()!==1) throw new RuntimeException('Cannot prepare revoked invitation fixture.');
+try {
+    bcrf_roost_accept_household_invitation($pdo,$revokedInvite['token'],85,true,true);
+    throw new RuntimeException('Revoked invitation was accepted.');
+} catch (DomainException $expected) {}
+$check=$pdo->prepare("SELECT COUNT(*) FROM reward_household_members WHERE customer_id=?");
+$check->execute([85]);
+if ((int)$check->fetchColumn()!==0)
+    throw new RuntimeException('Revoked invitation created membership.');
+$check=$pdo->prepare("SELECT status,accepted_by_customer_id FROM reward_household_invitations WHERE id=?");
+$check->execute([$revokedInvite['invitation_id']]);
+$revokedState=$check->fetch(PDO::FETCH_ASSOC);
+if (!$revokedState || $revokedState['status']!=='revoked' || $revokedState['accepted_by_customer_id']!==null)
+    throw new RuntimeException('Revoked invitation state changed after rejection.');
+
 // Competing requests must not create two memberships or accept one token twice.
 $pdo->exec("INSERT INTO customers (id,email,email_verified_at,account_status)
     VALUES (83,'race-enroll@example.test',UTC_TIMESTAMP(),'active'),
