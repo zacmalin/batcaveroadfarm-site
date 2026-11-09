@@ -49,3 +49,16 @@ function bcrf_roost_invitation_delivery_payload_matches(PDO $pdo,int $jobId,
     return hash_equals((string)$row['invitee_email_hash'],hash('sha256',$email)) &&
         hash_equals((string)$row['token_hash'],hash('sha256',$token));
 }
+
+/**
+ * Suppress a claimed delivery when its invitation or manager is no longer eligible.
+ * This is a queue-only operation; dispatchers must still recheck before SMTP.
+ */
+function bcrf_roost_suppress_ineligible_invitation_delivery(PDO $pdo,int $jobId,
+    string $claimToken): bool {
+    if ($jobId<1 || !preg_match('/^[a-f0-9]{64}$/D',$claimToken))
+        throw new InvalidArgumentException('Valid delivery claim required.');
+    if (bcrf_roost_invitation_delivery_eligible($pdo,$jobId,$claimToken)) return false;
+    require_once __DIR__.'/roost-invitation-delivery-claim.php';
+    return bcrf_roost_complete_invitation_delivery($pdo,$jobId,$claimToken,'suppressed');
+}
