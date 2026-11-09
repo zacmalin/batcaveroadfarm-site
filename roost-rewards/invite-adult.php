@@ -23,8 +23,10 @@ if ($enabled && $verified) {
         // An eligible manager may have no invitation history yet.
         $q=$pdo->prepare("SELECT 1 FROM reward_household_members m
             JOIN reward_households h ON h.id=m.household_id AND h.status='active'
+            JOIN customers c ON c.id=m.customer_id
             WHERE m.customer_id=? AND m.role='manager' AND m.verification_status='verified'
-              AND m.revoked_at IS NULL LIMIT 1");
+              AND m.revoked_at IS NULL AND c.account_status='active'
+              AND c.email_verified_at IS NOT NULL LIMIT 1");
         $q->execute([(int)$customer['id']]);
         $manager=(bool)$q->fetchColumn();
     } catch (Throwable $e) {
