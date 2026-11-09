@@ -47,7 +47,8 @@ function bcrf_roost_request_redemption(
             throw new BcrfRewardError('Redemption request is not authorized.');
         // No benefit catalog has been approved; reject unconfigured benefits.
         $catalog=$pdo->prepare("SELECT 1 FROM reward_redemption_benefits
-            WHERE code=? AND tier_points=? AND status='active' LIMIT 1");
+            WHERE code=? AND tier_points=? AND status='active'
+              AND approved_at IS NOT NULL AND fulfillment_type='internal_voucher' LIMIT 1");
         $catalog->execute([$benefitCode,$tier]);
         if (!$catalog->fetchColumn()) throw new BcrfRewardError('Reward benefit is not available.');
         $insert=$pdo->prepare("INSERT INTO reward_redemption_requests
