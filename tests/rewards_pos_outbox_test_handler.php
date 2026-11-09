@@ -287,4 +287,33 @@ if (!$recoveredAgain['replayed'] || !bcrf_roost_outbox_finish($pdo,(int)$retry['
     throw new RuntimeException('Recovered queue event not acknowledged.');
 if ((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger WHERE source_type='sale' AND source_id='903'")->fetchColumn()!==1)
     throw new RuntimeException('Queue retry duplicated ledger award.');
+// Exercise the real claimed-event dispatch path on disposable MySQL,
+// without enabling the production queue runner.
+require_once __DIR__.'/../includes/roost-pos-dispatch-runner.php';
+$pdo->exec('DELETE FROM reward_pos_outbox');
+$pdo->exec("INSERT INTO sales (id,customer_id,status,subtotal_cents,discount_cents,total_cents)
+ VALUES (907,1,'completed',1400,0,1400)");
+$pdo->exec("INSERT INTO sale_lines (sale_id,product_type,gross_cents,discount_cents,refunded_net_cents)
+ VALUES (907,'retail',1400,0,0)");
+$pdo->exec("INSERT INTO payments (sale_id,tender,amount_cents,status)
+ VALUES (907,'cash',1400,'completed')");
+$pdo->beginTransaction();
+bcrf_roost_pos_outbox_enqueue_pinned_sale($pdo,907,1);
+$pdo->commit();
+$queued=bcrf_roost_outbox_claim($pdo);
+if (!$queued || (int)$queued['source_id']!==907 ||
+    bcrf_roost_pos_dispatch_claimed_event($pdo,$queued)!=='completed')
+    throw new RuntimeException('Claimed POS sale dispatch did not complete.');
+if ((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger
+    WHERE entry_type='earn_spend' AND source_id='907'") !== 1)
+    throw new RuntimeException('Claimed POS sale dispatch failed to post exactly once.');
+if ((string)$pdo->query("SELECT status FROM reward_pos_outbox
+    WHERE event_type='sale.completed' AND source_id=907")->fetchColumn()!=='completed')
+    throw new RuntimeException('Claimed POS sale was not acknowledged.');
+// An old attempt must never re-award or overwrite the completed event.
+if (bcrf_roost_pos_dispatch_claimed_event($pdo,$queued)!=='failed')
+    throw new RuntimeException('Completed POS claim was replayed.');
+if ((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger
+    WHERE entry_type='earn_spend' AND source_id='907'") !== 1)
+    throw new RuntimeException('Stale POS claim duplicated points.');
 echo "POS handler refund and queue crash-recovery guards passed.\\n";
