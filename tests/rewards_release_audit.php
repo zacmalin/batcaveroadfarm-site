@@ -105,7 +105,11 @@ if ($revokePage===false ||
     !str_contains($revokePage, 'bcrf_rl_hit(') ||
     !str_contains($revokePage, 'bcrf_roost_revoke_household_invitation(') ||
     !str_contains($revokePage, "confirm_revoke") ||
-    !str_contains($revokePage, "is_logged_in()"))
+    !str_contains($revokePage, "is_logged_in()") ||
+    !str_contains($revokePage, 'bcrf_roost_manager_invitation_summary(') ||
+    !str_contains($revokePage, "display_status']==='pending'") ||
+    !str_contains($revokePage, 'in_array((int)$id,') ||
+    !str_contains($revokePage, '<select id="invitation_id"'))
     throw new RuntimeException('Invitation revocation must remain gated, authenticated and CSRF protected.');
 $dashboard=file_get_contents($root.'/roost-rewards/balance.php');
 if ($dashboard===false ||
