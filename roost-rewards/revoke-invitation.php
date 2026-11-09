@@ -17,10 +17,15 @@ $enabled=getenv('BCRF_ROOST_INVITATION_REVOCATION_ENABLED')==='1';
 $error='';
 $success=false;
 $pendingInvitations=[];
+$page=max(1,min(10001,(int)($_GET['page'] ?? $_POST['page'] ?? 1)));
+$pageSize=50;
+$hasNextPage=false;
 if ($enabled && $verified) {
     try {
         require_once __DIR__.'/../includes/roost-manager-invitation-summary.php';
-        $pendingInvitations=bcrf_roost_manager_pending_invitations($pdo,(int)$customer['id']);
+        $pendingInvitations=bcrf_roost_manager_pending_invitations($pdo,(int)$customer['id'],$pageSize+1,($page-1)*$pageSize);
+        $hasNextPage=count($pendingInvitations)>$pageSize;
+        $pendingInvitations=array_slice($pendingInvitations,0,$pageSize);
     } catch (Throwable $e) {
         error_log('[Roost invitation list unavailable] '.get_class($e));
         $error='Invitation management temporarily unavailable.';
@@ -68,6 +73,7 @@ include __DIR__.'/../includes/header.php';
 <?php if ($error!==''): ?><p role="alert"><?= htmlspecialchars($error,ENT_QUOTES,'UTF-8') ?></p><?php endif; ?>
 <form method="post" action="/roost-rewards/revoke-invitation.php">
 <?= csrf_field() ?>
+<input type="hidden" name="page" value="<?= (int)$page ?>">
 <?php if (!$pendingInvitations): ?><p>No pending invitations are available to revoke.</p><?php else: ?>
 <p><label for="invitation_id">Pending invitation</label>
 <select id="invitation_id" name="invitation_id" required>
@@ -80,6 +86,8 @@ include __DIR__.'/../includes/header.php';
 <button type="submit">Revoke invitation</button>
 <?php endif; ?>
 </form>
+<?php if ($page>1): ?><a href="/roost-rewards/revoke-invitation.php?page=<?= (int)($page-1) ?>">Previous invitations</a><?php endif; ?>
+<?php if ($hasNextPage): ?><a href="/roost-rewards/revoke-invitation.php?page=<?= (int)($page+1) ?>">More invitations</a><?php endif; ?>
 <?php endif; ?>
 <p><a href="/roost-rewards/balance.php">Return to Rewards</a></p>
 </main>
