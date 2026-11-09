@@ -33,11 +33,19 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         try {
             $id=filter_var($_POST['request_id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
             $decision=(string)($_POST['decision']??'');
-            if (!$id || !in_array($decision,['approved','rejected'],true))
+            if (!$id || !in_array($decision,['approved','rejected','issue'],true))
                 throw new InvalidArgumentException('Invalid review.');
-            require_once __DIR__.'/../includes/roost-redemption-review.php';
-            $result=bcrf_roost_review_redemption($pdo,(int)$id,(int)$_SESSION['user_id'],$decision);
-            $message='Request #'.$result['id'].' is '.$result['status'].'. No benefit has been fulfilled or points deducted.';
+            if ($decision==='issue') {
+                if (getenv('BCRF_ROOST_REDEMPTION_ISSUANCE_ENABLED')!=='1')
+                    throw new DomainException('Internal voucher issuance disabled.');
+                require_once __DIR__.'/../includes/roost-redemption-issuance.php';
+                $result=bcrf_roost_issue_redemption_receipt($pdo,(int)$id,(int)$_SESSION['user_id']);
+                $message='Internal reward receipt '.$result['receipt'].' issued and points deducted.';
+            } else {
+                require_once __DIR__.'/../includes/roost-redemption-review.php';
+                $result=bcrf_roost_review_redemption($pdo,(int)$id,(int)$_SESSION['user_id'],$decision);
+                $message='Request #'.$result['id'].' is '.$result['status'].'. No points deducted.';
+            }
         } catch (BcrfRewardError|InvalidArgumentException $e) {
             $error='Review rejected. Refresh and check request eligibility.';
         } catch (Throwable $e) {
@@ -67,7 +75,7 @@ if ($enabled) {
 <h1>Roost Rewards redemption queue</h1>
 <?php if (!$enabled): ?><p>Staff redemption review is not enabled.</p>
 <?php else: ?>
-<p>Review only. Approval does not reserve points, deliver a benefit, or debit the ledger. Fulfillment is not enabled.</p>
+<p>Review only. Approval does not reserve points. Internal receipt issuance, if separately enabled, atomically deducts points. External benefit delivery is not supported.</p>
 <?php if ($error!==''): ?><p role="alert"><?= htmlspecialchars($error,ENT_QUOTES,'UTF-8') ?></p><?php endif; ?>
 <?php if ($message!==''): ?><p role="status"><?= htmlspecialchars($message,ENT_QUOTES,'UTF-8') ?></p><?php endif; ?>
 <?php if (!$requests): ?><p>No requests.</p><?php endif; ?>
@@ -84,6 +92,12 @@ requested <?= htmlspecialchars($request['requested_at'],ENT_QUOTES,'UTF-8') ?> U
 <input type="hidden" name="request_id" value="<?= (int)$request['id'] ?>">
 <button type="submit" name="decision" value="approved">Approve</button>
 <button type="submit" name="decision" value="rejected">Reject</button>
+</form>
+<?php elseif ($request['status']==='approved' && getenv('BCRF_ROOST_REDEMPTION_ISSUANCE_ENABLED')==='1'): ?>
+<form method="post" action="/admin/roost_redemption_queue.php">
+<?= csrf_field() ?>
+<input type="hidden" name="request_id" value="<?= (int)$request['id'] ?>">
+<button type="submit" name="decision" value="issue">Issue internal reward receipt and deduct points</button>
 </form>
 <?php endif; ?>
 </section>
