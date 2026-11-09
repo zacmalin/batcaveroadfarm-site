@@ -275,6 +275,14 @@ $pdo->prepare("UPDATE reward_household_invitations SET expires_at=DATE_SUB(UTC_T
 if (bcrf_roost_customer_invitation_preview($pdo,70,$previewInvite['token'])!==null)
     throw new RuntimeException('Expired invitation preview leaked.');
 
+require_once __DIR__ . '/../includes/roost-customer-consent-status.php';
+$consentStatus=bcrf_roost_customer_consent_status($pdo,60,'rewards_enrollment');
+if (!$consentStatus || $consentStatus['status']!=='withdrawn'
+    || isset($consentStatus['evidence_reference']))
+    throw new RuntimeException('Customer consent status failed to reflect withdrawal.');
+if (bcrf_roost_customer_consent_status($pdo,61,'household_join')!==null)
+    throw new RuntimeException('Absent customer consent incorrectly shown.');
+
 require_once __DIR__ . '/../includes/roost-customer-balance.php';
 require_once __DIR__ . '/../includes/roost-customer-history.php';
 require_once __DIR__ . '/../includes/roost-customer-household-summary.php';
