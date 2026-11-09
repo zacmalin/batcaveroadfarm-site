@@ -13,7 +13,6 @@ function bcrf_roost_request_redemption(
         !preg_match('/^[a-z][a-z0-9_-]{2,63}$/D',$benefitCode) ||
         !preg_match('/^[A-Za-z0-9_-]{12,64}$/D',$requestToken))
         throw new InvalidArgumentException('Invalid redemption request.');
-    $auth=bcrf_roost_redemption_authorization($pdo,$householdId,$customerId,$tier);
     $pdo->beginTransaction();
     try {
         // Serialize with the household balance and redemption ledger. This
@@ -34,7 +33,18 @@ function bcrf_roost_request_redemption(
             $pdo->commit();
             return ['id'=>(int)$prior['id'],'status'=>$prior['status'],'replayed'=>true];
         }
-        if (!$auth['authorized'] || (int)$balance<$tier) throw new BcrfRewardError('Redemption request is not authorized.');
+        // Revalidate membership while the account lock is held. This avoids
+        // accepting a request after a concurrent membership revocation.
+        $member=$pdo->prepare("SELECT m.id FROM reward_household_members m
+            JOIN reward_households h ON h.id=m.household_id
+            JOIN customers c ON c.id=m.customer_id
+            WHERE m.household_id=? AND m.customer_id=? AND h.status='active'
+              AND m.role IN ('manager','adult') AND m.can_redeem=1
+              AND m.verification_status='verified' AND m.revoked_at IS NULL
+              AND c.account_status='active' AND c.email_verified_at IS NOT NULL FOR UPDATE");
+        $member->execute([$householdId,$customerId]);
+        if (!$member->fetchColumn() || (int)$balance<$tier)
+            throw new BcrfRewardError('Redemption request is not authorized.');
         // No benefit catalog has been approved; reject unconfigured benefits.
         $catalog=$pdo->prepare("SELECT 1 FROM reward_redemption_benefits
             WHERE code=? AND tier_points=? AND status='active' LIMIT 1");
