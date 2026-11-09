@@ -18,7 +18,7 @@ function bcrf_roost_revoke_household_invitation(PDO $pdo,int $managerCustomerId,
         if (!$householdId) throw new DomainException('Verified manager required.');
         $q=$pdo->prepare("UPDATE reward_household_invitations
             SET status='revoked',revoked_at=UTC_TIMESTAMP(3)
-            WHERE id=? AND household_id=? AND status='pending'");
+            WHERE id=? AND household_id=? AND status='pending' AND expires_at>UTC_TIMESTAMP(3)");
         $q->execute([$invitationId,$householdId]);
         $revoked=$q->rowCount()===1;
         $pdo->commit();
