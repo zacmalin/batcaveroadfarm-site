@@ -316,6 +316,9 @@ function bcrf_refund_complete(PDO $pdo, array $in): array {
         $pdo->prepare("UPDATE sales SET refunded_cents = refunded_cents + ?, status = ?, updated_at = UTC_TIMESTAMP(), updated_by = ? WHERE id = ?")
             ->execute([$q['total'], $status, $uid, $saleId]);
         if (function_exists('bcrf_event')) bcrf_event('sale.refunded', 'sales', $saleId, ['refund_number' => $number, 'total_cents' => $q['total'], 'tenders' => array_keys($byT)]);
+        // Roost Rewards: take back purchase points for what was refunded (savepoint; never blocks the refund).
+        require_once __DIR__ . '/rewards.php';
+        bcrf_rewards_after_refund($pdo, $saleId, $rid);
         $pdo->commit();
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
@@ -374,6 +377,9 @@ function bcrf_sale_void(PDO $pdo, int $saleId, string $reason): array {
             $pdo->prepare("UPDATE pos_receipts SET payment_method = 'VOIDED', subtotal = 0, discount = 0, tax = 0, total = 0 WHERE id = ?")->execute([$s['legacy_receipt_id']]);
         }
         if (function_exists('bcrf_event')) bcrf_event('sale.voided', 'sales', $saleId, ['sale_number' => $s['sale_number'], 'total_cents' => (int)$s['total_cents']]);
+        // Roost Rewards: a void takes back every point this sale earned, visit included (savepoint; never blocks the void).
+        require_once __DIR__ . '/rewards.php';
+        bcrf_rewards_after_void($pdo, $saleId);
         $pdo->commit();
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();

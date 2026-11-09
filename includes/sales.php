@@ -406,6 +406,9 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
             bcrf_event('sale.completed', 'sales', $saleId, ['sale_number' => $number, 'total_cents' => $priced['total'],
                        'tenders' => array_values($tenders), 'lines' => count($priced['lines']), 'business_date' => $bdate]);
         }
+        // Roost Rewards: points for an enrolled customer, in this transaction (savepoint; never blocks the sale).
+        require_once __DIR__ . '/rewards.php';
+        bcrf_rewards_after_sale($pdo, $saleId, $v['customer_id'] ? (int)$v['customer_id'] : null, $bdate);
         $pdo->commit();
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();

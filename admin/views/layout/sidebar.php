@@ -27,6 +27,7 @@ $_sections = [
         ['label'=>'Bookings',       'icon'=>'📋','tabs'=>[['Bookings','?view=bookings','view','bookings']]],
         ['label'=>'Private Events', 'short'=>'Parties','icon'=>'🎉','tabs'=>[['Private Events','?view=event_inquiries','view','event_inquiries']]],
         ['label'=>'Annual Passes',  'short'=>'Passes','icon'=>'🎫','tabs'=>[['Annual Passes','?view=passes','view','passes']]],
+        ['label'=>'Roost Rewards',  'short'=>'Rewards','icon'=>'🐓','tabs'=>[['Roost Rewards','/admin/rewards.php','view','pos']]],   // lean rewards, Nov 2026
     ]],
     'animals' => ['label'=>'Animals','icon'=>'🐾','items'=>[
         ['label'=>'Roster',    'icon'=>'🐐','tabs'=>[['Roster','?view=schema&table=animals','table','animals']]],

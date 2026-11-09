@@ -244,6 +244,7 @@ function bcrf_runner_tasks(): array {
         'send_review_requests'   => ['admin/cron/send_review_requests.php',   ['every' => 60]],
         'backup_db'              => ['admin/cron/backup_db.php',              ['at' => '03:15', 'timeout' => 20]],
         'purge_job_records'      => ['admin/cron/purge_job_records.php',      ['at' => '03:20']],
+        'rewards_expire'         => ['admin/cron/rewards_expire.php',         ['at' => '03:25']],
         'backup_files'           => ['admin/cron/backup_files.php',           ['at' => '03:40', 'day' => 0, 'timeout' => 40]],
         'fetch_google_reports'   => ['admin/cron/fetch_google_reports.php',   ['at' => '06:10']],
         'check_stock_alerts'     => ['admin/handlers/check_stock_alerts.php', ['at' => '08:00']],
