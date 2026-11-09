@@ -447,6 +447,8 @@ function mcp_t_blog_draft(PDO $pdo, array $a): array {
     if ($ex !== '') foreach (['excerpt', 'description', 'summary'] as $c) if (in_array($c, $cols, true)) { $row[$c] = mb_substr($ex, 0, 500); break; }
     if (in_array('author', $cols, true)) $row['author'] = $_SESSION['user_name'] ?? 'Bat Cave Road Farm';
     if (in_array('publish_at', $cols, true)) $row['publish_at'] = null;
+    // date_published is NOT NULL with no default: start it at today (farm time); it can be changed before publishing.
+    if (in_array('date_published', $cols, true)) $row['date_published'] = (new DateTime('now', mcp_tz()))->format('Y-m-d');
     $pdo->prepare("INSERT INTO blog_posts (`" . implode('`,`', array_keys($row)) . "`) VALUES (" . implode(',', array_fill(0, count($row), '?')) . ")")
         ->execute(array_values($row));
     $id = (int)$pdo->lastInsertId();
