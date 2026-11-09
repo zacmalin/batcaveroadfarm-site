@@ -208,6 +208,15 @@ try {
     throw new RuntimeException('Revoked invitation was accepted.');
 } catch (DomainException $expected) {}
 
+require_once __DIR__ . '/../includes/roost-manager-invitation-summary.php';
+$managerInvites=bcrf_roost_manager_invitation_summary($pdo,30);
+$managerStates=[];
+foreach ($managerInvites as $row) $managerStates[(int)$row['id']]=$row['display_status'];
+if (($managerStates[(int)$invitation['invitation_id']]??null)!=='accepted'
+    || ($managerStates[(int)$revokeInvite['invitation_id']]??null)!=='revoked')
+    throw new RuntimeException('Manager invitation summary did not preserve accepted/revoked states.');
+if (bcrf_roost_manager_invitation_summary($pdo,2)!==[])
+    throw new RuntimeException('Non-manager could list household invitations.');
 require_once __DIR__ . '/../includes/roost-household-invitation-expiration.php';
 $expiredInvite=bcrf_roost_create_household_invitation($pdo,30,'expire.me@example.test');
 $setExpired=$pdo->prepare("UPDATE reward_household_invitations SET expires_at=DATE_SUB(UTC_TIMESTAMP(3),INTERVAL 1 SECOND) WHERE id=?");
