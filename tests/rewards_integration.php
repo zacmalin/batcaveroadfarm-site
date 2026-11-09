@@ -126,6 +126,20 @@ try {
     if ($expected->getMessage()==='Approved redemption was subsequently rejected.') throw $expected;
 }
 require_once __DIR__.'/../includes/roost-redemption-issuance.php';
+try {
+    bcrf_roost_issue_redemption_receipt($pdo,99999999,7);
+    throw new RuntimeException('Unknown redemption request was issued.');
+} catch (BcrfRewardError $expected) {
+    if ($expected->getMessage()==='Unknown redemption request was issued.') throw $expected;
+}
+$pdo->exec("UPDATE reward_accounts SET balance_points=249 WHERE household_id=1");
+try {
+    bcrf_roost_issue_redemption_receipt($pdo,$request['id'],7);
+    throw new RuntimeException('Insufficient points issued a redemption.');
+} catch (BcrfRewardError $expected) {
+    if ($expected->getMessage()==='Insufficient points issued a redemption.') throw $expected;
+}
+$pdo->exec("UPDATE reward_accounts SET balance_points=300 WHERE household_id=1");
 $issued=bcrf_roost_issue_redemption_receipt($pdo,$request['id'],7);
 if ($issued['replayed'] || $issued['ledger_entry_id']<=0)
     throw new RuntimeException('Redemption receipt not issued.');
