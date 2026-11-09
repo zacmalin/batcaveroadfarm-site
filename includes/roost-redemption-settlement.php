@@ -13,8 +13,10 @@ function bcrf_roost_settle_fulfilled_redemption(
     PDO $pdo,int $householdId,int $customerId,int $policyId,int $tier,
     string $fulfillmentId,bool $fulfillmentVerified=false
 ): array {
-    if (!$fulfillmentVerified)
-        throw new LogicException('Verified benefit fulfillment required before deducting points.');
+    // Legacy compatibility helper: a caller-supplied boolean is not durable
+    // proof of delivery. Do not allow new settlements through this path.
+    // Approved internal vouchers must use bcrf_roost_issue_redemption_receipt().
+    throw new LogicException('Legacy redemption settlement disabled; use approved voucher issuance.');
     if ($householdId<=0 || $customerId<=0 || $policyId<=0 ||
         !in_array($tier,[250,500,1000,2000],true) ||
         !preg_match('/^[A-Za-z0-9_-]{8,64}$/D',$fulfillmentId))
