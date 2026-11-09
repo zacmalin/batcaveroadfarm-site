@@ -23,11 +23,21 @@ function bcrf_roost_review_redemption(
         if ($request['status']!=='requested')
             throw new BcrfRewardError('Redemption request is no longer reviewable.');
         if ($decision==='approved') {
-            $auth=bcrf_roost_redemption_authorization(
-                $pdo,(int)$request['household_id'],(int)$request['customer_id'],
-                (int)$request['tier_points']
-            );
-            if (!$auth['authorized'])
+            $auth=$pdo->prepare("SELECT a.balance_points,h.status AS household_status,
+                m.role,m.can_redeem,m.verification_status,m.revoked_at,
+                c.account_status,c.email_verified_at
+                FROM reward_accounts a JOIN reward_households h ON h.id=a.household_id
+                JOIN reward_household_members m ON m.household_id=h.id AND m.customer_id=?
+                JOIN customers c ON c.id=m.customer_id
+                WHERE a.household_id=? FOR UPDATE");
+            $auth->execute([(int)$request['customer_id'],(int)$request['household_id']]);
+            $eligibility=$auth->fetch(PDO::FETCH_ASSOC);
+            if (!$eligibility || $eligibility['household_status']!=='active' ||
+                $eligibility['account_status']!=='active' || $eligibility['email_verified_at']===null ||
+                $eligibility['verification_status']!=='verified' || $eligibility['revoked_at']!==null ||
+                !in_array($eligibility['role'],['manager','adult'],true) ||
+                (int)$eligibility['can_redeem']!==1 ||
+                (int)$eligibility['balance_points']<(int)$request['tier_points'])
                 throw new BcrfRewardError('Redemption authorization no longer valid.');
             $benefit=$pdo->prepare("SELECT 1 FROM reward_redemption_benefits
                 WHERE code=? AND tier_points=? AND status='active' LIMIT 1");
