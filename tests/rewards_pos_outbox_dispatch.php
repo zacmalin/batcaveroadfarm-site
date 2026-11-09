@@ -21,6 +21,21 @@ try {
 } catch(InvalidArgumentException $expected) {
     if ($expected->getMessage()==='Dispatch accepted missing policy.') throw $expected;
 }
+// The read-only preflight must remain usable when the approved dispatch
+// gate is enabled; the queue runner uses it before ledger posting.
+putenv('BCRF_ROOST_POS_DISPATCH_ENABLED=1');
+putenv('BCRF_ROOST_POS_ACTIVATION_APPROVED=1');
+if (!bcrf_roost_outbox_dispatch_enabled())
+    throw new RuntimeException('Authorized dispatch gate did not enable.');
+try {
+    bcrf_roost_outbox_dispatch_preflight($pdo,['event_type'=>'sale.completed','source_id'=>1],0);
+    throw new RuntimeException('Enabled preflight accepted missing policy.');
+} catch (InvalidArgumentException $expected) {
+    if ($expected->getMessage()==='Enabled preflight accepted missing policy.') throw $expected;
+} finally {
+    putenv('BCRF_ROOST_POS_DISPATCH_ENABLED=0');
+    putenv('BCRF_ROOST_POS_ACTIVATION_APPROVED=0');
+}
 // Queued-sale dispatch must verify the actual outbox row identity before
 // deriving its immutable policy; caller-provided event source is untrusted.
 $pdo->beginTransaction();
