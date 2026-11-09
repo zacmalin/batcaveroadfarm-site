@@ -84,6 +84,14 @@ foreach ([[-5,[false,false,false,false]],[0,[false,false,false,false]],[249,[fal
 
 $pdo->exec("INSERT INTO customers (id,email,email_verified_at,account_status)
     VALUES (30,'new-adult@example.test',UTC_TIMESTAMP(),'active'),(40,'unverified@example.test',NULL,'active')");
+$pdo->exec("INSERT INTO reward_adult_verifications
+    (customer_id,status,method,evidence_reference,verified_by_staff_id,verified_at,created_at)
+    VALUES (30,'verified','staff_review','test-enroll',7,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3)),
+           (40,'verified','staff_review','test-unverified-email',7,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
+$pdo->exec("INSERT INTO reward_consent_events
+    (customer_id,purpose,policy_version,status,source,created_at)
+    VALUES (30,'rewards_enrollment','test-1','granted','authenticated_account',UTC_TIMESTAMP(3)),
+           (40,'rewards_enrollment','test-1','granted','authenticated_account',UTC_TIMESTAMP(3))");
 foreach ([[30,false,true],[30,true,false],[40,true,true]] as $attempt) {
     try {
         bcrf_roost_enroll_verified_adult($pdo,$attempt[0],$attempt[1],$attempt[2]);
@@ -127,6 +135,14 @@ require_once __DIR__ . '/../includes/roost-household-invitation-acceptance.php';
 $pdo->exec("INSERT INTO customers (id,email,email_verified_at,account_status)
     VALUES (50,'other.adult@example.test',UTC_TIMESTAMP(),'active'),
            (51,'wrong.recipient@example.test',UTC_TIMESTAMP(),'active')");
+$pdo->exec("INSERT INTO reward_adult_verifications
+    (customer_id,status,method,evidence_reference,verified_by_staff_id,verified_at,created_at)
+    VALUES (50,'verified','staff_review','test-join',7,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3)),
+           (51,'verified','staff_review','test-other',7,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
+$pdo->exec("INSERT INTO reward_consent_events
+    (customer_id,purpose,policy_version,status,source,created_at)
+    VALUES (50,'household_join','test-1','granted','authenticated_account',UTC_TIMESTAMP(3)),
+           (51,'household_join','test-1','granted','authenticated_account',UTC_TIMESTAMP(3))");
 foreach ([[50,false,true],[50,true,false],[51,true,true]] as $attempt) {
     try {
         bcrf_roost_accept_household_invitation($pdo,$invitation['token'],$attempt[0],$attempt[1],$attempt[2]);
@@ -188,14 +204,15 @@ try {
 
 if (bcrf_roost_verified_adult_with_consent($pdo,50,'household_join'))
     throw new RuntimeException('Missing verification evidence was accepted.');
-$pdo->exec("INSERT INTO reward_adult_verifications
-    (customer_id,status,method,evidence_reference,verified_by_staff_id,verified_at,created_at)
-    VALUES (50,'verified','staff_review','test-reference',7,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
+$pdo->exec("UPDATE reward_adult_verifications SET status='revoked',revoked_at=UTC_TIMESTAMP(3) WHERE customer_id=50");
+if (bcrf_roost_verified_adult_with_consent($pdo,50,'household_join'))
+    throw new RuntimeException('Revoked adult verification was accepted.');
+$pdo->exec("UPDATE reward_adult_verifications SET status='verified',revoked_at=NULL WHERE customer_id=50");
 if (bcrf_roost_verified_adult_with_consent($pdo,50,'household_join'))
     throw new RuntimeException('Missing consent evidence was accepted.');
 $pdo->exec("INSERT INTO reward_consent_events
     (customer_id,purpose,policy_version,status,source,created_at)
-    VALUES (50,'household_join','test-1','granted','authenticated_account',UTC_TIMESTAMP(3))");
+    VALUES (50,'household_join','test-1','granted','authenticated_account',DATE_ADD(UTC_TIMESTAMP(3),INTERVAL 1 SECOND))");
 if (!bcrf_roost_verified_adult_with_consent($pdo,50,'household_join'))
     throw new RuntimeException('Verified adult with consent rejected.');
 $pdo->exec("INSERT INTO reward_consent_events
