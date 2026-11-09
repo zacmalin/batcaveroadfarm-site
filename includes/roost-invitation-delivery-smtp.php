@@ -18,6 +18,7 @@ function bcrf_roost_invitation_smtp_transport(array $config): callable {
         return bcf_send_mail($recipient,$message['subject'],$message['html'],[
             'subtitle'=>'Roost Rewards',
             'unsubscribe'=>false,
+            'transport'=>'smtp_required',
             'text'=>(string)($message['opts']['text']??'')
         ])===true;
     };
