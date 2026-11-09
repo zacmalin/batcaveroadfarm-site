@@ -291,6 +291,21 @@ if (bcrf_roost_run_invitation_delivery_once($pdo,$workerConfig,
     function () use (&$unknownCalls): bool { $unknownCalls++; return true; })!=='empty'
     || $unknownCalls!==1)
     throw new RuntimeException('Ambiguous delivery was resent.');
+$crashInvite=bcrf_roost_create_household_invitation($pdo,30,'crash.delivery@example.test',
+    ['key'=>$deliveryKey,'key_id'=>'integration-v1']);
+$crashClaim=bcrf_roost_claim_invitation_delivery($pdo);
+if (!$crashClaim || !bcrf_roost_mark_invitation_dispatch_started($pdo,
+    $crashClaim['id'],$crashClaim['claim_token']))
+    throw new RuntimeException('Crash simulation could not start dispatch.');
+$pdo->prepare("UPDATE reward_invitation_delivery_outbox
+    SET claimed_at=DATE_SUB(UTC_TIMESTAMP(3),INTERVAL 20 MINUTE) WHERE id=?")
+    ->execute([$crashClaim['id']]);
+if (bcrf_roost_recover_invitation_delivery($pdo)!==1)
+    throw new RuntimeException('Ambiguous crashed dispatch not recovered.');
+$crashState=$pdo->prepare("SELECT status FROM reward_invitation_delivery_outbox WHERE id=?");
+$crashState->execute([$crashClaim['id']]);
+if ($crashState->fetchColumn()!=='failed')
+    throw new RuntimeException('Ambiguous crashed dispatch was retried.');
 $queuedHash=$pdo->prepare("SELECT token_hash FROM reward_household_invitations WHERE id=?");
 $queuedHash->execute([$queuedInvitation['invitation_id']]);
 if ($queuedHash->fetchColumn()!==hash('sha256',$decrypted['token']))
