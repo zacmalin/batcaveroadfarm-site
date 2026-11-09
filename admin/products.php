@@ -119,6 +119,13 @@ if (!$isAdm) echo '<label>How it is priced', $sel('pricing_mode', bcrf_pricing_m
 echo '<label>Price <small class="muted">(for weight: the price per lb or oz; for open price: a suggested price, or 0)</small><input type="number" name="price" value="', $num('price'), '" min="0" step="0.01" inputmode="decimal" required></label>';
 if (!$isAdm) echo '<label>Unit', $sel('unit', bcrf_product_units(), $d['unit'] ?? 'each'), '</label>';
 echo '<label>Tax category', $sel('tax_category_id', $taxes, $d['tax_category_id'] ?? '', 'General (default)'), '</label><p class="muted"><a href="register.php?view=tax">Tax rates</a> are set per category.</p></fieldset>';
+require_once __DIR__ . '/../includes/rewards.php';
+if (bcrf_rewards_override_ready($pdo)) {   // Roost Rewards points (migration 0017)
+    $reCur = array_key_exists('rewards_eligible', $d) && $d['rewards_eligible'] !== null && $d['rewards_eligible'] !== '' && $d['rewards_eligible'] !== 'auto' ? (string)(int)$d['rewards_eligible'] : 'auto';
+    $byType = bcrf_rewards_product_earns((string)($d['product_type'] ?? 'retail'), null) ? 'earns points' : 'no points';
+    echo '<fieldset class="grp"><legend>Roost Rewards</legend><label>Points', $sel('rewards_eligible', ['auto' => 'Default for its type (' . $byType . ')', '1' => 'Always earns points', '0' => 'Never earns points'], $reCur),
+         '</label><p class="muted">Retail, produce, kitchen goods, admission and thrift earn 5 points per dollar by default; passes, gift cards, fees and services don\'t.</p></fieldset>';
+}
 if (!$isAdm) {
     echo '<fieldset class="grp"><legend>Stock</legend>',
          '<label class="check"><input type="checkbox" name="track_inventory" value="1"', $chk('track_inventory'), '> Count this item\'s stock (retail, produce and kitchen goods)</label>';

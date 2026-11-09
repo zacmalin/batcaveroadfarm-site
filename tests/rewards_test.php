@@ -18,16 +18,21 @@ ini_set('log_errors', '0');   // a guarded failure is expected in one test
 
 // Minimal copies of the columns rewards reads from the real tables (0006 customers, 0009 sales).
 $pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
-foreach (['reward_ledger', 'reward_members', 'reward_tiers', 'sale_lines', 'sales', 'customers', 'site_settings'] as $t) $pdo->exec("DROP TABLE IF EXISTS $t");
+foreach (['reward_ledger', 'reward_members', 'reward_tiers', 'sale_lines', 'sales', 'customers', 'site_settings', 'inventory', 'tickets'] as $t) $pdo->exec("DROP TABLE IF EXISTS $t");
 $pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
 $pdo->exec("CREATE TABLE customers (id INT AUTO_INCREMENT PRIMARY KEY, first_name VARCHAR(50) NOT NULL, last_name VARCHAR(50) NOT NULL, email VARCHAR(100) NOT NULL,
             phone_number VARCHAR(20) NULL, account_status ENUM('active','disabled') NOT NULL DEFAULT 'active') ENGINE=InnoDB");
 $pdo->exec("CREATE TABLE sales (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, sale_number VARCHAR(30) NOT NULL) ENGINE=InnoDB");
-$pdo->exec("CREATE TABLE sale_lines (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, sale_id BIGINT UNSIGNED NOT NULL, product_type VARCHAR(20) NOT NULL,
+$pdo->exec("CREATE TABLE sale_lines (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, sale_id BIGINT UNSIGNED NOT NULL, product_id INT NULL, product_type VARCHAR(20) NOT NULL,
             gross_cents BIGINT NOT NULL, discount_cents BIGINT NOT NULL DEFAULT 0, refunded_net_cents BIGINT NOT NULL DEFAULT 0) ENGINE=InnoDB");
+$pdo->exec("CREATE TABLE inventory (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100) NOT NULL, product_type VARCHAR(20) NOT NULL DEFAULT 'retail') ENGINE=InnoDB");
+$pdo->exec("CREATE TABLE tickets (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, customer_id INT NULL, purchaser_email VARCHAR(190) NOT NULL DEFAULT '',
+            purchaser_phone VARCHAR(30) NULL, order_json JSON NULL, amount_cents BIGINT NOT NULL DEFAULT 0, payment_status VARCHAR(12) NOT NULL DEFAULT 'pending') ENGINE=InnoDB");
 $pdo->exec("CREATE TABLE site_settings (setting_key VARCHAR(100) PRIMARY KEY, setting_value TEXT) ENGINE=InnoDB");
 (require __DIR__ . '/../admin/migrations/0016_roost_rewards.php')($pdo);
 (require __DIR__ . '/../admin/migrations/0016_roost_rewards.php')($pdo);   // safe to repeat
+(require __DIR__ . '/../admin/migrations/0017_roost_rewards_extras.php')($pdo);
+(require __DIR__ . '/../admin/migrations/0017_roost_rewards_extras.php')($pdo);   // safe to repeat
 
 $fails = 0; $n = 0;
 $ok = function (bool $c, string $what) use (&$fails, &$n) { $n++; if (!$c) { $fails++; echo "FAIL: $what\n"; } };
@@ -133,7 +138,51 @@ $pdo->commit();
 $ok((int)$pdo->query("SELECT COUNT(*) FROM sales WHERE sale_number = 'R-KEEP'")->fetchColumn() === 1, 'sale commits when rewards fails');
 $ok((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger WHERE ref_key = 'adjust:should-roll-back'")->fetchColumn() === 0, 'failed rewards writes are rolled back');
 
-// 10. Cached balance always equals the ledger
+// 10. Per-product override
+$pdo->exec("INSERT INTO inventory (id, name, product_type) VALUES (1, 'Gift card', 'gift_card'), (2, 'Donated jar', 'retail'), (3, 'Feed cup', 'retail')");
+$pdo->exec("UPDATE inventory SET rewards_eligible = 1 WHERE id = 1");
+$pdo->exec("UPDATE inventory SET rewards_eligible = 0 WHERE id = 2");
+$pdo->exec("INSERT INTO sales (sale_number) VALUES ('R-OVR')");
+$so = (int)$pdo->lastInsertId();
+$pdo->exec("INSERT INTO sale_lines (sale_id, product_id, product_type, gross_cents) VALUES ($so, 1, 'gift_card', 1000), ($so, 2, 'retail', 1000), ($so, 3, 'retail', 1000), ($so, NULL, 'fee', 1000)");
+$ok(bcrf_rewards_eligible_cents($pdo, $so) === 2000, 'override: always-earns gift card + default feed cup count; never-earns jar and fee do not');
+$ok(bcrf_rewards_product_earns('pass', null) === false && bcrf_rewards_product_earns('pass', 1) === true && bcrf_rewards_product_earns('retail', '0') === false, 'product_earns rules');
+
+// 11. Online tickets: points when paid (matched by email or phone), visit when scanned
+$pdo->exec("INSERT INTO inventory (id, name, product_type) VALUES (10, 'Adult admission', 'admission')");
+$before = $bal($cy);
+$pdo->exec("INSERT INTO tickets (purchaser_email, order_json, amount_cents, payment_status) VALUES ('CY@example.com', '[{\"product_id\":10,\"qty\":2,\"unit_cents\":1050}]', 2100, 'paid')");
+$tk = (int)$pdo->lastInsertId();
+bcrf_rewards_after_ticket_paid($pdo, $tk);
+bcrf_rewards_after_ticket_paid($pdo, $tk);
+$ok($bal($cy) === $before + 105, 'online ticket $21.00 → 105 points once, buyer matched by email');
+$pdo->exec("INSERT INTO tickets (purchaser_email, purchaser_phone, amount_cents, payment_status) VALUES ('other@example.com', '828.555.0303', 1000, 'pending')");
+$tk2 = (int)$pdo->lastInsertId();
+bcrf_rewards_after_ticket_paid($pdo, $tk2);
+$ok($bal($cy) === $before + 105, 'unpaid ticket earns nothing');
+$pdo->exec("UPDATE tickets SET payment_status = 'paid' WHERE id = $tk2");
+bcrf_rewards_after_ticket_paid($pdo, $tk2);
+$ok($bal($cy) === $before + 155, 'paid ticket matched by phone number earns');
+$st = $pdo->query("SELECT * FROM tickets WHERE id = $tk"); $trow = $st->fetch(PDO::FETCH_ASSOC);
+$inTx(fn() => bcrf_rewards_after_ticket_redeem($pdo, $trow, $today));
+$inTx(fn() => bcrf_rewards_after_ticket_redeem($pdo, $trow, $today));
+$ok($bal($cy) === $before + 180, 'ticket scanned at the gate: one visit per day');
+
+// 12. Expiry reminders: 30 days, then 7 days, once each per quiet spell
+$GLOBALS['mails'] = [];
+$pdo->exec("UPDATE reward_members SET last_activity_at = UTC_TIMESTAMP() - INTERVAL 12 MONTH + INTERVAL 20 DAY WHERE customer_id = 3");
+$ok(bcrf_rewards_send_reminders($pdo) === 1 && str_contains($GLOBALS['mails'][0][1], 'next month'), '30-day reminder sent');
+$ok(bcrf_rewards_send_reminders($pdo) === 0, '30-day reminder sent once');
+$pdo->exec("UPDATE reward_members SET last_activity_at = UTC_TIMESTAMP() - INTERVAL 12 MONTH + INTERVAL 5 DAY, reminder_for = UTC_TIMESTAMP() - INTERVAL 12 MONTH + INTERVAL 5 DAY WHERE customer_id = 3");
+$ok(bcrf_rewards_send_reminders($pdo) === 1 && str_contains($GLOBALS['mails'][1][1], 'days'), '7-day reminder sent');
+$ok(bcrf_rewards_send_reminders($pdo) === 0, '7-day reminder sent once');
+$pdo->exec("UPDATE reward_members SET last_activity_at = UTC_TIMESTAMP() - INTERVAL 2 MONTH WHERE customer_id = 3");
+$ok(bcrf_rewards_send_reminders($pdo) === 0, 'recent activity: no reminder');
+$pdo->exec("UPDATE reward_members SET last_activity_at = UTC_TIMESTAMP() - INTERVAL 12 MONTH + INTERVAL 20 DAY WHERE customer_id = 3");
+$ok(bcrf_rewards_send_reminders($pdo) === 1, 'new quiet spell gets its own 30-day reminder');
+$ok(bcrf_rewards_send_reminders($pdo) === 0 && count($GLOBALS['mails']) === 3, 'no extra emails');
+
+// 13. Cached balance always equals the ledger
 foreach ([$ann, $cy] as $c) $ok($bal($c) === $ledgerSum($c), "balance matches ledger for customer $c");
 
 echo $fails ? "$fails of $n checks FAILED\n" : "All $n checks passed\n";

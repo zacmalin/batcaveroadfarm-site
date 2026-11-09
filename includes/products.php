@@ -141,6 +141,12 @@ function bcrf_product_save(PDO $pdo, ?int $id, array $in, ?int $uid): int {
     if ($su) { $st = $pdo->prepare("SELECT COUNT(*) FROM measurement_units WHERE id = ?"); $st->execute([$su]); if (!(int)$st->fetchColumn()) $su = null; }
     $v['size_unit_id'] = $size === null ? null : $su;
     $v['is_active'] = !empty($in['is_active']) ? 1 : 0;
+    // Roost Rewards points: 'auto' = by product type, '1' = always earns, '0' = never earns (migration 0017)
+    require_once __DIR__ . '/rewards.php';
+    if (bcrf_rewards_override_ready($pdo)) {
+        $re = (string)($in['rewards_eligible'] ?? 'auto');
+        $v['rewards_eligible'] = $re === '1' ? 1 : ($re === '0' ? 0 : null);
+    }
     $start = $num('starting_stock');
     if ($start !== null && ($start < 0 || $start > 1000000)) $bad('Starting stock must be 0 or more.');
 

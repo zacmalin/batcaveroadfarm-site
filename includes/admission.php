@@ -286,6 +286,9 @@ function bcrf_ticket_redeem(PDO $pdo, int $ticketId, int $n, ?string $override =
         $cid = bcrf_check_in_row($pdo, ['source_type' => 'ticket', 'ticket_id' => $ticketId, 'party_size' => $n, 'guests_counted' => $n,
                                         'override' => $ov, 'override_by' => $ovBy]);
         if (function_exists('bcrf_event')) bcrf_event('ticket.redeemed', 'tickets', $ticketId, ['guests' => $n, 'left' => $left - $n]);
+        // Roost Rewards: today's visit for a member buyer (savepoint; never blocks entry).
+        require_once __DIR__ . '/rewards.php';
+        bcrf_rewards_after_ticket_redeem($pdo, $t, function_exists('bcrf_farm_now') ? bcrf_farm_now()[1] : date('Y-m-d'));
         $pdo->commit();
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();

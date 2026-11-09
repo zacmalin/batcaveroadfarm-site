@@ -9,6 +9,9 @@
 //   • Refunds take back purchase points; the balance may go negative
 //   • 12 months with no purchase or visit: the remaining positive balance expires (admin/cron/rewards_expire.php)
 //   • Staff redeem at the counter: 250, 500, 1,000 or 2,000 points, never below zero
+//   • A product can override its type (Products › Roost Rewards points): always earns / never earns   (migration 0017)
+//   • Online tickets earn purchase points when paid, and a visit when scanned at the gate
+//   • Reminder emails 30 and 7 days before points expire (sent by the daily expiry job)                (migration 0017)
 //
 // Sales and refunds call bcrf_rewards_after_sale() / bcrf_rewards_after_refund() inside THEIR transaction, wrapped
 // in a savepoint: a rewards problem is logged and never blocks the sale. Staff can add missed points with an adjustment.
@@ -51,12 +54,56 @@ function bcrf_rewards_points_for_cents(int $cents): int {
     return $cents > 0 ? intdiv($cents * BCRF_REWARD_POINTS_PER_DOLLAR, 100) : 0;
 }
 
-/** Eligible cents still standing on a sale (gross − discount − refunded, eligible product types only). */
+/** Has migration 0017 added the per-product override (inventory.rewards_eligible)? */
+function bcrf_rewards_override_ready(PDO $pdo): bool {
+    static $ready = null;
+    if ($ready === null) {
+        try {
+            $ready = (bool)$pdo->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'inventory' AND column_name = 'rewards_eligible'")->fetchColumn();
+        } catch (Throwable $e) { $ready = false; }
+    }
+    return $ready;
+}
+
+/** Does a product earn points? $override: null = follow the product type, 1 = always, 0 = never. */
+function bcrf_rewards_product_earns(string $productType, $override): bool {
+    if ($override !== null && $override !== '') return (int)$override === 1;
+    return in_array($productType, BCRF_REWARD_ELIGIBLE_TYPES, true);
+}
+
+/** Eligible cents still standing on a sale (gross − discount − refunded) for lines that earn points. */
 function bcrf_rewards_eligible_cents(PDO $pdo, int $saleId): int {
     $in = implode(',', array_fill(0, count(BCRF_REWARD_ELIGIBLE_TYPES), '?'));
-    $st = $pdo->prepare("SELECT COALESCE(SUM(gross_cents - discount_cents - refunded_net_cents), 0) FROM sale_lines WHERE sale_id = ? AND product_type IN ($in)");
+    if (bcrf_rewards_override_ready($pdo)) {
+        $st = $pdo->prepare("SELECT COALESCE(SUM(sl.gross_cents - sl.discount_cents - sl.refunded_net_cents), 0)
+                             FROM sale_lines sl LEFT JOIN inventory i ON i.id = sl.product_id
+                             WHERE sl.sale_id = ? AND (i.rewards_eligible = 1 OR (i.rewards_eligible IS NULL AND sl.product_type IN ($in)))");
+    } else {
+        $st = $pdo->prepare("SELECT COALESCE(SUM(gross_cents - discount_cents - refunded_net_cents), 0) FROM sale_lines WHERE sale_id = ? AND product_type IN ($in)");
+    }
     $st->execute(array_merge([$saleId], BCRF_REWARD_ELIGIBLE_TYPES));
     return max(0, (int)$st->fetchColumn());
+}
+
+/** The enrolled member for a customer id, else an email, else a phone number (online orders). Null if none. */
+function bcrf_rewards_find_member(PDO $pdo, ?int $customerId, ?string $email, ?string $phone): ?int {
+    if ($customerId) {
+        $st = $pdo->prepare("SELECT customer_id FROM reward_members WHERE customer_id = ?");
+        $st->execute([$customerId]);
+        if ($id = $st->fetchColumn()) return (int)$id;
+    }
+    $email = strtolower(trim((string)$email));
+    if ($email !== '') {
+        $st = $pdo->prepare("SELECT m.customer_id FROM reward_members m JOIN customers c ON c.id = m.customer_id WHERE c.email = ? AND c.account_status = 'active'");
+        $st->execute([$email]);
+        if ($id = $st->fetchColumn()) return (int)$id;
+    }
+    if ($key = bcrf_rewards_phone_key((string)$phone)) {
+        $st = $pdo->prepare("SELECT customer_id FROM reward_members WHERE phone_key = ?");
+        $st->execute([$key]);
+        if ($id = $st->fetchColumn()) return (int)$id;
+    }
+    return null;
 }
 
 function bcrf_rewards_member(PDO $pdo, int $customerId, bool $lock = false): ?array {
@@ -139,6 +186,49 @@ function bcrf_rewards_after_void(PDO $pdo, int $saleId): void {
             if ((int)$r['pts'] <= 0 || !bcrf_rewards_member($pdo, (int)$r['customer_id'], true)) continue;
             bcrf_rewards_post($pdo, (int)$r['customer_id'], 'refund', -(int)$r['pts'], "void:$saleId", $saleId, 'Sale voided');
         }
+    });
+}
+
+/**
+ * Online ticket paid (includes/tickets_online.php, once per order). Purchase points for the buyer if they're a member,
+ * matched by account, email or phone. Own transaction; never throws.
+ */
+function bcrf_rewards_after_ticket_paid(PDO $pdo, int $ticketId): void {
+    try {
+        if (!bcrf_rewards_enabled($pdo)) return;
+        $st = $pdo->prepare("SELECT id, customer_id, purchaser_email, purchaser_phone, order_json, amount_cents, payment_status FROM tickets WHERE id = ?");
+        $st->execute([$ticketId]);
+        $t = $st->fetch(PDO::FETCH_ASSOC);
+        if (!$t || $t['payment_status'] !== 'paid') return;
+        $cid = bcrf_rewards_find_member($pdo, $t['customer_id'] ? (int)$t['customer_id'] : null, $t['purchaser_email'], $t['purchaser_phone']);
+        if (!$cid) return;
+        $cents = 0;
+        $items = json_decode((string)$t['order_json'], true);
+        if (is_array($items) && $items) {
+            $look = $pdo->prepare("SELECT product_type" . (bcrf_rewards_override_ready($pdo) ? ", rewards_eligible" : ", NULL AS rewards_eligible") . " FROM inventory WHERE id = ?");
+            foreach ($items as $it) {
+                $look->execute([(int)($it['product_id'] ?? 0)]);
+                $p = $look->fetch(PDO::FETCH_ASSOC) ?: ['product_type' => 'admission', 'rewards_eligible' => null];
+                if (bcrf_rewards_product_earns((string)$p['product_type'], $p['rewards_eligible'])) $cents += (int)($it['unit_cents'] ?? 0) * (int)($it['qty'] ?? 0);
+            }
+        } else {
+            $cents = (int)$t['amount_cents'];   // older orders without item detail: all admission
+        }
+        $pts = bcrf_rewards_points_for_cents($cents);
+        if ($pts <= 0) return;
+        bcrf_rewards_tx($pdo, $cid, fn() => bcrf_rewards_post($pdo, $cid, 'purchase', $pts, "ticket:$ticketId", null, 'Online tickets', true));
+    } catch (Throwable $e) {
+        error_log('[BCRF rewards] online ticket ' . $ticketId . ' skipped: ' . $e->getMessage());
+    }
+}
+
+/** Ticket scanned at the gate (bcrf_ticket_redeem, inside its transaction): the buyer's visit for today. */
+function bcrf_rewards_after_ticket_redeem(PDO $pdo, array $ticket, string $bdate): void {
+    bcrf_rewards_guarded($pdo, 'ticket ' . (int)$ticket['id'], function () use ($pdo, $ticket, $bdate) {
+        $cid = bcrf_rewards_find_member($pdo, !empty($ticket['customer_id']) ? (int)$ticket['customer_id'] : null,
+                                       $ticket['purchaser_email'] ?? null, $ticket['purchaser_phone'] ?? null);
+        if (!$cid || !bcrf_rewards_member($pdo, $cid, true)) return;
+        bcrf_rewards_visit_locked($pdo, $cid, $bdate, null, 'Visit (ticket)');
     });
 }
 
@@ -258,6 +348,52 @@ function bcrf_rewards_expire(PDO $pdo): int {
         if ($done) $n++;
     }
     return $n;
+}
+
+/**
+ * Reminder emails 30 and 7 days before a positive balance expires (daily job). Each is sent once per quiet spell;
+ * any purchase or visit starts a new spell. Informational only, no marketing. Returns how many were sent.
+ */
+function bcrf_rewards_send_reminders(PDO $pdo): int {
+    try {
+        if (!$pdo->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'reward_members' AND column_name = 'reminder_stage'")->fetchColumn()) return 0;
+    } catch (Throwable $e) { return 0; }
+    $st = $pdo->prepare("SELECT m.customer_id, m.balance_points, COALESCE(m.last_activity_at, m.enrolled_at) AS since, m.reminder_for, m.reminder_stage,
+                                c.first_name, c.email
+                         FROM reward_members m JOIN customers c ON c.id = m.customer_id
+                         WHERE m.balance_points > 0 AND c.account_status = 'active'
+                           AND COALESCE(m.last_activity_at, m.enrolled_at) < UTC_TIMESTAMP() - INTERVAL " . BCRF_REWARD_EXPIRE_MONTHS . " MONTH + INTERVAL 30 DAY
+                           AND COALESCE(m.last_activity_at, m.enrolled_at) >= UTC_TIMESTAMP() - INTERVAL " . BCRF_REWARD_EXPIRE_MONTHS . " MONTH");
+    $st->execute();
+    $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+    if (!$rows) return 0;
+    $tpl = dirname(__DIR__) . '/admin/includes/email_template.php';
+    if (!function_exists('bcf_send_mail')) { if (!is_file($tpl)) return 0; require_once $tpl; }
+    $site = function_exists('bcrf_farm_url') ? bcrf_farm_url() : 'https://batcaveroadfarm.com';
+    $tz = new DateTimeZone(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
+    $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
+    $mark = $pdo->prepare("UPDATE reward_members SET reminder_for = ?, reminder_stage = ? WHERE customer_id = ? AND COALESCE(last_activity_at, enrolled_at) = ?");
+    $sent = 0;
+    foreach ($rows as $r) {
+        $expires = (new DateTimeImmutable($r['since'], new DateTimeZone('UTC')))->modify('+' . BCRF_REWARD_EXPIRE_MONTHS . ' months');
+        $daysLeft = (int)ceil(($expires->getTimestamp() - time()) / 86400);
+        $stage = ($r['reminder_for'] === $r['since']) ? (int)$r['reminder_stage'] : 0;
+        $want = $daysLeft <= 7 ? 2 : 1;
+        if ($daysLeft <= 0 || $stage >= $want || !filter_var($r['email'], FILTER_VALIDATE_EMAIL)) continue;
+        $date = $expires->setTimezone($tz)->format('F j, Y');
+        $html = '<p>Hi ' . $h($r['first_name']) . ',</p>'
+              . '<p>Just a heads-up: your <strong>' . number_format((int)$r['balance_points']) . ' Roost Rewards points</strong> will expire on <strong>' . $h($date) . '</strong>.</p>'
+              . '<p>Any visit or purchase at the farm before then keeps them active. Just give your phone number at the counter.</p>'
+              . '<p>See your points and rewards at <a href="' . $h($site) . '/roost-rewards/">' . $h($site) . '/roost-rewards/</a>.</p>'
+              . '<p><small>This is a one-time reminder about your points, not a marketing email.</small></p>';
+        $subject = $want === 2 ? 'Your Roost Rewards points expire in ' . $daysLeft . ' day' . ($daysLeft === 1 ? '' : 's') : 'Your Roost Rewards points expire next month';
+        // Mark first, so a crash after sending can't send twice; unmark if the send fails.
+        $mark->execute([$r['since'], $want, (int)$r['customer_id'], $r['since']]);
+        if ($mark->rowCount() === 0) continue;   // activity just reset the clock
+        if (bcf_send_mail($r['email'], $subject, $html, ['subtitle' => 'Roost Rewards', 'unsubscribe' => false])) { $sent++; }
+        else { $mark->execute([$r['reminder_for'], $stage, (int)$r['customer_id'], $r['since']]); }
+    }
+    return $sent;
 }
 
 function bcrf_rewards_history(PDO $pdo, int $customerId, int $limit = 50): array {

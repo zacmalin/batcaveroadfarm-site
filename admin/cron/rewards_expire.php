@@ -1,7 +1,7 @@
 <?php // admin/cron/rewards_expire.php
 /*
  * Roost Rewards expiry (lean version, Nov 9, 2026): a positive balance expires after 12 months
- * with no purchase or visit. Rules: includes/rewards.php. Does nothing while Roost Rewards is OFF.
+ * with no purchase or visit. Also sends the 30-day and 7-day reminder emails before that. Rules: includes/rewards.php. Does nothing while Roost Rewards is OFF.
  * Safe to run more than once a day: each expiry posts once per quiet spell.
  *
  * cPanel cron (once a day, e.g. 3:25 AM):
@@ -23,8 +23,10 @@ bcrf_cron_begin('rewards_expire');
 $_SESSION = ['user_id' => null, 'user_name' => 'Automatic expiry'];
 
 try {
-    $n = bcrf_rewards_enabled($pdo) ? bcrf_rewards_expire($pdo) : 0;   // nothing expires while Roost Rewards is OFF
-    echo '[' . date('Y-m-d H:i:s') . "] Roost Rewards: {$n} balance(s) expired.\n";
+    $on = bcrf_rewards_enabled($pdo);   // nothing expires and no reminders go out while Roost Rewards is OFF
+    $r = $on ? bcrf_rewards_send_reminders($pdo) : 0;
+    $n = $on ? bcrf_rewards_expire($pdo) : 0;
+    echo '[' . date('Y-m-d H:i:s') . "] Roost Rewards: {$r} reminder(s) sent, {$n} balance(s) expired.\n";
 } catch (Throwable $e) {
     fwrite(STDERR, 'rewards_expire: ' . $e->getMessage() . "\n");
     bcrf_cron_exit(1, $e->getMessage());

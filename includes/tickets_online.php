@@ -143,6 +143,9 @@ function bcrf_online_ticket_mark_paid(PDO $pdo, int $id, string $sessionId, ?int
     $t = $st->fetch(PDO::FETCH_ASSOC);
     if (function_exists('bcrf_event')) bcrf_event('ticket.paid', 'tickets', $id, ['amount_cents' => $amountCents ?? (int)$t['amount_cents']]);
     bcrf_online_ticket_issued($pdo, $t, $amountCents);
+    // Roost Rewards: purchase points for a member buyer (matched by account, email or phone). Never throws.
+    require_once __DIR__ . '/rewards.php';
+    bcrf_rewards_after_ticket_paid($pdo, $id);
     return true;
 }
 
