@@ -36,3 +36,17 @@ function bcrf_roost_invite_decrypt(array $envelope,string $key,string $expectedK
     if ($plaintext===false) throw new DomainException('Invitation payload authentication failed.');
     return $plaintext;
 }
+
+/**
+ * Decrypt an invitation using its recorded key ID. A keyring allows safe
+ * read-only rollover while new invitations use the current encryption key.
+ * Keys must be raw 32-byte values supplied by external secret management.
+ */
+function bcrf_roost_invite_decrypt_keyring(array $envelope,array $keys): string {
+    $keyId=$envelope['key_id']??null;
+    if (!is_string($keyId) || !preg_match('/^[a-zA-Z0-9_-]{1,32}$/D',$keyId) ||
+        !array_key_exists($keyId,$keys) || !is_string($keys[$keyId]) ||
+        strlen($keys[$keyId])!==32)
+        throw new InvalidArgumentException('Invitation decryption key unavailable.');
+    return bcrf_roost_invite_decrypt($envelope,$keys[$keyId],$keyId);
+}
