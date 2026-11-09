@@ -9,8 +9,6 @@ function bcrf_roost_enroll_verified_adult(PDO $pdo, int $customerId, bool $adult
         throw new InvalidArgumentException('Verified adult and explicit Rewards consent required.');
     }
     if ($pdo->inTransaction()) throw new LogicException('Enrollment requires its own transaction.');
-    if (!bcrf_roost_verified_adult_with_consent($pdo,$customerId,'rewards_enrollment'))
-        throw new DomainException('Persisted adult verification and consent evidence required.');
     $pdo->beginTransaction();
     try {
         $q=$pdo->prepare("SELECT id FROM customers WHERE id=? AND account_status='active'
