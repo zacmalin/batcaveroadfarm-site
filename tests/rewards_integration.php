@@ -335,6 +335,8 @@ putenv('BCRF_ROOST_CONSENT_FORMS_ENABLED');
 putenv('BCRF_ROOST_CONSENT_POLICY_VERSION');
 putenv('BCRF_ROOST_CONSENT_POLICY_URL');
 
+require_once __DIR__ . '/../includes/roost-customer-balance.php';
+require_once __DIR__ . '/../includes/roost-customer-household-summary.php';
 // Full customer journey using real services and disposable database fixtures:
 // staff evidence -> separate consent -> enrollment -> invitation -> adult join
 // -> shared household visibility. No production data or external emails.
