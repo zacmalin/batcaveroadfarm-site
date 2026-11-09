@@ -228,4 +228,15 @@ if ($issuePage===false ||
     str_contains($issuePage, "echo $token"))
     throw new RuntimeException('Manager invitation issuance must stay gated and queue-only.');
 
+/* Redemption preview must verify adult permissions without posting points. */
+$redeemAuth=file_get_contents($root.'/includes/roost-redemption-authorization.php');
+if ($redeemAuth===false ||
+    !str_contains($redeemAuth, "can_redeem") ||
+    !str_contains($redeemAuth, "verification_status") ||
+    !str_contains($redeemAuth, "email_verified_at") ||
+    !str_contains($redeemAuth, "balance_points") ||
+    !str_contains($redeemAuth, "[250,500,1000,2000]") ||
+    str_contains($redeemAuth, "bcrf_reward_post("))
+    throw new RuntimeException('Redemption authorization must remain permission-scoped and read-only.');
+
 echo "Offline rewards release safety audit passed.\\n";
