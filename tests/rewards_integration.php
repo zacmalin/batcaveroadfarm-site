@@ -231,6 +231,32 @@ foreach ($managerInvites as $row) {
 if (bcrf_roost_manager_invitation_summary($pdo,50)!==[])
     throw new RuntimeException('Non-manager invitation summary exposed.');
 
+require_once __DIR__ . '/../includes/roost-customer-consent-recording.php';
+require_once __DIR__ . '/../includes/roost-customer-consent-withdrawal.php';
+$pdo->exec("INSERT INTO customers (id,email,email_verified_at,account_status)
+    VALUES (60,'consent-test@example.test',UTC_TIMESTAMP(),'active'),
+           (61,'unverified-consent@example.test',NULL,'active')");
+if (bcrf_roost_verified_adult_with_consent($pdo,60,'rewards_enrollment'))
+    throw new RuntimeException('Consent without adult evidence was accepted.');
+try {
+    bcrf_roost_record_customer_consent($pdo,60,'rewards_enrollment','test-1',false);
+    throw new RuntimeException('Unchecked consent was recorded.');
+} catch (DomainException $expected) {}
+try {
+    bcrf_roost_record_customer_consent($pdo,61,'rewards_enrollment','test-1',true);
+    throw new RuntimeException('Unverified email recorded consent.');
+} catch (DomainException $expected) {}
+$consentId=bcrf_roost_record_customer_consent($pdo,60,'rewards_enrollment','test-1',true);
+if ($consentId<=0) throw new RuntimeException('Consent event missing.');
+$pdo->exec("INSERT INTO reward_adult_verifications
+    (customer_id,status,method,evidence_reference,verified_by_staff_id,verified_at,created_at)
+    VALUES (60,'verified','staff_review','test-consent',7,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
+if (!bcrf_roost_verified_adult_with_consent($pdo,60,'rewards_enrollment'))
+    throw new RuntimeException('Persisted consent not recognized.');
+$withdrawnId=bcrf_roost_withdraw_customer_consent($pdo,60,'rewards_enrollment','test-1');
+if ($withdrawnId<=$consentId || bcrf_roost_verified_adult_with_consent($pdo,60,'rewards_enrollment'))
+    throw new RuntimeException('Consent withdrawal not enforced.');
+
 require_once __DIR__ . '/../includes/roost-customer-balance.php';
 require_once __DIR__ . '/../includes/roost-customer-history.php';
 require_once __DIR__ . '/../includes/roost-customer-household-summary.php';
