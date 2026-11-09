@@ -15,7 +15,7 @@ $pdo->exec("CREATE TABLE sale_lines (id BIGINT AUTO_INCREMENT PRIMARY KEY, sale_
 $pdo->exec("INSERT INTO sale_lines (sale_id,product_type,gross_cents,discount_cents,refunded_net_cents) VALUES (100,'retail',4000,0,0),(101,'retail',5500,0,0),(102,'retail',500,0,0),(103,'retail',500,0,0)");
 $pdo->exec("CREATE TABLE payments (sale_id BIGINT,tender VARCHAR(30),amount_cents BIGINT,status VARCHAR(20),reconciled_at DATETIME NULL,reconcile_flag VARCHAR(30) NULL) ENGINE=InnoDB");
 $pdo->exec("INSERT INTO payments (sale_id,tender,amount_cents,status) VALUES (100,'cash',4000,'completed'),(101,'cash',5500,'completed'),(102,'cash',500,'completed'),(103,'cash',500,'completed')");
-$pdo->exec("CREATE TABLE refunds (id BIGINT UNSIGNED PRIMARY KEY, sale_id BIGINT NOT NULL, net_cents BIGINT NOT NULL, total_cents BIGINT NOT NULL) ENGINE=InnoDB");
+$pdo->exec("CREATE TABLE refunds (id BIGINT UNSIGNED PRIMARY KEY, sale_id BIGINT UNSIGNED NOT NULL, net_cents BIGINT NOT NULL, total_cents BIGINT NOT NULL) ENGINE=InnoDB");
 $pdo->exec("INSERT INTO refunds VALUES (1,100,4000,4000),(2,101,0,0)");
 $pdo->exec("CREATE TABLE refund_lines (refund_id BIGINT, sale_line_id BIGINT, net_cents BIGINT) ENGINE=InnoDB");
 $pdo->exec("CREATE TABLE refund_payments (refund_id BIGINT, tender VARCHAR(20), amount_cents BIGINT, reference VARCHAR(80)) ENGINE=InnoDB");
