@@ -252,6 +252,13 @@ if (!bcrf_roost_fail_invitation_delivery($pdo,$secondFailureClaim['id'],
 $failureState->execute([$failureClaim['id']]);
 if ($failureState->fetch(PDO::FETCH_ASSOC)['status']!=='failed')
     throw new RuntimeException('Permanent delivery failure was retried.');
+require_once __DIR__.'/../includes/roost-invitation-delivery-smtp.php';
+try {
+    bcrf_roost_invitation_smtp_transport(['smtp_enabled'=>false]);
+    throw new RuntimeException('Disabled SMTP adapter was accepted.');
+} catch (LogicException $expected) {
+    // Disabled by default; never load or invoke the live sender.
+}
 require_once __DIR__.'/../includes/roost-invitation-delivery-worker.php';
 $transportCalled=false;
 if (bcrf_roost_run_invitation_delivery_once($pdo,['enabled'=>false],
