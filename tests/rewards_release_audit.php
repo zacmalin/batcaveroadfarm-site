@@ -98,10 +98,22 @@ if ($acceptPage===false ||
     !str_contains($acceptPage, 'bcrf_roost_accept_household_invitation(') ||
     !str_contains($acceptPage, 'Referrer-Policy: no-referrer'))
     throw new RuntimeException('Invitation acceptance must remain launch-gated, private and evidence-based.');
+$revokePage=file_get_contents($root.'/roost-rewards/revoke-invitation.php');
+if ($revokePage===false ||
+    !str_contains($revokePage, 'BCRF_ROOST_INVITATION_REVOCATION_ENABLED') ||
+    !str_contains($revokePage, 'csrf_verify(') ||
+    !str_contains($revokePage, 'bcrf_rl_hit(') ||
+    !str_contains($revokePage, 'bcrf_roost_revoke_household_invitation(') ||
+    !str_contains($revokePage, "confirm_revoke") ||
+    !str_contains($revokePage, "is_logged_in()"))
+    throw new RuntimeException('Invitation revocation must remain gated, authenticated and CSRF protected.');
 $dashboard=file_get_contents($root.'/roost-rewards/balance.php');
 if ($dashboard===false ||
     !str_contains($dashboard, "BCRF_ROOST_ENROLLMENT_ENABLED") ||
     !str_contains($dashboard, "BCRF_ROOST_INVITATION_ACCEPTANCE_ENABLED") ||
+    !str_contains($dashboard, "BCRF_ROOST_INVITATION_REVOCATION_ENABLED") ||
+    !str_contains($dashboard, "$revocationOpen") ||
+    !str_contains($dashboard, "/roost-rewards/revoke-invitation.php") ||
     !str_contains($dashboard, '$enrollmentOpen ?') ||
     !str_contains($dashboard, '$joiningOpen ?') ||
     !str_contains($dashboard, '/roost-rewards/enroll.php') ||
