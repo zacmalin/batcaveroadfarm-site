@@ -316,4 +316,33 @@ if (bcrf_roost_pos_dispatch_claimed_event($pdo,$queued)!=='failed')
 if ((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger
     WHERE entry_type='earn_spend' AND source_id='907'")->fetchColumn() !== 1)
     throw new RuntimeException('Stale POS claim duplicated points.');
+// Actual refund queue delivery: original earning was posted above for sale 907.
+$line907=(int)$pdo->query("SELECT id FROM sale_lines WHERE sale_id=907")->fetchColumn();
+$pdo->exec("UPDATE sales SET status='partially_refunded' WHERE id=907");
+$pdo->exec("INSERT INTO refunds (id,sale_id,net_cents,total_cents)
+ VALUES (9071,907,600,600)");
+$pdo->exec("INSERT INTO refund_lines (refund_id,sale_line_id,net_cents)
+ VALUES (9071,$line907,600)");
+$pdo->exec("INSERT INTO refund_payments (refund_id,tender,amount_cents,reference)
+ VALUES (9071,'cash',600,NULL)");
+$pdo->exec("UPDATE sale_lines SET refunded_net_cents=600 WHERE id=$line907");
+$pdo->beginTransaction();
+bcrf_roost_pos_outbox_enqueue($pdo,'sale.refunded',9071);
+$pdo->commit();
+$refundClaim=bcrf_roost_outbox_claim($pdo);
+if (!$refundClaim || $refundClaim['event_type']!=='sale.refunded' ||
+    (int)$refundClaim['source_id']!==9071 ||
+    bcrf_roost_pos_dispatch_claimed_event($pdo,$refundClaim)!=='completed')
+    throw new RuntimeException('Claimed refund was not processed.');
+if ((int)$pdo->query("SELECT COUNT(*) FROM reward_refund_processing
+    WHERE refund_id=9071")->fetchColumn()!==1)
+    throw new RuntimeException('Claimed refund missing durable processing receipt.');
+if ((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger
+    WHERE entry_type='refund_reversal' AND source_id='9071'")->fetchColumn()!==1)
+    throw new RuntimeException('Claimed refund missing unique reversal.');
+if (bcrf_roost_pos_dispatch_claimed_event($pdo,$refundClaim)!=='failed')
+    throw new RuntimeException('Completed refund claim was replayed.');
+if ((int)$pdo->query("SELECT COUNT(*) FROM reward_ledger
+    WHERE entry_type='refund_reversal' AND source_id='9071'")->fetchColumn()!==1)
+    throw new RuntimeException('Stale refund claim duplicated reversal.');
 echo "POS handler refund and queue crash-recovery guards passed.\\n";
