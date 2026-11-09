@@ -167,6 +167,23 @@ if (!$issuedAgain['replayed'] || $issuedAgain['ledger_entry_id']!==$issued['ledg
     throw new RuntimeException('Redemption issuance not idempotent.');
 if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==50)
     throw new RuntimeException('Redemption receipt did not deduct exact points.');
+ // A fulfilled request cannot be replayed if its ledger proof is altered.
+$proofUpdate=$pdo->prepare("UPDATE reward_ledger SET points_delta=-249 WHERE id=?");
+$proofUpdate->execute([(int)$issued['ledger_entry_id']]);
+try {
+    bcrf_roost_issue_redemption_receipt($pdo,$request['id'],7);
+    throw new RuntimeException('Tampered redemption ledger proof was accepted.');
+} catch (BcrfRewardError $expected) {
+    if ($expected->getMessage()==='Tampered redemption ledger proof was accepted.') throw $expected;
+}
+$proofRestore=$pdo->prepare("UPDATE reward_ledger SET points_delta=-250 WHERE id=?");
+$proofRestore->execute([(int)$issued['ledger_entry_id']]);
+$verifiedReplay=bcrf_roost_issue_redemption_receipt($pdo,$request['id'],7);
+if (!$verifiedReplay['replayed'] || $verifiedReplay['ledger_entry_id']!==$issued['ledger_entry_id'])
+    throw new RuntimeException('Valid redemption replay failed after ledger proof restoration.');
+if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==50)
+    throw new RuntimeException('Ledger proof verification unexpectedly changed points.');
+
 // Tear down the disposable request fixture before the original empty-ledger tests.
 $pdo->exec("DELETE FROM reward_redemption_requests WHERE id=".(int)$request['id']);
 $pdo->exec("DELETE FROM reward_ledger WHERE id=".(int)$issued['ledger_entry_id']);
