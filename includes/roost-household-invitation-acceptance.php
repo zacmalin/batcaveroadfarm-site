@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__.'/roost-verification-consent.php';
 // Dormant invitation acceptance service. The caller must independently confirm
 // the authenticated adult's age/identity and explicit household-join consent.
 // A bearer token alone never authorizes membership.
@@ -7,6 +8,8 @@ function bcrf_roost_accept_household_invitation(PDO $pdo,string $token,int $cust
     if ($customerId<=0 || !$adultVerified || !$joinConsent || !preg_match('/^[a-f0-9]{64}$/D',$token))
         throw new InvalidArgumentException('Valid invitation, verified adult and consent required.');
     if ($pdo->inTransaction()) throw new LogicException('Acceptance requires its own transaction.');
+    if (!bcrf_roost_verified_adult_with_consent($pdo,$customerId,'household_join'))
+        throw new DomainException('Persisted adult verification and consent evidence required.');
     $pdo->beginTransaction();
     try {
         // Lock the customer first, matching enrollment's lock order.
