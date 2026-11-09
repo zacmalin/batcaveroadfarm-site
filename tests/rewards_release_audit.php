@@ -209,4 +209,20 @@ if ($inviteAdapter===false || $inviteWorker===false ||
     !str_contains($inviteWorker, "bcrf_roost_mark_invitation_dispatch_started("))
     throw new RuntimeException('Invitation SMTP strict transport or dispatch boundary missing.');
 
+/* Manager invitation issuance must remain disabled by default and queue only. */
+$issuePage=file_get_contents($root.'/roost-rewards/invite-adult.php');
+if ($issuePage===false ||
+    !str_contains($issuePage, "BCRF_ROOST_INVITATION_ISSUANCE_ENABLED") ||
+    !str_contains($issuePage, "is_logged_in()") ||
+    !str_contains($issuePage, "csrf_verify(") ||
+    !str_contains($issuePage, "bcrf_rl_hit(") ||
+    !str_contains($issuePage, "confirm_adult") ||
+    !str_contains($issuePage, "bcrf_roost_create_household_invitation(") ||
+    !str_contains($issuePage, "BCRF_ROOST_INVITATION_ENCRYPTION_KEY_B64") ||
+    !str_contains($issuePage, "'delivery_queued'") ||
+    str_contains($issuePage, "bcf_send_mail(") ||
+    str_contains($issuePage, "bcrf_roost_run_invitation_delivery_once(") ||
+    str_contains($issuePage, "echo $token"))
+    throw new RuntimeException('Manager invitation issuance must stay gated and queue-only.');
+
 echo "Offline rewards release safety audit passed.\\n";
