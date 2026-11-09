@@ -8,9 +8,11 @@ function bcrf_roost_normalized_email(string $email): string {
         throw new InvalidArgumentException('Valid invitee email required.');
     return $normalized;
 }
-function bcrf_roost_create_household_invitation(PDO $pdo,int $managerCustomerId,string $inviteeEmail): array {
+function bcrf_roost_create_household_invitation(PDO $pdo,int $managerCustomerId,string $inviteeEmail,?array $delivery=null): array {
     if ($managerCustomerId<=0) throw new InvalidArgumentException('Manager required.');
     $email=bcrf_roost_normalized_email($inviteeEmail);
+    if ($delivery!==null && (!isset($delivery['key'],$delivery['key_id']) || !is_string($delivery['key']) || !is_string($delivery['key_id'])))
+        throw new InvalidArgumentException('Valid delivery encryption configuration required.');
     if ($pdo->inTransaction()) throw new LogicException('Invitation requires its own transaction.');
     $pdo->beginTransaction();
     try {
@@ -39,8 +41,13 @@ function bcrf_roost_create_household_invitation(PDO $pdo,int $managerCustomerId,
             VALUES (?,?,?,?,'pending',DATE_ADD(UTC_TIMESTAMP(3),INTERVAL 7 DAY),UTC_TIMESTAMP(3))");
         $q->execute([$householdId,$managerCustomerId,$emailHash,hash('sha256',$token)]);
         $id=(int)$pdo->lastInsertId();
+        if ($delivery!==null) {
+            require_once __DIR__.'/roost-invitation-delivery-outbox.php';
+            bcrf_roost_queue_invitation_delivery($pdo,$id,$email,$token,$delivery['key'],$delivery['key_id']);
+        }
         $pdo->commit();
-        return ['invitation_id'=>$id,'token'=>$token,'expires_in_days'=>7];
+        return ['invitation_id'=>$id,'token'=>$delivery===null ? $token : null,'expires_in_days'=>7,
+            'delivery_queued'=>$delivery!==null];
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         throw $e;
