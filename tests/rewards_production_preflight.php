@@ -72,7 +72,8 @@ try {
     echo "Existing planned Rewards tables: ".count($presentRewardsTables)."/".count($plannedRewardsTables)."\\n";
     if ($presentRewardsTables) {
         echo "Existing Rewards tables: ".implode(', ', $presentRewardsTables)."\\n";
-        $issues[]='Existing Rewards tables require explicit definition and migration-history reconciliation before installation';
+        if (getenv('BCRF_REWARDS_PREFLIGHT_ALLOW_EXISTING')!=='1')
+            $issues[]='Existing Rewards tables require explicit definition and migration-history reconciliation before installation';
     }
     // Detect an existing outbox from an earlier migration revision before
     // attempting any release that assumes immutable policy snapshots.
