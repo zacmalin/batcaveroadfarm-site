@@ -66,6 +66,16 @@ $pdo->exec("INSERT INTO reward_accounts (household_id, updated_at) VALUES (1,UTC
 $pdo->exec("INSERT INTO reward_household_members (household_id,customer_id,role,verification_status,can_redeem,joined_at) VALUES (1,1,'manager','verified',1,UTC_TIMESTAMP(3)),(1,2,'adult','verified',1,UTC_TIMESTAMP(3))");
 $pdo->exec("INSERT INTO reward_policies (id,version,config_json,status,created_at) VALUES (1,'test-1','{}','active',UTC_TIMESTAMP(3))");
 require_once __DIR__ . '/../includes/roost-household-enrollment.php';
+require_once __DIR__ . '/../includes/roost-redemption-tier-preview.php';
+foreach ([[-5,[false,false,false,false]],[0,[false,false,false,false]],[249,[false,false,false,false]],[250,[true,false,false,false]],[500,[true,true,false,false]],[2000,[true,true,true,true]]] as $case) {
+    $tiers=bcrf_roost_redemption_tier_preview($case[0]);
+    if (array_column($tiers,'available')!==$case[1]) throw new RuntimeException('Redemption tier preview mismatch.');
+    foreach ($tiers as $tier) {
+        if ($tier['points_needed']!==max(0,$tier['points']-$case[0]))
+            throw new RuntimeException('Redemption tier points-needed mismatch.');
+    }
+}
+
 $pdo->exec("INSERT INTO customers (id,email,email_verified_at,account_status)
     VALUES (3,'new-adult@example.test',UTC_TIMESTAMP(),'active'),(4,'unverified@example.test',NULL,'active')");
 foreach ([[3,false,true],[3,true,false],[4,true,true]] as $attempt) {
