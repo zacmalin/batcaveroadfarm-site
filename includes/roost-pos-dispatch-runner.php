@@ -13,6 +13,18 @@ function bcrf_roost_pos_dispatch_once(PDO $pdo): string {
     $id=(int)$claim['id'];
     $attempt=(int)$claim['attempts'];
     try {
+        // A queue claim is authoritative only for its exact stored source.
+        // Recheck identity before any balance mutation; a stale or substituted
+        // event must fail closed rather than award a different transaction.
+        $identity=$pdo->prepare("SELECT event_type,source_id,status,attempts
+            FROM reward_pos_outbox WHERE id=?");
+        $identity->execute([$id]);
+        $stored=$identity->fetch(PDO::FETCH_ASSOC);
+        if (!$stored || $stored['status']!=='processing' ||
+            $stored['event_type']!==$claim['event_type'] ||
+            (string)$stored['source_id']!==(string)$claim['source_id'] ||
+            (int)$stored['attempts']!==$attempt)
+            throw new RuntimeException('POS claim identity mismatch.');
         if ($claim['event_type']==='sale.completed') {
             $policyId=bcrf_roost_outbox_pinned_sale_policy($pdo,$id);
         } elseif ($claim['event_type']==='sale.refunded') {
