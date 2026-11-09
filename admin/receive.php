@@ -24,7 +24,7 @@ $q3 = fn($q) => bcrf_qtxt($q);
 
 $head = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
       . '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data: https:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">'
-      . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=7"><link rel="stylesheet" href="assets/reports.css?v=4">';
+      . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=7"><link rel="stylesheet" href="assets/reports.css?v=5">';
 
 if (!bcrf_receives_ready($pdo)) {
     echo $head, '<title>Receive</title></head><body class="page"><main class="narrow"><p class="flash err">Run migration 0019 in Settings › Database first (and 0018 + 0015 if needed).</p>',
@@ -234,7 +234,7 @@ for ($i = 0; $i < $lineCount; $i++) {
     if ($pid && isset($byId[(int)$pid]) && $byId[(int)$pid]['avg_cost_cents'] !== null && $cost === '') {
         $hint = 'placeholder="' . $h(rtrim(rtrim(number_format(((int)$byId[(int)$pid]['avg_cost_cents']) / 100, 4, '.', ''), '0'), '.')) . '"';
     }
-    echo '<div class="card" style="padding:.75rem;margin:0 0 .5rem">';
+    echo '<div class="card pline">';
     echo '<label>SKU / barcode <small class="muted">(scan here — overrides the product pick)</small>',
          '<input type="text" name="sku[]" value="', $h($sku), '" maxlength="50" autocomplete="off" inputmode="text"></label>';
     echo '<label>Product', $sel('product_id[]', $prodOpts, $pid), '</label>';

@@ -19,7 +19,7 @@ $m = fn($c) => '$' . number_format(((int)$c) / 100, 2);
 
 $head = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
       . '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data: https:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">'
-      . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=7"><link rel="stylesheet" href="assets/reports.css?v=4">';
+      . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=7"><link rel="stylesheet" href="assets/reports.css?v=5">';
 
 if (!bcrf_settlements_ready($pdo)) {
     echo $head, '<title>Settlements</title></head><body class="page"><main class="narrow"><p class="flash err">Run migration 0022 in Settings › Database first.</p>',
@@ -99,7 +99,7 @@ if (!$groups) {
     echo '<h2>Ready to pay</h2>';
     foreach ($groups as $g) {
         $cid = (int)$g['consignor_customer_id'];
-        echo '<div class="card" style="margin-bottom:1rem">';
+        echo '<div class="card group">';
         echo '<p><b>', $h($g['consignor_name']), '</b>',
              $g['consignor_email'] ? ' <small class="muted">' . $h($g['consignor_email']) . '</small>' : '',
              '<br><small class="muted">', count($g['items']), ' item', count($g['items']) === 1 ? '' : 's',

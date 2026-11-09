@@ -330,4 +330,4 @@ if ($r === 'margin') {
     }
     if (!$mg['revenue'] && !$mg['lines_no_cost']) echo '<p class="muted">No sales in this period.</p>';
 }
-echo '</main></body></html';
+echo '</main></body></html>';

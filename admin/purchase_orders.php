@@ -23,7 +23,7 @@ $q3 = fn($q) => bcrf_qtxt($q);
 
 $head = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
       . '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data: https:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">'
-      . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=7"><link rel="stylesheet" href="assets/reports.css?v=4">';
+      . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=7"><link rel="stylesheet" href="assets/reports.css?v=5">';
 
 if (!bcrf_po_ready($pdo)) {
     echo $head, '<title>Orders</title></head><body class="page"><main class="narrow"><p class="flash err">Run migration 0021 in Settings › Database first (and 0018 if needed).</p>',
@@ -135,18 +135,18 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
     if ($sum) echo '<div class="lrow"><b>Expected</b><span class="r"><b>', $m($sum), '</b></span></div>';
     echo '</div>';
 
-    echo '<div class="rbar" style="gap:.5rem;flex-wrap:wrap">';
+    echo '<div class="rbar gap">';
     if (in_array($po['status'], ['draft', 'ordered', 'partial'], true)) {
         echo '<a class="btn primary" href="receive.php?new=1&po=', (int)$po['id'], '&vendor=', (int)$po['vendor_id'], '">Receive against this</a>';
     }
     if ($po['status'] === 'draft') {
-        echo '<form method="POST" action="purchase_orders.php" style="display:inline"><input type="hidden" name="csrf_token" value="', $h($csrf), '">',
+        echo '<form method="POST" action="purchase_orders.php" class="inline-form"><input type="hidden" name="csrf_token" value="', $h($csrf), '">',
              '<input type="hidden" name="id" value="', (int)$po['id'], '"><input type="hidden" name="act" value="order">',
              '<button class="btn" type="submit">Mark ordered</button></form>';
         echo '<a class="btn" href="purchase_orders.php?id=', (int)$po['id'], '&edit=1">Edit draft</a>';
     }
     if (in_array($po['status'], ['draft', 'ordered', 'partial'], true)) {
-        echo '<form method="POST" action="purchase_orders.php" style="display:inline">',
+        echo '<form method="POST" action="purchase_orders.php" class="inline-form">',
              '<input type="hidden" name="csrf_token" value="', $h($csrf), '">',
              '<input type="hidden" name="id" value="', (int)$po['id'], '"><input type="hidden" name="act" value="cancel">',
              '<button class="btn" type="submit">Cancel order</button></form>';
@@ -173,7 +173,7 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
         echo '<label>Note<input type="text" name="note" value="', $h($d['note'] ?? ''), '" maxlength="255"></label>';
         echo '<fieldset class="grp"><legend>Lines</legend>';
         for ($i = 0; $i < $lineCount; $i++) {
-            echo '<div class="card" style="padding:.75rem;margin:0 0 .5rem">';
+            echo '<div class="card pline">';
             echo '<label>Product', $sel('product_id[]', $prodOpts, $d['product_id'][$i] ?? ''), '</label>';
             echo '<div class="two"><label>Qty<input type="number" name="qty[]" value="', $h($d['qty'][$i] ?? ''), '" min="0" step="any" inputmode="decimal"></label>',
                  '<label>Unit cost $<input type="number" name="unit_cost[]" value="', $h($d['unit_cost'][$i] ?? ''), '" min="0" step="0.01" inputmode="decimal"></label></div></div>';
@@ -202,7 +202,7 @@ if (!empty($_GET['new'])) {
     echo '<fieldset class="grp"><legend>Lines (', $lineCount, ')</legend>';
     echo '<p class="muted">Expected unit cost is optional; it becomes the default on receive.</p>';
     for ($i = 0; $i < $lineCount; $i++) {
-        echo '<div class="card" style="padding:.75rem;margin:0 0 .5rem">';
+        echo '<div class="card pline">';
         echo '<label>Product', $sel('product_id[]', $prodOpts, $d['product_id'][$i] ?? ''), '</label>';
         echo '<div class="two"><label>Qty<input type="number" name="qty[]" value="', $h($d['qty'][$i] ?? ''), '" min="0" step="any" inputmode="decimal"></label>',
              '<label>Unit cost $<input type="number" name="unit_cost[]" value="', $h($d['unit_cost'][$i] ?? ''), '" min="0" step="0.01" inputmode="decimal"></label></div></div>';

@@ -73,3 +73,8 @@ h2 + p.muted{margin-top:.2rem}
 .stackf .two{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
 .stackf .two label{display:flex;flex-direction:column;gap:.2rem;font-weight:600;font-size:.92em}
 .pimg{max-width:160px;max-height:160px;border-radius:10px;border:1px solid var(--line);object-fit:cover}
+/* Phase 2: receive, purchase orders, settlements (replaces inline styles blocked by the CSP) */
+.card.pline{padding:.75rem;margin:0 0 .5rem}
+.card.group{margin-bottom:1rem}
+.rbar.gap{gap:.5rem}
+.inline-form{display:inline;margin:0}
