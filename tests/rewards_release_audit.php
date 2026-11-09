@@ -177,7 +177,7 @@ if ($dashboard===false ||
     !str_contains($dashboard, "BCRF_ROOST_INVITATION_ISSUANCE_ENABLED") ||
     !str_contains($dashboard, '$issuanceOpen') ||
     !str_contains($dashboard, '/roost-rewards/invite-adult.php') ||
-    !str_contains($dashboard, "$revocationOpen") ||
+    !str_contains($dashboard, '$revocationOpen') ||
     !str_contains($dashboard, "/roost-rewards/revoke-invitation.php") ||
     !str_contains($dashboard, '$enrollmentOpen ?') ||
     !str_contains($dashboard, '$joiningOpen ?') ||
@@ -225,7 +225,7 @@ if ($issuePage===false ||
     !str_contains($issuePage, "'delivery_queued'") ||
     str_contains($issuePage, "bcf_send_mail(") ||
     str_contains($issuePage, "bcrf_roost_run_invitation_delivery_once(") ||
-    str_contains($issuePage, "echo $token"))
+    str_contains($issuePage, 'echo $token'))
     throw new RuntimeException('Manager invitation issuance must stay gated and queue-only.');
 
 /* Redemption preview must verify adult permissions without posting points. */
