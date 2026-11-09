@@ -224,6 +224,20 @@ if (in_array((int)$invitation['invitation_id'],$pendingIds,true)
     throw new RuntimeException('Accepted or revoked invitation shown as actionable.');
 if (bcrf_roost_manager_pending_invitations($pdo,2)!==[])
     throw new RuntimeException('Non-manager could list pending invitations.');
+$paginationInviteA=bcrf_roost_create_household_invitation($pdo,30,'pagination.a@example.test');
+$paginationInviteB=bcrf_roost_create_household_invitation($pdo,30,'pagination.b@example.test');
+$firstPendingPage=bcrf_roost_manager_pending_invitations($pdo,30,1,0);
+$secondPendingPage=bcrf_roost_manager_pending_invitations($pdo,30,1,1);
+if (count($firstPendingPage)!==1 || count($secondPendingPage)!==1
+    || (int)$firstPendingPage[0]['id']===(int)$secondPendingPage[0]['id'])
+    throw new RuntimeException('Pending invitation pagination overlapped or failed.');
+$allPendingIds=array_map(static fn(array $row): int => (int)$row['id'],bcrf_roost_manager_pending_invitations($pdo,30,100,0));
+if (!in_array((int)$paginationInviteA['invitation_id'],$allPendingIds,true)
+    || !in_array((int)$paginationInviteB['invitation_id'],$allPendingIds,true))
+    throw new RuntimeException('Pending invitation pagination omitted actionable rows.');
+if (bcrf_roost_manager_pending_invitations($pdo,2,1,1)!==[])
+    throw new RuntimeException('Pagination bypassed manager authorization.');
+
 foreach ($pendingForManager as $row) {
     if (array_key_exists('token_hash',$row) || array_key_exists('invitee_email_hash',$row))
         throw new RuntimeException('Pending invitation selector leaked secret or recipient digest.');
