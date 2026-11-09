@@ -22,6 +22,8 @@ function bcrf_roost_settle_fulfilled_redemption(
     if ($pdo->inTransaction()) throw new LogicException('Redemption settlement requires autocommit.');
     $auth=bcrf_roost_redemption_authorization($pdo,$householdId,$customerId,$tier);
     if (!$auth['authorized']) throw new BcrfRewardError('Redeemer is not authorized.');
+    // A depleted balance may represent a legitimate retry. The ledger's
+    // locked idempotency check decides replay versus a new deduction.
     // The ledger performs final balance and membership checks under row locks.
     // A retry of the same receipt must be allowed after points were deducted.
     return bcrf_reward_post($pdo,[
