@@ -16,12 +16,17 @@ $verified = $customer && bcrf_customer_active($customer) && !empty($customer['em
 $balance = null;
 $unavailable = false;
 $history = [];
+$householdSummary = null;
 if ($verified) {
     try {
         require_once __DIR__.'/../includes/roost-customer-balance.php';
         $balance = bcrf_roost_customer_balance($pdo, (int)$customer['id']);
         require_once __DIR__.'/../includes/roost-customer-history.php';
-        if ($balance !== null) $history = bcrf_roost_customer_history($pdo, (int)$customer['id']);
+        if ($balance !== null) {
+            $history = bcrf_roost_customer_history($pdo, (int)$customer['id']);
+            require_once __DIR__.'/../includes/roost-customer-household-summary.php';
+            $householdSummary = bcrf_roost_customer_household_summary($pdo, (int)$customer['id']);
+        }
     } catch (Throwable $e) {
         // No Rewards tables on production yet; do not expose SQL errors or user data.
         error_log('[Roost customer balance unavailable] '.get_class($e));
@@ -50,6 +55,13 @@ include __DIR__.'/../includes/header.php';
 <p>Lifetime redeemed: <?= number_format($balance['lifetime_redeemed']) ?> points</p>
 <p>Last qualifying activity: <?= $balance['last_qualifying_activity_at'] === null ? 'Not yet recorded' : htmlspecialchars(substr((string)$balance['last_qualifying_activity_at'],0,10),ENT_QUOTES,'UTF-8').' (UTC)' ?></p>
 <p>Redemption and enrollment are not available yet.</p>
+<?php if ($householdSummary !== null): ?>
+<h2>Household membership</h2>
+<p>Your role: <?= $householdSummary['role'] === 'manager' ? 'Household manager' : 'Verified adult' ?></p>
+<p>Verified members: <?= number_format($householdSummary['verified_members']) ?></p>
+<p>Pending verifications: <?= number_format($householdSummary['pending_members']) ?></p>
+<p>Invitations and membership changes are not available yet.</p>
+<?php endif; ?>
 <h2>Recent points activity</h2>
 <?php if (!$history): ?><p>No points activity recorded yet.</p>
 <?php else: ?><table><caption>Most recent household points entries</caption><thead><tr><th scope="col">Date (UTC)</th><th scope="col">Activity</th><th scope="col">Points</th></tr></thead><tbody>
