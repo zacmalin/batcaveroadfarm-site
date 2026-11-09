@@ -1417,4 +1417,21 @@ expect(bcrf_roost_refund_points_due(200,100,51)===49,'incremental reversal accou
 expect(bcrf_roost_refund_points_due(200,100,100)===0,'no points deducted twice');
 rejected(fn()=>bcrf_roost_refund_points_due(200,100,101),'over-reversal rejected');
 rejected(fn()=>bcrf_roost_refund_points_due(200,201,0),'refund cannot exceed original award');
+require_once __DIR__.'/../includes/roost-invitation-delivery-purge.php';
+$purgeFixture=$pdo->prepare("UPDATE reward_invitation_delivery_outbox
+    SET updated_at=DATE_SUB(UTC_TIMESTAMP(3),INTERVAL 10 DAY)
+    WHERE id=? AND status='failed'");
+$purgeFixture->execute([$timeoutClaim['id']]);
+if (bcrf_roost_purge_invitation_delivery_payloads($pdo,7,100)<1)
+    throw new RuntimeException('Terminal encrypted invitation payload was not purged.');
+$purgeCheck=$pdo->prepare("SELECT status,payload_nonce,payload_ciphertext,payload_tag,
+    dispatch_started_at,last_error_code FROM reward_invitation_delivery_outbox WHERE id=?");
+$purgeCheck->execute([$timeoutClaim['id']]);
+$purged=$purgeCheck->fetch(PDO::FETCH_ASSOC);
+if (!$purged || $purged['status']!=='failed' || $purged['payload_nonce']!=='' ||
+    $purged['payload_ciphertext']!=='' || $purged['payload_tag']!=='' ||
+    $purged['dispatch_started_at']===null || $purged['last_error_code']!=='smtp_timeout')
+    throw new RuntimeException('Invitation purge removed audit state or retained secrets.');
+if (bcrf_roost_purge_invitation_delivery_payloads($pdo,7,100)!==0)
+    throw new RuntimeException('Invitation payload purge was not idempotent.');
 echo "Farm Rewards integration checks passed.\\n";
