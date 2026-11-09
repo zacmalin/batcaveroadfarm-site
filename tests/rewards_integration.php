@@ -34,6 +34,7 @@ $preflightEnv = array_merge(getenv(), [
     'BCRF_REWARDS_PREFLIGHT_DSN'=>$dsn,
     'BCRF_REWARDS_PREFLIGHT_USER'=>getenv('BCRF_REWARDS_TEST_USER') ?: '',
     'BCRF_REWARDS_PREFLIGHT_PASSWORD'=>getenv('BCRF_REWARDS_TEST_PASSWORD') ?: '',
+    'BCRF_REWARDS_PREFLIGHT_ALLOW_EXISTING'=>'1',
 ]);
 $preflightPipes = [];
 $preflight = proc_open([PHP_BINARY, __DIR__.'/rewards_production_preflight.php'],
