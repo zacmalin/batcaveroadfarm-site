@@ -169,6 +169,15 @@ if (!bcrf_roost_invitation_delivery_eligible($pdo,$claimedDelivery['id'],$claime
     throw new RuntimeException('Valid claimed invitation was not delivery-eligible.');
 if (bcrf_roost_invitation_delivery_eligible($pdo,$claimedDelivery['id'],str_repeat('0',64)))
     throw new RuntimeException('Incorrect claim token bypassed delivery authorization.');
+if (!bcrf_roost_invitation_delivery_payload_matches($pdo,$claimedDelivery['id'],
+    $claimedDelivery['claim_token'],$decrypted['recipient'],$decrypted['token']))
+    throw new RuntimeException('Valid decrypted invitation delivery payload did not match.');
+if (bcrf_roost_invitation_delivery_payload_matches($pdo,$claimedDelivery['id'],
+    $claimedDelivery['claim_token'],'wrong@example.test',$decrypted['token']))
+    throw new RuntimeException('Mismatched invitation recipient was accepted.');
+if (bcrf_roost_invitation_delivery_payload_matches($pdo,$claimedDelivery['id'],
+    $claimedDelivery['claim_token'],$decrypted['recipient'],str_repeat('0',64)))
+    throw new RuntimeException('Mismatched invitation bearer code was accepted.');
 $secondClaim=bcrf_roost_claim_invitation_delivery($pdo);
 if ($secondClaim!==null) throw new RuntimeException('Processing delivery was claimed twice.');
 if (bcrf_roost_complete_invitation_delivery($pdo,$claimedDelivery['id'],str_repeat('0',64),'sent'))
