@@ -98,4 +98,14 @@ if ($acceptPage===false ||
     !str_contains($acceptPage, 'bcrf_roost_accept_household_invitation(') ||
     !str_contains($acceptPage, 'Referrer-Policy: no-referrer'))
     throw new RuntimeException('Invitation acceptance must remain launch-gated, private and evidence-based.');
+$dashboard=file_get_contents($root.'/roost-rewards/balance.php');
+if ($dashboard===false ||
+    !str_contains($dashboard, "BCRF_ROOST_ENROLLMENT_ENABLED") ||
+    !str_contains($dashboard, "BCRF_ROOST_INVITATION_ACCEPTANCE_ENABLED") ||
+    !str_contains($dashboard, '$enrollmentOpen ?') ||
+    !str_contains($dashboard, '$joiningOpen ?') ||
+    !str_contains($dashboard, '/roost-rewards/enroll.php') ||
+    !str_contains($dashboard, '/roost-rewards/accept-invitation.php') ||
+    !str_contains($dashboard, 'Redemption is not available yet.'))
+    throw new RuntimeException('Dashboard onboarding links must follow dormant feature gates.');
 echo "Offline rewards release safety audit passed.\\n";
