@@ -52,9 +52,10 @@ function bcrf_roost_issue_redemption_receipt(PDO $pdo,int $requestId,int $staffI
         $policy->execute([(int)$request['policy_id']]);
         if (!$policy->fetchColumn()) throw new BcrfRewardError('Redemption policy inactive.');
         $benefit=$pdo->prepare("SELECT 1 FROM reward_redemption_benefits
-            WHERE code=? AND tier_points=? AND status='active' AND approved_at IS NOT NULL");
+            WHERE code=? AND tier_points=? AND status='active' AND approved_at IS NOT NULL
+              AND fulfillment_type='internal_voucher'");
         $benefit->execute([$request['benefit_code'],$tier]);
-        if (!$benefit->fetchColumn()) throw new BcrfRewardError('Benefit is no longer approved.');
+        if (!$benefit->fetchColumn()) throw new BcrfRewardError('Benefit is not approved for internal voucher issuance.');
         // The receipt is a durable internal entitlement, created in the SAME
         // database transaction as the ledger debit and request completion.
         $receipt='roost_voucher_'.str_pad((string)$requestId,12,'0',STR_PAD_LEFT);
