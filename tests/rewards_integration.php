@@ -267,6 +267,23 @@ if (bcrf_roost_run_invitation_delivery_once($pdo,['enabled'=>false],
     throw new RuntimeException('Disabled invitation worker invoked transport.');
 $workerInvite=bcrf_roost_create_household_invitation($pdo,30,'worker.delivery@example.test',
     ['key'=>$deliveryKey,'key_id'=>'integration-v1']);
+$rotatedKey=random_bytes(32);
+$rotatedEnvelope=bcrf_roost_invite_encrypt('rotation-check',$deliveryKey,'integration-v1');
+if (bcrf_roost_invite_decrypt_keyring($rotatedEnvelope,
+    ['integration-v1'=>$deliveryKey,'integration-v2'=>$rotatedKey])!=='rotation-check')
+    throw new RuntimeException('Old invitation key could not decrypt during rotation.');
+try {
+    bcrf_roost_invite_decrypt_keyring($rotatedEnvelope,['integration-v2'=>$rotatedKey]);
+    throw new RuntimeException('Missing historical invitation key was accepted.');
+} catch (InvalidArgumentException $expected) {
+    // Missing old key must fail closed.
+}
+try {
+    bcrf_roost_invite_decrypt_keyring($rotatedEnvelope,['integration-v1'=>$rotatedKey]);
+    throw new RuntimeException('Wrong historical invitation key was accepted.');
+} catch (DomainException $expected) {
+    // Authenticated decryption must reject an incorrect key.
+}
 $workerConfig=['enabled'=>true,'key'=>$deliveryKey,'key_id'=>'integration-v1',
     'base_url'=>'https://batcaveroadfarm.com'];
 try {
