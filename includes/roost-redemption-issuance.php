@@ -87,6 +87,8 @@ function bcrf_roost_issue_redemption_receipt(PDO $pdo,int $requestId,int $staffI
             SET balance_points=balance_points-?,lifetime_redeemed=lifetime_redeemed+?,
                 updated_at=UTC_TIMESTAMP(3) WHERE household_id=?");
         $upd->execute([$tier,$tier,$householdId]);
+        if ($upd->rowCount()!==1)
+            throw new BcrfRewardError('Reward balance update conflict.');
         $done=$pdo->prepare("UPDATE reward_redemption_requests
             SET status='fulfilled',fulfilled_at=UTC_TIMESTAMP(3),
                 fulfillment_receipt=?,ledger_entry_id=?,updated_at=UTC_TIMESTAMP(3)
