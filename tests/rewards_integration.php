@@ -1542,6 +1542,20 @@ try {
 } catch (BcrfRewardError $expected) {
     if ($expected->getMessage()==='Redemption receipt reused with different tier.') throw $expected;
 }
+// An alternate idempotency key cannot redeem the same fulfillment twice.
+try {
+    bcrf_reward_post($pdo,[
+        'household_id'=>1,'customer_id'=>1,'policy_id'=>1,'entry_type'=>'redeem',
+        'points_delta'=>-250,'source_type'=>'reward_fulfillment',
+        'source_id'=>'integration_reward_001',
+        'idempotency_key'=>'alternate:redeem:integration_reward_001'
+    ]);
+    throw new RuntimeException('Duplicate fulfillment accepted with alternate key.');
+} catch (BcrfRewardError $expected) {
+    if ($expected->getMessage()==='Duplicate fulfillment accepted with alternate key.') throw $expected;
+}
+if ((int)$pdo->query("SELECT balance_points FROM reward_accounts WHERE household_id=1")->fetchColumn()!==1250)
+    throw new RuntimeException('Duplicate fulfillment changed balance.');
 $pdo->exec("UPDATE reward_household_members SET can_redeem=0 WHERE household_id=1 AND customer_id=1");
 try {
     bcrf_roost_settle_fulfilled_redemption($pdo,1,1,1,250,'integration_reward_002',true);
