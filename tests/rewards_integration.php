@@ -1115,7 +1115,7 @@ expect(bcrf_roost_email_review_queue($pdo) === [], 'completed deliveries removed
 $pdo->exec("UPDATE reward_households SET last_qualifying_activity_at=NULL WHERE id=1");
 $pdo->exec("UPDATE reward_accounts SET balance_points=0 WHERE household_id=1");
 
-require __DIR__ . '/../includes/rewards.php';
+require_once __DIR__ . '/../includes/rewards.php';
 // Staff-only verification service: no public endpoint, no implicit point award.
 require __DIR__ . '/../includes/roost-attendance.php';
 if (session_status() !== PHP_SESSION_ACTIVE) session_start();
