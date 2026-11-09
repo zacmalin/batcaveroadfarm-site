@@ -424,6 +424,52 @@ $freshInvite=bcrf_roost_create_household_invitation($pdo,80,'journey-recovery@ex
 if (bcrf_roost_accept_household_invitation($pdo,$freshInvite['token'],82,true,true)!==['accepted'=>true])
     throw new RuntimeException('Fresh invitation could not recover after expired attempt.');
 
+// Competing requests must not create two memberships or accept one token twice.
+$pdo->exec("INSERT INTO customers (id,email,email_verified_at,account_status)
+    VALUES (83,'race-enroll@example.test',UTC_TIMESTAMP(),'active'),
+           (84,'race-accept@example.test',UTC_TIMESTAMP(),'active')");
+bcrf_roost_record_staff_adult_verification($pdo,83,7,'staff_review','race-enroll-83');
+bcrf_roost_record_customer_consent($pdo,83,'rewards_enrollment','test-1',true);
+bcrf_roost_record_staff_adult_verification($pdo,84,7,'staff_review','race-accept-84');
+bcrf_roost_record_customer_consent($pdo,84,'household_join','test-1',true);
+$raceInvite=bcrf_roost_create_household_invitation($pdo,80,'race-accept@example.test');
+foreach ([['enroll',83,null],['accept',84,$raceInvite['token']]] as $race) {
+    $workers=[];
+    for ($n=0;$n<4;$n++) {
+        $pipes=[];
+        $env=array_merge(getenv(),[
+            'BCRF_REWARDS_RACE_INVITATION_TOKEN'=>$race[2] ?? ''
+        ]);
+        $process=proc_open([PHP_BINARY,__DIR__.'/rewards_onboarding_race_worker.php',
+            $race[0],(string)$race[1]],
+            [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],
+            $pipes,null,$env);
+        if (!is_resource($process)) throw new RuntimeException('Cannot launch onboarding race worker.');
+        fclose($pipes[0]);
+        $workers[]=[$process,$pipes];
+    }
+    $created=0;
+    foreach ($workers as [$process,$pipes]) {
+        $output=trim(stream_get_contents($pipes[1]));
+        $error=stream_get_contents($pipes[2]);
+        fclose($pipes[1]); fclose($pipes[2]);
+        if (proc_close($process)!==0 || !in_array($output,['created','rejected'],true))
+            throw new RuntimeException('Onboarding race worker failed: '.$error.' '.$output);
+        if ($output==='created') $created++;
+    }
+    if ($created!==1) throw new RuntimeException('Concurrent onboarding must have exactly one winner.');
+    $check=$pdo->prepare("SELECT COUNT(*) FROM reward_household_members
+        WHERE customer_id=? AND revoked_at IS NULL");
+    $check->execute([$race[1]]);
+    if ((int)$check->fetchColumn()!==1)
+        throw new RuntimeException('Concurrent onboarding produced incorrect membership count.');
+}
+$check=$pdo->prepare("SELECT status,accepted_by_customer_id FROM reward_household_invitations WHERE id=?");
+$check->execute([$raceInvite['invitation_id']]);
+$raceState=$check->fetch(PDO::FETCH_ASSOC);
+if (!$raceState || $raceState['status']!=='accepted' || (int)$raceState['accepted_by_customer_id']!==84)
+    throw new RuntimeException('Concurrent invitation acceptance did not settle correctly.');
+
 require_once __DIR__ . '/../includes/roost-customer-balance.php';
 require_once __DIR__ . '/../includes/roost-customer-history.php';
 require_once __DIR__ . '/../includes/roost-customer-household-summary.php';
