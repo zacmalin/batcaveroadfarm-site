@@ -257,6 +257,24 @@ $withdrawnId=bcrf_roost_withdraw_customer_consent($pdo,60,'rewards_enrollment','
 if ($withdrawnId<=$consentId || bcrf_roost_verified_adult_with_consent($pdo,60,'rewards_enrollment'))
     throw new RuntimeException('Consent withdrawal not enforced.');
 
+require_once __DIR__ . '/../includes/roost-customer-invitation-preview.php';
+$previewInvite=bcrf_roost_create_household_invitation($pdo,30,'preview@example.test');
+$pdo->exec("INSERT INTO customers (id,email,email_verified_at,account_status)
+    VALUES (70,'preview@example.test',UTC_TIMESTAMP(),'active'),
+           (71,'different@example.test',UTC_TIMESTAMP(),'active')");
+$preview=bcrf_roost_customer_invitation_preview($pdo,70,$previewInvite['token']);
+if (!$preview || $preview['invitation_id']!==$previewInvite['invitation_id']
+    || isset($preview['token']) || isset($preview['invitee_email_hash']))
+    throw new RuntimeException('Recipient invitation preview invalid or leaked secrets.');
+if (bcrf_roost_customer_invitation_preview($pdo,71,$previewInvite['token'])!==null
+    || bcrf_roost_customer_invitation_preview($pdo,70,'bad-token')!==null
+    || bcrf_roost_customer_invitation_preview($pdo,50,$invitation['token'])!==null)
+    throw new RuntimeException('Invitation preview recipient/membership gate failed.');
+$pdo->prepare("UPDATE reward_household_invitations SET expires_at=DATE_SUB(UTC_TIMESTAMP(3),INTERVAL 1 SECOND) WHERE id=?")
+    ->execute([$previewInvite['invitation_id']]);
+if (bcrf_roost_customer_invitation_preview($pdo,70,$previewInvite['token'])!==null)
+    throw new RuntimeException('Expired invitation preview leaked.');
+
 require_once __DIR__ . '/../includes/roost-customer-balance.php';
 require_once __DIR__ . '/../includes/roost-customer-history.php';
 require_once __DIR__ . '/../includes/roost-customer-household-summary.php';
