@@ -159,6 +159,19 @@ $decrypted=json_decode(bcrf_roost_invite_decrypt([
 if ($decrypted['recipient']!=='queued.invitee@example.test' ||
     !preg_match('/^[a-f0-9]{64}$/D',$decrypted['token']))
     throw new RuntimeException('Queued invitation delivery payload was invalid.');
+require_once __DIR__.'/../includes/roost-invitation-delivery-claim.php';
+$claimedDelivery=bcrf_roost_claim_invitation_delivery($pdo);
+if (!$claimedDelivery || !hash_equals((string)$claimedDelivery['claim_token'],
+    (string)$claimedDelivery['claim_token']))
+    throw new RuntimeException('Invitation delivery was not claimed.');
+$secondClaim=bcrf_roost_claim_invitation_delivery($pdo);
+if ($secondClaim!==null) throw new RuntimeException('Processing delivery was claimed twice.');
+if (bcrf_roost_complete_invitation_delivery($pdo,$claimedDelivery['id'],str_repeat('0',64),'sent'))
+    throw new RuntimeException('Incorrect claim token completed delivery.');
+if (!bcrf_roost_complete_invitation_delivery($pdo,$claimedDelivery['id'],$claimedDelivery['claim_token'],'suppressed'))
+    throw new RuntimeException('Claimed invitation delivery could not be completed.');
+if (bcrf_roost_complete_invitation_delivery($pdo,$claimedDelivery['id'],$claimedDelivery['claim_token'],'sent'))
+    throw new RuntimeException('Completed invitation delivery was completed twice.');
 $queuedHash=$pdo->prepare("SELECT token_hash FROM reward_household_invitations WHERE id=?");
 $queuedHash->execute([$queuedInvitation['invitation_id']]);
 if ($queuedHash->fetchColumn()!==hash('sha256',$decrypted['token']))
