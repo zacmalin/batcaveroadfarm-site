@@ -17,6 +17,8 @@ function bcrf_roost_enroll_verified_adult(PDO $pdo, int $customerId, bool $adult
             AND email_verified_at IS NOT NULL FOR UPDATE");
         $q->execute([$customerId]);
         if (!$q->fetchColumn()) throw new DomainException('Active verified customer required.');
+        if (!bcrf_roost_verified_adult_with_consent($pdo,$customerId,'rewards_enrollment'))
+            throw new DomainException('Persisted adult verification and consent evidence required.');
         $q=$pdo->prepare("SELECT household_id,role,verification_status FROM reward_household_members
             WHERE customer_id=? AND revoked_at IS NULL FOR UPDATE");
         $q->execute([$customerId]);
