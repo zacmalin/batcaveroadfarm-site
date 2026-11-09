@@ -1,5 +1,8 @@
 <?php
 require_once __DIR__.'/../includes/roost-pos-outbox-dispatch.php';
+require_once __DIR__.'/../includes/roost-pos-dispatch-runner.php';
+if (bcrf_roost_pos_dispatch_once(new PDO('sqlite::memory:'))!=='disabled')
+    throw new RuntimeException('Production POS dispatcher unexpectedly activated.');
 if (bcrf_roost_outbox_dispatch_enabled()!==false)
     throw new RuntimeException('Dispatch unexpectedly enabled.');
 $pdo=new PDO(getenv('BCRF_REWARDS_TEST_DSN'),getenv('BCRF_REWARDS_TEST_USER')?:'',getenv('BCRF_REWARDS_TEST_PASSWORD')?:'');
