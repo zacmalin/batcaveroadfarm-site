@@ -30,6 +30,17 @@ function bcrf_roost_issue_redemption_receipt(PDO $pdo,int $requestId,int $staffI
         if ($request['status']==='fulfilled') {
             if (!$request['ledger_entry_id'] || !$request['fulfillment_receipt'])
                 throw new BcrfRewardError('Fulfillment receipt is incomplete.');
+            $proof=$pdo->prepare("SELECT id FROM reward_ledger WHERE id=?
+                AND household_id=? AND customer_id=? AND policy_id=?
+                AND entry_type='redeem' AND points_delta=?
+                AND source_type='reward_fulfillment' AND source_id=?
+                AND idempotency_key=?");
+            $proof->execute([(int)$request['ledger_entry_id'],$householdId,
+                (int)$request['customer_id'],(int)$request['policy_id'],
+                -(int)$request['tier_points'],$request['fulfillment_receipt'],
+                'roost:redeem:'.$request['fulfillment_receipt']]);
+            if (!$proof->fetchColumn())
+                throw new BcrfRewardError('Fulfillment ledger proof is missing or mismatched.');
             $pdo->commit();
             return ['id'=>$requestId,'ledger_entry_id'=>(int)$request['ledger_entry_id'],
                 'receipt'=>$request['fulfillment_receipt'],'replayed'=>true];
