@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 if ($enabled) {
     try {
         $requests=$pdo->query("SELECT r.id,r.household_id,r.customer_id,r.tier_points,
-            r.status,r.requested_at,r.reviewed_at,b.title
+            r.status,r.requested_at,r.reviewed_at,r.fulfillment_receipt,b.title
             FROM reward_redemption_requests r
             LEFT JOIN reward_redemption_benefits b ON b.code=r.benefit_code
             ORDER BY CASE WHEN r.status='requested' THEN 0 ELSE 1 END,r.id DESC
@@ -86,6 +86,9 @@ if ($enabled) {
 <?= number_format((int)$request['tier_points']) ?> points;
 status <?= htmlspecialchars($request['status'],ENT_QUOTES,'UTF-8') ?>;
 requested <?= htmlspecialchars($request['requested_at'],ENT_QUOTES,'UTF-8') ?> UTC.</p>
+<?php if ($request['status']==='fulfilled' && $request['fulfillment_receipt']): ?>
+<p>Internal voucher receipt: <strong><?= htmlspecialchars($request['fulfillment_receipt'],ENT_QUOTES,'UTF-8') ?></strong></p>
+<?php endif; ?>
 <?php if ($request['status']==='requested'): ?>
 <form method="post" action="/admin/roost_redemption_queue.php">
 <?= csrf_field() ?>
