@@ -32,7 +32,7 @@ $pageTitle    = 'Roost Rewards — Bat Cave Road Farm';
 $metaDesc     = 'Roost Rewards: earn 5 points per dollar and 25 points per visit at Bat Cave Road Farm, and share them with your family.';
 $canonicalUrl = bcrf_farm_url() . '/roost-rewards/';
 $ogImage      = bcrf_farm_url() . '/img/logos/roost_rewards.jpg';
-$pageCSS      = bcrf_farm_url() . '/css/min.rewards.css?v=2';
+$pageCSS      = bcrf_farm_url() . '/css/min.rewards.css?v=3';
 $breadcrumbs  = [['label' => 'Roost Rewards']];
 require __DIR__ . '/../includes/head.php';
 include __DIR__ . '/../includes/header.php';
@@ -44,11 +44,22 @@ $bal = $m ? (int)$m['balance_points'] : 0;
 $next = null;
 foreach ($tiers as $t) if ((int)$t['points'] > $bal) { $next = $t; break; }
 $tz = new DateTimeZone(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
+// Transparent logo (img/logos/roost_rewards.webp + .png) when uploaded; until then the JPG, cropped to its badge.
+$logoDir = dirname(__DIR__) . '/img/logos/';
+$logoWebp = is_file($logoDir . 'roost_rewards.webp');
+$logoPng  = is_file($logoDir . 'roost_rewards.png');
 ?>
 <div id="page-rewards" class="page1">
   <div class="hero rr-hero">
     <div class="hero-content">
+<?php if ($logoWebp || $logoPng): ?>
+      <picture>
+<?php if ($logoWebp): ?>        <source type="image/webp" srcset="/img/logos/roost_rewards.webp?v=1">
+<?php endif; ?>        <img class="rr-logo rr-logo-clean" src="/img/logos/roost_rewards.<?= $logoPng ? 'png' : 'webp' ?>?v=1" alt="Roost Rewards" width="260" height="260">
+      </picture>
+<?php else: ?>
       <img class="rr-logo" src="/img/logos/roost_rewards.jpg" alt="Roost Rewards" width="240" height="240">
+<?php endif; ?>
       <h1>Roost Rewards</h1>
       <p>Points for every visit and every dollar, shared by the whole family.</p>
     </div>

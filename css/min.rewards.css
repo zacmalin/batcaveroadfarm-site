@@ -2,6 +2,9 @@
 .rr-hero .hero-content{display:flex;flex-direction:column;align-items:center;gap:14px}
 /* The logo JPG has a checkerboard baked into its square corners: crop to the round badge and shadow the circle. */
 .rr-logo{width:min(260px,64vw);height:auto;aspect-ratio:1;object-fit:cover;clip-path:circle(46.5% at 50% 50%);filter:drop-shadow(0 8px 18px rgba(0,0,0,.6))}
+/* Transparent cut-out (img/logos/roost_rewards.webp/.png): no crop needed. */
+.rr-logo-clean{clip-path:none;object-fit:contain}
+.rr-hero picture{display:block;line-height:0}
 .rr-wrap{max-width:860px;margin:0 auto 64px;padding:0 16px;display:grid;gap:22px}
 .rr-card{background:#fffaf0;border:1px solid var(--cream-dark,#e8d5b0);border-radius:14px;padding:28px 32px;box-shadow:0 10px 26px rgba(59,32,16,.12);color:#3f2a14;line-height:1.65}
 .rr-card h2{font-family:'Playfair Display',serif;font-weight:700;font-size:1.35rem;color:var(--brown-dark,#3b2010);margin:0 0 14px;padding-bottom:7px;border-bottom:2px solid var(--gold,#c9923a)}
