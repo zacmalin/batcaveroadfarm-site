@@ -306,6 +306,18 @@ $crashState=$pdo->prepare("SELECT status FROM reward_invitation_delivery_outbox 
 $crashState->execute([$crashClaim['id']]);
 if ($crashState->fetchColumn()!=='failed')
     throw new RuntimeException('Ambiguous crashed dispatch was retried.');
+$timeoutInvite=bcrf_roost_create_household_invitation($pdo,30,'timeout.after.send@example.test',
+    ['key'=>$deliveryKey,'key_id'=>'integration-v1']);
+$timeoutClaim=bcrf_roost_claim_invitation_delivery($pdo);
+if (!$timeoutClaim || !bcrf_roost_mark_invitation_dispatch_started($pdo,
+    $timeoutClaim['id'],$timeoutClaim['claim_token']))
+    throw new RuntimeException('Timeout after dispatch fixture failed.');
+if (!bcrf_roost_fail_invitation_delivery($pdo,$timeoutClaim['id'],
+    $timeoutClaim['claim_token'],'smtp_timeout',true))
+    throw new RuntimeException('Post-dispatch timeout was not recorded.');
+$crashState->execute([$timeoutClaim['id']]);
+if ($crashState->fetchColumn()!=='failed')
+    throw new RuntimeException('Post-dispatch timeout was incorrectly retried.');
 $queuedHash=$pdo->prepare("SELECT token_hash FROM reward_household_invitations WHERE id=?");
 $queuedHash->execute([$queuedInvitation['invitation_id']]);
 if ($queuedHash->fetchColumn()!==hash('sha256',$decrypted['token']))
