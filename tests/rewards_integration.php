@@ -65,6 +65,8 @@ $pdo->exec("INSERT INTO reward_households (id, status, created_at) VALUES (1,'ac
 $pdo->exec("INSERT INTO reward_accounts (household_id, updated_at) VALUES (1,UTC_TIMESTAMP(3))");
 $pdo->exec("INSERT INTO reward_household_members (household_id,customer_id,role,verification_status,can_redeem,joined_at) VALUES (1,1,'manager','verified',1,UTC_TIMESTAMP(3)),(1,2,'adult','verified',1,UTC_TIMESTAMP(3))");
 $pdo->exec("INSERT INTO reward_policies (id,version,config_json,status,created_at) VALUES (1,'test-1','{}','active',UTC_TIMESTAMP(3))");
+// Reserve fixture household IDs 2 onward for existing ledger tests.
+$pdo->exec('ALTER TABLE reward_households AUTO_INCREMENT=100');
 require_once __DIR__ . '/../includes/roost-household-enrollment.php';
 require_once __DIR__ . '/../includes/roost-redemption-tier-preview.php';
 foreach ([[-5,[false,false,false,false]],[0,[false,false,false,false]],[249,[false,false,false,false]],[250,[true,false,false,false]],[500,[true,true,false,false]],[2000,[true,true,true,true]]] as $case) {
