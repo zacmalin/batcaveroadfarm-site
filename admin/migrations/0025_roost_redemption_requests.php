@@ -3,6 +3,22 @@
 // A request is not a points reservation, approval, or delivered benefit.
 return function (PDO $pdo): void {
     $cs='ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci';
+    $pdo->exec("CREATE TABLE IF NOT EXISTS reward_redemption_benefits (
+        code VARCHAR(64) NOT NULL PRIMARY KEY,
+        tier_points SMALLINT UNSIGNED NOT NULL,
+        title VARCHAR(120) NOT NULL,
+        description TEXT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'draft',
+        approved_by_staff_id BIGINT UNSIGNED NULL,
+        approved_at DATETIME(3) NULL,
+        created_at DATETIME(3) NOT NULL,
+        updated_at DATETIME(3) NOT NULL,
+        KEY idx_roost_benefit_active (status,tier_points),
+        CONSTRAINT chk_roost_benefit_tier CHECK (tier_points IN (250,500,1000,2000)),
+        CONSTRAINT chk_roost_benefit_status CHECK (status IN ('draft','active','retired')),
+        CONSTRAINT chk_roost_benefit_approval CHECK
+            (status <> 'active' OR (approved_by_staff_id IS NOT NULL AND approved_at IS NOT NULL))
+    ) $cs");
     $pdo->exec("CREATE TABLE IF NOT EXISTS reward_redemption_requests (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
         request_token CHAR(36) NOT NULL,
