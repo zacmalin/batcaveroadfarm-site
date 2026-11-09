@@ -67,6 +67,8 @@ $pdo->exec("INSERT INTO reward_household_members (household_id,customer_id,role,
 $pdo->exec("INSERT INTO reward_policies (id,version,config_json,status,created_at) VALUES (1,'test-1','{}','active',UTC_TIMESTAMP(3))");
 // Reserve fixture household IDs 2 onward for existing ledger tests.
 $pdo->exec('ALTER TABLE reward_households AUTO_INCREMENT=100');
+(require __DIR__ . '/../admin/migrations/0022_roost_household_invitations.php')($pdo);
+require_once __DIR__ . '/../includes/roost-household-invitations.php';
 require_once __DIR__ . '/../includes/roost-household-enrollment.php';
 require_once __DIR__ . '/../includes/roost-redemption-tier-preview.php';
 foreach ([[-5,[false,false,false,false]],[0,[false,false,false,false]],[249,[false,false,false,false]],[250,[true,false,false,false]],[500,[true,true,false,false]],[2000,[true,true,true,true]]] as $case) {
@@ -100,6 +102,23 @@ if (!$enrollmentRow || $enrollmentRow['role']!=='manager' || $enrollmentRow['ver
 try {
     bcrf_roost_enroll_verified_adult($pdo,30,true,true);
     throw new RuntimeException('Duplicate enrollment unexpectedly succeeded.');
+} catch (DomainException $expected) {}
+$invitation=bcrf_roost_create_household_invitation($pdo,30,' Other.Adult@Example.Test ');
+if (strlen($invitation['token'])!==64 || $invitation['expires_in_days']!==7)
+    throw new RuntimeException('Invitation token format invalid.');
+$tokenCheck=$pdo->prepare("SELECT token_hash,invitee_email_hash,status FROM reward_household_invitations WHERE id=?");
+$tokenCheck->execute([$invitation['invitation_id']]);
+$stored=$tokenCheck->fetch(PDO::FETCH_ASSOC);
+if (!$stored || $stored['token_hash']!==hash('sha256',$invitation['token'])
+    || $stored['invitee_email_hash']!==hash('sha256','other.adult@example.test')
+    || $stored['status']!=='pending') throw new RuntimeException('Invitation digest or state mismatch.');
+try {
+    bcrf_roost_create_household_invitation($pdo,30,'other.adult@example.test');
+    throw new RuntimeException('Duplicate invitation unexpectedly succeeded.');
+} catch (DomainException $expected) {}
+try {
+    bcrf_roost_create_household_invitation($pdo,2,'someone@example.test');
+    throw new RuntimeException('Non-manager invitation unexpectedly succeeded.');
 } catch (DomainException $expected) {}
 
 require_once __DIR__ . '/../includes/roost-customer-balance.php';
