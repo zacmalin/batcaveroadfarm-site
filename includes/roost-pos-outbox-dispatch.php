@@ -4,7 +4,9 @@
 require_once __DIR__.'/roost-pos-outbox-preview.php';
 require_once __DIR__.'/roost-pos-outbox-ledger-map.php';
 require_once __DIR__.'/roost-pos-outbox-receipt.php';
-function bcrf_roost_outbox_dispatch_enabled(): bool { return false; }
+function bcrf_roost_outbox_dispatch_enabled(): bool {
+    return getenv('BCRF_ROOST_POS_DISPATCH_ENABLED') === '1' && getenv('BCRF_ROOST_POS_ACTIVATION_APPROVED') === '1';
+}
 
 /**
  * Evaluate one trusted event without side effects.
