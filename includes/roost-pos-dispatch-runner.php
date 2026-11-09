@@ -9,7 +9,12 @@ function bcrf_roost_pos_dispatch_once(PDO $pdo): string {
     if (!bcrf_roost_outbox_dispatch_enabled()) return 'disabled';
     if ($pdo->inTransaction()) throw new LogicException('POS dispatch requires autocommit.');
     $claim=bcrf_roost_outbox_claim($pdo);
-    if ($claim===null) return 'empty';
+    if ($claim===null) {
+        // Final-attempt crashes otherwise strand processing rows indefinitely.
+        // Recover only expired leases, one at a time, under a row lock.
+        return bcrf_roost_outbox_expire_exhausted_lease($pdo) !== null
+            ? 'dead_lettered' : 'empty';
+    }
     return bcrf_roost_pos_dispatch_claimed_event($pdo,$claim);
 }
 
