@@ -16,6 +16,7 @@ return function (PDO $pdo): void {
         available_at DATETIME(3) NOT NULL,
         claimed_at DATETIME(3) NULL,
         claim_token CHAR(64) NULL,
+        dispatch_started_at DATETIME(3) NULL,
         sent_at DATETIME(3) NULL,
         suppressed_at DATETIME(3) NULL,
         last_error_code VARCHAR(64) NULL,
