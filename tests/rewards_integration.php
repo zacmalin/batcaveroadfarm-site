@@ -65,6 +65,19 @@ $pdo->exec("INSERT INTO reward_households (id, status, created_at) VALUES (1,'ac
 $pdo->exec("INSERT INTO reward_accounts (household_id, updated_at) VALUES (1,UTC_TIMESTAMP(3))");
 $pdo->exec("INSERT INTO reward_household_members (household_id,customer_id,role,verification_status,can_redeem,joined_at) VALUES (1,1,'manager','verified',1,UTC_TIMESTAMP(3)),(1,2,'adult','verified',1,UTC_TIMESTAMP(3))");
 $pdo->exec("INSERT INTO reward_policies (id,version,config_json,status,created_at) VALUES (1,'test-1','{}','active',UTC_TIMESTAMP(3))");
+require_once __DIR__ . '/../includes/roost-customer-balance.php';
+$customerBalance=bcrf_roost_customer_balance($pdo,1);
+if (!$customerBalance || $customerBalance['balance_points']!==0 || $customerBalance['lifetime_earned']!==0)
+    throw new RuntimeException('Verified adult cannot read own household points.');
+$pdo->exec("UPDATE customers SET email_verified_at=NULL WHERE id=2");
+if (bcrf_roost_customer_balance($pdo,2)!==null)
+    throw new RuntimeException('Unverified customer could read household points.');
+$pdo->exec("UPDATE customers SET email_verified_at=UTC_TIMESTAMP() WHERE id=2");
+$pdo->exec("UPDATE reward_household_members SET verification_status='pending' WHERE customer_id=2");
+if (bcrf_roost_customer_balance($pdo,2)!==null)
+    throw new RuntimeException('Unverified household member could read points.');
+$pdo->exec("UPDATE reward_household_members SET verification_status='verified' WHERE customer_id=2");
+
 $emailSchema = require __DIR__ . '/../admin/migrations/0020_roost_email_outbox.php';
 $emailSchema($pdo);
 $emailSchema($pdo); // additive migration must be rerunnable
