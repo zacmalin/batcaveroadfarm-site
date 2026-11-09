@@ -47,6 +47,33 @@ try {
             $issues[] = "$table engine must be InnoDB for foreign keys";
         }
     }
+    // Inventory every planned Rewards table, including onboarding evidence.
+    // Any preexisting table requires an explicit schema reconciliation before
+    // applying CREATE TABLE IF NOT EXISTS migrations.
+    $plannedRewardsTables = [
+        'reward_households','reward_household_members','reward_policies',
+        'reward_accounts','reward_ledger','reward_verified_attendance',
+        'reward_refund_processing','reward_pos_outbox','reward_email_outbox',
+        'reward_email_suppressions','reward_household_invitations',
+        'reward_adult_verifications','reward_consent_events',
+    ];
+    $presentRewardsTables = [];
+    foreach ($plannedRewardsTables as $table) {
+        $tableStmt = $pdo->prepare("SELECT ENGINE FROM information_schema.TABLES
+            WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?");
+        $tableStmt->execute([$table]);
+        $engine = $tableStmt->fetchColumn();
+        if ($engine !== false) {
+            $presentRewardsTables[] = $table;
+            if (strtoupper((string)$engine)!=='INNODB')
+                $issues[] = "Existing $table must use InnoDB";
+        }
+    }
+    echo "Existing planned Rewards tables: ".count($presentRewardsTables)."/".count($plannedRewardsTables)."\\n";
+    if ($presentRewardsTables) {
+        echo "Existing Rewards tables: ".implode(', ', $presentRewardsTables)."\\n";
+        $issues[]='Existing Rewards tables require explicit definition and migration-history reconciliation before installation';
+    }
     // Detect an existing outbox from an earlier migration revision before
     // attempting any release that assumes immutable policy snapshots.
     $tableStmt->execute(['reward_pos_outbox']);
