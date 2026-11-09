@@ -73,6 +73,7 @@ if ($enabled) {
 <meta name="robots" content="noindex,nofollow"><title>Roost redemption queue | Staff</title></head>
 <body><main style="max-width:65rem;margin:2rem auto;padding:1rem;font:1rem system-ui">
 <h1>Roost Rewards redemption queue</h1>
+<p><a href="/admin/roost_redemption_benefits.php">Configure redemption benefits</a></p>
 <?php if (!$enabled): ?><p>Staff redemption review is not enabled.</p>
 <?php else: ?>
 <p>Review only. Approval does not reserve points. Internal receipt issuance, if separately enabled, atomically deducts points. External benefit delivery is not supported.</p>
