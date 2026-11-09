@@ -24,3 +24,20 @@ Status: **blocked / not launch-ready** (2026-11-08). This is an implementation a
 
 ## Release evidence required
 Record passing CI, a staging issuance-to-acceptance test with an actual sink-delivered message, expiry and revocation tests, migration dry run, secrets/config readiness, worker failure recovery, and an approved rollback plan. Production deployment remains separately gated.
+
+## Implemented on draft PR #18 (not activated)
+- Migration 0024 creates a separate authenticated-encrypted invitation outbox, including a durable `dispatch_started_at` boundary. Issuance can enqueue inside the invitation transaction when explicitly configured.
+- The opt-in worker verifies invitation eligibility, decrypts the payload, rechecks eligibility, and marks dispatch started before invoking the injected transport. It does not schedule itself. The SMTP adapter requires `smtp_enabled=true` and `transport=smtp_required`, so legacy PHP mail fallback is prohibited.
+- Pre-dispatch abandoned claims may be retried up to three total attempts. Once dispatch may have begun, a crash, timeout, or lost acknowledgement must **fail closed**; never automatically resend. Recovery records `delivery_unknown` for stale post-dispatch claims.
+- The administrator Action Center reads only aggregate counts when migration 0024 exists. Failed deliveries, stale processing claims, overdue ready jobs, and ambiguous post-dispatch failures are visible without addresses or tokens. No worker is invoked by the dashboard.
+- Disposable MySQL integration tests cover claim/recovery, transient retry, ambiguous delivery, URL preflight, encrypted payload checks, and aggregate monitoring. CI status must be checked on the latest commit; prior successes do not prove staging or production readiness.
+
+## Manual review and recovery policy
+1. For a `failed` row with `dispatch_started_at` populated, treat delivery as **unknown**, even if the transport returned an error. Do not reset the row to pending or automatically resend: the recipient might already have the invitation.
+2. Confirm whether the recipient received the invitation using an authorized support workflow that does not expose the bearer code or encrypted payload in logs or tickets. If uncertain, revoke the old invitation and issue a **new** code only through an approved, rate-limited manager workflow after confirming recipient identity and consent.
+3. For a stale `processing` row with no dispatch marker, recovery can return it to pending while attempts remain; exhausted rows remain failed. Do not manually alter attempts or clear the dispatch marker.
+4. Investigate delayed ready jobs and missing SMTP configuration before enabling a scheduler. A healthy dashboard does **not** establish that mail is being delivered.
+5. Do not put recipient addresses, tokens, encryption keys, ciphertext, or raw SMTP exception strings in monitoring, analytics, or operational notes.
+
+## Remaining blockers
+Manager-facing issuing UI and authorized support/revocation flow; encrypted-payload retention and key rotation/purge procedure; controlled staging SMTP sink delivery and browser tests; production read-only schema preflight; migration rehearsal and backup/rollback plan; explicit separate approval to deploy, migrate, enable issuance, and start sending. No live send is authorized.
