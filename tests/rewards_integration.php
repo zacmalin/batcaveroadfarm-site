@@ -1434,6 +1434,19 @@ if (!$purged || $purged['status']!=='failed' || $purged['payload_nonce']!=='' ||
     throw new RuntimeException('Invitation purge removed audit state or retained secrets.');
 if (bcrf_roost_purge_invitation_delivery_payloads($pdo,7,100)!==0)
     throw new RuntimeException('Invitation payload purge was not idempotent.');
+$recentTerminal=bcrf_roost_create_household_invitation($pdo,30,'recent.terminal@example.test',
+    ['key'=>$deliveryKey,'key_id'=>'integration-v1']);
+$recentJob=$pdo->prepare("UPDATE reward_invitation_delivery_outbox
+    SET status='suppressed',suppressed_at=UTC_TIMESTAMP(3),updated_at=UTC_TIMESTAMP(3)
+    WHERE invitation_id=?");
+$recentJob->execute([$recentTerminal['invitation_id']]);
+if (bcrf_roost_purge_invitation_delivery_payloads($pdo,7,100)!==0)
+    throw new RuntimeException('Recent terminal invitation was purged before retention window.');
+$recentCheck=$pdo->prepare("SELECT payload_ciphertext FROM reward_invitation_delivery_outbox
+    WHERE invitation_id=?");
+$recentCheck->execute([$recentTerminal['invitation_id']]);
+if ($recentCheck->fetchColumn()==='')
+    throw new RuntimeException('Recent terminal invitation lost encrypted payload prematurely.');
 $expiredPending=bcrf_roost_create_household_invitation($pdo,30,'expired.queue@example.test',
     ['key'=>$deliveryKey,'key_id'=>'integration-v1']);
 $validPending=bcrf_roost_create_household_invitation($pdo,30,'valid.queue@example.test',
