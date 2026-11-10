@@ -15,7 +15,9 @@ $filter_table  = trim((string)($_GET['tbl']    ?? ''));
 $filter_action = trim((string)($_GET['action'] ?? ''));
 $filter_user   = trim((string)($_GET['user']   ?? ''));
 
-$h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+// A before/after value can itself be a list or object (multi-selects, JSON columns): print it as JSON instead
+// of letting PHP turn it into the word "Array" (48 warnings per page load in the Nov 4-9 error log).
+$h = fn($s) => htmlspecialchars(is_array($s) ? (string)json_encode($s, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : (string)$s, ENT_QUOTES, 'UTF-8');
 $logs = []; $total = 0; $source = 'audit_events';
 
 // New table: audit_events
