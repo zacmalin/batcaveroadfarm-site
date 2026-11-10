@@ -205,7 +205,8 @@ function getCurrentCalculations() {
     let sRatio   = suball > 0 ? stdSub  / suball : 0;
     let fGroc    = Math.max(0, grocSub - (disc * gRatio));
     let fStd     = Math.max(0, stdSub  - (disc * sRatio));
-    let tax      = taxExemptMode ? 0 : (fGroc * 0.02) + (fStd * 0.0475);
+    // General 6.75% = 4.75% state + 2% McDowell County local (effective 7/1/2026). Food 2% local only.
+    let tax      = taxExemptMode ? 0 : (fGroc * 0.02) + (fStd * 0.0675);
     return { suball, disc, tax, totalDue: suball - disc + tax };
 }
 
