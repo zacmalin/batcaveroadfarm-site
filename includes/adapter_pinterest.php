@@ -278,8 +278,10 @@ function bcrf_pinapi_create_board(PDO $pdo, string $name, string $description = 
 function bcrf_pinapi_create_pin(PDO $pdo, string $boardId, array $f, string $jpegFile): array {
     $data = @file_get_contents($jpegFile);
     if ($data === false || $data === '') throw new RuntimeException('Pin image file is missing.');
-    $body = ['board_id' => $boardId, 'title' => (string)$f['title'], 'description' => (string)$f['description'],
-             'link' => (string)$f['link'], 'alt_text' => (string)$f['alt_text'],
+    // Form fields are optional: a missing 'link' used to log a warning and post the Pin with no destination.
+    $has = function (string $k) use ($f): string { return (string)($f[$k] ?? ''); };
+    $body = ['board_id' => $boardId, 'title' => $has('title'), 'description' => $has('description'),
+             'link' => $has('link'), 'alt_text' => $has('alt_text'),
              'media_source' => ['source_type' => 'image_base64', 'content_type' => 'image/jpeg', 'data' => base64_encode($data)]];
     return bcrf_pinapi_request($pdo, 'POST', '/pins', ['json' => $body, 'timeout' => 60]);
 }
