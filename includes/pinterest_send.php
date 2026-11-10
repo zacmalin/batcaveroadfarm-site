@@ -82,8 +82,13 @@ function bcrf_pin_send(PDO $pdo, int $id): array {
     $label = 'Pinterest: ' . $row['title'];
 
     // Still public? Image still there?
-    $why = bcrf_pin_ineligible($row['content_type'], bcrf_pin_record($pdo, $row['content_type'], (int)$row['content_id']));
+    $rec = bcrf_pin_record($pdo, $row['content_type'], (int)$row['content_id']);
+    $why = bcrf_pin_ineligible($row['content_type'], $rec);
     if ($why !== '') { $set('failed', 'ineligible', $why . ' — not posted.'); return ['result' => 'failed', 'msg' => $why]; }
+    // No destination stored (cleared by hand, or an older draft): fall back to the record's own public page.
+    if (trim((string)($row['link_url'] ?? '')) === '') {
+        $row['link_url'] = bcrf_utm_url(bcrf_pin_permalink($row['content_type'], $rec), 'pinterest', 'social', 'pin-' . $row['content_type']);
+    }
     $img = bcrf_pin_image_abs($row['image_path']);
     if (!$img || !is_file($img)) { $set('approved', 'image', 'Image missing: move it back to draft and regenerate.'); return ['result' => 'paused', 'msg' => 'Image missing']; }
     [$board, $boardWhy] = bcrf_pin_board_for($pdo, $row);
