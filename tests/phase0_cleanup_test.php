@@ -42,9 +42,11 @@ $pdo->exec("INSERT INTO users (id, first_name, last_name, email, password, role)
             (1,  'Zac',   'Staff',  'zac@farm.test',   'x', 'administrator'),
             (10, 'Ann',   'Public', 'ann@farm.test',   'x', 'user'),
             (11, 'Bob',   'Clock',  'bob@farm.test',   'x', 'user'),
-            (12, 'Cara',  'Dup',    'ZAC@farm.test',   'x', 'user')");   // same email as staff: 0006 can't copy it
+            (12, 'Cara',  'Nocopy', 'cara@farm.test',  'x', 'user')");   // her customers copy is removed below
 $pdo->exec("INSERT INTO time_cards (user_id, clock_in, ip_address) VALUES (11, UTC_TIMESTAMP(), '127.0.0.1')");
 foreach (array_keys($files) as $v) if ($v >= '0003' && $v <= '0023') $apply($v);
+// A public account whose customers copy is missing (0025 must keep it)
+$pdo->exec("DELETE FROM customers WHERE migrated_from_user_id = 12");
 // A row the fallback wrote after 0003 ran (the case 0024 must copy before dropping)
 $pdo->exec("INSERT INTO audit_log (user_id, user_name, action, table_name, record_id, record_label) VALUES (1, 'Zac', 'delete', 'recipes', 9, 'Old pie')");
 
@@ -67,7 +69,7 @@ $apply('0025');
 $ids = array_map('intval', $pdo->query('SELECT id FROM users ORDER BY id')->fetchAll(PDO::FETCH_COLUMN));
 $check(!in_array(10, $ids, true), 'Ann (public, copied to customers) is removed from users');
 $check(in_array(11, $ids, true), 'Bob (public, but a time card points at him) is kept');
-$check(in_array(12, $ids, true), 'Cara (public, never copied: duplicate email) is kept');
+$check(in_array(12, $ids, true), 'Cara (public, but no customers copy) is kept');
 $check(in_array(1, $ids, true), 'staff are untouched');
 $check((int)$one('SELECT COUNT(*) FROM time_cards WHERE user_id = 11') === 1, "Bob's time card is still there");
 $check((int)$one('SELECT COUNT(*) FROM customers') === $customersBefore, 'customers is untouched');
