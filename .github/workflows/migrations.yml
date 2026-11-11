@@ -1,0 +1,41 @@
+# .github/workflows/migrations.yml — an empty database builds from the migrations (Farm OS Phase 0, Nov 2026).
+# Runs tests/migrations_test.php against a throwaway MySQL 8 database: every file in admin/migrations/ runs in
+# order on an empty database, a second run does nothing, and every table that code can still create on first use
+# is covered by a migration. Never touches a real database.
+name: Migrations test
+
+on:
+  push:
+    paths: ['admin/migrations/**', 'includes/**', 'tests/migrations_test.php', '.github/workflows/migrations.yml']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: bcrf_migrate_test
+        ports: ['3306:3306']
+        options: --health-cmd="mysqladmin ping -proot" --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: pdo_mysql
+          coverage: none
+          tools: none
+      - name: Build an empty database from the migrations
+        env:
+          DB_HOST: 127.0.0.1
+          DB_NAME: bcrf_migrate_test
+          DB_USER: root
+          DB_PASS: root
+        run: php tests/migrations_test.php
