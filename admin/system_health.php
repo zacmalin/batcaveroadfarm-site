@@ -11,6 +11,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
  *      brand fonts in includes/fonts/, and a test render of a 1000 x 1500 JPEG with text
  */
 require_once '../config.php';
+require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
 check_admin();
 if (($_SESSION['user_role'] ?? '') !== 'administrator') { http_response_code(403); exit('Administrators only.'); }
 require_once __DIR__ . '/../includes/cron_health.php';
@@ -149,21 +150,7 @@ $imgTools = (function (): array {
         'test'     => $test,
     ];
 })();
-?><!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>System Health · BCRF Admin</title>
-<style>
-body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f5f1ea;color:#2b2118}
-.wrap{max-width:900px;margin:0 auto;padding:18px 14px 60px}a{color:#4a6741}
-h1{font-size:1.35rem;margin:10px 0 4px}h2{font-size:1.05rem;margin:26px 0 8px}.sub{color:#6b5a48;font-size:.9rem;margin:0 0 12px}
-.card{background:#fff;border:1px solid #e3d8c6;border-radius:12px;padding:12px 14px;margin:8px 0}
-.job{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}.name{font-weight:700}.meta{font-size:.82rem;color:#6b5a48;line-height:1.55}
-.pill{font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:20px;white-space:nowrap;align-self:flex-start}
-.err{font-family:ui-monospace,Menlo,monospace;font-size:.78rem;word-break:break-word;line-height:1.45}
-.count{font-weight:800;font-size:.95rem;min-width:44px;display:inline-block}code{background:#f1ebe0;padding:1px 5px;border-radius:4px;font-size:.85em}
-.tabs a{margin-right:10px;font-size:.85rem}
-</style></head><body><div class="wrap">
-<p><a href="/admin/admin.php">← Admin</a></p>
+?><?php bcrf_shell_open('System Health', ['strict' => false, 'css' => ['admin-settings.css'], 'width' => 'max-w-3xl fset fs-health']); ?>
 <h1>System Health</h1>
 <p class="sub">Scheduled jobs, PHP errors and uptime checks in one place.</p>
 
@@ -284,4 +271,4 @@ h1{font-size:1.35rem;margin:10px 0 4px}h2{font-size:1.05rem;margin:26px 0 8px}.s
   2. <code><?= bcrf_farm_url() ?>/health.php?jobs=1</code>: also fails when a job above is Late or Failing<br>
   Plus <strong>HTTP</strong> monitors for <code><?= bcrf_farm_url() ?>/</code> and <code><?= bcrf_farm_url() ?>/booking/</code>.
 </div>
-</div></body></html>
+<?php bcrf_shell_close(); ?>

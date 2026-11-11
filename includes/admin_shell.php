@@ -30,6 +30,9 @@ function bcrf_shell_asset(string $file): string {
  *                  reports.css (layout) + admin-farmos.css (Hiring look) and wraps the content in .fos.
  *                  Default width for these is 'max-w-3xl'.
  *       'js'    => extra script files from admin/assets/ the page needs, e.g. ['report.js'] (deferred)
+ *       'css'   => extra stylesheets from admin/assets/, e.g. ['admin-settings.css']
+ *       'strict'=> false to skip the strict policy <meta> for a page that still uses inline styles, inline
+ *                  scripts or onsubmit/onclick confirms (it then runs under admin/.htaccess's policy, as before)
  */
 function bcrf_shell_open(string $title, array $opt = []): void {
     global $pdo;
@@ -47,13 +50,16 @@ function bcrf_shell_open(string $title, array $opt = []): void {
     echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">',
          '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">',
          '<meta name="theme-color" content="#1c1917"><meta name="robots" content="noindex">',
-         '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data: https:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">',
+         ($opt['strict'] ?? true) ? '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data: https:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">' : '',
          '<title>', $h($title), ' — Farm OS</title>',
          '<link rel="stylesheet" href="', $h(bcrf_shell_asset('admin.css')), '">',
          '<link rel="stylesheet" href="', $h(bcrf_shell_asset('admin-shell.css')), '">',
          '<link rel="stylesheet" href="', $h(bcrf_shell_asset('admin-ui.css')), '">',
          $legacy ? '<link rel="stylesheet" href="' . $h(bcrf_shell_asset('reports.css')) . '"><link rel="stylesheet" href="' . $h(bcrf_shell_asset('admin-farmos.css')) . '">' : '',
          '<script defer src="', $h(bcrf_shell_asset('admin-ui.js')), '"></script>';
+    foreach ((array)($opt['css'] ?? []) as $css) {
+        if (preg_match('/^[a-z0-9_-]+\.css$/i', (string)$css)) echo '<link rel="stylesheet" href="', $h(bcrf_shell_asset((string)$css)), '">';
+    }
     foreach ((array)($opt['js'] ?? []) as $js) {
         if (preg_match('/^[a-z0-9_-]+\.js$/i', (string)$js)) echo '<script defer src="', $h(bcrf_shell_asset((string)$js)), '"></script>';
     }

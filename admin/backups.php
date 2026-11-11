@@ -5,6 +5,7 @@
  * Bluehost's ModSecurity blocks the normal OAuth redirect back to this site.
  */
 require_once '../config.php';
+require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
 check_admin();
 if (($_SESSION['user_role'] ?? '') !== 'administrator') { http_response_code(403); exit('Administrators only.'); }
 require_once __DIR__ . '/../includes/backup_offsite.php';
@@ -96,21 +97,7 @@ foreach (['bcrf-db-' => 'Last Drive copy: database', 'bcrf-files-' => 'Last Driv
     elseif ($ok) $checks[] = [$label, $ok['file'] . ' — ' . $age($okTs), true];
     else $checks[] = [$label, 'none yet', null];
 }
-?><!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Backups — BCRF Admin</title><meta name="robots" content="noindex">
-<style>
-body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f4;color:#1c1917;margin:0;padding:16px;font-size:15px;line-height:1.5}
-main{max-width:720px;margin:0 auto}h1{font-size:1.4rem;margin:0 0 4px}a{color:#4a6741}
-.card{background:#fff;border:1px solid #e7e5e4;border-radius:10px;padding:16px;margin:14px 0}
-.row{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #f0efee}.row:last-child{border-bottom:0}
-.dot{flex:0 0 auto;width:22px}.lbl{font-weight:600;min-width:42%}.val{color:#44403c;word-break:break-word}
-.flash{padding:12px 14px;border-radius:8px;margin:12px 0}.ok{background:#ecfdf5;border:1px solid #a7f3d0}.err{background:#fef2f2;border:1px solid #fecaca}
-button,.btn{font:inherit;padding:10px 16px;border-radius:8px;border:0;cursor:pointer;margin:4px 6px 4px 0;display:inline-block;text-decoration:none}.btn.primary{color:#fff}
-.primary{background:#3b2010;color:#fff}.plain{background:#e7e5e4}.danger{background:#fff;border:1px solid #fca5a5;color:#991b1b}
-ol{padding-left:20px}li{margin:6px 0}code{background:#f5f5f4;padding:1px 5px;border-radius:4px;font-size:.88em;word-break:break-all}
-</style></head><body><main>
-<p><a href="/admin/admin.php">← Back to console</a></p>
+?><?php bcrf_shell_open('Backups', ['strict' => false, 'css' => ['admin-settings.css'], 'width' => 'max-w-3xl fset fs-bak']); ?>
 <h1>💾 Backups</h1>
 <p style="margin:0;color:#57534e">Database every night, photos/résumés/secrets every week — encrypted, kept on the server and copied to Google Drive.</p>
 <?php if ($flash): ?><div class="flash <?= $flash[0] === 'ok' ? 'ok' : 'err' ?>"><?= $h($flash[1]) ?></div><?php endif; ?>
@@ -182,4 +169,4 @@ ol{padding-left:20px}li{margin:6px 0}code{background:#f5f5f4;padding:1px 5px;bor
 <p style="margin:6px 0">Nightly database (already set up):<br><code>15 3 * * * /usr/local/bin/php <?= $h(realpath(__DIR__)) ?>/cron/backup_db.php &gt;&gt; <?= $h($dir) ?>/backup_db.log 2&gt;&amp;1</code></p>
 <p style="margin:6px 0">Weekly files (add this one):<br><code>40 3 * * 0 /usr/local/bin/php <?= $h(realpath(__DIR__)) ?>/cron/backup_files.php &gt;&gt; <?= $h($dir) ?>/backup_files.log 2&gt;&amp;1</code></p>
 <p style="margin:6px 0;color:#57534e">Restoring: see <code>docs/RESTORE.md</code> in GitHub.</p></div>
-</main></body></html>
+<?php bcrf_shell_close(); ?>

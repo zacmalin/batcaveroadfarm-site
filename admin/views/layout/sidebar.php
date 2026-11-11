@@ -93,7 +93,9 @@ $_sections = [
             ['Permissions', '?view=permissions',            'view',  'permissions'],
             ['Two-step',    '/admin/two_step.php',          'view',  'two_step'],
         ]],
-        ['label'=>'Integrations',     'icon'=>'🤖','tabs'=>[['AI Connections','/admin/mcp_connections.php','view','mcp_connections']]],   // administrators only
+        ['label'=>'Integrations',     'icon'=>'🤖','tabs'=>[['AI Connections','/admin/mcp_connections.php','view','mcp_connections'],     // administrators only
+                                                              ['Google Business Profile','/admin/gbp_connect.php','view','mcp_connections'],   // Nov 11, 2026: were reachable
+                                                              ['Pinterest','/admin/pinterest_connect.php','view','mcp_connections']]],       // only from Social Queue
         ['label'=>'Backups & Export', 'short'=>'Backups','icon'=>'💾','tabs'=>[['Backups','/admin/backups.php','view','backups']]],          // administrators only
         ['label'=>'System Health',    'short'=>'Health','icon'=>'🩺','tabs'=>[['System Health','/admin/system_health.php','view','system_health']]], // administrators only
         ['label'=>'Database',         'short'=>'DB','icon'=>'🗄️','tabs'=>[['Database','/admin/migrations.php','view','migrations']]],             // administrators only (Phase 0 migrations)

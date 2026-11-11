@@ -1,0 +1,104 @@
+/* admin/assets/admin-settings.css
+   Hiring-screen look for the Settings pages inside the shared shell (Nov 11, 2026): Payments & Register, Backups,
+   System Health, Database, AI connections, Google Business Profile, Pinterest. Replaces each page's own <style>
+   block. Scoped to .fset (+ one .fs-* class per page where the same class name means different things).
+   Plain CSS, no build step. Colours follow admin/views/jobs/*: stone text and borders, amber primary, red/green notices. */
+
+.fset{font-size:.875rem;line-height:1.5;color:#1c1917}
+.fset a{color:#92400e}
+.fset a:hover{color:#78350f}
+.fset h1{font-size:1.5rem;line-height:2rem;font-weight:700;color:#292524;margin:0 0 .25rem}
+.fset h2{font-size:1rem;font-weight:600;color:#44403c;margin:1.25rem 0 .5rem}
+.fset h3{font-size:.95rem;font-weight:600;color:#44403c;margin:0 0 .5rem}
+.fset p{margin:.5rem 0}
+.fset b,.fset strong{font-weight:600}
+.fset small{font-size:.8em}
+.fset ol{list-style:decimal;padding-left:1.25rem}
+.fset ul{list-style:disc;padding-left:1.25rem}
+.fset li{margin:.35rem 0}
+.fset code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#f5f5f4;padding:1px 5px;border-radius:.25rem;font-size:.85em;word-break:break-all}
+.fset .sub,.fset .muted{color:#78716c;font-size:.875rem}
+.fset > .sub:first-of-type{margin:0 0 1rem}
+.fset .meta{font-size:.8125rem;color:#78716c;line-height:1.6}
+.fset .name{font-weight:600;color:#292524}
+
+/* Cards */
+.fset .card{background:#fff;border:1px solid #e7e5e4;border-radius:.5rem;padding:1rem;margin:.75rem 0;box-shadow:0 1px 3px 0 #0000001a,0 1px 2px -1px #0000001a}
+
+/* Notices */
+.fset .flash{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;padding:.75rem;border-radius:.25rem;margin:.75rem 0}
+.fset .flash.ok{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
+.fset .flash.err{background:#fef2f2;border-color:#fecaca;color:#991b1b}
+.fset .flash p{margin:2px 0}
+
+/* Status pills */
+.fset .pill{display:inline-block;font-size:.72rem;font-weight:700;padding:.15rem .55rem;border-radius:.25rem;margin-left:.35rem;background:#f5f5f4;color:#57534e;vertical-align:middle}
+.fset .pill.on{background:#dcfce7;color:#166534}
+.fset .pill.off{background:#f5f5f4;color:#78716c}
+.fset .pill.warn{background:#fef3c7;color:#92400e}
+.fset .pill.bad{background:#fee2e2;color:#991b1b}
+
+/* Buttons: amber primary, stone-bordered secondary, red outline for destructive */
+.fset button,.fset .btn{display:inline-flex;align-items:center;justify-content:center;font:inherit;font-size:.875rem;font-weight:600;line-height:1.25rem;
+          min-height:38px;padding:.375rem 1rem;border-radius:.25rem;border:1px solid #b45309;background:#b45309;color:#fff;cursor:pointer;text-decoration:none;margin:.25rem .4rem .25rem 0}
+.fset button:hover,.fset .btn:hover{background:#92400e;border-color:#92400e;color:#fff}
+.fset button.plain,.fset .btn.plain,.fset button.ghost{background:#fff;border-color:#d6d3d1;color:#44403c;font-weight:500}
+.fset button.plain:hover,.fset .btn.plain:hover,.fset button.ghost:hover{background:#f5f5f4;color:#44403c}
+.fset button.danger,.fset .btn.danger{background:#fff;border-color:#fecaca;color:#dc2626;font-weight:500}
+.fset button.danger:hover,.fset .btn.danger:hover{background:#fef2f2;color:#b91c1c}
+.fset .btn.primary,.fset button.primary{background:#b45309;border-color:#b45309;color:#fff}
+
+/* Fields */
+.fset input:not([type=checkbox]):not([type=radio]):not([type=hidden]),.fset select,.fset textarea{
+          font:inherit;font-size:.875rem;font-weight:400;color:#1c1917;padding:.5rem;min-height:40px;border:1px solid #d6d3d1;border-radius:.25rem;background:#fafaf9;box-sizing:border-box;max-width:100%}
+.fset input:focus,.fset select:focus,.fset textarea:focus{outline:2px solid #b45309;outline-offset:0;border-color:#b45309}
+.fset input[type=checkbox],.fset input[type=radio]{width:1rem;height:1rem;accent-color:#b45309}
+.fset select{width:100%;max-width:420px}
+
+/* Two-column rows (Backups, Database) */
+.fset .row{display:flex;gap:.6rem;padding:.5rem 0;border-bottom:1px solid #f5f5f4;align-items:flex-start}
+.fset .row:last-child{border-bottom:0}
+.fset .dot{flex:0 0 auto;width:22px}
+.fset .lbl{font-weight:600;color:#44403c}
+.fset .val{color:#57534e;word-break:break-word}
+
+/* Payments & Register */
+.fs-pay label{display:block;margin:.75rem 0;font-size:.75rem;font-weight:600;color:#57534e}
+.fs-pay input[type=text],.fs-pay input[type=number],.fs-pay textarea{display:block;width:100%;margin-top:.25rem}
+.fs-pay .taxrow{display:flex;justify-content:space-between;align-items:center;gap:.75rem;padding:.5rem 0;border-bottom:1px solid #f5f5f4;margin:0;font-size:.875rem;color:#1c1917}
+.fs-pay .taxrow .pct{display:flex;align-items:center;gap:.4rem;white-space:nowrap}
+.fs-pay .taxrow input{width:90px;margin:0;text-align:right}
+.fs-pay .mrow{padding:.6rem 0;border-bottom:1px solid #f5f5f4}
+.fs-pay .mrow:last-of-type{border-bottom:0}
+.fs-pay .trow{display:flex;flex-wrap:wrap;align-items:center;gap:.25rem .75rem}
+.fs-pay .trow small{flex-basis:100%}
+.fs-pay .tchk{display:flex;align-items:center;gap:.5rem;margin:0;flex:1;font-size:.875rem;color:#1c1917}
+.fs-pay .tord{display:flex;align-items:center;gap:.4rem;margin:0;font-weight:400}
+.fs-pay .tord input{width:64px;margin:0}
+.fs-pay button{margin-top:.5rem}
+
+/* Backups */
+.fs-bak .lbl{min-width:42%}
+
+/* Database */
+.fs-mig .lbl{flex:1;min-width:0;word-break:break-word}
+.fs-mig .val{font-size:.85em;text-align:right}
+.fs-mig label.chk{display:flex;gap:.5rem;align-items:center;margin:.5rem 0;font-size:.875rem}
+
+/* System Health */
+.fs-health .job{display:flex;justify-content:space-between;gap:.6rem;flex-wrap:wrap}
+.fs-health .pill{align-self:flex-start;white-space:nowrap}
+.fs-health .err{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78rem;word-break:break-word;line-height:1.45}
+.fs-health .count{font-weight:800;font-size:.95rem;min-width:44px;display:inline-block}
+.fs-health .tabs a{margin-right:.6rem;font-size:.85rem}
+
+/* AI connections */
+.fs-mcp .app{display:flex;justify-content:space-between;gap:.75rem;align-items:flex-start;flex-wrap:wrap}
+.fs-mcp button{background:#fff;border-color:#fecaca;color:#dc2626;font-weight:500}
+.fs-mcp button:hover{background:#fef2f2;color:#b91c1c}
+.fs-mcp button.all{background:#dc2626;border-color:#dc2626;color:#fff;font-weight:600}
+.fs-mcp button.all:hover{background:#b91c1c;color:#fff}
+
+/* Google Business Profile, Pinterest */
+.fs-gbp label.loc{display:block;padding:.5rem 0;border-bottom:1px solid #f5f5f4}
+.fs-pin label.row{display:block;margin:.6rem 0;border:0;padding:0}

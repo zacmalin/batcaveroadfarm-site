@@ -8,6 +8,7 @@
  * Library: includes/gbp.php
  */
 require_once '../config.php';
+require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
 check_admin();
 if (($_SESSION['user_role'] ?? '') !== 'administrator') { http_response_code(403); exit('Administrators only.'); }
 require_once __DIR__ . '/../includes/gbp.php';
@@ -131,23 +132,7 @@ if ($signed && empty($a['location_name'])) {
 }
 $when = fn(?string $d) => $d ? date('M j, g:i A', strtotime($d)) : '—';
 $h    = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
-?><!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Google Business Profile · BCRF Admin</title>
-<style>
-body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f5f1ea;color:#2b2118}
-.wrap{max-width:760px;margin:0 auto;padding:18px 14px 60px}
-a{color:#4a6741}h1{font-size:1.35rem;margin:10px 0 4px}.sub{color:#6b5a48;font-size:.92rem;margin:0 0 16px}
-.card{background:#fff;border:1px solid #e3d8c6;border-radius:12px;padding:14px 16px;margin:12px 0}
-.flash{background:#e8f2e3;border:1px solid #b7d1aa;border-radius:10px;padding:10px 14px}
-.err{background:#fbe9e7;border-color:#e6b4ad}
-.meta{font-size:.88rem;color:#6b5a48;line-height:1.7}
-.pill{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:6px}
-.on{background:#e3f0dc;color:#2f5a22}.off{background:#eee;color:#666}
-.btn,button{display:inline-block;font:inherit;font-weight:700;padding:9px 15px;border-radius:8px;border:1px solid #4a6741;background:#4a6741;color:#fff;cursor:pointer;text-decoration:none;margin:4px 6px 4px 0}
-button.ghost{background:#fff;color:#4a6741}button.danger{background:#fff;color:#8b2018;border-color:#8b2018}
-label.loc{display:block;padding:8px 0;border-bottom:1px solid #eee}code{background:#f1ebe0;padding:1px 5px;border-radius:4px}
-</style></head><body><div class="wrap">
+?><?php bcrf_shell_open('Google Business Profile', ['strict' => false, 'css' => ['admin-settings.css'], 'width' => 'max-w-3xl fset fs-gbp']); ?>
 <p><a href="/admin/admin.php?view=social">← Social Queue</a></p>
 <h1>Google Business Profile</h1>
 <p class="sub">When this is connected, posts you approve at publish time also go to the farm's Google profile as a “What's new” update with a <em>Learn more</em> button.</p>
@@ -214,4 +199,4 @@ label.loc{display:block;padding:8px 0;border-bottom:1px solid #eee}code{backgrou
 <?php endif; ?>
 
 <p class="sub" style="margin-top:22px">Google posts use the Facebook caption without links (links in Google post text aren't clickable; the button carries it) and the post's photo (converted to JPG for Google; if Google still errors, the post goes out without the photo). You can edit the Google text in the composer before publishing.</p>
-</div></body></html>
+<?php bcrf_shell_close(); ?>

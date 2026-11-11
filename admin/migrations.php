@@ -9,6 +9,7 @@
  * Library: includes/migrations.php
  */
 require_once '../config.php';
+require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
 check_admin();
 if (($_SESSION['user_role'] ?? '') !== 'administrator') { http_response_code(403); exit('Administrators only.'); }
 require_once __DIR__ . '/../includes/migrations.php';
@@ -75,23 +76,7 @@ $label = [
     'changed'      => ['⚠️', 'File edited after it ran'],
     'missing_file' => ['❓', 'Ran here, file missing'],
 ];
-?><!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Database — BCRF Admin</title><meta name="robots" content="noindex">
-<style>
-body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f4;color:#1c1917;margin:0;padding:16px;font-size:15px;line-height:1.5}
-main{max-width:720px;margin:0 auto}h1{font-size:1.4rem;margin:0 0 4px}h2{font-size:1.05rem;margin:0 0 8px}a{color:#4a6741}
-.card{background:#fff;border:1px solid #e7e5e4;border-radius:10px;padding:16px;margin:14px 0}
-.row{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #f0efee;align-items:flex-start}.row:last-child{border-bottom:0}
-.dot{flex:0 0 auto;width:22px}.lbl{font-weight:600;flex:1;min-width:0;word-break:break-word}.val{color:#57534e;font-size:.88em;text-align:right}
-.flash{padding:12px 14px;border-radius:8px;margin:12px 0}.ok{background:#ecfdf5;border:1px solid #a7f3d0}.err{background:#fef2f2;border:1px solid #fecaca}
-.flash p{margin:2px 0}
-button{font:inherit;padding:10px 16px;border-radius:8px;border:0;cursor:pointer;margin:4px 6px 4px 0;min-height:44px}
-.primary{background:#3b2010;color:#fff}.plain{background:#e7e5e4}
-.muted{color:#78716c;font-size:.9em}code{background:#f5f5f4;padding:1px 5px;border-radius:4px;font-size:.88em;word-break:break-all}
-label.chk{display:flex;gap:8px;align-items:center;margin:8px 0;font-size:.92em}
-</style></head><body><main>
-<p><a href="/admin/admin.php">← Back to console</a></p>
+?><?php bcrf_shell_open('Database', ['strict' => false, 'css' => ['admin-settings.css'], 'width' => 'max-w-3xl fset fs-mig']); ?>
 <h1>🗄️ Database</h1>
 <p class="muted" style="margin:0">Every change to the database structure is a numbered migration, so this farm and any future farm get the same structure, step by step.</p>
 
@@ -152,4 +137,4 @@ label.chk{display:flex;gap:8px;align-items:center;margin:8px 0;font-size:.92em}
     <button class="plain" name="action" value="capture">Capture structure</button>
   </form>
 </div>
-</main></body></html>
+<?php bcrf_shell_close(); ?>

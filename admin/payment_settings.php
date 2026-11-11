@@ -8,6 +8,7 @@
 //   ?tab=tax       tax rates
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
+require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
 check_admin();
 if (($_SESSION['user_role'] ?? '') !== 'administrator') { http_response_code(403); exit('Administrators only.'); }
 require_once __DIR__ . '/includes/audit.php';
@@ -20,6 +21,7 @@ $csrf  = $_SESSION['csrf_token'];
 $h     = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
 $tabs  = ['methods' => 'Payment methods', 'register' => 'Register', 'tax' => 'Tax rates'];
 $tab   = isset($tabs[$_GET['tab'] ?? '']) ? $_GET['tab'] : 'methods';
+$_GET['tab'] = $tab;   // the Settings › Payments & Register section tabs mark this one (Nov 11, 2026)
 $ready = bcrf_sales_ready($pdo);
 $flash = $_SESSION['pay_flash'] ?? null; unset($_SESSION['pay_flash']);
 $go    = function (string $type, string $msg) use ($tab) { $_SESSION['pay_flash'] = [$type, $msg]; header('Location: /admin/payment_settings.php?tab=' . $tab); exit; };
@@ -70,32 +72,9 @@ $methodNotes = [
     'cashapp' => 'Manual: same as PayPal.',
     'check'   => 'Manual: recorded on the sale, deposited later.',
 ];
-?><!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Payments &amp; Register — Settings</title><meta name="robots" content="noindex">
-<style>
-body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f4;color:#1c1917;margin:0;padding:16px;font-size:15px;line-height:1.5}
-main{max-width:720px;margin:0 auto}h1{font-size:1.4rem;margin:0 0 4px}h2{font-size:1.05rem;margin:0 0 6px}a{color:#4a6741}
-.muted{color:#57534e}small.muted{font-size:.85em}
-.tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid #d6d3d1;margin:14px 0 0}
-.tabs a{white-space:nowrap;padding:10px 14px;font-weight:700;color:#57534e;text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-1px}
-.tabs a.on{color:#1c1917;border-color:#1c1917}
-.card{background:#fff;border:1px solid #e7e5e4;border-radius:10px;padding:16px;margin:14px 0}
-label{display:block;margin:12px 0;font-weight:600}
-input[type=text],input[type=number],textarea{display:block;width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:10px;border:1px solid #d6d3d1;border-radius:8px;margin-top:4px;font-weight:400}
-.taxrow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #f0efee;margin:0}
-.taxrow .pct{display:flex;align-items:center;gap:6px;white-space:nowrap}.taxrow input{width:90px;margin:0}
-.mrow{padding:10px 0;border-bottom:1px solid #f0efee}.mrow:last-of-type{border-bottom:0}
-.trow{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px}.trow small{flex-basis:100%}
-.tchk{display:flex;align-items:center;gap:8px;margin:0;flex:1}.tchk input{width:22px;height:22px}
-.tord{display:flex;align-items:center;gap:6px;margin:0;font-weight:400}.tord input{width:64px;margin:0}
-.flash{padding:12px 14px;border-radius:8px;margin:12px 0}.ok{background:#ecfdf5;border:1px solid #a7f3d0}.err{background:#fef2f2;border:1px solid #fecaca}
-button{font:inherit;padding:12px 18px;border-radius:8px;border:0;cursor:pointer;background:#3b2010;color:#fff;margin-top:8px}
-</style></head><body><main>
-<p><a href="/admin/admin.php">← Back to console</a> · <a href="/admin/register.php">Open the register</a></p>
+?><?php bcrf_shell_open('Payments & Register', ['strict' => false, 'css' => ['admin-settings.css'], 'width' => 'max-w-3xl fset fs-pay']); ?>
 <h1>💳 Payments &amp; Register</h1>
 <p class="muted" style="margin:0">Everything the register uses for payments, discounts, receipts and tax. Changes are saved to the audit log.</p>
-<nav class="tabs"><?php foreach ($tabs as $k => $label): ?><a href="?tab=<?= $k ?>" class="<?= $k === $tab ? 'on' : '' ?>"><?= $h($label) ?></a><?php endforeach; ?></nav>
 <?php if ($flash): ?><div class="flash <?= $flash[0] === 'ok' ? 'ok' : 'err' ?>"><?= $h($flash[1]) ?></div><?php endif; ?>
 
 <?php if ($tab === 'methods'): ?>
@@ -149,4 +128,4 @@ button{font:inherit;padding:12px 18px;border-radius:8px;border:0;cursor:pointer;
 <p class="muted">Tax on food, admission and thrift differs by state and item. Confirm categories and rates with the NC Department of Revenue or an accountant.</p>
 <?php endif; ?>
 <?php endif; ?>
-</main></body></html>
+<?php bcrf_shell_close(); ?>

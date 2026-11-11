@@ -9,6 +9,7 @@
  * Library: includes/adapter_pinterest.php (sign-in, tokens, API), includes/pinterest_send.php (posting).
  */
 require_once '../config.php';
+require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
 check_admin();
 if (($_SESSION['user_role'] ?? '') !== 'administrator') { http_response_code(403); exit('Administrators only.'); }
 require_once __DIR__ . '/../includes/pinterest_send.php';
@@ -139,23 +140,7 @@ $auto    = ['recipe' => $tables && bcrf_pin_setting($pdo, 'pinterest_autopost_re
 $when    = function (?string $utc): string { if (!$utc) return '—'; $d = new DateTime($utc, new DateTimeZone('UTC')); $d->setTimezone(new DateTimeZone(date_default_timezone_get())); return $d->format('M j, g:i A'); };
 $h       = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
 $ok      = $signed && !(int)($a['needs_reconnect'] ?? 0);
-?><!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Pinterest · BCRF Admin</title>
-<style>
-body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f5f1ea;color:#2b2118}
-.wrap{max-width:760px;margin:0 auto;padding:18px 14px 60px}
-a{color:#4a6741}h1{font-size:1.35rem;margin:10px 0 4px}h2{font-size:1rem;margin:0 0 8px}.sub{color:#6b5a48;font-size:.92rem;margin:0 0 16px}
-.card{background:#fff;border:1px solid #e3d8c6;border-radius:12px;padding:14px 16px;margin:12px 0}
-.flash{background:#e8f2e3;border:1px solid #b7d1aa;border-radius:10px;padding:10px 14px}
-.meta{font-size:.88rem;color:#6b5a48;line-height:1.7}
-.pill{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:6px}
-.on{background:#e3f0dc;color:#2f5a22}.off{background:#eee;color:#666}.warn{background:#fbefd2;color:#7a5200}.bad{background:#fbe3dc;color:#8b2018}
-.btn,button{display:inline-block;font:inherit;font-weight:700;padding:9px 15px;border-radius:8px;border:1px solid #4a6741;background:#4a6741;color:#fff;cursor:pointer;text-decoration:none;margin:4px 6px 4px 0}
-button.ghost{background:#fff;color:#4a6741}button.danger{background:#fff;color:#8b2018;border-color:#8b2018}
-select{font:inherit;padding:8px;border:1px solid #ccc;border-radius:8px;width:100%;max-width:420px;background:#fff}
-label.row{display:block;margin:10px 0}code{background:#f1ebe0;padding:1px 5px;border-radius:4px}
-</style></head><body><div class="wrap">
+?><?php bcrf_shell_open('Pinterest', ['strict' => false, 'css' => ['admin-settings.css'], 'width' => 'max-w-3xl fset fs-pin']); ?>
 <p><a href="/admin/admin.php?view=social&amp;tab=pinterest">← Pinterest drafts</a></p>
 <h1>Pinterest</h1>
 <p class="sub">Connect the farm's Pinterest business account so approved Pins post on their own, and choose which board each kind of Pin goes to.</p>
@@ -230,4 +215,4 @@ label.row{display:block;margin:10px 0}code{background:#f1ebe0;padding:1px 5px;bo
   Access requested: <?= $h(str_replace(',', ', ', BCRF_PINAPI_SCOPES)) ?>. Sign-in tokens are stored encrypted and never shown.
 </div>
 <?php endif; ?>
-</div></body></html>
+<?php bcrf_shell_close(); ?>
