@@ -28,7 +28,9 @@ if ($run && bcrf_meta_ready()) {
     };
     $add = function (string $group, string $what, string $needs, array $res) use (&$probes) {
         [$ok, $out] = $res;
+        if ($ok && is_array($out)) unset($out['paging']);   // paging links carry the access token — never show them
         $sample = $ok ? substr(json_encode($out, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), 0, 300) : (string)$out;
+        $sample = preg_replace('/access_token=[^&"\s]+/', 'access_token=…', $sample);   // belt and braces
         $probes[] = compact('group', 'what', 'needs', 'ok', 'sample');
     };
 

@@ -10,8 +10,10 @@ Dashboard / Social Queue show a banner. When that happens, make a new one (about
 1. Open **developers.facebook.com/tools/explorer** (Graph API Explorer), signed in as the
    Facebook account that manages the Petting Zoo page.
 2. **Meta App:** `BCRF Site Publisher` (App ID `4401281856803313`). **User or Page:** *Get User Access Token*.
-   Tick: `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, `business_management`,
-   `instagram_basic`, `instagram_content_publish`. Tap **Generate Access Token** and approve.
+   Tick: `pages_show_list`, `pages_read_engagement`, `pages_read_user_content`, `pages_manage_posts`, `read_insights`,
+   `business_management`, `instagram_basic`, `instagram_content_publish`, `instagram_manage_insights`,
+   `instagram_manage_comments`, `instagram_manage_messages`. (The insights and read_user_content ones feed
+   Reports › Social Media — run its **Meta access check** after saving the new token.) Tap **Generate Access Token** and approve.
 3. Make it long-lived: copy the token, open **developers.facebook.com/tools/debug/accesstoken**,
    paste, **Debug** → **Extend Access Token** → copy the new (long-lived) **user** token.
    This user token is only a stepping stone — don't save it.
