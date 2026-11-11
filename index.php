@@ -154,16 +154,16 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.ph
                         <div class="icon" aria-hidden="true">📍</div>
                         <h3>Location</h3>
                         <p>
-                            <a rel="noopener" target="_blank" href="https://maps.google.com/?q=4132 Bat Cave Road, Old Fort, North Carolina, 28762">4132 Bat Cave Road<br>Old Fort, NC 28762</a>
+                            <a rel="noopener" target="_blank" href="https://maps.google.com/?q=4132 Bat Cave Road, Old Fort, North Carolina, 28762">4132 Bat Cave Road<br>Old Fort, NC 28762<span class="visually-hidden">, on Google Maps</span></a>
                         </p>
 
-                        <p style="margin-top:10px"><a class="cta-btn" href="/directions/">Directions →</a></p>
+                        <p style="margin-top:10px"><a class="cta-btn" href="/directions/">Directions<span class="visually-hidden"> to Bat Cave Road Farm</span> <span aria-hidden="true">→</span></a></p>
                     </div>
                     <div class="info-tile reveal">
                         <div class="icon" aria-hidden="true">📞</div>
                         <h3>Call Us</h3>
                         <p>
-                            <a href="tel:<?= htmlspecialchars(site_tel('general'), ENT_QUOTES) ?>"><?= htmlspecialchars(site_phone_display('general')) ?></a>
+                            <a href="tel:<?= htmlspecialchars(site_tel('general'), ENT_QUOTES) ?>"><span class="visually-hidden">Call </span><?= htmlspecialchars(site_phone_display('general')) ?></a>
                             <br>We'd love to hear from you!
                         </p>
                     </div>
@@ -171,7 +171,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.ph
                         <div class="icon" aria-hidden="true">📧</div>
                         <h3>Email</h3>
                         <p>
-                            <a href="mailto:<?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?>"><?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?></a>
+                            <a href="mailto:<?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?>"><span class="visually-hidden">Email </span><?= htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES) ?></a>
                             <br>We reply within 24 hours.
                         </p>
                     </div>

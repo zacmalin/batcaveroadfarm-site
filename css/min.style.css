@@ -400,3 +400,5 @@ nav.open .hamburger-label .hl-close{display:inline}
 @media (min-width:768px){.home-visit-actions{flex-direction:row;justify-content:center;gap:12px}.home-visit-actions .cta-btn{flex:1 1 0;min-width:0;max-width:220px;width:auto;padding-left:10px;padding-right:10px}}
 /* new-tab link icon, added by js/min.newtab.js (WCAG 3.2.5, Nov 11 2026) */
 .nt-icon{display:inline-block;margin-left:.2em;font-size:.8em;line-height:1;text-decoration:none}
+/* hero buttons sit on a dark photo: light border so the button edge reaches 3:1 (WCAG 1.4.11, Nov 11 2026) */
+.hero .cta-btn{border-color:var(--cream,#f5ead6)}
