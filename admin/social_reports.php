@@ -114,33 +114,60 @@ if ($ready) {
     $cur  = bcrf_socrep_series($pdo, $from->format('Y-m-d'), (new DateTimeImmutable('today', $tzPT))->format('Y-m-d'));
     $prev = bcrf_socrep_series($pdo, $pFrom->format('Y-m-d'), $pTo->format('Y-m-d'));
     foreach (bcrf_socrep_metrics() as $net => $metrics) {
-        foreach ($metrics as $m => [$label, $agg]) {
+        foreach ($metrics as $m => [$label, $agg, $def]) {
             $vals = $cur[$net][$m] ?? [];
             if ($agg === 'last') {
                 if (!$vals) { $lv = $pdo->prepare('SELECT value FROM social_metrics_daily WHERE network = ? AND metric = ? ORDER BY day DESC LIMIT 1');
                               $lv->execute([$net, $m]); $v = $lv->fetchColumn(); $total = $v === false ? null : (int)$v; }
                 else $total = end($vals);
-                $prior = null; $series = [];
-                foreach ($dayList as $d) if (isset($vals[$d])) $series[] = $vals[$d];
+                $prior = null; $series = array_map(fn($d) => $vals[$d] ?? null, $dayList); $have = count(array_filter($series, fn($v) => $v !== null));
             } else {
-                $series = array_map(fn($d) => $vals[$d] ?? 0, $dayList);
-                $total  = $vals ? array_sum(array_intersect_key($vals, array_flip($dayList))) : null;
-                $prior  = !empty($prev[$net][$m]) ? array_sum($prev[$net][$m]) : null;
+                // Missing days stay missing (gaps, "n of N days"), never zero.
+                $series = array_map(fn($d) => $vals[$d] ?? null, $dayList);
+                $have   = count(array_filter($series, fn($v) => $v !== null));
+                $total  = $have ? array_sum(array_filter($series, fn($v) => $v !== null)) : null;
+                $pc     = count($prev[$net][$m] ?? []);
+                $prior  = ($pc && $pc >= $have) ? array_sum($prev[$net][$m]) : null;   // compare only like-for-like coverage
             }
-            $cards[$net][] = compact('label', 'total', 'prior', 'series');
+            $cards[$net][] = compact('label', 'agg', 'def', 'total', 'prior', 'series', 'have');
         }
     }
-    $st = $pdo->prepare('SELECT * FROM social_posts WHERE posted_at >= ? ORDER BY posted_at DESC LIMIT 40');
-    $st->execute([$from->setTime(0, 0)->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s')]);
-    $posts  = $st->fetchAll(PDO::FETCH_ASSOC);
+    $posts  = bcrf_socrep_posts($pdo, $from->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'));
     $status = bcrf_socrep_status($pdo);
+
+    // CSV exports (same period as the screen)
+    $csv = (string)($_GET['csv'] ?? '');
+    if ($csv === 'daily' || $csv === 'posts') {
+        require_once __DIR__ . '/../includes/reports.php';
+        $tag = $from->format('Y-m-d') . '_to_' . $to->format('Y-m-d');
+        if ($csv === 'daily') {
+            $rows = [];
+            foreach (bcrf_socrep_metrics() as $net => $metrics) foreach ($metrics as $m => [$label]) {
+                foreach ($dayList as $d) if (isset($cur[$net][$m][$d])) $rows[] = [$d, $net, $m, $label, $cur[$net][$m][$d]];
+            }
+            bcrf_rpt_send_csv($pdo, "social-daily-$tag.csv", ['day', 'network', 'metric', 'label', 'value'], $rows, "Social Media daily numbers $tag");
+        }
+        $rows = array_map(fn($p) => [$p['network'], date('Y-m-d H:i', strtotime($p['posted_at'] . ' UTC')), $p['kind'], $p['caption'], $p['permalink'],
+                                     $p['views'], $p['reach'], $p['likes'], $p['comments'], $p['shares'], $p['saves'], $p['clicks'] ?? null,
+                                     $p['queue_id'] ? 'Farm OS #' . $p['queue_id'] . ' (' . $p['content_type'] . ' ' . $p['content_id'] . ')' : 'posted outside Farm OS',
+                                     date('Y-m-d H:i', strtotime($p['fetched_at'] . ' UTC'))], $posts);
+        bcrf_rpt_send_csv($pdo, "social-posts-$tag.csv",
+            ['network', 'posted', 'type', 'caption', 'link', 'views', 'reach', 'likes_or_reactions', 'comments', 'shares', 'saves', 'clicks', 'source', 'numbers_as_of'], $rows, "Social Media posts $tag");
+    }
 }
 $fmt = fn($n) => $n === null ? '—' : number_format((int)$n);
-$spark = function (array $vals): string {   // SVG sparkline (geometry attributes only: fine under the strict policy)
-    if (count($vals) < 2) return '';
-    $w = 120; $hgt = 28; $max = max(max($vals), 1); $n = count($vals) - 1; $pts = [];
-    foreach (array_values($vals) as $i => $v) $pts[] = round($i * $w / $n, 1) . ',' . round($hgt - 2 - ($v / $max) * ($hgt - 4), 1);
-    return '<svg viewBox="0 0 ' . $w . ' ' . $hgt . '" class="w-full h-7 mt-1" aria-hidden="true"><polyline fill="none" stroke="#b45309" stroke-width="1.5" points="' . implode(' ', $pts) . '"/></svg>';
+$spark = function (array $vals): string {   // SVG sparkline (geometry attributes only: fine under the strict policy). Missing days = gaps.
+    $vals = array_values($vals); $known = array_filter($vals, fn($v) => $v !== null);
+    if (count($vals) < 2 || count($known) < 2) return '';
+    $w = 120; $hgt = 28; $max = max(max($known), 1); $n = count($vals) - 1; $lines = []; $seg = [];
+    foreach ($vals as $i => $v) {
+        if ($v === null) { if (count($seg) > 1) $lines[] = $seg; $seg = []; continue; }
+        $seg[] = round($i * $w / $n, 1) . ',' . round($hgt - 2 - ($v / $max) * ($hgt - 4), 1);
+    }
+    if (count($seg) > 1) $lines[] = $seg;
+    $out = '';
+    foreach ($lines as $l) $out .= '<polyline fill="none" stroke="#b45309" stroke-width="1.5" points="' . implode(' ', $l) . '"/>';
+    return '<svg viewBox="0 0 ' . $w . ' ' . $hgt . '" class="w-full h-7 mt-1" aria-hidden="true">' . $out . '</svg>';
 };
 $delta = function ($cur, $prior): string {
     if ($cur === null || $prior === null || $prior == 0) return '';
@@ -157,7 +184,9 @@ bcrf_shell_open('Social Media — Reports', ['width' => 'max-w-4xl', 'toast' => 
       <p class="text-sm text-stone-500">Petting Zoo Facebook page and @batcaveroadfarm on Instagram. Pinterest waits on Standard access.</p>
     </div>
     <?php if ($ready): ?>
-    <form method="POST" class="flex items-center gap-2">
+    <form method="POST" class="flex flex-wrap items-center gap-2">
+      <a href="?days=<?= $days ?>&amp;csv=daily" class="px-3 py-1.5 rounded text-sm border border-stone-300 bg-white text-stone-700">CSV: daily</a>
+      <a href="?days=<?= $days ?>&amp;csv=posts" class="px-3 py-1.5 rounded text-sm border border-stone-300 bg-white text-stone-700">CSV: posts</a>
       <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="days" value="<?= $days ?>">
       <button class="px-4 py-1.5 rounded text-sm bg-amber-700 hover:bg-amber-800 text-white font-semibold">Refresh now</button>
     </form>
@@ -189,13 +218,26 @@ bcrf_shell_open('Social Media — Reports', ['width' => 'max-w-4xl', 'toast' => 
       <div class="bg-white border border-stone-200 rounded-lg p-3 shadow-sm">
         <div class="text-xs text-stone-500"><?= $h($c['label']) ?></div>
         <div class="text-2xl font-bold text-stone-800"><?= $fmt($c['total']) ?></div>
-        <div class="text-xs"><?= $delta($c['total'], $c['prior']) ?></div>
+        <div class="text-xs"><?= $delta($c['total'], $c['prior']) ?>
+          <?php if ($c['agg'] === 'sum' && $c['total'] !== null && $c['have'] < count($dayList)): ?><span class="text-stone-500"><?= $c['have'] ?> of <?= count($dayList) ?> days</span><?php endif; ?>
+          <?php if ($c['total'] === null): ?><span class="text-stone-500">No data yet</span><?php endif; ?>
+        </div>
         <?= $spark($c['series']) ?>
       </div>
     <?php endforeach; ?>
   </div>
   <?php endforeach; ?>
-  <p class="text-xs text-stone-500 -mt-2 mb-4">Instagram "Accounts reached" adds up each day's reach, so someone seen on two days counts twice. Followers start building history from the first refresh.</p>
+  <details class="bg-white border border-stone-200 rounded-lg p-3 shadow-sm mb-4 text-sm">
+    <summary class="font-semibold text-stone-800 cursor-pointer">What these numbers mean</summary>
+    <dl class="mt-2 space-y-1">
+      <?php foreach (bcrf_socrep_metrics() as $net => $metrics): foreach ($metrics as [$label, , $def]): ?>
+        <div><dt class="inline font-semibold text-stone-700"><?= ucfirst($net) ?> · <?= $h($label) ?>:</dt> <dd class="inline text-stone-600"><?= $h($def) ?></dd></div>
+      <?php endforeach; endforeach; ?>
+      <div><dt class="inline font-semibold text-stone-700">Missing days</dt> <dd class="inline text-stone-600">are shown as gaps and "n of N days", never as zero. Facebook and Instagram numbers use different definitions, so they aren't added together.</dd></div>
+      <div><dt class="inline font-semibold text-stone-700">Posts</dt> <dd class="inline text-stone-600">show each network's own counts as of the last refresh (the newest 100 per network are kept up to date). "Farm OS" marks posts sent from the Social Queue.</dd></div>
+      <div><dt class="inline font-semibold text-stone-700">Not available</dt> <dd class="inline text-stone-600">Clicks are Facebook only (Instagram doesn't report them per post). Video watch time isn't collected yet. Blank means Meta didn't report that number for the post, not zero. Pinterest waits on Standard access.</dd></div>
+    </dl>
+  </details>
 
   <section class="bg-white border border-stone-200 rounded-lg shadow-sm mb-4">
     <h2 class="text-base font-semibold text-stone-800 px-4 pt-3 pb-2">Posts in this period</h2>
@@ -206,7 +248,8 @@ bcrf_shell_open('Social Media — Reports', ['width' => 'max-w-4xl', 'toast' => 
       <?php foreach ($posts as $p): $ig = $p['network'] === 'instagram'; ?>
         <li class="px-4 py-2">
           <div class="flex items-baseline justify-between gap-2">
-            <span class="text-xs font-semibold <?= $ig ? 'text-amber-800' : 'text-stone-700' ?>"><?= $ig ? 'Instagram' : 'Facebook' ?><?= $p['kind'] ? ' · ' . $h(str_replace('_', ' ', $p['kind'])) : '' ?></span>
+            <span class="text-xs font-semibold <?= $ig ? 'text-amber-800' : 'text-stone-700' ?>"><?= $ig ? 'Instagram' : 'Facebook' ?><?= $p['kind'] ? ' · ' . $h(str_replace('_', ' ', $p['kind'])) : '' ?>
+              <?php if ($p['queue_id']): ?><a href="/admin/admin.php?view=social" class="ml-1 px-1.5 rounded bg-amber-50 border border-amber-200 text-amber-800 font-normal">Farm OS · <?= $h($p['content_type']) ?></a><?php endif; ?></span>
             <span class="text-xs text-stone-500 shrink-0"><?= $h(date('M j, g:i A', strtotime($p['posted_at'] . ' UTC'))) ?></span>
           </div>
           <div class="text-sm text-stone-800 truncate">
@@ -214,8 +257,8 @@ bcrf_shell_open('Social Media — Reports', ['width' => 'max-w-4xl', 'toast' => 
             <?php else: ?><?= $h($p['caption'] ?: '(no caption)') ?><?php endif; ?>
           </div>
           <div class="flex flex-wrap gap-x-3 text-xs text-stone-600">
-            <?php foreach (['views' => 'views', 'reach' => 'reached', 'likes' => $ig ? 'likes' : 'reactions', 'comments' => 'comments', 'shares' => 'shares', 'saves' => 'saves'] as $k => $w):
-                  if ($p[$k] === null) continue; ?>
+            <?php foreach (['views' => 'views', 'reach' => 'reached', 'likes' => $ig ? 'likes' : 'reactions', 'comments' => 'comments', 'shares' => 'shares', 'saves' => 'saves', 'clicks' => 'clicks'] as $k => $w):
+                  if (($p[$k] ?? null) === null) continue; ?>
               <span><b class="text-stone-800"><?= $fmt($p[$k]) ?></b> <?= $w ?></span>
             <?php endforeach; ?>
           </div>

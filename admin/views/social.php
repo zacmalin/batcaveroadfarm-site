@@ -39,7 +39,10 @@ $badge = function (string $s): string {
 <div class="max-w-5xl">
   <div class="flex items-center justify-between mb-4">
     <h1 class="text-lg font-serif font-black text-stone-800">📣 Social Share Queue</h1>
-    <span class="text-[10px] font-mono text-stone-400 uppercase tracking-widest">Facebook · Instagram · Google</span>
+    <span class="flex items-center gap-3">
+      <a href="/admin/social_reports.php" class="text-[11px] font-bold text-amber-700 hover:text-amber-900 underline">📊 How posts did → Reports › Social Media</a>
+      <span class="text-[10px] font-mono text-stone-400 uppercase tracking-widest">Facebook · Instagram · Google</span>
+    </span>
   </div>
   <div class="border rounded p-3 mb-4 text-xs <?= $gbp_on ? (empty($gbp_auth['last_error']) ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-amber-50 border-amber-200 text-amber-900') : 'bg-stone-50 border-stone-200 text-stone-700' ?>">
     <span class="font-black"><?= $gbp_on ? (empty($gbp_auth['last_error']) ? '✅' : '⚠️') : '⚪' ?> Google Business Profile</span>
