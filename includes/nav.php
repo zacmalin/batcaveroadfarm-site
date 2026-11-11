@@ -60,6 +60,7 @@ $visitDropdown = [
     ['/directions/',      '🗺️', 'Map & Directions'],
     ['/tickets/',         '🎫', 'Day Tickets'],
     ['/passes/',          '🪪', 'Annual Passes'],
+    ['/gift-cards/',      '🎁', 'Gift Cards'],      // Nov 11, 2026
     ['/booking/',         '📋', 'Book a Group'],
     ['/private-events/',  '🎈', 'Private Events'],
 ];
