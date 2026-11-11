@@ -32,6 +32,7 @@ function bcrf_cron_jobs(): array {
         'rewards_expire'         => ['Roost Rewards expiry',       26 * 60,     'daily, 3:25 AM'],
         'backup_files'           => ['Website files backup',       8 * 24 * 60, 'weekly, Sunday 3:40 AM'],
         'fetch_google_reports'   => ['Search & Analytics refresh', 26 * 60,     'daily, 6:10 AM'],
+        'fetch_social_reports'   => ['Social Media refresh',       26 * 60,     'daily, 6:20 AM'],
     ];
 }
 

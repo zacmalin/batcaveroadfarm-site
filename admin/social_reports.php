@@ -1,8 +1,9 @@
 <?php
-// admin/social_reports.php — Reports › Social Media (Nov 11, 2026). Step 1: Meta access check.
-// Calls each Facebook/Instagram read endpoint the dashboard would need with the stored Page token and
-// shows which ones Meta allows, plus the scopes on the token. Read-only; the token is never shown.
-// Pinterest stays gated (Trial access only). Card: "Social analytics dashboard" (due Dec 9).
+// admin/social_reports.php — Reports › Social Media (Nov 11, 2026).
+// Facebook Page + Instagram numbers from social_metrics_daily / social_posts (filled daily by
+// admin/cron/fetch_social_reports.php via includes/social_reports.php, or the Refresh button).
+// Below the dashboard: the Meta access check, which calls each endpoint live with the stored Page token
+// and shows what Meta allows (the token itself is never shown). Pinterest stays gated (Trial access only).
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
 check_admin();
@@ -10,8 +11,32 @@ require_once __DIR__ . '/includes/permission_checks.php';
 require_permission([['view', 'social']]);
 require_once __DIR__ . '/../includes/admin_shell.php';
 require_once __DIR__ . '/../includes/adapter_meta.php';
+require_once __DIR__ . '/../includes/social_reports.php';
+date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
+if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+$csrf  = $_SESSION['csrf_token'];
+$ready = bcrf_socrep_tables_ready($pdo);
+
+// Refresh now (POST → redirect → GET)
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+    $msg = ['err', 'Your session expired. Try again.'];
+    if (hash_equals($csrf, (string)($_POST['csrf_token'] ?? '')) && $ready) {
+        $last = bcrf_socrep_status($pdo)['fetched_at'] ?? null;
+        if ($last && strtotime($last) > time() - 120) $msg = ['warning', 'Refreshed less than 2 minutes ago.'];
+        else {
+            @set_time_limit(120);
+            $r = bcrf_socrep_refresh($pdo);
+            $msg = ($r['facebook'] === 'ok' && $r['instagram'] === 'ok') ? ['ok', 'Social numbers refreshed.']
+                 : ['warning', 'Refreshed with problems — Facebook: ' . $r['facebook'] . ' · Instagram: ' . $r['instagram']];
+        }
+    }
+    $_SESSION['socrep_flash'] = $msg;
+    header('Location: /admin/social_reports.php?days=' . (int)($_POST['days'] ?? 28));
+    exit;
+}
+$toast = $_SESSION['socrep_flash'] ?? null; unset($_SESSION['socrep_flash']);
 
 // What the dashboard wants, and which permission Meta asks for. Run only when "Run check" is pressed.
 $probes = [];
@@ -75,23 +100,141 @@ if ($run && bcrf_meta_ready()) {
     }
 }
 
-$want = ['pages_read_engagement', 'read_insights', 'instagram_basic', 'instagram_manage_insights'];
+$want = ['pages_read_engagement', 'pages_read_user_content', 'read_insights', 'instagram_basic', 'instagram_manage_insights'];
 
-bcrf_shell_open('Social Media — Reports', ['width' => 'max-w-4xl']);
+// ── Dashboard data ───────────────────────────────────────────────────────────
+$days = in_array((int)($_GET['days'] ?? 28), [7, 28, 90], true) ? (int)$_GET['days'] : 28;
+$tzPT = new DateTimeZone('America/Los_Angeles');                                  // Meta's day boundary
+$to   = (new DateTimeImmutable('yesterday', $tzPT));
+$from = $to->modify('-' . ($days - 1) . ' day');
+$pTo  = $from->modify('-1 day'); $pFrom = $pTo->modify('-' . ($days - 1) . ' day');
+$dayList = []; for ($d = $from; $d <= $to; $d = $d->modify('+1 day')) $dayList[] = $d->format('Y-m-d');
+$cards = []; $posts = []; $status = [];
+if ($ready) {
+    $cur  = bcrf_socrep_series($pdo, $from->format('Y-m-d'), (new DateTimeImmutable('today', $tzPT))->format('Y-m-d'));
+    $prev = bcrf_socrep_series($pdo, $pFrom->format('Y-m-d'), $pTo->format('Y-m-d'));
+    foreach (bcrf_socrep_metrics() as $net => $metrics) {
+        foreach ($metrics as $m => [$label, $agg]) {
+            $vals = $cur[$net][$m] ?? [];
+            if ($agg === 'last') {
+                if (!$vals) { $lv = $pdo->prepare('SELECT value FROM social_metrics_daily WHERE network = ? AND metric = ? ORDER BY day DESC LIMIT 1');
+                              $lv->execute([$net, $m]); $v = $lv->fetchColumn(); $total = $v === false ? null : (int)$v; }
+                else $total = end($vals);
+                $prior = null; $series = [];
+                foreach ($dayList as $d) if (isset($vals[$d])) $series[] = $vals[$d];
+            } else {
+                $series = array_map(fn($d) => $vals[$d] ?? 0, $dayList);
+                $total  = $vals ? array_sum(array_intersect_key($vals, array_flip($dayList))) : null;
+                $prior  = !empty($prev[$net][$m]) ? array_sum($prev[$net][$m]) : null;
+            }
+            $cards[$net][] = compact('label', 'total', 'prior', 'series');
+        }
+    }
+    $st = $pdo->prepare('SELECT * FROM social_posts WHERE posted_at >= ? ORDER BY posted_at DESC LIMIT 40');
+    $st->execute([$from->setTime(0, 0)->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s')]);
+    $posts  = $st->fetchAll(PDO::FETCH_ASSOC);
+    $status = bcrf_socrep_status($pdo);
+}
+$fmt = fn($n) => $n === null ? '—' : number_format((int)$n);
+$spark = function (array $vals): string {   // SVG sparkline (geometry attributes only: fine under the strict policy)
+    if (count($vals) < 2) return '';
+    $w = 120; $hgt = 28; $max = max(max($vals), 1); $n = count($vals) - 1; $pts = [];
+    foreach (array_values($vals) as $i => $v) $pts[] = round($i * $w / $n, 1) . ',' . round($hgt - 2 - ($v / $max) * ($hgt - 4), 1);
+    return '<svg viewBox="0 0 ' . $w . ' ' . $hgt . '" class="w-full h-7 mt-1" aria-hidden="true"><polyline fill="none" stroke="#b45309" stroke-width="1.5" points="' . implode(' ', $pts) . '"/></svg>';
+};
+$delta = function ($cur, $prior): string {
+    if ($cur === null || $prior === null || $prior == 0) return '';
+    $p = round(($cur - $prior) / $prior * 100);
+    return '<span class="' . ($p >= 0 ? 'text-green-700' : 'text-red-700') . '">' . ($p >= 0 ? '▲' : '▼') . ' ' . abs($p) . '%</span>';
+};
+
+
+bcrf_shell_open('Social Media — Reports', ['width' => 'max-w-4xl', 'toast' => $toast]);
 ?>
-  <h1 class="text-2xl font-bold text-stone-800 mb-1">Social Media</h1>
-  <p class="text-sm text-stone-500 mb-4">Facebook and Instagram numbers for the Petting Zoo page. Pinterest waits on Standard access.</p>
+  <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
+    <div>
+      <h1 class="text-2xl font-bold text-stone-800 mb-1">Social Media</h1>
+      <p class="text-sm text-stone-500">Petting Zoo Facebook page and @batcaveroadfarm on Instagram. Pinterest waits on Standard access.</p>
+    </div>
+    <?php if ($ready): ?>
+    <form method="POST" class="flex items-center gap-2">
+      <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="days" value="<?= $days ?>">
+      <button class="px-4 py-1.5 rounded text-sm bg-amber-700 hover:bg-amber-800 text-white font-semibold">Refresh now</button>
+    </form>
+    <?php endif; ?>
+  </div>
 
+<?php if (!$ready): ?>
   <section class="bg-white border border-stone-200 rounded-lg p-4 shadow-sm mb-4">
-    <div class="flex items-center justify-between gap-3 mb-2">
-      <h2 class="text-base font-semibold text-stone-800">Meta access check</h2>
-      <a href="?check=1" class="px-4 py-1.5 rounded text-sm bg-amber-700 hover:bg-amber-800 text-white font-semibold">Run check</a>
+    <p class="text-sm text-red-700">Run migration 0026 in Settings › Database first, then come back and tap Refresh now.</p>
+  </section>
+<?php else: ?>
+  <nav class="flex flex-wrap items-center gap-2 mb-2 text-sm" aria-label="Period">
+    <?php foreach ([7, 28, 90] as $o): ?>
+      <a href="?days=<?= $o ?>" class="px-3 py-1 rounded border <?= $o === $days ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-700 border-stone-300' ?>"><?= $o ?> days</a>
+    <?php endforeach; ?>
+    <span class="text-xs text-stone-500"><?= $h($from->format('M j')) ?> – <?= $h($to->format('M j, Y')) ?> · vs the <?= $days ?> days before</span>
+  </nav>
+  <p class="text-xs text-stone-500 mb-4">
+    Last refresh: <?= !empty($status['fetched_at']) ? $h(date('M j, g:i A', strtotime($status['fetched_at']))) : 'never' ?>
+    <?php foreach (['facebook' => 'Facebook', 'instagram' => 'Instagram'] as $n => $lab): if (!empty($status[$n]) && $status[$n] !== 'ok'): ?>
+      <br><span class="text-red-700"><?= $lab ?>: <?= $h($status[$n]) ?></span>
+    <?php endif; endforeach; ?>
+  </p>
+
+  <?php foreach (['facebook' => 'Facebook', 'instagram' => 'Instagram'] as $net => $lab): ?>
+  <h2 class="text-base font-semibold text-stone-800 mb-2"><?= $lab ?></h2>
+  <div class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
+    <?php foreach ($cards[$net] ?? [] as $c): ?>
+      <div class="bg-white border border-stone-200 rounded-lg p-3 shadow-sm">
+        <div class="text-xs text-stone-500"><?= $h($c['label']) ?></div>
+        <div class="text-2xl font-bold text-stone-800"><?= $fmt($c['total']) ?></div>
+        <div class="text-xs"><?= $delta($c['total'], $c['prior']) ?></div>
+        <?= $spark($c['series']) ?>
+      </div>
+    <?php endforeach; ?>
+  </div>
+  <?php endforeach; ?>
+  <p class="text-xs text-stone-500 -mt-2 mb-4">Instagram "Accounts reached" adds up each day's reach, so someone seen on two days counts twice. Followers start building history from the first refresh.</p>
+
+  <section class="bg-white border border-stone-200 rounded-lg shadow-sm mb-4">
+    <h2 class="text-base font-semibold text-stone-800 px-4 pt-3 pb-2">Posts in this period</h2>
+    <?php if (!$posts): ?>
+      <p class="text-sm text-stone-500 px-4 pb-4">No posts in this period yet.</p>
+    <?php else: ?>
+    <ul class="divide-y divide-stone-200">
+      <?php foreach ($posts as $p): $ig = $p['network'] === 'instagram'; ?>
+        <li class="px-4 py-2">
+          <div class="flex items-baseline justify-between gap-2">
+            <span class="text-xs font-semibold <?= $ig ? 'text-amber-800' : 'text-stone-700' ?>"><?= $ig ? 'Instagram' : 'Facebook' ?><?= $p['kind'] ? ' · ' . $h(str_replace('_', ' ', $p['kind'])) : '' ?></span>
+            <span class="text-xs text-stone-500 shrink-0"><?= $h(date('M j, g:i A', strtotime($p['posted_at'] . ' UTC'))) ?></span>
+          </div>
+          <div class="text-sm text-stone-800 truncate">
+            <?php if ($p['permalink']): ?><a class="underline decoration-stone-300 hover:text-amber-800" href="<?= $h($p['permalink']) ?>" target="_blank" rel="noopener"><?= $h($p['caption'] ?: '(no caption)') ?></a>
+            <?php else: ?><?= $h($p['caption'] ?: '(no caption)') ?><?php endif; ?>
+          </div>
+          <div class="flex flex-wrap gap-x-3 text-xs text-stone-600">
+            <?php foreach (['views' => 'views', 'reach' => 'reached', 'likes' => $ig ? 'likes' : 'reactions', 'comments' => 'comments', 'shares' => 'shares', 'saves' => 'saves'] as $k => $w):
+                  if ($p[$k] === null) continue; ?>
+              <span><b class="text-stone-800"><?= $fmt($p[$k]) ?></b> <?= $w ?></span>
+            <?php endforeach; ?>
+          </div>
+        </li>
+      <?php endforeach; ?>
+    </ul>
+    <?php endif; ?>
+  </section>
+<?php endif; ?>
+
+  <details class="bg-white border border-stone-200 rounded-lg p-4 shadow-sm mb-4"<?= $run ? ' open' : '' ?>>
+    <summary class="text-base font-semibold text-stone-800 cursor-pointer">Meta access check</summary>
+    <div class="flex items-center justify-between gap-3 my-2">
+      <p class="text-sm text-stone-500">Asks Facebook which numbers this site's token can read. Run it after making a new token.</p>
+      <a href="?check=1" class="px-4 py-1.5 rounded text-sm bg-amber-700 hover:bg-amber-800 text-white font-semibold shrink-0">Run check</a>
     </div>
     <?php if (!bcrf_meta_ready()): ?>
       <p class="text-sm text-red-700">FB_PAGE_ID / FB_PAGE_TOKEN aren't set in bcrf-secrets.php.</p>
-    <?php elseif (!$run): ?>
-      <p class="text-sm text-stone-500">Asks Facebook which numbers this site's token can read. Takes a few seconds.</p>
-    <?php else: ?>
+    <?php elseif ($run): ?>
       <h3 class="text-sm font-semibold text-stone-700 mt-2 mb-1">Permissions on the token</h3>
       <?php if ($scopes === null): ?>
         <p class="text-sm text-red-700">Couldn't read scopes: <?= $h($scopeErr) ?></p>
@@ -115,6 +258,6 @@ bcrf_shell_open('Social Media — Reports', ['width' => 'max-w-4xl']);
         <?php endforeach; ?>
       </div>
     <?php endif; ?>
-  </section>
+  </details>
 <?php
 bcrf_shell_close();

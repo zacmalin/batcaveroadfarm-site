@@ -247,6 +247,7 @@ function bcrf_runner_tasks(): array {
         'rewards_expire'         => ['admin/cron/rewards_expire.php',         ['at' => '03:25']],
         'backup_files'           => ['admin/cron/backup_files.php',           ['at' => '03:40', 'day' => 0, 'timeout' => 40]],
         'fetch_google_reports'   => ['admin/cron/fetch_google_reports.php',   ['at' => '06:10']],
+        'fetch_social_reports'   => ['admin/cron/fetch_social_reports.php',   ['at' => '06:20']],
         'check_stock_alerts'     => ['admin/handlers/check_stock_alerts.php', ['at' => '08:00']],
         'check_social_token'     => ['admin/cron/check_social_token.php',     ['at' => '08:05']],
     ];
