@@ -1,0 +1,16 @@
+/* tools/admin-css/input.css — source for admin/assets/admin.css (Nov 11, 2026).
+   The console (admin.php) loads Tailwind from a CDN. Standalone admin pages keep a strict policy
+   (script-src/style-src 'self') that blocks the CDN, so they load this compiled copy instead.
+   Same Tailwind version as the CDN (4.3.5). Built only from the shell and the pages that use it, so
+   ADD EACH PAGE HERE when it moves into the shell (includes/admin_shell.php).
+   Rebuild:  cd tools/admin-css && npm ci && npm run build   (CI fails if admin.css is out of date). */
+@import "tailwindcss" source(none);
+
+/* Shell */
+@source "../../includes/admin_shell.php";
+@source "../../admin/views/layout/sidebar.php";
+@source "../../admin/views/layout/toast.php";
+@source "../../admin/assets/admin-nav.js";
+
+/* Pages in the shell */
+@source "../../admin/vendors.php";

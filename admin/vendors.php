@@ -1,6 +1,8 @@
 <?php
 // admin/vendors.php — vendor list and editor (Farm OS Phase 2, slice 2.1, Nov 9, 2026)
 // Permission: edit on inventory (same as Products). Plain forms, strict CSP (C-09).
+// Nov 11, 2026: runs inside the shared Farm OS shell (includes/admin_shell.php) with the Hiring-screen look;
+// the Products & Inventory tabs replace the old "← Admin · Products · Stock" links.
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
 check_admin();
@@ -8,6 +10,7 @@ require_once __DIR__ . '/includes/permission_checks.php';
 require_permission([['table', 'inventory', 'edit']]);
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/vendors.php';
+require_once __DIR__ . '/../includes/admin_shell.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -15,12 +18,12 @@ $csrf = $_SESSION['csrf_token'];
 $uid = (int)($_SESSION['user_id'] ?? 0) ?: null;
 $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
 
-$head = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
-      . '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data: https:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">'
-      . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=7"><link rel="stylesheet" href="assets/reports.css?v=4">';
-
 if (!bcrf_vendors_ready($pdo)) {
-    echo $head, '<title>Vendors</title></head><body class="page"><main class="narrow"><p class="flash err">Run migration 0018 in Settings › Database first.</p><p><a href="migrations.php">Database migrations</a></p></main></body></html>';
+    bcrf_shell_open('Vendors');
+    echo '<h1 class="text-2xl font-bold text-stone-800 mb-4">Vendors</h1>',
+         bcrf_shell_notice('warning', 'Run migration 0018 in Settings › Database first.'),
+         '<a href="/admin/migrations.php" class="text-sm text-amber-800 underline">Open Settings › Database</a>';
+    bcrf_shell_close();
     exit;
 }
 
@@ -47,55 +50,121 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 
 $flash = $_SESSION['vend_flash'] ?? null; unset($_SESSION['vend_flash']);
 $typed = $_SESSION['vend_form'] ?? null; unset($_SESSION['vend_form']);
-$sel = function (string $name, array $opts, $cur, string $blank = '') use ($h) {
-    $o = '<select name="' . $h($name) . '">' . ($blank !== '' ? '<option value="">' . $h($blank) . '</option>' : '');
+$editing = isset($_GET['id']) || isset($_GET['new']);
+
+// Hiring-screen styles (admin/views/jobs/*)
+$input   = 'p-2 border border-stone-300 rounded bg-stone-50 text-sm w-full';
+$label   = 'block text-xs font-semibold text-stone-600 mb-1';
+$btnMain = 'px-4 py-1.5 rounded text-sm bg-amber-700 hover:bg-amber-800 text-white font-semibold';
+$btnSec  = 'px-3 py-1.5 rounded text-sm border border-stone-300 text-stone-700 hover:bg-stone-100';
+$sel = function (string $name, array $opts, $cur) use ($h, $input) {
+    $o = '<select name="' . $h($name) . '" class="' . $input . '" aria-label="Status">';
     foreach ($opts as $k => $v) $o .= '<option value="' . $h($k) . '"' . ((string)$k === (string)$cur ? ' selected' : '') . '>' . $h($v) . '</option>';
     return $o . '</select>';
 };
-$editing = isset($_GET['id']) || isset($_GET['new']);
+// Success shows as the console toast; problems stay on the page next to the form.
+$toast = ($flash && $flash[0] === 'ok') ? $flash : null;
+$error = ($flash && $flash[0] === 'err') ? $flash[1] : '';
 
-echo $head, '<title>Vendors</title></head><body class="page"><main class="narrow wide">';
-echo '<p><a href="admin.php">← Admin</a> · <a href="products.php">Products</a> · <a href="stock.php">Stock</a></p>';
-
+// ── LIST ──────────────────────────────────────────────────────────────────────
 if (!$editing) {
     $f = ['q' => trim((string)($_GET['q'] ?? '')), 'status' => in_array($_GET['status'] ?? '', ['active', 'off', 'all'], true) ? $_GET['status'] : 'active'];
     $rows = bcrf_vendor_list($pdo, $f);
-    echo '<h1>Vendors</h1>';
-    if ($flash) echo '<p class="flash', $flash[0] === 'err' ? ' err' : '', '">', $h($flash[1]), '</p>';
-    echo '<form class="rform" method="GET" action="vendors.php"><input type="search" name="q" value="', $h($f['q']), '" placeholder="Name, contact, account #" aria-label="Search">',
-         $sel('status', ['active' => 'Active', 'off' => 'Inactive', 'all' => 'All'], $f['status']),
-         '<button class="btn sm" type="submit">Show</button><a class="btn sm primary" href="vendors.php?new=1">Add a vendor</a></form>';
-    if (!$rows) echo '<p class="card muted">No vendors yet. Add feed stores, farm suppliers, and thrift sources here.</p>';
-    else {
-        echo '<div class="card hist">';
-        foreach ($rows as $r) {
-            echo '<a class="lrow cardlink" href="vendors.php?id=', (int)$r['id'], '"><div><b>', $h($r['name']), '</b>', (int)$r['is_active'] ? '' : ' <small class="off">off</small>',
-                 '<br><small class="muted">', $h(trim(($r['contact_name'] ?? '') . ' · ' . ($r['phone'] ?? '') . ' · ' . ($r['account_number'] ?? ''), ' · ')), '</small></div>',
-                 '<div class="r"><small class="muted">', $h($r['payment_terms'] ?? ''), '</small></div></a>';
-        }
-        echo '</div><p class="muted">', count($rows), ' vendor', count($rows) === 1 ? '' : 's', '.</p>';
-    }
-    echo '</main></body></html>'; exit;
+    bcrf_shell_open('Vendors', ['toast' => $toast, 'width' => 'max-w-3xl']);
+    ?>
+  <div class="flex flex-wrap items-end justify-between gap-3 mb-1">
+    <h1 class="text-2xl font-bold text-stone-800">Vendors</h1>
+    <a href="vendors.php?new=1" class="<?= $btnMain ?>">Add a vendor</a>
+  </div>
+  <p class="text-sm text-stone-500 mb-4">Feed stores, farm suppliers and thrift sources. A product's preferred vendor is picked from the active ones here.</p>
+  <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
+
+  <form method="GET" action="vendors.php" class="bg-white border border-stone-200 rounded-lg p-3 shadow-sm mb-4 flex flex-wrap gap-2 items-end">
+    <div class="flex-1 min-w-[12rem]">
+      <label for="vq" class="<?= $label ?>">Search</label>
+      <input id="vq" type="search" name="q" value="<?= $h($f['q']) ?>" placeholder="Name, contact, account #" class="<?= $input ?>">
+    </div>
+    <div class="w-32"><label class="<?= $label ?>" for="vs">Show</label><?= str_replace('<select ', '<select id="vs" ', $sel('status', ['active' => 'Active', 'off' => 'Inactive', 'all' => 'All'], $f['status'])) ?></div>
+    <button type="submit" class="<?= $btnSec ?>">Show</button>
+  </form>
+
+  <?php if (!$rows): ?>
+    <div class="bg-white border border-stone-200 rounded-lg p-6 text-center text-sm text-stone-500">
+      <?= $f['q'] !== '' || $f['status'] !== 'active' ? 'No vendors match.' : 'No vendors yet. Add feed stores, farm suppliers, and thrift sources here.' ?>
+    </div>
+  <?php else: ?>
+    <div class="space-y-2">
+      <?php foreach ($rows as $r):
+          $meta = trim(($r['contact_name'] ?? '') . ' · ' . ($r['phone'] ?? '') . ' · ' . ($r['account_number'] ?? ''), ' ·'); ?>
+      <a href="vendors.php?id=<?= (int)$r['id'] ?>" class="flex items-center justify-between gap-3 bg-white border border-stone-200 rounded-lg p-3 shadow-sm hover:border-stone-400">
+        <div class="min-w-0">
+          <div class="text-base font-semibold text-stone-800 truncate"><?= $h($r['name']) ?></div>
+          <?php if ($meta !== ''): ?><div class="text-xs text-stone-500 mt-0.5 truncate"><?= $h($meta) ?></div><?php endif; ?>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <?php if (!empty($r['payment_terms'])): ?><span class="text-xs text-stone-500"><?= $h($r['payment_terms']) ?></span><?php endif; ?>
+          <?php if (!(int)$r['is_active']): ?><span class="text-xs font-semibold px-2 py-1 rounded bg-stone-100 text-stone-500">Inactive</span><?php endif; ?>
+        </div>
+      </a>
+      <?php endforeach; ?>
+    </div>
+    <p class="text-xs text-stone-400 mt-3"><?= count($rows) ?> vendor<?= count($rows) === 1 ? '' : 's' ?>.</p>
+  <?php endif;
+    bcrf_shell_close();
+    exit;
 }
 
+// ── EDITOR ────────────────────────────────────────────────────────────────────
 $id = (int)($_GET['id'] ?? 0);
 $v = $id ? bcrf_vendor_get($pdo, $id) : null;
-if ($id && !$v) { http_response_code(404); echo '<p class="card muted">That vendor doesn\'t exist. <a href="vendors.php">All vendors</a></p></main></body></html>'; exit; }
+if ($id && !$v) {
+    http_response_code(404);
+    bcrf_shell_open('Vendor not found', ['width' => 'max-w-2xl']);
+    echo '<h1 class="text-2xl font-bold text-stone-800 mb-4">Vendor not found</h1>',
+         bcrf_shell_notice('info', "That vendor doesn't exist."),
+         '<a href="vendors.php" class="text-sm text-amber-800 underline">All vendors</a>';
+    bcrf_shell_close();
+    exit;
+}
 $d = $typed ?: ($v ?: ['name' => '', 'is_active' => 1]);
 if ($typed && $v) $d['is_active'] = isset($typed['is_active']) ? 1 : 0;
 $val = fn(string $k) => $h($d[$k] ?? '');
-$chk = !empty($d['is_active']) ? ' checked' : '';
+$field = function (string $name, string $text, string $type = 'text', int $max = 120, string $extra = '', string $hint = '') use ($val, $input, $label) {
+    return '<div><label for="f_' . $name . '" class="' . $label . '">' . $text . ($hint !== '' ? ' <span class="font-normal text-stone-400">' . $hint . '</span>' : '') . '</label>'
+         . '<input id="f_' . $name . '" type="' . $type . '" name="' . $name . '" value="' . $val($name) . '" maxlength="' . $max . '" class="' . $input . '"' . $extra . '></div>';
+};
 
-echo '<p><a href="vendors.php">← All vendors</a></p><h1>', $v ? $h($v['name']) : 'Add a vendor', '</h1>';
-if ($flash) echo '<p class="flash', $flash[0] === 'err' ? ' err' : '', '">', $h($flash[1]), '</p>';
-echo '<form class="card stackf" method="POST" action="vendors.php"><input type="hidden" name="csrf_token" value="', $h($csrf), '"><input type="hidden" name="id" value="', $id ?: '', '">';
-echo '<label>Name<input type="text" name="name" value="', $val('name'), '" maxlength="120" required></label>',
-     '<label>Contact name<input type="text" name="contact_name" value="', $val('contact_name'), '" maxlength="120"></label>',
-     '<div class="two"><label>Email<input type="email" name="email" value="', $val('email'), '" maxlength="190" autocomplete="off"></label>',
-     '<label>Phone<input type="text" name="phone" value="', $val('phone'), '" maxlength="40" autocomplete="off"></label></div>',
-     '<div class="two"><label>Account number<input type="text" name="account_number" value="', $val('account_number'), '" maxlength="80" autocomplete="off"></label>',
-     '<label>Payment terms <small class="muted">(e.g. Net 30, COD)</small><input type="text" name="payment_terms" value="', $val('payment_terms'), '" maxlength="80"></label></div>',
-     '<label>Notes<textarea name="notes" rows="3" maxlength="5000">', $val('notes'), '</textarea></label>',
-     '<label class="check"><input type="checkbox" name="is_active" value="1"', $chk, '> Active (shown when picking a preferred vendor on a product)</label>',
-     '<div class="rbar"><button class="btn primary" type="submit">', $v ? 'Save' : 'Add vendor', '</button></div></form>';
-echo '</main></body></html>';
+bcrf_shell_open($v ? $v['name'] . ' — Vendors' : 'Add a vendor', ['toast' => $toast, 'width' => 'max-w-2xl']);
+?>
+  <a href="vendors.php" class="inline-block text-sm text-stone-500 hover:text-stone-800 mb-2">← All vendors</a>
+  <h1 class="text-2xl font-bold text-stone-800 mb-4"><?= $v ? $h($v['name']) : 'Add a vendor' ?></h1>
+  <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
+
+  <form method="POST" action="vendors.php" class="bg-white border border-stone-200 rounded-lg p-4 shadow-sm space-y-3">
+    <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
+    <input type="hidden" name="id" value="<?= $id ?: '' ?>">
+    <?= $field('name', 'Name', 'text', 120, ' required') ?>
+    <?= $field('contact_name', 'Contact name') ?>
+    <div class="grid gap-3 sm:grid-cols-2">
+      <?= $field('email', 'Email', 'email', 190, ' autocomplete="off"') ?>
+      <?= $field('phone', 'Phone', 'text', 40, ' autocomplete="off"') ?>
+    </div>
+    <div class="grid gap-3 sm:grid-cols-2">
+      <?= $field('account_number', 'Account number', 'text', 80, ' autocomplete="off"') ?>
+      <?= $field('payment_terms', 'Payment terms', 'text', 80, '', '(e.g. Net 30, COD)') ?>
+    </div>
+    <div>
+      <label for="f_notes" class="<?= $label ?>">Notes</label>
+      <textarea id="f_notes" name="notes" rows="3" maxlength="5000" class="<?= $input ?>"><?= $val('notes') ?></textarea>
+    </div>
+    <label class="flex items-center gap-2 text-sm text-stone-600">
+      <input type="checkbox" name="is_active" value="1"<?= !empty($d['is_active']) ? ' checked' : '' ?>>
+      Active (shown when picking a preferred vendor on a product)
+    </label>
+    <div class="flex gap-2 pt-1">
+      <button type="submit" class="<?= $btnMain ?>"><?= $v ? 'Save' : 'Add vendor' ?></button>
+      <a href="vendors.php" class="<?= $btnSec ?>">Cancel</a>
+    </div>
+  </form>
+<?php
+bcrf_shell_close();

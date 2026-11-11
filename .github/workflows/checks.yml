@@ -76,6 +76,17 @@ jobs:
             exit 1
           fi
 
+      - name: Admin stylesheet is up to date
+        run: |
+          cd tools/admin-css && npm ci --no-audit --no-fund && npm run build && cd ../..
+          if ! git diff --quiet -- admin/assets/admin.css; then
+            echo "::error file=admin/assets/admin.css::admin/assets/admin.css is out of date. Run: cd tools/admin-css && npm ci && npm run build, then commit and upload it."
+            exit 1
+          fi
+          # Standalone admin pages use a strict policy: inline style blocks/attributes in the shell would be blocked.
+          if grep -nE '<style|style="' admin/views/layout/sidebar.php includes/admin_shell.php; then
+            echo "::error::The admin shell must not use inline styles (strict policy). Put them in admin/assets/admin-shell.css."; exit 1; fi
+
       - name: Report result as a commit status
         if: always()
         env:

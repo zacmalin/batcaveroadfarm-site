@@ -172,4 +172,6 @@ document.addEventListener('click', async function(e) {
 <!-- Shared UI kit (02 Navigation & UX): chips, phone card tables, common behaviours -->
 <link rel="stylesheet" href="/admin/assets/admin-ui.css?v=20261107a">
 <script defer src="/admin/assets/admin-ui.js?v=20261105c"></script>
+<!-- Shell chrome (sidebar rail, phone bar, More sheet, tabs) — moved out of sidebar.php Nov 11, 2026 -->
+<link rel="stylesheet" href="/admin/assets/admin-shell.css?v=20261111a">
 

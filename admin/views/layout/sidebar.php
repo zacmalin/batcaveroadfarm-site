@@ -127,7 +127,15 @@ $_can = function(string $type, string $val) use ($_role): bool {
 };
 
 $_active = function(string $href) use ($_tv, $_tt): bool {
-    if (str_starts_with($href, '/')) return false;   // standalone pages (POS, Backups…) have no sidebar state
+    if (str_starts_with($href, '/')) {
+        // Standalone page (Nov 11, 2026: includes/admin_shell.php): active when it is the file being shown and
+        // every query value in the tab's link (e.g. ?tab=tax) matches the request.
+        $file = basename((string)parse_url($href, PHP_URL_PATH));
+        if ($file === '' || $file === 'admin.php' || $file !== basename((string)($_SERVER['SCRIPT_NAME'] ?? ''))) return false;
+        parse_str(parse_url($href, PHP_URL_QUERY) ?: '', $p);
+        foreach ($p as $k => $v) if ((string)($_GET[$k] ?? '') !== (string)$v) return false;
+        return true;
+    }
     parse_str(parse_url($href, PHP_URL_QUERY) ?: '', $p);
     $v = $p['view'] ?? ''; $t = $p['table'] ?? '';
     // Social Queue has a Pinterest tab on the same view (?view=social&tab=pinterest, Nov 2026)
@@ -204,69 +212,7 @@ $_nav_data = [
 ];
 ?>
 
-<style>
-/* ── Sidebar collapse (icon rail) ── */
-#adminSidebar{transition:width .18s ease;position:relative;z-index:30}
-#adminSidebar.sb-collapsed{width:3.5rem;overflow:visible}
-#adminSidebar.sb-collapsed .sb-text,
-#adminSidebar.sb-collapsed .sb-arrow,
-#adminSidebar.sb-collapsed .sb-badge,
-#adminSidebar.sb-collapsed .sb-brand-full{display:none}
-#adminSidebar.sb-collapsed .sb-brand-mark{display:block}
-#adminSidebar.sb-collapsed .sb-brand{padding-left:0;padding-right:0;text-align:center}
-#adminSidebar.sb-collapsed .sb-row{justify-content:center;padding-left:0;padding-right:0;gap:0}
-#adminSidebar .sb-brand-mark{display:none}
-/* Collapsed: section items become a fly-out anchored to the rail */
-#adminSidebar.sb-collapsed [data-sec]{position:relative}
-#adminSidebar.sb-collapsed [data-sec] > div[id^="sec-"]{
-    display:none !important; position:absolute; left:100%; top:0;
-    min-width:12rem; max-height:80vh; overflow-y:auto;
-    background:#1c1917; border:1px solid #44403c; border-radius:.5rem;
-    padding:.4rem; box-shadow:0 12px 30px rgba(0,0,0,.55); z-index:60;
-}
-#adminSidebar.sb-collapsed [data-sec]:hover > div[id^="sec-"]{display:block !important}
-#adminSidebar.sb-collapsed [data-sec] > div[id^="sec-"] .sb-text{display:inline !important}
-#adminSidebar.sb-collapsed [data-sec] > div[id^="sec-"] .sb-row{justify-content:flex-start !important;padding:.35rem .5rem !important;gap:.5rem !important}
-#adminSidebar.sb-collapsed [data-sec] > div[id^="sec-"] .sb-badge{display:inline-block !important}
-
-/* ── Phone bottom bar ── */
-.nav-bar{display:flex}
-.nav-slot{flex:1 1 0;min-width:0;min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
-          padding:6px 2px;color:#a8a29e;font-size:10px;font-weight:700;text-decoration:none;background:none;border:0}
-.nav-slot.is-active{color:#fff}
-.nav-slot.is-active .nav-slot-icon{background:#44403c}
-.nav-slot-icon{position:relative;font-size:20px;line-height:1;padding:4px 14px;border-radius:999px}
-.nav-slot-label{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.nav-badge{position:absolute;top:-4px;right:4px;background:#f59e0b;color:#fff;font-size:9px;font-weight:900;line-height:1;padding:2px 4px;border-radius:999px}
-
-/* ── More sheet ── */
-html.nav-sheet-open, html.nav-sheet-open body{overflow:hidden}
-.nav-tile{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:74px;padding:8px 4px;
-          border-radius:12px;background:#292524;color:#e7e5e4;font-size:11px;font-weight:700;line-height:1.2;text-align:center;text-decoration:none;border:2px solid transparent}
-.nav-tile .nav-tile-icon{position:relative;font-size:22px;line-height:1}
-.nav-tile.is-current{background:#44403c;color:#fff}
-.is-editing .nav-tile{border-style:dashed;border-color:#57534e}
-.is-editing .nav-tile.is-pinned{border-style:solid;border-color:#f59e0b;background:#3a332c}
-.is-editing .nav-tile.is-pinned::after{content:"✓";position:absolute;top:4px;right:6px;color:#f59e0b;font-size:12px;font-weight:900}
-
-/* ── Page tabs ── */
-.nav-tabs-wrap{margin:0 0 1rem}
-.nav-tabs-crumb{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#78716c;margin-bottom:.35rem}
-.nav-tabs{display:flex;gap:.25rem;overflow-x:auto;border-bottom:1px solid #d6d3d1;scrollbar-width:none}
-.nav-tabs::-webkit-scrollbar{display:none}
-.nav-tab{position:relative;white-space:nowrap;padding:.5rem .85rem;font-weight:700;font-size:12px;color:#57534e;border-bottom:2px solid transparent;margin-bottom:-1px;text-decoration:none}
-.nav-tab:hover{color:#1c1917}
-.nav-tab.is-active{color:#1c1917;border-color:#1c1917}
-.nav-tab .nav-tab-badge{margin-left:.35rem;background:#f59e0b;color:#fff;font-size:9px;font-weight:900;padding:1px 5px;border-radius:999px}
-
-/* ── Phone layout (<768px) ── */
-@media (max-width:767.98px){
-    body > main{padding:.75rem .75rem calc(5.5rem + env(safe-area-inset-bottom)) !important;max-height:none !important;min-width:0;overflow-x:auto !important}
-    /* 16px stops iOS zooming into form fields */
-    body > main input:not([type=checkbox]):not([type=radio]):not([type=range]), body > main select, body > main textarea{font-size:16px !important}
-    .nav-tab{padding:.7rem .9rem;font-size:13px}
-}
-</style>
+<!-- Shell styles: /admin/assets/admin-shell.css (moved out of this file Nov 11, 2026, so strict-policy pages can use it) -->
 
 <!-- ═══ Sidebar: tablet + desktop ═══ -->
 <aside id="adminSidebar" class="hidden md:flex w-56 shrink-0 bg-stone-900 text-stone-200 flex-col min-h-screen overflow-y-auto print:hidden">
@@ -336,8 +282,7 @@ html.nav-sheet-open, html.nav-sheet-open body{overflow:hidden}
 
 <!-- ═══ Phone: bottom bar ═══ -->
 <nav id="navBottomBar" aria-label="Shortcuts"
-     class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-stone-900 border-t border-stone-700 print:hidden"
-     style="padding-bottom:env(safe-area-inset-bottom)">
+     class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-stone-900 border-t border-stone-700 print:hidden nav-safe-bottom">
   <div id="navBarSlots" class="nav-bar">
     <?php foreach ($_defaults as $_cid): $_c = $_catalog[$_cid]; ?>
     <a href="<?= $_h($_c['href']) ?>" data-sc-slot="<?= $_h($_cid) ?>" class="nav-slot<?= $_c['active'] ? ' is-active' : '' ?>">
@@ -355,8 +300,7 @@ html.nav-sheet-open, html.nav-sheet-open body{overflow:hidden}
 <!-- ═══ Phone: More sheet ═══ -->
 <div id="navMoreSheet" class="md:hidden fixed inset-0 z-50 hidden print:hidden" role="dialog" aria-modal="true" aria-label="All sections">
   <div class="absolute inset-0 bg-black/60" data-nav-close></div>
-  <div class="absolute bottom-0 inset-x-0 max-h-[88vh] overflow-y-auto bg-stone-900 text-stone-200 rounded-t-2xl px-4 pt-3"
-       style="padding-bottom:calc(1rem + env(safe-area-inset-bottom))">
+  <div class="absolute bottom-0 inset-x-0 max-h-[88vh] overflow-y-auto bg-stone-900 text-stone-200 rounded-t-2xl px-4 pt-3 nav-sheet-safe">
     <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-stone-600"></div>
     <div class="flex items-center justify-between gap-2 mb-2">
       <div>
