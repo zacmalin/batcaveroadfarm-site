@@ -257,6 +257,30 @@ if ($isAdmin) {
     } catch (Throwable $e) { /* jobs tables not installed */ }
 }
 
+// Tasks and chores due today or late (Farm OS Phase 3, Nov 11, 2026; includes/tasks.php)
+if ($canV('tasks')) {
+    try {
+        require_once dirname(__DIR__, 2) . '/includes/tasks.php';
+        if (bcrf_tasks_ready($pdo)) {
+            bcrf_tasks_generate($pdo);   // cheap when this week is already made
+            $tm = bcrf_tasks_mine($pdo);
+            $tl = count($tm['overdue']); $tt = count($tm['today']);
+            if ($tl + $tt > 0) {
+                $items = [];
+                foreach (array_slice(array_merge($tm['overdue'], $tm['today']), 0, 4) as $t) {
+                    $items[] = $t['title'] . ($t['due_date'] < bcrf_tasks_today() ? ' (late, ' . date('D', strtotime($t['due_date'])) . ')' : ($t['due_time'] ? ' — ' . bcrf_tasks_fmt_time($t['due_time']) : ''))
+                             . (count($t['checklist']) ? ' · ' . $t['checked'] . '/' . count($t['checklist']) : '');
+                }
+                if ($tl + $tt > 4) $items[] = '+' . ($tl + $tt - 4) . ' more';
+                $add(['id' => 'tasks', 'priority' => $tl ? 'urgent' : 'today', 'icon' => '✅',
+                      'title' => ($tt ? $tt . ' task' . ($tt === 1 ? '' : 's') . ' today' : '') . ($tt && $tl ? ', ' : '') . ($tl ? $tl . ' late' : ''),
+                      'items' => $items, 'count' => $tl * 1000 + $tt,
+                      'actions' => [['Open my tasks', '/admin/tasks.php', true]]]);
+            }
+        }
+    } catch (Throwable $e) { /* tasks not installed */ }
+}
+
 $prioOrder = ['urgent' => 0, 'today' => 1, 'fyi' => 2];
 usort($alerts, fn($a, $b) => $prioOrder[$a['priority']] <=> $prioOrder[$b['priority']]);
 $prioCount = array_count_values(array_column($alerts, 'priority'));
@@ -302,6 +326,7 @@ if ($canV('pos'))              $quick[] = ['💳', 'New sale',         '/admin/r
 if ($canV('inventory_update')) $quick[] = ['📦', 'Count inventory',  "$A?view=inventory_update"];
 if ($canV('bookings'))         $quick[] = ['📋', "Today's bookings", "$A?view=bookings&day=$today"];
 if ($canV('timecard'))         $quick[] = ['⏰', 'Clock in / out',   "$A?view=timecard"];
+if ($canV('tasks'))            $quick[] = ['✅', 'My tasks',         '/admin/tasks.php'];
 
 // ═══ CALENDAR (unchanged) ════════════════════════════════════════════════════
 $cal_bookings = []; $cal_events = [];

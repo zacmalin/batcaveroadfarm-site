@@ -1,0 +1,41 @@
+# .github/workflows/tasks.yml — tasks and chores (Farm OS Phase 3, Nov 11, 2026).
+# Runs tests/tasks_test.php against a throwaway MySQL 8 database built from every migration:
+# chore days, open-days-only, seasons, the generator, checklists, statuses, and who sees what.
+# Never touches a real database.
+name: Tasks test
+
+on:
+  push:
+    paths: ['includes/tasks.php', 'admin/migrations/**', 'tests/tasks_test.php', '.github/workflows/tasks.yml']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: bcrf_tasks_test
+        ports: ['3306:3306']
+        options: --health-cmd="mysqladmin ping -proot" --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: pdo_mysql
+          coverage: none
+          tools: none
+      - name: Task and chore rules
+        env:
+          DB_HOST: 127.0.0.1
+          DB_NAME: bcrf_tasks_test
+          DB_USER: root
+          DB_PASS: root
+        run: php tests/tasks_test.php

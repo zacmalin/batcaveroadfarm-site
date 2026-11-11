@@ -1,0 +1,579 @@
+<?php
+// admin/tasks.php — Tasks and chores (Farm OS Phase 3 slice 1, Nov 11, 2026; includes/tasks.php, migration 0029)
+//   GET  tasks.php                 My Tasks: late, today, next 7 days, no date, done today; quick add
+//   GET  tasks.php?id=N            one task: checklist, start / done / skip / cancel / reopen
+//   GET  tasks.php?new=1[&tpl=N]   new task (optionally from a saved checklist);  ?edit=N  change a task
+//   GET  tasks.php?tab=all         everyone's tasks (managers)
+//   GET  tasks.php?tab=chores      chores: list, ?rec=N | ?rec=new to change one (managers)
+//   GET  tasks.php?tab=templates   saved checklists, ?tpl_edit=N | new (managers)
+//   POST tasks.php  act=add | edit | check | set | rec_save | rec_active | tpl_save     (check also answers JSON for tasks.js)
+// Permission: view 'tasks' to see and do tasks; 'tasks_manage' (managers) for chores, checklists and everyone's tasks.
+if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
+require_once '../config.php';
+check_admin();
+require_once __DIR__ . '/includes/permission_checks.php';
+require_permission([['view', 'tasks']]);
+require_once __DIR__ . '/includes/audit.php';
+require_once __DIR__ . '/../includes/queue.php';
+require_once __DIR__ . '/../includes/tasks.php';
+require_once __DIR__ . '/../includes/admin_shell.php';
+date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
+
+if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+$csrf = $_SESSION['csrf_token'];
+$mgr  = bcrf_tasks_is_manager();
+$h    = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
+
+if (!bcrf_tasks_ready($pdo)) {
+    bcrf_shell_open('Tasks');
+    echo '<h1 class="text-2xl font-bold text-stone-800 mb-4">Tasks</h1>',
+         bcrf_shell_notice('warning', 'Run migration 0029 in Settings › Database first.'),
+         '<a href="/admin/migrations.php" class="text-sm text-amber-800 underline">Open Settings › Database</a>';
+    bcrf_shell_close();
+    exit;
+}
+
+// Make sure this week's chore days exist (the nightly job does this too; this is a cheap backstop).
+try { bcrf_tasks_generate($pdo); } catch (Throwable $e) { error_log('[tasks] generate: ' . $e->getMessage()); }
+
+$today = bcrf_tasks_today();
+$people = bcrf_tasks_people($pdo);
+$names = array_column($people, 'name', 'id');
+
+// ── Actions ──
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+    $act  = (string)($_POST['act'] ?? '');
+    $id   = (int)($_POST['id'] ?? 0);
+    $ajax = !empty($_POST['ajax']);
+    $back = (string)($_POST['back'] ?? '');
+    if (!preg_match('#^tasks\.php(\?[A-Za-z0-9_=&%.\-]*)?$#', $back)) $back = $id ? 'tasks.php?id=' . $id : 'tasks.php';
+    if (!hash_equals($csrf, (string)($_POST['csrf_token'] ?? ''))) {
+        if ($ajax) { header('Content-Type: application/json'); http_response_code(403); echo json_encode(['ok' => false, 'error' => 'Security token expired; reload the page.']); exit; }
+        $_SESSION['task_flash'] = ['err', 'Security token expired; try again.'];
+        header('Location: ' . $back); exit;
+    }
+    try {
+        $need = fn() => $mgr ?: throw new BcrfTaskError('Only an Owner or Manager can do that.');
+        switch ($act) {
+            case 'add':
+                $new = bcrf_task_create($pdo, $_POST);
+                $_SESSION['task_flash'] = ['ok', 'Task added.'];
+                $back = !empty($_POST['quick']) ? $back : 'tasks.php?id=' . $new;
+                break;
+            case 'edit':
+                bcrf_task_update($pdo, $id, $_POST);
+                $_SESSION['task_flash'] = ['ok', 'Task saved.'];
+                $back = 'tasks.php?id=' . $id;
+                break;
+            case 'check':
+                $t = bcrf_task_check($pdo, $id, (int)($_POST['idx'] ?? -1), !empty($_POST['done']));
+                if ($ajax) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['ok' => true, 'checked' => $t['checked'], 'total' => count($t['checklist']), 'status' => $t['status'],
+                                      'status_label' => BCRF_TASK_STATUSES[$t['status']]]);
+                    exit;
+                }
+                break;
+            case 'set':
+                $a = (string)($_POST['to'] ?? '');
+                $t = bcrf_task_set($pdo, $id, $a, (string)($_POST['note'] ?? ''), !empty($_POST['force']));
+                $_SESSION['task_flash'] = ['ok', ['start' => 'Started.', 'done' => 'Done. Nice work.', 'skip' => 'Skipped for today.', 'cancel' => 'Task cancelled.', 'reopen' => 'Task reopened.'][$a] ?? 'Saved.'];
+                if (in_array($a, ['done', 'skip'], true) && !empty($_POST['next'])) $back = 'tasks.php';
+                break;
+            case 'rec_save':
+                $need();
+                $rid = bcrf_rec_save($pdo, $_POST, $id ?: null);
+                $_SESSION['task_flash'] = ['ok', 'Chore saved. The next few days were updated.'];
+                $back = 'tasks.php?tab=chores';
+                break;
+            case 'rec_active':
+                $need();
+                bcrf_rec_set_active($pdo, $id, !empty($_POST['on']));
+                $_SESSION['task_flash'] = ['ok', !empty($_POST['on']) ? 'Chore restarted.' : 'Chore paused. Its days ahead were removed.'];
+                $back = 'tasks.php?tab=chores';
+                break;
+            case 'tpl_save':
+                $need();
+                bcrf_tpl_save($pdo, $_POST, $id ?: null);
+                $_SESSION['task_flash'] = ['ok', 'Checklist saved.'];
+                $back = 'tasks.php?tab=templates';
+                break;
+            default:
+                throw new BcrfTaskError('Unknown action.');
+        }
+    } catch (BcrfTaskError $e) {
+        if ($ajax) { header('Content-Type: application/json'); http_response_code(422); echo json_encode(['ok' => false, 'error' => $e->getMessage()]); exit; }
+        $_SESSION['task_flash'] = ['err', $e->getMessage()];
+        $_SESSION['task_form'] = $_POST;
+        if ($act === 'add' && empty($_POST['quick'])) $back = 'tasks.php?new=1';
+        if ($act === 'edit') $back = 'tasks.php?edit=' . $id;
+        if ($act === 'rec_save') $back = 'tasks.php?tab=chores&rec=' . ($id ?: 'new');
+        if ($act === 'tpl_save') $back = 'tasks.php?tab=templates&tpl_edit=' . ($id ?: 'new');
+    } catch (Throwable $e) {
+        error_log('[tasks] ' . $act . ': ' . $e->getMessage());
+        if ($ajax) { header('Content-Type: application/json'); http_response_code(500); echo json_encode(['ok' => false, 'error' => 'Could not save. Try again.']); exit; }
+        $_SESSION['task_flash'] = ['err', 'Could not save. Try again.'];
+    }
+    header('Location: ' . $back);
+    exit;
+}
+
+$flash = $_SESSION['task_flash'] ?? null; unset($_SESSION['task_flash']);
+$typed = $_SESSION['task_form'] ?? null;  unset($_SESSION['task_form']);
+$toast = ($flash && $flash[0] === 'ok') ? $flash : null;
+$error = ($flash && $flash[0] === 'err') ? $flash[1] : '';
+
+// ── Look ──
+$input   = 'p-2 border border-stone-300 rounded bg-stone-50 text-base sm:text-sm w-full min-h-11';
+$label   = 'block text-xs font-semibold text-stone-600 mb-1';
+$btnMain = 'inline-flex items-center justify-center min-h-11 px-4 rounded-lg text-sm bg-amber-700 hover:bg-amber-800 text-white font-semibold';
+$btnSec  = 'inline-flex items-center justify-center min-h-11 px-4 rounded-lg text-sm border border-stone-300 bg-white text-stone-700 hover:bg-stone-100 font-semibold';
+$btnGo   = 'inline-flex items-center justify-center min-h-11 px-4 rounded-lg text-sm bg-emerald-700 hover:bg-emerald-800 text-white font-semibold';
+$card    = 'bg-white border border-stone-200 rounded-xl shadow-sm';
+$prioChip = [
+    'urgent' => 'bg-red-100 text-red-800', 'high' => 'bg-amber-100 text-amber-800',
+    'normal' => '', 'low' => 'bg-stone-100 text-stone-500',
+];
+$statusChip = [
+    'open' => 'bg-stone-100 text-stone-600', 'in_progress' => 'bg-sky-100 text-sky-800', 'done' => 'bg-emerald-100 text-emerald-800',
+    'skipped' => 'bg-stone-100 text-stone-500', 'cancelled' => 'bg-stone-100 text-stone-500',
+];
+$dayLabel = function (?string $d) use ($today): string {
+    if (!$d) return 'No date';
+    if ($d === $today) return 'Today';
+    if ($d === bcrf_tasks_add_days($today, 1)) return 'Tomorrow';
+    if ($d === bcrf_tasks_add_days($today, -1)) return 'Yesterday';
+    return date($d >= bcrf_tasks_add_days($today, -6) && $d <= bcrf_tasks_add_days($today, 6) ? 'l, M j' : 'D, M j, Y', strtotime($d));
+};
+$local = function (?string $utc, string $fmt = 'M j, g:i A'): string {
+    if (!$utc) return '';
+    return (new DateTimeImmutable($utc, new DateTimeZone('UTC')))->setTimezone(new DateTimeZone(date_default_timezone_get()))->format($fmt);
+};
+$whoOptions = function (string $sel) use ($people, $h): string {
+    $o = '<option value="anyone"' . ($sel === 'anyone' ? ' selected' : '') . '>Anyone on the farm</option><optgroup label="A group">';
+    foreach (BCRF_TASK_ROLES as $k => $v) $o .= '<option value="role:' . $h($k) . '"' . ($sel === 'role:' . $k ? ' selected' : '') . '>' . $h($v) . '</option>';
+    $o .= '</optgroup><optgroup label="A person">';
+    foreach ($people as $p) $o .= '<option value="user:' . (int)$p['id'] . '"' . ($sel === 'user:' . $p['id'] ? ' selected' : '') . '>' . $h($p['name']) . '</option>';
+    return $o . '</optgroup>';
+};
+$prioOptions = function (string $sel) use ($h): string {
+    $o = '';
+    foreach (BCRF_TASK_PRIORITIES as $k => $v) $o .= '<option value="' . $k . '"' . ($sel === $k ? ' selected' : '') . '>' . $h($v) . '</option>';
+    return $o;
+};
+$hidden = fn(string $act, int $id = 0) => '<input type="hidden" name="csrf_token" value="' . $h($csrf) . '"><input type="hidden" name="act" value="' . $h($act) . '">'
+                                         . ($id ? '<input type="hidden" name="id" value="' . $id . '">' : '');
+$open = function (string $title, string $tab, string $width = 'max-w-3xl') use ($toast) {
+    $_GET['tab'] = $tab;   // marks the right tab in the shell
+    bcrf_shell_open($title . ' — Tasks', ['toast' => $toast, 'width' => $width, 'js' => ['tasks.js']]);
+};
+
+/** One task as a row in a list. */
+$row = function (array $t, bool $showDate = false) use ($h, $card, $prioChip, $statusChip, $dayLabel): string {
+    $total = count($t['checklist']);
+    $closed = in_array($t['status'], ['done', 'skipped', 'cancelled'], true);
+    $bits = [];
+    if ($showDate) $bits[] = $dayLabel($t['due_date']);
+    if ($t['due_time']) $bits[] = bcrf_tasks_fmt_time($t['due_time']);
+    $bits[] = bcrf_tasks_who($t);
+    if ($t['recurrence_id']) $bits[] = '🔁 chore';
+    $s = '<a href="tasks.php?id=' . (int)$t['id'] . '" class="' . $card . ' flex items-center gap-3 p-3 min-h-16 hover:border-stone-400' . ($closed ? ' opacity-70' : '') . '">';
+    $s .= '<span class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-base ' . ($closed ? 'bg-emerald-100' : ($t['overdue'] ? 'bg-red-100' : 'bg-stone-100')) . '" aria-hidden="true">'
+        . ($t['status'] === 'done' ? '✓' : ($t['status'] === 'skipped' ? '↷' : ($t['status'] === 'cancelled' ? '✕' : ($t['overdue'] ? '!' : '○')))) . '</span>';
+    $s .= '<span class="flex-1 min-w-0"><span class="flex flex-wrap items-center gap-1.5">';
+    $s .= '<span class="text-sm font-bold text-stone-900' . ($closed ? ' line-through decoration-stone-400' : '') . '">' . $h($t['title']) . '</span>';
+    if ($t['overdue']) $s .= '<span class="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-100 text-red-800">Late</span>';
+    if ($prioChip[$t['priority']] ?? '') $s .= '<span class="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded ' . $prioChip[$t['priority']] . '">' . $h(BCRF_TASK_PRIORITIES[$t['priority']]) . '</span>';
+    if ($t['status'] === 'in_progress') $s .= '<span class="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded ' . $statusChip['in_progress'] . '">Started</span>';
+    $s .= '</span><span class="block text-xs text-stone-500 mt-0.5">' . $h(implode(' · ', $bits)) . '</span></span>';
+    if ($total) $s .= '<span class="shrink-0 text-xs font-bold ' . ($t['checked'] === $total ? 'text-emerald-700' : 'text-stone-500') . '">' . $t['checked'] . '/' . $total . '</span>';
+    return $s . '</a>';
+};
+
+$notFound = function (string $what) use ($open) {
+    http_response_code(404);
+    $open($what . ' not found', 'my');
+    echo '<h1 class="text-2xl font-bold text-stone-800 mb-4">' . htmlspecialchars($what) . ' not found</h1>',
+         '<a href="tasks.php" class="text-sm text-amber-800 underline">Back to tasks</a>';
+    bcrf_shell_close();
+    exit;
+};
+
+// ── ONE TASK ──
+if (isset($_GET['id'])) {
+    try { $t = bcrf_task_get($pdo, (int)$_GET['id']); } catch (BcrfTaskError $e) { $notFound('Task'); }
+    if (!bcrf_tasks_can_see($t)) $notFound('Task');
+    $total = count($t['checklist']); $left = $total - $t['checked'];
+    $closed = in_array($t['status'], ['done', 'skipped', 'cancelled'], true);
+    $creator = $t['created_by'] ? ($names[$t['created_by']] ?? 'someone') : null;
+    $rec = null;
+    if ($t['recurrence_id']) { try { $rec = bcrf_rec_get($pdo, (int)$t['recurrence_id']); } catch (BcrfTaskError $e) {} }
+    $open($t['title'], 'my', 'max-w-2xl');
+    ?>
+  <a href="tasks.php" class="inline-flex items-center min-h-10 text-sm text-stone-500 hover:text-stone-800 mb-1">← My tasks</a>
+  <div class="flex flex-wrap items-center gap-2 mb-1">
+    <h1 class="text-2xl font-bold text-stone-800"><?= $h($t['title']) ?></h1>
+    <span id="tStatus" class="text-xs font-semibold px-2 py-1 rounded <?= $statusChip[$t['status']] ?>"><?= $h(BCRF_TASK_STATUSES[$t['status']]) ?></span>
+    <?php if ($t['overdue']): ?><span class="text-xs font-semibold px-2 py-1 rounded bg-red-100 text-red-800">Late</span><?php endif; ?>
+    <?php if ($prioChip[$t['priority']] ?? ''): ?><span class="text-xs font-semibold px-2 py-1 rounded <?= $prioChip[$t['priority']] ?>"><?= $h(BCRF_TASK_PRIORITIES[$t['priority']]) ?></span><?php endif; ?>
+  </div>
+  <p class="text-sm text-stone-500 mb-4">
+    <?= $h($dayLabel($t['due_date'])) ?><?= $t['due_time'] ? ' at ' . $h(bcrf_tasks_fmt_time($t['due_time'])) : '' ?> · <?= $h(bcrf_tasks_who($t)) ?>
+    <?php if ($rec): ?> · 🔁 <?= $h(bcrf_rec_describe($rec)) ?><?php endif; ?>
+    <?php if ($t['related_type']): ?> · linked to <?= $h($t['related_type']) ?> <?= $h($t['related_id']) ?><?php endif; ?>
+  </p>
+  <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
+  <?php if ($t['description']): ?><div class="<?= $card ?> p-4 mb-4 text-sm text-stone-700 whitespace-pre-line"><?= $h($t['description']) ?></div><?php endif; ?>
+
+  <?php if ($total): ?>
+  <div class="flex items-center justify-between mb-2">
+    <h2 class="text-lg font-semibold text-stone-800">Checklist</h2>
+    <span id="tCount" class="text-sm font-bold text-stone-500"><?= $t['checked'] ?> of <?= $total ?></span>
+  </div>
+  <ul class="<?= $card ?> divide-y divide-stone-100 mb-4" id="tList">
+    <?php foreach ($t['checklist'] as $i => $it): $done = !empty($it['done']); ?>
+    <li>
+      <form method="POST" action="tasks.php" data-check>
+        <?= $hidden('check', (int)$t['id']) ?><input type="hidden" name="idx" value="<?= $i ?>"><input type="hidden" name="done" value="<?= $done ? '' : '1' ?>">
+        <button type="submit" <?= $closed ? 'disabled' : '' ?> aria-pressed="<?= $done ? 'true' : 'false' ?>"
+                class="w-full flex items-start gap-3 p-3 min-h-14 text-left hover:bg-stone-50 disabled:hover:bg-transparent disabled:cursor-default">
+          <span data-box class="shrink-0 mt-0.5 w-6 h-6 rounded border-2 flex items-center justify-center text-sm font-black <?= $done ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-stone-300 text-transparent' ?>" aria-hidden="true">✓</span>
+          <span class="flex-1">
+            <span data-text class="block text-base sm:text-sm text-stone-800 <?= $done ? 'line-through decoration-stone-400 text-stone-500' : '' ?>"><?= $h($it['t']) ?></span>
+            <span data-by class="block text-xs text-stone-400"><?= $done && !empty($it['at']) ? $h(($names[$it['by']] ?? 'Someone') . ' · ' . $local($it['at'], 'g:i A')) : '' ?></span>
+          </span>
+        </button>
+      </form>
+    </li>
+    <?php endforeach; ?>
+  </ul>
+  <?php endif; ?>
+
+  <?php if ($closed): ?>
+  <div class="<?= $card ?> p-4 mb-4 text-sm text-stone-700">
+    <div><span class="font-semibold"><?= $h(BCRF_TASK_STATUSES[$t['status']]) ?></span> <?= $h($local($t['completed_at'])) ?><?= $t['completed_name'] ? ' by ' . $h($t['completed_name']) : '' ?></div>
+    <?php if ($t['completion_note']): ?><div class="mt-1 whitespace-pre-line">“<?= $h($t['completion_note']) ?>”</div><?php endif; ?>
+  </div>
+  <form method="POST" action="tasks.php" class="mb-4"><?= $hidden('set', (int)$t['id']) ?><input type="hidden" name="to" value="reopen">
+    <button type="submit" class="<?= $btnSec ?>">Reopen</button></form>
+  <?php else: ?>
+  <form method="POST" action="tasks.php" class="<?= $card ?> p-4 mb-4 space-y-3">
+    <?= $hidden('set', (int)$t['id']) ?><input type="hidden" name="next" value="1"><input type="hidden" name="force" value="1">
+    <div>
+      <label for="t_note" class="<?= $label ?>">Note <span class="font-normal text-stone-400">optional: anything the next person should know</span></label>
+      <textarea id="t_note" name="note" rows="2" maxlength="500" class="<?= $input ?>"></textarea>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <?php if ($left > 0): ?>
+        <button type="submit" name="to" value="done" class="<?= $btnSec ?>" data-go="<?= $h($btnGo) ?>" id="tDone">Finish anyway (<?= $left ?> not ticked)</button>
+      <?php else: ?>
+        <button type="submit" name="to" value="done" class="<?= $btnGo ?>" id="tDone">✓ Done</button>
+      <?php endif; ?>
+      <?php if ($t['status'] === 'open'): ?><button type="submit" name="to" value="start" id="tStart" class="<?= $btnSec ?>">Start</button><?php endif; ?>
+      <?php if ($t['recurrence_id']): ?><button type="submit" name="to" value="skip" class="<?= $btnSec ?>">Skip today (say why)</button><?php endif; ?>
+      <?php if (bcrf_tasks_can_edit($t)): ?><button type="submit" name="to" value="cancel" class="inline-flex items-center justify-center min-h-11 px-4 rounded-lg text-sm border border-red-300 bg-white text-red-700 hover:bg-red-50 font-semibold" data-confirm="Cancel this task?">Cancel task</button><?php endif; ?>
+    </div>
+  </form>
+  <?php endif; ?>
+
+  <p class="text-xs text-stone-400">
+    <?= $t['recurrence_id'] ? 'Made by the chore schedule' : 'Added ' . $h($local($t['created_at'])) . ($creator ? ' by ' . $h($creator) : '') ?>
+    <?php if (bcrf_tasks_can_edit($t) && !$closed): ?> · <a class="underline hover:text-stone-700" href="tasks.php?edit=<?= (int)$t['id'] ?>">Change this task</a><?php endif; ?>
+    <?php if ($rec && $mgr): ?> · <a class="underline hover:text-stone-700" href="tasks.php?tab=chores&amp;rec=<?= (int)$rec['id'] ?>">Change the chore</a><?php endif; ?>
+  </p>
+    <?php
+    bcrf_shell_close();
+    exit;
+}
+
+// ── NEW / CHANGE A TASK ──
+if (isset($_GET['new']) || isset($_GET['edit'])) {
+    $t = null;
+    if (isset($_GET['edit'])) {
+        try { $t = bcrf_task_get($pdo, (int)$_GET['edit']); } catch (BcrfTaskError $e) { $notFound('Task'); }
+        if (!bcrf_tasks_can_edit($t)) $notFound('Task');
+    }
+    $tpl = null;
+    if (!$t && isset($_GET['tpl'])) { try { $tpl = bcrf_tpl_get($pdo, (int)$_GET['tpl']); } catch (BcrfTaskError $e) {} }
+    $d = $typed ?: ($t ? ['title' => $t['title'], 'description' => $t['description'], 'checklist' => implode("\n", array_column($t['checklist'], 't')),
+                          'priority' => $t['priority'], 'due_date' => $t['due_date'], 'due_time' => $t['due_time'] ? substr($t['due_time'], 0, 5) : '',
+                          'who' => bcrf_tasks_who_value($t), 'related_type' => $t['related_type'], 'related_id' => $t['related_id']]
+                    : ($tpl ? ['title' => $tpl['title'], 'description' => $tpl['description'], 'checklist' => implode("\n", $tpl['lines']), 'priority' => $tpl['priority'],
+                               'who' => bcrf_tasks_who_value($tpl), 'due_date' => $today, 'template_id' => $tpl['id']]
+                            : ['due_date' => $today, 'who' => 'anyone', 'priority' => 'normal']));
+    $tpls = $t ? [] : bcrf_tpl_list($pdo, true);
+    $open($t ? 'Change task' : 'New task', 'my', 'max-w-2xl');
+    ?>
+  <a href="<?= $t ? 'tasks.php?id=' . (int)$t['id'] : 'tasks.php' ?>" class="inline-flex items-center min-h-10 text-sm text-stone-500 hover:text-stone-800 mb-1">← <?= $t ? 'Back to the task' : 'My tasks' ?></a>
+  <h1 class="text-2xl font-bold text-stone-800 mb-3"><?= $t ? 'Change task' : 'New task' ?></h1>
+  <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
+  <?php if ($tpls): ?>
+  <div class="flex flex-wrap items-center gap-2 mb-3 text-sm"><span class="text-stone-500">Start from a saved checklist:</span>
+    <?php foreach ($tpls as $tp): ?><a href="tasks.php?new=1&amp;tpl=<?= (int)$tp['id'] ?>" class="px-2 py-1 rounded border border-stone-300 bg-white hover:bg-stone-100 <?= ($tpl['id'] ?? 0) == $tp['id'] ? 'font-bold' : '' ?>"><?= $h($tp['title']) ?></a><?php endforeach; ?>
+  </div>
+  <?php endif; ?>
+  <form method="POST" action="tasks.php" class="<?= $card ?> p-4 space-y-3">
+    <?= $hidden($t ? 'edit' : 'add', $t ? (int)$t['id'] : 0) ?>
+    <?php if (!empty($d['template_id'])): ?><input type="hidden" name="template_id" value="<?= (int)$d['template_id'] ?>"><?php endif; ?>
+    <div><label for="f_title" class="<?= $label ?>">What needs doing</label>
+      <input id="f_title" name="title" maxlength="150" required value="<?= $h($d['title'] ?? '') ?>" class="<?= $input ?>" placeholder="e.g. Trim goat hooves"></div>
+    <div class="grid gap-3 sm:grid-cols-3">
+      <div><label for="f_date" class="<?= $label ?>">Due</label><input id="f_date" name="due_date" type="date" value="<?= $h($d['due_date'] ?? '') ?>" class="<?= $input ?>"></div>
+      <div><label for="f_time" class="<?= $label ?>">By <span class="font-normal text-stone-400">optional</span></label><input id="f_time" name="due_time" type="time" value="<?= $h($d['due_time'] ?? '') ?>" class="<?= $input ?>"></div>
+      <div><label for="f_prio" class="<?= $label ?>">Priority</label><select id="f_prio" name="priority" class="<?= $input ?>"><?= $prioOptions((string)($d['priority'] ?? 'normal')) ?></select></div>
+    </div>
+    <div><label for="f_who" class="<?= $label ?>">Who</label><select id="f_who" name="who" class="<?= $input ?>"><?= $whoOptions((string)($d['who'] ?? 'anyone')) ?></select></div>
+    <div><label for="f_list" class="<?= $label ?>">Checklist <span class="font-normal text-stone-400">one step per line, optional</span></label>
+      <textarea id="f_list" name="checklist" rows="6" class="<?= $input ?>"><?= $h(is_array($d['checklist'] ?? '') ? implode("\n", $d['checklist']) : ($d['checklist'] ?? '')) ?></textarea></div>
+    <div><label for="f_desc" class="<?= $label ?>">Notes <span class="font-normal text-stone-400">optional</span></label>
+      <textarea id="f_desc" name="description" rows="3" class="<?= $input ?>"><?= $h($d['description'] ?? '') ?></textarea></div>
+    <details class="text-sm"><summary class="cursor-pointer text-stone-500">Link to a record (optional)</summary>
+      <div class="grid gap-3 sm:grid-cols-2 mt-2">
+        <div><label for="f_rt" class="<?= $label ?>">Kind</label><select id="f_rt" name="related_type" class="<?= $input ?>">
+          <?php foreach (['' => 'Nothing', 'animal' => 'Animal', 'booking' => 'Booking', 'inventory' => 'Product', 'event' => 'Event', 'vendor' => 'Vendor'] as $k => $v): ?>
+          <option value="<?= $k ?>"<?= (string)($d['related_type'] ?? '') === $k ? ' selected' : '' ?>><?= $v ?></option><?php endforeach; ?></select></div>
+        <div><label for="f_ri" class="<?= $label ?>">Number or name</label><input id="f_ri" name="related_id" maxlength="64" value="<?= $h($d['related_id'] ?? '') ?>" class="<?= $input ?>"></div>
+      </div>
+    </details>
+    <button type="submit" class="<?= $btnMain ?>"><?= $t ? 'Save' : 'Add task' ?></button>
+  </form>
+    <?php
+    bcrf_shell_close();
+    exit;
+}
+
+$tab = (string)($_GET['tab'] ?? 'my');
+if (!$mgr && $tab !== 'my') $tab = 'my';
+
+// ── CHORES ──
+if ($tab === 'chores') {
+    if (isset($_GET['rec'])) {
+        $r = null;
+        if ($_GET['rec'] !== 'new') { try { $r = bcrf_rec_get($pdo, (int)$_GET['rec']); } catch (BcrfTaskError $e) { $notFound('Chore'); } }
+        $d = $typed ?: ($r ? ['title' => $r['title'], 'description' => $r['description'], 'checklist' => implode("\n", $r['lines']), 'priority' => $r['priority'],
+                              'who' => bcrf_tasks_who_value($r), 'freq' => $r['freq'], 'interval_n' => $r['interval_n'], 'weekdays' => explode(',', (string)$r['weekdays']),
+                              'month_day' => $r['month_day'], 'open_days_only' => $r['open_days_only'], 'season_start' => $r['season_start'], 'season_end' => $r['season_end'],
+                              'due_anchor' => $r['due_anchor'], 'due_time' => $r['due_time'] ? substr($r['due_time'], 0, 5) : '', 'start_date' => $r['start_date'],
+                              'end_date' => $r['end_date'], 'horizon_days' => $r['horizon_days']]
+                        : ['freq' => 'daily', 'interval_n' => 2, 'who' => 'anyone', 'priority' => 'normal', 'due_anchor' => 'time', 'start_date' => $today, 'horizon_days' => 7, 'weekdays' => []]);
+        $wd = array_map('strval', (array)($d['weekdays'] ?? []));
+        $open($r ? 'Change chore' : 'New chore', 'chores', 'max-w-2xl');
+        ?>
+  <a href="tasks.php?tab=chores" class="inline-flex items-center min-h-10 text-sm text-stone-500 hover:text-stone-800 mb-1">← Chores</a>
+  <h1 class="text-2xl font-bold text-stone-800 mb-1"><?= $r ? 'Change chore' : 'New chore' ?></h1>
+  <p class="text-sm text-stone-500 mb-3">Each day it falls on gets its own task, made a week ahead. Saving updates the days ahead that nobody has started; finished days and history stay as they were.</p>
+  <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
+  <form method="POST" action="tasks.php" class="<?= $card ?> p-4 space-y-3">
+    <?= $hidden('rec_save', $r ? (int)$r['id'] : 0) ?>
+    <div><label for="c_title" class="<?= $label ?>">Chore</label><input id="c_title" name="title" maxlength="150" required value="<?= $h($d['title'] ?? '') ?>" class="<?= $input ?>"></div>
+    <div class="grid gap-3 sm:grid-cols-2">
+      <div><label for="c_who" class="<?= $label ?>">Who</label><select id="c_who" name="who" class="<?= $input ?>"><?= $whoOptions((string)($d['who'] ?? 'anyone')) ?></select></div>
+      <div><label for="c_prio" class="<?= $label ?>">Priority</label><select id="c_prio" name="priority" class="<?= $input ?>"><?= $prioOptions((string)($d['priority'] ?? 'normal')) ?></select></div>
+    </div>
+    <fieldset class="border border-stone-200 rounded-lg p-3 space-y-3">
+      <legend class="px-1 text-xs font-semibold text-stone-600">How often</legend>
+      <select name="freq" id="c_freq" class="<?= $input ?>" aria-label="How often">
+        <?php foreach (BCRF_TASK_FREQS as $k => $v): ?><option value="<?= $k ?>"<?= ($d['freq'] ?? '') === $k ? ' selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?>
+      </select>
+      <div data-freq="every_n weekly"><label for="c_n" class="<?= $label ?>">Every how many <span data-freq="every_n">days</span><span data-freq="weekly">weeks</span>?</label>
+        <input id="c_n" name="interval_n" type="number" min="1" max="365" value="<?= (int)($d['interval_n'] ?? 1) ?>" class="<?= $input ?> sm:w-32"></div>
+      <div data-freq="weekly"><span class="<?= $label ?>">On</span>
+        <div class="flex flex-wrap gap-1">
+          <?php foreach (['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as $i => $nm): ?>
+          <label class="inline-flex items-center gap-1 px-3 min-h-11 rounded-lg border border-stone-300 bg-white text-sm"><input type="checkbox" name="weekdays[]" value="<?= $i ?>"<?= in_array((string)$i, $wd, true) ? ' checked' : '' ?>> <?= $nm ?></label>
+          <?php endforeach; ?>
+        </div></div>
+      <div data-freq="monthly"><label for="c_md" class="<?= $label ?>">Day of the month</label>
+        <input id="c_md" name="month_day" type="number" min="1" max="31" value="<?= $h($d['month_day'] ?? '') ?>" class="<?= $input ?> sm:w-32"><span class="text-xs text-stone-500"> 29–31 fall on the last day in shorter months</span></div>
+      <label class="flex items-center gap-2 text-sm text-stone-700 min-h-11"><input type="checkbox" name="open_days_only" value="1"<?= !empty($d['open_days_only']) ? ' checked' : '' ?>> Only on days the farm is open (Hours, and booking blackout dates)</label>
+    </fieldset>
+    <div class="grid gap-3 sm:grid-cols-2">
+      <div><label for="c_anchor" class="<?= $label ?>">Due</label>
+        <select id="c_anchor" name="due_anchor" class="<?= $input ?>">
+          <?php foreach (['time' => 'At a time', 'opening' => "At opening (that day's hours)", 'closing' => "At closing (that day's hours)"] as $k => $v): ?>
+          <option value="<?= $k ?>"<?= ($d['due_anchor'] ?? 'time') === $k ? ' selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?></select></div>
+      <div data-anchor="time"><label for="c_time" class="<?= $label ?>">Time <span class="font-normal text-stone-400">optional</span></label><input id="c_time" name="due_time" type="time" value="<?= $h($d['due_time'] ?? '') ?>" class="<?= $input ?>"></div>
+    </div>
+    <div><label for="c_list" class="<?= $label ?>">Checklist <span class="font-normal text-stone-400">one step per line</span></label>
+      <textarea id="c_list" name="checklist" rows="9" class="<?= $input ?>"><?= $h(is_array($d['checklist'] ?? '') ? implode("\n", $d['checklist']) : ($d['checklist'] ?? '')) ?></textarea></div>
+    <div><label for="c_desc" class="<?= $label ?>">Notes <span class="font-normal text-stone-400">optional, shown on every day</span></label>
+      <textarea id="c_desc" name="description" rows="2" class="<?= $input ?>"><?= $h($d['description'] ?? '') ?></textarea></div>
+    <details class="text-sm"<?= !empty($d['season_start']) || !empty($d['end_date']) ? ' open' : '' ?>><summary class="cursor-pointer text-stone-500 min-h-10 flex items-center">Season, start and end (optional)</summary>
+      <div class="grid gap-3 sm:grid-cols-2 mt-2">
+        <div><label for="c_ss" class="<?= $label ?>">Season from (MM-DD)</label><input id="c_ss" name="season_start" pattern="\d{2}-\d{2}" placeholder="04-01" value="<?= $h($d['season_start'] ?? '') ?>" class="<?= $input ?>"></div>
+        <div><label for="c_se" class="<?= $label ?>">Season to (MM-DD)</label><input id="c_se" name="season_end" pattern="\d{2}-\d{2}" placeholder="10-31" value="<?= $h($d['season_end'] ?? '') ?>" class="<?= $input ?>"></div>
+        <div><label for="c_sd" class="<?= $label ?>">Starts</label><input id="c_sd" name="start_date" type="date" value="<?= $h($d['start_date'] ?? $today) ?>" class="<?= $input ?>"></div>
+        <div><label for="c_ed" class="<?= $label ?>">Ends <span class="font-normal text-stone-400">empty = keeps going</span></label><input id="c_ed" name="end_date" type="date" value="<?= $h($d['end_date'] ?? '') ?>" class="<?= $input ?>"></div>
+        <div><label for="c_hz" class="<?= $label ?>">Days ahead to show</label><input id="c_hz" name="horizon_days" type="number" min="1" max="30" value="<?= (int)($d['horizon_days'] ?? 7) ?>" class="<?= $input ?>"></div>
+      </div>
+      <p class="text-xs text-stone-500 mt-1">A season like 11-15 to 02-28 runs over New Year.</p>
+    </details>
+    <button type="submit" class="<?= $btnMain ?>">Save chore</button>
+  </form>
+  <?php if ($r): ?>
+  <form method="POST" action="tasks.php" class="mt-3"><?= $hidden('rec_active', (int)$r['id']) ?><input type="hidden" name="on" value="<?= $r['active'] ? '' : '1' ?>">
+    <button type="submit" class="<?= $btnSec ?>"><?= $r['active'] ? 'Pause this chore' : 'Restart this chore' ?></button>
+    <span class="text-xs text-stone-500 ml-2"><?= $r['active'] ? 'Removes the days ahead nobody started. Nothing is deleted from history.' : 'Fills the next days again.' ?></span></form>
+  <?php endif;
+        bcrf_shell_close();
+        exit;
+    }
+    $recs = bcrf_rec_list($pdo);
+    $open('Chores', 'chores');
+    ?>
+  <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+    <h1 class="text-2xl font-bold text-stone-800">Chores</h1>
+    <a href="tasks.php?tab=chores&amp;rec=new" class="<?= $btnMain ?>">+ New chore</a>
+  </div>
+  <p class="text-sm text-stone-500 mb-3">Jobs that come round on a schedule. Each day gets its own task on everyone's list, a week ahead.</p>
+  <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
+  <div class="space-y-2">
+    <?php foreach ($recs as $r): ?>
+    <a href="tasks.php?tab=chores&amp;rec=<?= (int)$r['id'] ?>" class="<?= $card ?> block p-3 hover:border-stone-400<?= $r['active'] ? '' : ' opacity-60' ?>">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-sm font-bold text-stone-900"><?= $h($r['title']) ?></span>
+        <?php if (!$r['active']): ?><span class="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-stone-100 text-stone-500">Paused</span><?php endif; ?>
+        <span class="ml-auto text-xs text-stone-500"><?= count($r['lines']) ?> step<?= count($r['lines']) === 1 ? '' : 's' ?></span>
+      </div>
+      <div class="text-xs text-stone-500 mt-0.5"><?= $h(bcrf_rec_describe($r)) ?> · <?= $h(bcrf_tasks_who($r)) ?><?= $r['active'] && $r['next_due'] ? ' · next ' . $h($dayLabel($r['next_due'])) : '' ?></div>
+    </a>
+    <?php endforeach; ?>
+    <?php if (!$recs): ?><p class="text-sm text-stone-500">No chores yet.</p><?php endif; ?>
+  </div>
+    <?php
+    bcrf_shell_close();
+    exit;
+}
+
+// ── SAVED CHECKLISTS ──
+if ($tab === 'templates') {
+    if (isset($_GET['tpl_edit'])) {
+        $r = null;
+        if ($_GET['tpl_edit'] !== 'new') { try { $r = bcrf_tpl_get($pdo, (int)$_GET['tpl_edit']); } catch (BcrfTaskError $e) { $notFound('Checklist'); } }
+        $d = $typed ?: ($r ? ['title' => $r['title'], 'description' => $r['description'], 'checklist' => implode("\n", $r['lines']), 'priority' => $r['priority'], 'who' => bcrf_tasks_who_value($r), 'active' => $r['active']]
+                           : ['who' => 'anyone', 'priority' => 'normal', 'active' => 1]);
+        $open($r ? 'Change checklist' : 'New checklist', 'templates', 'max-w-2xl');
+        ?>
+  <a href="tasks.php?tab=templates" class="inline-flex items-center min-h-10 text-sm text-stone-500 hover:text-stone-800 mb-1">← Checklists</a>
+  <h1 class="text-2xl font-bold text-stone-800 mb-1"><?= $r ? 'Change checklist' : 'New checklist' ?></h1>
+  <p class="text-sm text-stone-500 mb-3">A saved checklist for jobs that come up now and then (a vet visit, a birthday party setup). Pick it when adding a task.</p>
+  <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
+  <form method="POST" action="tasks.php" class="<?= $card ?> p-4 space-y-3">
+    <?= $hidden('tpl_save', $r ? (int)$r['id'] : 0) ?>
+    <div><label for="p_title" class="<?= $label ?>">Name</label><input id="p_title" name="title" maxlength="150" required value="<?= $h($d['title'] ?? '') ?>" class="<?= $input ?>"></div>
+    <div class="grid gap-3 sm:grid-cols-2">
+      <div><label for="p_who" class="<?= $label ?>">Usually for</label><select id="p_who" name="who" class="<?= $input ?>"><?= $whoOptions((string)($d['who'] ?? 'anyone')) ?></select></div>
+      <div><label for="p_prio" class="<?= $label ?>">Priority</label><select id="p_prio" name="priority" class="<?= $input ?>"><?= $prioOptions((string)($d['priority'] ?? 'normal')) ?></select></div>
+    </div>
+    <div><label for="p_list" class="<?= $label ?>">Checklist <span class="font-normal text-stone-400">one step per line</span></label>
+      <textarea id="p_list" name="checklist" rows="9" required class="<?= $input ?>"><?= $h(is_array($d['checklist'] ?? '') ? implode("\n", $d['checklist']) : ($d['checklist'] ?? '')) ?></textarea></div>
+    <div><label for="p_desc" class="<?= $label ?>">Notes <span class="font-normal text-stone-400">optional</span></label><textarea id="p_desc" name="description" rows="2" class="<?= $input ?>"><?= $h($d['description'] ?? '') ?></textarea></div>
+    <?php if ($r): ?><label class="flex items-center gap-2 text-sm text-stone-700 min-h-11"><input type="checkbox" name="active" value="1"<?= !empty($d['active']) ? ' checked' : '' ?>> Offer it when adding a task</label><?php endif; ?>
+    <button type="submit" class="<?= $btnMain ?>">Save checklist</button>
+  </form>
+        <?php
+        bcrf_shell_close();
+        exit;
+    }
+    $tpls = bcrf_tpl_list($pdo);
+    $open('Checklists', 'templates');
+    ?>
+  <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+    <h1 class="text-2xl font-bold text-stone-800">Saved checklists</h1>
+    <a href="tasks.php?tab=templates&amp;tpl_edit=new" class="<?= $btnMain ?>">+ New checklist</a>
+  </div>
+  <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
+  <div class="space-y-2">
+    <?php foreach ($tpls as $r): ?>
+    <div class="<?= $card ?> p-3 flex flex-wrap items-center gap-2<?= $r['active'] ? '' : ' opacity-60' ?>">
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-bold text-stone-900"><?= $h($r['title']) ?><?= $r['active'] ? '' : ' <span class="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-stone-100 text-stone-500">Hidden</span>' ?></div>
+        <div class="text-xs text-stone-500"><?= count($r['lines']) ?> steps · <?= $h(bcrf_tasks_who($r)) ?></div>
+      </div>
+      <a href="tasks.php?new=1&amp;tpl=<?= (int)$r['id'] ?>" class="<?= $btnSec ?>">Use</a>
+      <a href="tasks.php?tab=templates&amp;tpl_edit=<?= (int)$r['id'] ?>" class="<?= $btnSec ?>">Change</a>
+    </div>
+    <?php endforeach; ?>
+    <?php if (!$tpls): ?><p class="<?= $card ?> p-4 text-sm text-stone-500">None yet. Save one for jobs that come up now and then, like getting ready for the vet or setting up a party.</p><?php endif; ?>
+  </div>
+    <?php
+    bcrf_shell_close();
+    exit;
+}
+
+// ── EVERYONE'S TASKS ──
+if ($tab === 'all') {
+    $f = ['status' => (string)($_GET['status'] ?? 'open'), 'who' => (string)($_GET['who'] ?? ''), 'from' => (string)($_GET['from'] ?? ''),
+          'to' => (string)($_GET['to'] ?? ''), 'q' => (string)($_GET['q'] ?? '')];
+    foreach (['from', 'to'] as $k) if ($f[$k] !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $f[$k])) $f[$k] = '';
+    if ($f['status'] === 'open' && $f['to'] === '' && !isset($_GET['to'])) $f['to'] = bcrf_tasks_add_days($today, 7);
+    $list = bcrf_tasks_list($pdo, $f);
+    $open('Everyone', 'all', 'max-w-4xl');
+    ?>
+  <h1 class="text-2xl font-bold text-stone-800 mb-3">Everyone's tasks</h1>
+  <form method="GET" action="tasks.php" class="<?= $card ?> p-3 mb-3 grid gap-2 sm:grid-cols-6 items-end">
+    <input type="hidden" name="tab" value="all">
+    <div class="sm:col-span-2"><label for="a_q" class="<?= $label ?>">Search</label><input id="a_q" name="q" value="<?= $h($f['q']) ?>" class="<?= $input ?>"></div>
+    <div><label for="a_s" class="<?= $label ?>">Status</label><select id="a_s" name="status" class="<?= $input ?>">
+      <?php foreach (['open' => 'Still to do', 'closed' => 'Finished', 'all' => 'All'] + BCRF_TASK_STATUSES as $k => $v): ?><option value="<?= $k ?>"<?= $f['status'] === $k ? ' selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?></select></div>
+    <div><label for="a_w" class="<?= $label ?>">Who</label><select id="a_w" name="who" class="<?= $input ?>"><option value="">Everyone</option><?= $whoOptions($f['who']) ?></select></div>
+    <div><label for="a_f" class="<?= $label ?>">Due from</label><input id="a_f" type="date" name="from" value="<?= $h($f['from']) ?>" class="<?= $input ?>"></div>
+    <div><label for="a_t" class="<?= $label ?>">to</label><input id="a_t" type="date" name="to" value="<?= $h($f['to']) ?>" class="<?= $input ?>"></div>
+    <div class="sm:col-span-6"><button type="submit" class="<?= $btnSec ?>">Show</button></div>
+  </form>
+  <div class="space-y-2">
+    <?php foreach ($list as $t) echo $row($t, true); ?>
+    <?php if (!$list): ?><p class="<?= $card ?> p-4 text-sm text-stone-500">Nothing matches.</p><?php endif; ?>
+  </div>
+  <?php if (count($list) >= 300): ?><p class="text-xs text-stone-500 mt-2">Showing the first 300. Narrow the dates to see more.</p><?php endif; ?>
+    <?php
+    bcrf_shell_close();
+    exit;
+}
+
+// ── MY TASKS ──
+$mine = bcrf_tasks_mine($pdo);
+$open('My tasks', 'my');
+$nOpen = count($mine['overdue']) + count($mine['today']);
+?>
+  <div class="flex flex-wrap items-end justify-between gap-2 mb-3">
+    <div>
+      <h1 class="text-2xl font-bold text-stone-800">My tasks</h1>
+      <div class="text-sm text-stone-500"><?= $h(date('l, F j', strtotime($today))) ?> · <?= $nOpen ? $nOpen . ' to do today' . ($mine['overdue'] ? ' (' . count($mine['overdue']) . ' late)' : '') : 'all caught up' ?></div>
+    </div>
+    <a href="tasks.php?new=1" class="<?= $btnSec ?>">+ Task with details</a>
+  </div>
+  <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
+
+  <form method="POST" action="tasks.php" class="<?= $card ?> p-3 mb-4 flex flex-wrap gap-2 items-end">
+    <?= $hidden('add') ?><input type="hidden" name="quick" value="1"><input type="hidden" name="back" value="tasks.php">
+    <div class="flex-1 min-w-48"><label for="q_title" class="sr-only">Quick add</label>
+      <input id="q_title" name="title" maxlength="150" required placeholder="Add a task…" class="<?= $input ?>"></div>
+    <div><label for="q_date" class="sr-only">Due</label><input id="q_date" name="due_date" type="date" value="<?= $h($today) ?>" class="<?= $input ?>"></div>
+    <div><label for="q_who" class="sr-only">Who</label>
+      <select id="q_who" name="who" class="<?= $input ?>"><option value="anyone">Anyone</option><?php if (bcrf_tasks_uid()): ?><option value="user:<?= (int)bcrf_tasks_uid() ?>">Me</option><?php endif; ?></select></div>
+    <button type="submit" class="<?= $btnMain ?>">Add</button>
+  </form>
+
+  <?php
+  $section = function (string $title, array $items, string $tone = 'stone', bool $showDate = false, string $empty = '') use ($row, $h) {
+      if (!$items && $empty === '') return;
+      echo '<section class="mb-5"><h2 class="text-xs font-black uppercase tracking-widest mb-2 ', $tone === 'red' ? 'text-red-700' : 'text-stone-500', '">', $h($title),
+           $items ? ' <span class="font-bold">· ' . count($items) . '</span>' : '', '</h2><div class="space-y-2">';
+      foreach ($items as $t) echo $row($t, $showDate);
+      if (!$items) echo '<p class="text-sm text-stone-500">', $h($empty), '</p>';
+      echo '</div></section>';
+  };
+  $section('Late', $mine['overdue'], 'red', true);
+  $section('Today', $mine['today'], 'stone', false, $mine['overdue'] ? 'Nothing else due today.' : 'Nothing due today. 🐐');
+  $tmr = bcrf_tasks_add_days($today, 1);
+  $section('Tomorrow', array_values(array_filter($mine['upcoming'], fn($t) => $t['due_date'] === $tmr)));
+  $later = array_values(array_filter($mine['upcoming'], fn($t) => $t['due_date'] !== $tmr));
+  if ($later) {
+      echo '<details class="mb-5"><summary class="cursor-pointer min-h-11 flex items-center text-xs font-black uppercase tracking-widest text-stone-500">Later this week · ', count($later), '</summary><div class="space-y-2 mt-2">';
+      foreach ($later as $t) echo $row($t, true);
+      echo '</div></details>';
+  }
+  $section('No date', $mine['someday']);
+  $section('Done today', $mine['done']);
+  bcrf_shell_close();

@@ -204,11 +204,14 @@ function check_admin() {
         require_once __DIR__ . '/includes/staff_auth.php';
         bcrf_staff_mfa_gate();
     }
-    // Staff can open exactly one screen: admin.php?view=timecard. Every other
-    // admin page or handler that calls check_admin() sends them back to it.
+    // Staff can open two screens: admin.php?view=timecard, and Tasks (admin/tasks.php, Farm OS Phase 3,
+    // Nov 11, 2026; it checks the 'tasks' permission itself). Every other admin page or handler that calls
+    // check_admin() sends them back to the Time Clock.
     if ($_SESSION['user_role'] === 'Staff') {
         $script = basename((string)($_SERVER['SCRIPT_NAME'] ?? ''));
-        if ($script !== 'admin.php' || ($_GET['view'] ?? 'dashboard') !== 'timecard') {
+        $dir    = basename(dirname((string)($_SERVER['SCRIPT_NAME'] ?? '')));
+        if ($script === 'tasks.php' && $dir === 'admin') { /* allowed */ }
+        elseif ($script !== 'admin.php' || ($_GET['view'] ?? 'dashboard') !== 'timecard') {
             header('Location: /admin/admin.php?view=timecard');
             exit;
         }

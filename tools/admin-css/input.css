@@ -16,3 +16,5 @@
 @source "../../admin/vendors.php";
 @source "../../admin/gift_cards.php";
 @source "../../admin/social_reports.php";
+@source "../../admin/tasks.php";
+@source "../../admin/assets/tasks.js";

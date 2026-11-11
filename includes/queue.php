@@ -245,6 +245,7 @@ function bcrf_runner_tasks(): array {
         'backup_db'              => ['admin/cron/backup_db.php',              ['at' => '03:15', 'timeout' => 20]],
         'purge_job_records'      => ['admin/cron/purge_job_records.php',      ['at' => '03:20']],
         'rewards_expire'         => ['admin/cron/rewards_expire.php',         ['at' => '03:25']],
+        'generate_tasks'         => ['admin/cron/generate_tasks.php',         ['at' => '02:30']],   // Farm OS Phase 3 chores (Nov 11)
         'backup_files'           => ['admin/cron/backup_files.php',           ['at' => '03:40', 'day' => 0, 'timeout' => 40]],
         'fetch_google_reports'   => ['admin/cron/fetch_google_reports.php',   ['at' => '06:10']],
         'fetch_social_reports'   => ['admin/cron/fetch_social_reports.php',   ['at' => '06:20']],

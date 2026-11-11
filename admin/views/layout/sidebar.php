@@ -65,6 +65,10 @@ $_sections = [
         ['label'=>'Seasonal Themes', 'short'=>'Themes','icon'=>'🎨','tabs'=>[['Seasonal Themes','?view=theme_scheduler','view','theme_scheduler']]],
     ]],
     'team' => ['label'=>'Team','icon'=>'🧑‍🌾','items'=>[
+        ['label'=>'Tasks',      'icon'=>'✅','tabs'=>[['My tasks',  '/admin/tasks.php?tab=my',        'view', 'tasks'],          // Farm OS Phase 3 (Nov 11)
+                                                       ['Everyone',  '/admin/tasks.php?tab=all',       'view', 'tasks_manage'],
+                                                       ['Chores',    '/admin/tasks.php?tab=chores',    'view', 'tasks_manage'],
+                                                       ['Checklists','/admin/tasks.php?tab=templates', 'view', 'tasks_manage']]],
         ['label'=>'Staff',      'icon'=>'🪪','tabs'=>[['Staff','?view=jobs_staff','view','jobs_staff']], 'match'=>['jobs_alerts','jobs_records']],
         ['label'=>'Time Clock', 'short'=>'Clock','icon'=>'⏰','tabs'=>[['Time Clock','?view=timecard','view','timecard']]],
         ['label'=>'Timesheets', 'icon'=>'🗓️','tabs'=>[['Timesheets','?view=timesheet','view','timesheet']]],
@@ -107,11 +111,11 @@ $_sections = [
 
 // Phone bottom-bar defaults by role (02, Nov 5 2026). Owner set becomes Dashboard, POS, Gate, Tasks once those exist.
 $_defaults_by_role = [
-    'administrator' => ['dashboard', 'storefront.pos', 'visitors.bookings', 'storefront.products-inventory'],
-    'moderator'     => ['dashboard', 'storefront.pos', 'visitors.bookings', 'storefront.products-inventory'],
-    'Shopkeep'      => ['storefront.pos', 'storefront.products-inventory', 'storefront.sales-drawers', 'team.time-clock'],
+    'administrator' => ['dashboard', 'storefront.pos', 'visitors.bookings', 'team.tasks'],   // Tasks replaced Inventory (Phase 3, Nov 11)
+    'moderator'     => ['dashboard', 'storefront.pos', 'visitors.bookings', 'team.tasks'],
+    'Shopkeep'      => ['storefront.pos', 'storefront.products-inventory', 'team.tasks', 'team.time-clock'],
     'Media'         => ['content.blog', 'content.social-queue', 'content.comments', 'content.media-library'],
-    'Staff'         => ['team.time-clock'],
+    'Staff'         => ['team.tasks', 'team.time-clock'],
 ];
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
@@ -124,7 +128,7 @@ $_slug = fn(string $s): string => trim(preg_replace('/[^a-z0-9]+/', '-', strtolo
 $_can = function(string $type, string $val) use ($_role): bool {
     if ($type === 'always') return true;
     if ($_role === 'administrator') return true;
-    if ($_role === 'Staff') return $type === 'view' && $val === 'timecard';   // Jobs pack P1: Time Clock only
+    if ($_role === 'Staff') return $type === 'view' && ($val === 'timecard' || ($val === 'tasks' && function_exists('hasViewAccess') && hasViewAccess('Staff', 'tasks')));   // Jobs pack P1: Time Clock; Phase 3: Tasks
     if ($type === 'view')  return function_exists('hasViewAccess')  ? hasViewAccess($_role, $val)  : true;
     if ($type === 'table') return function_exists('hasTableAccess') ? hasTableAccess($_role, $val) : true;
     return false;
