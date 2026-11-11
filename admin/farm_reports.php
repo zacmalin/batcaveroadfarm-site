@@ -15,6 +15,7 @@ require_permission([['view', 'sales_analytics']]);
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/queue.php';
 require_once __DIR__ . '/../includes/reports.php';
+require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 $h  = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
@@ -31,13 +32,9 @@ if ($from > $to) [$from, $to] = [$to, $from];
 if ((strtotime($to) - strtotime($from)) / 86400 > 366) $from = date('Y-m-d', strtotime($to . ' -366 days'));
 $csv = (string)($_GET['csv'] ?? '');
 
-$head = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
-      . '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">'
-      . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=5"><link rel="stylesheet" href="assets/reports.css?v=2">'
-      . '<script src="assets/report.js?v=1" defer></script>';
 
 if (!bcrf_sales_ready($pdo) || !bcrf_refunds_ready($pdo)) {
-    echo $head, '<title>Reports</title></head><body class="page"><main class="narrow"><p class="flash err">Run migrations 0009 to 0011 in Settings › Database first.</p></main></body></html>';
+    bcrf_shell_open('Reports', ['legacy' => true]); echo '<p class="flash err">Run migrations 0009 to 0011 in Settings › Database first.</p></div></main></body></html>';
     exit;
 }
 $admission = bcrf_admission_ready($pdo);
@@ -106,8 +103,8 @@ $q = fn(array $p) => 'farm_reports.php?' . http_build_query($p);
 $pl = fn(int $n, string $w) => $n . ' ' . $w . ($n === 1 ? '' : 's');
 $step = fn(string $d, int $n) => date('Y-m-d', strtotime("$d $n days"));
 
-echo $head, '<title>', $h($titles[$r]), ' — Reports</title></head><body class="page report"><main class="narrow wide">';
-echo '<p class="noprint"><a href="admin.php">← Admin</a> · <a href="register.php">Register</a>', $admission ? ' · <a href="gate.php">Gate</a>' : '', '</p>';
+bcrf_shell_open($titles[$r] . ' — Reports', ['legacy' => true, 'js' => ['report.js']]);
+if ($admission) echo '<p class="noprint muted"><a href="gate.php">Open the gate screen</a></p>';
 echo '<nav class="rtabs noprint" aria-label="Reports">';
 foreach ($titles as $k => $t) {
     if ($k === 'visitors' && !$admission) continue;
@@ -253,7 +250,7 @@ if ($r === 'log') {
 }
 
 if ($r === 'visitors') {
-    if (!$admission) { echo '<p class="flash err">Run migration 0012 in Settings › Database first.</p></main></body></html>'; exit; }
+    if (!$admission) { echo '<p class="flash err">Run migration 0012 in Settings › Database first.</p></div></main></body></html>'; exit; }
     $v = bcrf_rpt_visitors($pdo, $date);
     $o = $v['occupancy'];
     echo '<h1>Visitors</h1><p><b>', $h(bcrf_farm_name()), '</b> · ', $h(date('l, F j, Y', strtotime($date))), $date === $today ? ' (so far)' : '', '</p>';
@@ -330,4 +327,4 @@ if ($r === 'margin') {
     }
     if (!$mg['revenue'] && !$mg['lines_no_cost']) echo '<p class="muted">No sales in this period.</p>';
 }
-echo '</main></body></html>';
+echo '</div></main></body></html>';

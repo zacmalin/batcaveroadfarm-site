@@ -29,6 +29,7 @@ function bcrf_shell_asset(string $file): string {
  *       'legacy'=> true for pages built on the register.css class names (card, lrow, btn, stackf…): loads
  *                  reports.css (layout) + admin-farmos.css (Hiring look) and wraps the content in .fos.
  *                  Default width for these is 'max-w-3xl'.
+ *       'js'    => extra script files from admin/assets/ the page needs, e.g. ['report.js'] (deferred)
  */
 function bcrf_shell_open(string $title, array $opt = []): void {
     global $pdo;
@@ -52,8 +53,11 @@ function bcrf_shell_open(string $title, array $opt = []): void {
          '<link rel="stylesheet" href="', $h(bcrf_shell_asset('admin-shell.css')), '">',
          '<link rel="stylesheet" href="', $h(bcrf_shell_asset('admin-ui.css')), '">',
          $legacy ? '<link rel="stylesheet" href="' . $h(bcrf_shell_asset('reports.css')) . '"><link rel="stylesheet" href="' . $h(bcrf_shell_asset('admin-farmos.css')) . '">' : '',
-         '<script defer src="', $h(bcrf_shell_asset('admin-ui.js')), '"></script>',
-         '</head>';
+         '<script defer src="', $h(bcrf_shell_asset('admin-ui.js')), '"></script>';
+    foreach ((array)($opt['js'] ?? []) as $js) {
+        if (preg_match('/^[a-z0-9_-]+\.js$/i', (string)$js)) echo '<script defer src="', $h(bcrf_shell_asset((string)$js)), '"></script>';
+    }
+    echo '</head>';
     echo '<body class="bg-stone-100 min-h-screen text-stone-900 flex text-xs select-none">';
 
     // Toast, same markup as the console's views/layout/toast.php

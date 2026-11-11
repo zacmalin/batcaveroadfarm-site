@@ -14,6 +14,7 @@ require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/sales.php';
 require_once __DIR__ . '/../includes/refunds.php';
 require_once __DIR__ . '/../includes/rewards.php';
+require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -26,12 +27,9 @@ $n = fn($p) => number_format((int)$p);
 $phone = fn($k) => strlen((string)$k) === 10 ? sprintf('(%s) %s-%s', substr($k, 0, 3), substr($k, 3, 3), substr($k, 6)) : (string)$k;
 $local = fn($utc) => $utc ? (new DateTimeImmutable($utc, new DateTimeZone('UTC')))->setTimezone(new DateTimeZone(date_default_timezone_get()))->format('n/j/Y g:i A') : '';
 
-$head = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
-      . '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">'
-      . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=6"><link rel="stylesheet" href="assets/reports.css?v=3">';
 if (!bcrf_rewards_ready($pdo)) {
-    echo $head, '<title>Roost Rewards</title></head><body class="page"><main class="narrow"><p><a href="admin.php">← Admin</a></p>',
-         '<p class="flash err">Run migration 0016 (Roost Rewards) in Settings › Database first.</p></main></body></html>';
+    bcrf_shell_open('Roost Rewards', ['legacy' => true]); echo '',
+         '<p class="flash err">Run migration 0016 (Roost Rewards) in Settings › Database first.</p></div></main></body></html>';
     exit;
 }
 
@@ -100,8 +98,9 @@ $hid = fn(string $back, int $cid = 0) => '<input type="hidden" name="csrf_token"
 $on = bcrf_rewards_enabled($pdo);
 $tab = ($_GET['tab'] ?? '') === 'settings' && $isAdmin ? 'settings' : (isset($_GET['id']) ? 'member' : 'find');
 
-echo $head, '<title>Roost Rewards</title></head><body class="page"><main class="narrow wide">';
-echo '<p><a href="admin.php">← Admin</a> · <a href="register.php">Register</a> · <a href="rewards.php">Find member</a>', $isAdmin ? ' · <a href="rewards.php?tab=settings">Settings</a>' : '', '</p>';
+bcrf_shell_open('Roost Rewards', ['legacy' => true]);
+echo '<nav class="rtabs" aria-label="Roost Rewards"><a href="rewards.php"', $tab !== 'settings' ? ' aria-current="page"' : '', '>Find member</a>',
+     $isAdmin ? '<a href="rewards.php?tab=settings"' . ($tab === 'settings' ? ' aria-current="page"' : '') . '>Settings</a>' : '', '</nav>';
 echo '<h1>Roost Rewards</h1>';
 if (!$on) echo '<p class="flash err">Roost Rewards is OFF: sales are not earning points.', $isAdmin ? ' Turn it on in <a href="rewards.php?tab=settings">Settings</a>.' : '', '</p>';
 if ($flash) echo '<p class="flash', $flash[0] === 'err' ? ' err' : '', '" role="status">', $h($flash[1]), '</p>';
@@ -140,7 +139,7 @@ if ($tab === 'find') {
 } elseif ($tab === 'member') {
     $cid = (int)$_GET['id'];
     $m = bcrf_rewards_member($pdo, $cid);
-    if (!$m) { echo '<p>Not a member. <a href="rewards.php">Find a customer</a>.</p></main></body></html>'; exit; }
+    if (!$m) { echo '<p>Not a member. <a href="rewards.php">Find a customer</a>.</p></div></main></body></html>'; exit; }
     $back = 'rewards.php?id=' . $cid;
     $bal = (int)$m['balance_points'];
     echo '<section class="card"><h2>', $h(trim($m['first_name'] . ' ' . $m['last_name'])), '</h2>',
@@ -186,4 +185,4 @@ if ($tab === 'find') {
     }
     echo '<button class="btn primary" type="submit">Save settings</button></form></section>';
 }
-echo '</main></body></html>';
+echo '</div></main></body></html>';

@@ -83,6 +83,15 @@
 .fos .pimg{border-color:#e7e5e4;border-radius:.5rem}
 .fos .rbar.sticky{background:#f5f5f4;border-top-color:#e7e5e4}
 
+/* Print (Daily & tax reports have a Print button): only the report, no shell */
+@media print{
+    html,body{background:#fff !important}
+    body > main{padding:0 !important;max-height:none !important;overflow:visible !important}
+    .fos{max-width:none}
+    .fos .noprint,.fos .rtabs,.fos .rbar,.fos .rform{display:none !important}
+    .fos .card{box-shadow:none;border-color:#d6d3d1}
+}
+
 @media (max-width:767.98px){
     .fos .stackf .two{grid-template-columns:1fr}
     .fos .btn{min-height:44px}

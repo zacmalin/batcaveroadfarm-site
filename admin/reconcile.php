@@ -12,6 +12,7 @@ require_permission([['view', 'p2p_reconcile']]);
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/queue.php';
 require_once __DIR__ . '/../includes/reconcile.php';
+require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -25,11 +26,8 @@ $from = $isDate($_GET['from'] ?? null) ? $_GET['from'] : date('Y-m-d', strtotime
 $to   = $isDate($_GET['to'] ?? null) ? $_GET['to'] : $today;
 $self = fn(array $p = []) => 'reconcile.php' . ($p ? '?' . http_build_query($p) : '');
 
-$head = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
-      . '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">'
-      . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=5"><link rel="stylesheet" href="assets/reports.css?v=2">';
 if (!bcrf_sales_ready($pdo)) {
-    echo $head, '<title>P2P matching</title></head><body class="page"><main class="narrow"><p class="flash err">Run migration 0009 in Settings › Database first.</p></main></body></html>';
+    bcrf_shell_open('P2P matching', ['legacy' => true]); echo '<p class="flash err">Run migration 0009 in Settings › Database first.</p></div></main></body></html>';
     exit;
 }
 
@@ -65,8 +63,7 @@ $hidden = '<input type="hidden" name="csrf_token" value="' . $h($csrf) . '"><inp
 $btn = fn(string $act, string $label, array $extra = [], string $cls = 'btn sm') => '<button class="' . $cls . '" type="submit" name="act" value="' . $h($act) . '"'
         . implode('', array_map(fn($k, $v) => ' ' . $k . '="' . $h($v) . '"', array_keys($extra), $extra)) . '>' . $h($label) . '</button>';
 
-echo $head, '<title>P2P matching</title></head><body class="page"><main class="narrow wide">';
-echo '<p><a href="admin.php">← Admin</a> · <a href="farm_reports.php">Reports</a></p>';
+bcrf_shell_open('P2P matching', ['legacy' => true]);
 echo '<h1>PayPal, Venmo & Cash App</h1>';
 if ($flash) echo '<p class="flash', $flash[0] === 'err' ? ' err' : '', '">', $h($flash[1]), '</p>';
 echo '<nav class="rtabs" aria-label="P2P">',
@@ -123,4 +120,4 @@ foreach ($groups as $date => $byT) {
         echo '</section>';
     }
 }
-echo '</main></body></html>';
+echo '</div></main></body></html>';
