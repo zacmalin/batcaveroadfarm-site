@@ -54,7 +54,22 @@ if (!in_array($event['data']['object']['payment_status'] ?? '', ['paid', 'no_pay
 $bookingId = (int)($session['metadata']['booking_id'] ?? 0);
 $passId    = (int)($session['metadata']['pass_id']    ?? 0);
 $ticketId  = (int)($session['metadata']['ticket_id']  ?? 0);   // online admission tickets (Farm OS 4b)
+$giftCardId = (int)($session['metadata']['gift_card_id'] ?? 0); // online gift cards (Farm OS Phase 2, Nov 11, 2026)
 $sessionId = (string)($session['id'] ?? '');
+
+// ── ONLINE GIFT CARDS: includes/gift_cards.php activates the card, emails it, audits ──
+if ($giftCardId > 0) {
+    try {
+        require_once __DIR__ . '/../../includes/queue.php';
+        require_once __DIR__ . '/../../includes/gift_cards.php';
+        $done = bcrf_gc_online_mark_paid($pdo, $giftCardId, $sessionId, isset($session['amount_total']) ? (int)$session['amount_total'] : null);
+        error_log('[BCRF stripe webhook] Gift card #' . $giftCardId . ($done ? ' paid and emailed.' : ' already processed (or short payment; see log).'));
+        http_response_code(200); echo $done ? 'ok' : 'Gift card already processed'; exit;
+    } catch (Throwable $e) {
+        error_log('[BCRF stripe webhook] Gift card error: ' . $e->getMessage());
+        http_response_code(500); echo 'Server error'; exit;
+    }
+}
 
 // ── ONLINE TICKETS (Farm OS Phase 1, slice 4b): includes/tickets_online.php issues, emails, audits, GA ──
 if ($ticketId > 0) {

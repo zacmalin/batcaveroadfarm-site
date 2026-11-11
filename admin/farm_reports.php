@@ -137,9 +137,9 @@ if ($r === 'daily') {
 
     echo '<h2>By payment type</h2><table class="rt">';
     $any = false;
-    foreach (bcrf_tenders() + ['other_tender' => 'Other'] as $t => $label) {
+    foreach (bcrf_tenders() + ['other_tender' => 'Gift cards and other'] as $t => $label) {   // gift card payments are in other_tender (fixed CSV columns, 13)
         $col = $t === 'other_tender' ? 'other_tender' : $t;
-        if (!$d[$col]) continue;
+        if (empty($d[$col])) continue;
         $any = true; echo $row($h($label), $m($d[$col]));
     }
     if (!$any) echo '<tr><td class="muted">No payments</td><td></td></tr>';
@@ -173,6 +173,28 @@ if ($r === 'daily') {
         echo '<table class="rt"><tr class="th"><td>Tax category · sales</td><td class="r">Tax</td></tr>';
         foreach ($taxes as $c) echo $row($h($c['label']) . ' <small class="muted">· ' . $m($c['net']) . ' sales</small>', $m($c['tax']));
         echo '</table>';
+    }
+    // Gift cards (Nov 11): sold today (register line + online) and spent today. A sold card is money owed, not yet a sale.
+    require_once __DIR__ . '/../includes/gift_cards.php';
+    if (bcrf_gift_cards_ready($pdo)) {
+        [$ua, $ub] = bcrf_rpt_utc_range($date, $date);
+        $st = $pdo->prepare("SELECT source, COUNT(*) n, COALESCE(SUM(initial_cents), 0) c FROM gift_cards
+                             WHERE status <> 'pending' AND COALESCE(paid_at, created_at) >= ? AND COALESCE(paid_at, created_at) < ? GROUP BY source");
+        $st->execute([$ua, $ub]);
+        $gcSold = array_column($st->fetchAll(PDO::FETCH_ASSOC), null, 'source');
+        $st = $pdo->prepare("SELECT COALESCE(-SUM(amount_cents), 0) FROM gift_card_txns WHERE type = 'redeem' AND created_at >= ? AND created_at < ?");
+        $st->execute([$ua, $ub]);
+        $gcSpent = (int)$st->fetchColumn();
+        if ($gcSold || $gcSpent) {
+            $gl = bcrf_gc_liability($pdo);
+            echo '<h2>Gift cards</h2><table class="rt">',
+                 isset($gcSold['pos']) ? $row('Sold on the register (' . (int)$gcSold['pos']['n'] . ')', $m($gcSold['pos']['c'])) : '',
+                 isset($gcSold['online']) ? $row('Sold online (' . (int)$gcSold['online']['n'] . ')', $m($gcSold['online']['c'])) : '',
+                 isset($gcSold['manual']) ? $row('Given without a sale (' . (int)$gcSold['manual']['n'] . ')', $m($gcSold['manual']['c'])) : '',
+                 $row('Spent with gift cards', $m($gcSpent)),
+                 $row('Still owed on all cards', $m($gl['cents']), 'b'),
+                 '</table><p class="muted">Register gift card sales are in the totals above (category Gift Cards, no tax); for the books they\'re money owed until spent. Online gift cards are paid to Stripe. <a class="noprint" href="gift_cards.php">Gift Cards →</a></p>';
+        }
     }
     if (bcrf_rpt_online_ready($pdo)) {
         echo '<h2>Online tickets (Stripe)</h2><table class="rt">',

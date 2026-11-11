@@ -95,8 +95,10 @@ function bcrf_product_save(PDO $pdo, ?int $id, array $in, ?int $uid): int {
     $v['image_alt'] = $str('image_alt', 255) ?: null;
 
     $isAdm = $old && $old['product_type'] === 'admission';
+    $isGift = $old && $old['product_type'] === 'gift_card';   // gift cards (Nov 11): type, pricing and stock are fixed
     $type = (string)($in['product_type'] ?? 'retail');
     if ($isAdm) $type = 'admission';
+    elseif ($isGift) $type = 'gift_card';
     elseif (!isset(bcrf_product_types()[$type])) $bad('Pick a product type.');
     $v['product_type'] = $type;
 
@@ -122,6 +124,7 @@ function bcrf_product_save(PDO $pdo, ?int $id, array $in, ?int $uid): int {
     if ($mode !== 'by_weight' && in_array($unit, ['lb', 'oz'], true)) $bad('lb and oz are for items priced by weight.');
     if ($mode === 'open_price') $unit = 'each';
     if ($isAdm) { $mode = 'each'; $unit = 'each'; }
+    if ($isGift) { $mode = 'open_price'; $unit = 'each'; $v['price'] = 0.0; }
     $v['pricing_mode'] = $mode; $v['unit'] = $unit;
 
     $tax = (int)($in['tax_category_id'] ?? 0) ?: null;
@@ -145,7 +148,7 @@ function bcrf_product_save(PDO $pdo, ?int $id, array $in, ?int $uid): int {
     require_once __DIR__ . '/rewards.php';
     if (bcrf_rewards_override_ready($pdo)) {
         $re = (string)($in['rewards_eligible'] ?? 'auto');
-        $v['rewards_eligible'] = $re === '1' ? 1 : ($re === '0' ? 0 : null);
+        $v['rewards_eligible'] = $isGift ? null : ($re === '1' ? 1 : ($re === '0' ? 0 : null));   // gift cards never earn points
     }
     // Vendors & cost (Phase 2 slice 2.1 / migration 0018)
     require_once __DIR__ . '/vendors.php';

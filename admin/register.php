@@ -25,6 +25,10 @@
 // (includes/register_extras.php):
 //   GET  register.php?api=customers&q=...          find customers / pass holders (name, email, phone, pass link)
 //   POST register.php?api=customer_new | customer_pass | holds_list | hold | recall | hold_discard   (JSON, X-CSRF-Token)
+// Gift cards (Phase 2, Nov 11, 2026; includes/gift_cards.php, migration 0028): sold as the "Gift Card" item (staff type
+// the amount), spent with the "Gift card" payment type. Cards sold print from admin/gift_card_print.php.
+//   GET  register.php?api=gift_card&code=...       balance check before taking a gift card payment
+//   POST register.php?api=gift_card_email          {card_id, email}  (JSON, X-CSRF-Token)
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
 check_admin();
@@ -192,6 +196,28 @@ if ($api !== '') {
             $out(500, ['ok' => false, 'message' => 'The email could not be sent. Try again or print the receipt.']);
         }
     }
+    // -- Gift cards (Nov 11) --
+    if ($api === 'gift_card' || $api === 'gift_card_email') {
+        if (!bcrf_gift_cards_ready($pdo)) $out(503, ['ok' => false, 'message' => 'Gift cards are waiting for migration 0028 (Settings › Database).']);
+        try {
+            if ($api === 'gift_card') $out(200, ['ok' => true, 'card' => bcrf_gc_lookup($pdo, (string)($_GET['code'] ?? ''))]);
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') $out(405, ['ok' => false, 'message' => 'POST only.']);
+            if (!hash_equals($csrf, (string)($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''))) $out(403, ['ok' => false, 'message' => 'Your session expired. Reload the register.']);
+            $in = json_decode((string)file_get_contents('php://input'), true);
+            $card = is_array($in) ? bcrf_gc_get($pdo, (int)($in['card_id'] ?? 0)) : null;
+            if (!$card || $card['source'] !== 'pos') $out(404, ['ok' => false, 'message' => 'Gift card not found.']);
+            $to = trim((string)($in['email'] ?? ''));
+            if (filter_var($to, FILTER_VALIDATE_EMAIL) && !$card['recipient_email']) {   // remember who it went to, so a resend from Gift Cards goes there too
+                $pdo->prepare("UPDATE gift_cards SET recipient_email = ? WHERE id = ? AND recipient_email IS NULL")->execute([strtolower($to), $card['id']]);
+            }
+            $out(200, ['ok' => true, 'email' => bcrf_gc_email($pdo, $card, $to)]);
+        } catch (BcrfGiftCardError $e) {
+            $out(422, ['ok' => false, 'message' => $e->getMessage()]);
+        } catch (Throwable $e) {
+            error_log('[register] ' . $api . ': ' . $e->getMessage());
+            $out(500, ['ok' => false, 'message' => 'The server could not do that. Try again.']);
+        }
+    }
     // -- Customers and held carts (slice 7) --
     if (in_array($api, ['customers', 'customer_new', 'customer_pass', 'holds_list', 'hold', 'recall', 'hold_discard'], true)) {
         if ($api === 'customers') $out(200, ['ok' => true, 'results' => bcrf_pos_customer_search($pdo, (string)($_GET['q'] ?? ''))]);
@@ -337,6 +363,7 @@ $boot = [
     'lineDisc'  => bcrf_sales_line_disc_ready($pdo),
     'stock'     => bcrf_stock_ready($pdo),                // slice 8: migration 0015
     'customers' => bcrf_customers_ready($pdo),
+    'giftCards' => bcrf_gift_cards_ready($pdo),           // migration 0028 (Nov 11)
 ];
 ?><!DOCTYPE html>
 <html lang="en">
@@ -438,6 +465,11 @@ $boot = [
       <div class="chips" id="cashQuick"></div>
       <p class="change" id="cashChange"></p>
     </div>
+    <div id="payGift" hidden>
+      <form id="formGift" class="find"><input type="text" id="gcCode" placeholder="Gift card code" autocomplete="off" autocapitalize="characters" aria-label="Gift card code"><button type="button" class="btn" id="btnGcScan">Scan</button><button class="btn">Check</button></form>
+      <p class="muted" id="gcInfo"></p>
+      <label id="gcAmtWrap" hidden>Take from the card ($)<input type="number" inputmode="decimal" step="0.01" min="0" id="gcAmt"></label>
+    </div>
     <div id="payOther" hidden>
       <label>Amount ($)<input type="number" inputmode="decimal" step="0.01" min="0" id="payAmt"></label>
       <div class="p2ppay" id="p2pPay" hidden><div class="qr" id="p2pQr"></div><div><b id="p2pHandle"></b><br><small class="muted" id="p2pAmt"></small><br><a id="p2pLink" href="#" target="_blank" rel="noopener">Open link</a></div></div>
@@ -465,6 +497,11 @@ $boot = [
   <h3>Sale saved</h3>
   <p class="saleno" id="doneNo"></p>
   <p class="bigchange" id="doneChange" hidden></p>
+  <div id="doneGift" hidden>
+    <p class="lbl">Gift cards on this sale</p>
+    <ul class="paylist" id="doneGiftList"></ul>
+    <p class="row wrap"><a class="btn" id="btnGiftPrint" href="#" target="_blank" rel="noopener">Print gift card</a></p>
+  </div>
   <div class="row"><button type="button" class="btn" id="btnReprint">Print receipt</button><button type="button" class="btn" id="btnEmailDone">Email receipt</button><button type="button" class="btn primary" id="btnNew">New sale</button></div>
 </dialog>
 
@@ -625,6 +662,6 @@ $boot = [
 <section id="receipt" class="receipt" aria-hidden="true"></section>
 
 <script src="/js/qrcode.min.js"></script>
-<script src="assets/register.js?v=9"></script>
+<script src="assets/register.js?v=10"></script>
 </body>
 </html>

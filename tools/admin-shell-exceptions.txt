@@ -14,3 +14,4 @@ two_step.php            # sign-in second step (also listed under Users & Roles)
 jobs_file.php           # résumé download endpoint
 pinterest_image.php     # image endpoint
 social_token_check.php  # cron / ping endpoint
+gift_card_print.php     # printable gift cards (business-card print layout)

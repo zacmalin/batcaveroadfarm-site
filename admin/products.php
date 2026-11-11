@@ -108,7 +108,8 @@ if ($flash) echo '<p class="flash', $flash[0] === 'err' ? ' err' : '', '">', $h(
 echo '<form class="card stackf" method="POST" action="products.php"><input type="hidden" name="csrf_token" value="', $h($csrf), '"><input type="hidden" name="id" value="', $id ?: '', '">';
 echo '<label>Name<input type="text" name="name" value="', $val('name'), '" maxlength="255" required></label>';
 if ($isAdm) echo '<p class="muted">Admission product: its ticket type, check-ins and capacity come from the Admissions category. Price, tax, name and photo can be changed here.</p><input type="hidden" name="product_type" value="admission">';
-else echo '<label>Type', $sel('product_type', bcrf_product_types(), $d['product_type'] ?? 'retail'), '</label>';
+elseif ($p && $p['product_type'] === 'gift_card') echo '<p class="muted">Gift card product: staff type the amount on the register, it issues a gift card, and it keeps no stock. Keep its tax category on Exempt (tax is charged when the card is spent). Name and photo can be changed here; to stop selling gift cards on the register, untick On sale.</p><input type="hidden" name="product_type" value="gift_card">';
+elseif (!$p || $p['product_type'] !== 'gift_card') echo '<label>Type', $sel('product_type', bcrf_product_types(), $d['product_type'] ?? 'retail'), '</label>';
 echo '<label>Category', $sel('category_id', $cats, $d['category_id'] ?? '', '—'), '</label>',
      '<label>SKU / barcode <small class="muted">(blank: one is made, like BCF-012)</small><input type="text" name="sku" value="', $val('sku'), '" maxlength="50" autocomplete="off"></label>';
 echo '<fieldset class="grp"><legend>Price</legend>';

@@ -23,9 +23,15 @@
  *     the sale drops out of the drawer's expected cash. Money taken by app is sent back in the app.
  *   - Slice 4a: admission sold at the gate was used on the spot, so refunding it needs an Owner or Manager
  *     (05: redeemed tickets can't be refunded without a Manager). A void cancels its ticket and checks the party out.
+ *   - Gift cards (Nov 11, includes/gift_cards.php): money paid by gift card goes back onto that card ("Gift card" refund
+ *     method). Refunding a gift card line cancels that many unused cards from it; a card that has been spent from can't
+ *     be refunded this way. A void puts gift card payments back on their cards and cancels cards it sold (refused if
+ *     one has been spent from since).
  */
 
 if (!function_exists('bcrf_refund_complete')) {
+
+require_once __DIR__ . '/gift_cards.php';
 
 if (!class_exists('BcrfSaleError')) { class BcrfSaleError extends RuntimeException {} }
 
@@ -72,7 +78,7 @@ function bcrf_void_blocker(PDO $pdo, array $s): ?string {
         $st->execute([$s['drawer_session_id']]);
         if ($st->fetchColumn() !== 'open') return 'The drawer this sale was rung on is closed. Refund it instead.';
     }
-    return null;
+    return bcrf_gc_void_blocker($pdo, (int)$s['id']);
 }
 
 /** A sale for the Sales screen: bcrf_sale_get() plus line ids, refund state, refunds, and void status. */
@@ -228,6 +234,7 @@ function bcrf_refund_complete(PDO $pdo, array $in): array {
         if ($a <= 0) continue;
         $ref = mb_substr(trim((string)($p['reference'] ?? '')), 0, 80) ?: null;
         if (bcrf_tender_is_p2p($t) && !$ref) throw new BcrfSaleError('Send the ' . $tenders[$t] . ' refund from the app first, then enter the last characters of its transaction ID.');
+        if ($t === 'gift_card') $ref = null;   // goes back onto the card that paid (set below)
         $pays[] = ['tender' => $t, 'amount_cents' => $a, 'reference' => $ref];
     }
     if (!$pays) throw new BcrfSaleError('Say how the money goes back.');
@@ -307,8 +314,26 @@ function bcrf_refund_complete(PDO $pdo, array $in): array {
                 $ledger->execute([$l['product_id'], $l['quantity'], $before, $after, $rid, 'Refund ' . $number, $uid]);
             }
         }
-        $insP = $pdo->prepare("INSERT INTO refund_payments (refund_id, tender, amount_cents, reference, created_at) VALUES (?, ?, ?, ?, UTC_TIMESTAMP(3))");
-        foreach ($pays as $p) $insP->execute([$rid, $p['tender'], $p['amount_cents'], $p['reference']]);
+        // Gift cards (Nov 11): refunded gift card lines cancel unused cards; money going back by gift card goes onto the card that paid.
+        $gcReady = bcrf_gift_cards_ready($pdo);
+        $gcLines = array_values(array_filter(array_map(fn($ql) => $ql + ['product_type' => $lines[$ql['sale_line_id']]['product_type'] ?? ''], $q['lines']),
+                                             fn($ql) => $ql['product_type'] === 'gift_card'));
+        if ($gcLines) {
+            if (!$gcReady) throw new BcrfSaleError('Gift cards are waiting for migration 0028 (Settings › Database).');
+            bcrf_gc_refund_lines($pdo, $saleId, $rid, $number, $gcLines, $uid);
+        }
+        $insP = $pdo->prepare("INSERT INTO refund_payments (refund_id, tender, amount_cents, reference, created_at" . ($gcReady ? ", gift_card_id" : "") . ")
+                               VALUES (?, ?, ?, ?, UTC_TIMESTAMP(3)" . ($gcReady ? ", ?" : "") . ")");
+        foreach ($pays as $p) {
+            if ($p['tender'] === 'gift_card') {
+                if (!$gcReady) throw new BcrfSaleError('Gift cards are waiting for migration 0028 (Settings › Database).');
+                foreach (bcrf_gc_refund_credit($pdo, $saleId, $rid, $number, $p['amount_cents'], $uid) as [$cardId, $cents, $last4]) {
+                    $insP->execute([$rid, 'gift_card', $cents, $last4, $cardId]);
+                }
+                continue;
+            }
+            $insP->execute(array_merge([$rid, $p['tender'], $p['amount_cents'], $p['reference']], $gcReady ? [null] : []));
+        }
 
         $st = $pdo->prepare("SELECT SUM(quantity > refunded_quantity) FROM sale_lines WHERE sale_id = ?");
         $st->execute([$saleId]);
@@ -373,6 +398,7 @@ function bcrf_sale_void(PDO $pdo, int $saleId, string $reason): array {
             $pdo->prepare("UPDATE tickets SET status = 'void', updated_at = UTC_TIMESTAMP() WHERE sale_id = ?")->execute([$saleId]);
             $pdo->prepare("UPDATE check_ins SET checked_out_at = UTC_TIMESTAMP(), note = 'Sale voided' WHERE sale_id = ? AND checked_out_at IS NULL")->execute([$saleId]);
         }
+        bcrf_gc_after_void($pdo, $saleId, (string)$s['sale_number'], $uid);   // gift cards: put payments back, cancel cards sold (Nov 11)
         if ($s['legacy_receipt_id']) {   // Sales Log / dashboard: show it as voided and stop counting it
             $pdo->prepare("UPDATE pos_receipts SET payment_method = 'VOIDED', subtotal = 0, discount = 0, tax = 0, total = 0 WHERE id = ?")->execute([$s['legacy_receipt_id']]);
         }

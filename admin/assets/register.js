@@ -216,6 +216,7 @@
     itemFor = it;
     var custom = !it;
     $('itemTitle').textContent = custom ? 'Custom item' : it.name;
+    $('itemPriceWrap').firstChild.textContent = it && it.type === 'gift_card' ? 'Amount on each card ($5–$500)' : 'Price ($)';   // gift cards (Nov 11)
     $('itemNameWrap').hidden = !custom;
     $('itemPriceWrap').hidden = !(custom || it.mode === 'open_price');
     $('itemUnit').textContent = it && it.unit !== 'each' ? '(' + it.unit + ')' : '';
@@ -238,6 +239,10 @@
       changed();
     } else if (it.mode === 'open_price') {
       if (!(pc >= 0)) return err('Enter a price.');
+      if (it.type === 'gift_card') {
+        if (pc < 500 || pc > 50000) return err('A gift card can be $5.00 to $500.00.');
+        if (q !== Math.floor(q) || q > 20) return err('Gift cards are sold in whole numbers (1 to 20).');
+      }
       S.cart.push({ product_id: it.id, name: it.name, qty: q, unit_price_cents: pc, rate_bp: it.rate_bp, mode: it.mode, unit: it.unit, cat: it.cat });
       changed();
     } else {
@@ -432,6 +437,9 @@
     return S.items.find(function (it) { return it.sku && it.sku.toUpperCase() === code; }) || null;
   }
   function scanned(code) {
+    if (S.scanFor === 'gift') {   // gift card QR (Nov 11): back to the payment with the code
+      S.scanFor = null; $('dlgScan').close(); $('gcCode').value = code; gcLookup(); return;
+    }
     var it = bySku(code);
     if (!it) { $('scanMsg').textContent = 'No product with SKU ' + code + '.'; flash('SKU not found: ' + code); return; }
     if (it.stock !== null && it.stock <= 0) { flash('Out of stock: ' + it.name); return; }
@@ -451,8 +459,11 @@
 
   // Camera scanning where the browser has a built-in barcode reader (Chrome on Android); typing otherwise.
   var stream = null, scanTimer = null;
-  $('btnScan').addEventListener('click', function () {
+  $('btnScan').addEventListener('click', function () { S.scanFor = null; startScan(); });
+  $('btnGcScan').addEventListener('click', function () { S.scanFor = 'gift'; startScan(); });
+  function startScan() {
     $('dlgScan').showModal(); $('skuInput').value = ''; $('skuInput').focus();
+    $('dlgScan').querySelector('h3').textContent = S.scanFor === 'gift' ? 'Scan the gift card' : 'Scan';
     if (!('BarcodeDetector' in window) || !navigator.mediaDevices) { $('scanMsg').textContent = 'This browser can\'t read barcodes with the camera. A scanner works anywhere on this screen, or type the SKU:'; return; }
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function (s) {
       stream = s; var v = $('scanVideo'); v.srcObject = s; v.hidden = false; v.play();
@@ -468,13 +479,13 @@
         }, function () { busy = false; });
       }, 300);
     }, function () { $('scanMsg').textContent = 'Camera not available. Type the SKU:'; });
-  });
+  }
   function stopScan() {
     clearInterval(scanTimer); scanTimer = null;
     if (stream) stream.getTracks().forEach(function (t) { t.stop(); });
     stream = null; $('scanVideo').hidden = true;
   }
-  $('dlgScan').addEventListener('close', stopScan);
+  $('dlgScan').addEventListener('close', function () { stopScan(); S.scanFor = null; });
   $('scanClose').addEventListener('click', function () { $('dlgScan').close(); });
   $('formSku').addEventListener('submit', function (e) { e.preventDefault(); scanned($('skuInput').value.trim()); $('skuInput').value = ''; });
 
@@ -500,7 +511,7 @@
     var p = price(), lf = left();
     $('pTotal').textContent = money(p.total); $('pPaid').textContent = money(paid()); $('pLeft').textContent = money(lf);
     $('payList').replaceChildren.apply($('payList'), S.payments.map(function (py, i) {
-      var extra = [py.payer_handle, py.reference ? '#' + py.reference : '', py.tender === 'cash' && py.tendered_cents > py.amount_cents ? 'gave ' + money(py.tendered_cents) + ', change ' + money(py.tendered_cents - py.amount_cents) : '']
+      var extra = [py.payer_handle, py.masked || (py.reference ? '#' + py.reference : ''), py.tender === 'cash' && py.tendered_cents > py.amount_cents ? 'gave ' + money(py.tendered_cents) + ', change ' + money(py.tendered_cents - py.amount_cents) : '']
         .filter(Boolean).join(' · ');
       return el('li', {}, [el('span', {}, [el('b', { text: BOOT.tenders[py.tender] + ' ' + money(py.amount_cents) }), extra ? el('br') : null, extra ? el('small', { text: extra }) : null]),
         el('button', { type: 'button', class: 'link', text: 'Remove', disabled: S.saving, onclick: function () { S.payments.splice(i, 1); save(); renderPay(); } })]);
@@ -511,7 +522,8 @@
     if (lf < 0) { $('payErr').textContent = 'Payments are more than the total. Remove one.'; $('payErr').hidden = false; }
     Array.prototype.forEach.call($('tenderBtns').children, function (b) { b.setAttribute('aria-pressed', b.dataset.t === S.tender ? 'true' : 'false'); });
     $('payCash').hidden = S.tender !== 'cash';
-    $('payOther').hidden = !S.tender || S.tender === 'cash';
+    $('payGift').hidden = S.tender !== 'gift_card';
+    $('payOther').hidden = !S.tender || S.tender === 'cash' || S.tender === 'gift_card';
     $('btnAddPay').hidden = !S.tender;
   }
   function chooseTender(t) {
@@ -527,6 +539,12 @@
       });
       cashChange();
       setTimeout(function () { $('cashGiven').focus(); }, 0);
+    } else if (t === 'gift_card') {   // gift cards (Nov 11): check the balance first
+      S.gc = null; $('gcCode').value = ''; $('gcInfo').textContent = 'Type the code on the card, or scan its QR.'; $('gcAmtWrap').hidden = true;
+      if (S.cart.some(function (l) { var it = l.product_id && S.byId[l.product_id]; return it && it.type === 'gift_card'; })) {
+        $('gcInfo').textContent = 'Gift cards can\'t be bought with a gift card. Use another payment type.';
+      }
+      setTimeout(function () { $('gcCode').focus(); }, 0);
     } else {
       var p2p = t === 'paypal' || t === 'venmo' || t === 'cashapp';
       $('payAmt').value = (lf / 100).toFixed(2);
@@ -566,9 +584,37 @@
   $('cashGiven').addEventListener('input', cashChange);
   $('btnAddPay').addEventListener('click', addPayment);
   [$('cashGiven'), $('payAmt'), $('payer'), $('payRef')].forEach(function (i) { i.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); addPayment(); } }); });
+  // -- gift cards (Nov 11) --
+  function gcLookup() {
+    var code = $('gcCode').value.trim();
+    if (!code) return;
+    $('gcInfo').textContent = 'Checking…'; $('gcAmtWrap').hidden = true; S.gc = null;
+    api('gift_card&code=' + encodeURIComponent(code)).then(function (j) {
+      if (!j.ok) { $('gcInfo').textContent = j.message; return; }
+      var c = j.card, already = S.payments.filter(function (p) { return p.gift_card_code === c.code; }).reduce(function (s, p) { return s + p.amount_cents; }, 0);
+      var bal = c.balance_cents - already;
+      if (!c.usable || bal <= 0) { $('gcInfo').textContent = 'Card ' + c.masked + ': ' + (c.message || 'nothing left after the payment already added.'); return; }
+      S.gc = { code: c.code, masked: c.masked, balance: bal };
+      $('gcInfo').textContent = 'Card ' + c.masked + ' has ' + money(bal) + ' on it.';
+      $('gcAmt').value = (Math.min(bal, Math.max(0, left())) / 100).toFixed(2);
+      $('gcAmtWrap').hidden = false; $('gcAmt').focus();
+    }, function () { $('gcInfo').textContent = 'No connection. Try again.'; });
+  }
+  $('formGift').addEventListener('submit', function (e) { e.preventDefault(); gcLookup(); });
+  $('gcAmt').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); addPayment(); } });
   function addPayment() {
     var lf = left(), t = S.tender, err = function (m) { $('payErr').textContent = m; $('payErr').hidden = false; };
     if (!t || lf <= 0) return;
+    if (t === 'gift_card') {
+      if (!S.gc) return err('Check the gift card first.');
+      var ga = cents($('gcAmt').value);
+      if (!(ga > 0)) return err('Enter the amount to take from the card.');
+      if (ga > S.gc.balance) return err('The card only has ' + money(S.gc.balance) + '.');
+      if (ga > lf) return err('That is more than the ' + money(lf) + ' left.');
+      S.payments.push({ tender: 'gift_card', amount_cents: ga, gift_card_code: S.gc.code, masked: S.gc.masked });
+      S.gc = null; S.tender = null; $('payErr').hidden = true; save(); renderPay();
+      return;
+    }
     if (t === 'cash') {
       var g = cents($('cashGiven').value);
       if (!(g > 0)) return err('Enter the cash handed over.');
@@ -627,18 +673,32 @@
     var change = sale.payments.reduce(function (s, p) { return s + (+p.change_cents || 0); }, 0);
     $('doneNo').textContent = sale.sale_number + ' · ' + money(sale.total_cents);
     $('doneChange').hidden = !change; $('doneChange').textContent = 'Change ' + money(change);
+    renderDoneGift(sale);
     $('dlgDone').showModal();
     if (printIt) printReceipt(sale);
     loadCatalog(true); loadToday(); loadDrawer();
+  }
+  // Gift cards sold on this sale (Nov 11): print the card(s), or email one.
+  function renderDoneGift(sale) {
+    var cards = (sale.gift_cards || []).filter(function (c) { return c.status === 'active'; });
+    $('doneGift').hidden = !cards.length;
+    if (!cards.length) return;
+    $('btnGiftPrint').href = 'gift_card_print.php?sale=' + sale.id;
+    $('btnGiftPrint').textContent = cards.length === 1 ? 'Print gift card' : 'Print ' + cards.length + ' gift cards';
+    $('doneGiftList').replaceChildren.apply($('doneGiftList'), cards.map(function (c) {
+      return el('li', {}, [el('span', {}, [el('b', { text: money(c.initial_cents) + ' gift card' }), el('br'), el('small', { text: c.code_fmt })]),
+        el('button', { type: 'button', class: 'link', text: 'Email', onclick: function () { emailDialog(sale, S.lastEmail || '', c); } })]);
+    }));
   }
   $('btnNew').addEventListener('click', function () { $('dlgDone').close(); $('search').focus(); });
   $('btnReprint').addEventListener('click', function () { if (S.lastSale) printReceipt(S.lastSale); });
 
   // -- slice 9: email the receipt --
-  var emSale = null;
-  function emailDialog(sale, suggest) {
-    emSale = sale;
-    $('emSale').textContent = sale.sale_number + ' · ' + money(sale.total_cents);
+  var emSale = null, emCard = null;
+  function emailDialog(sale, suggest, card) {
+    emSale = sale; emCard = card || null;
+    $('dlgEmail').querySelector('h3').textContent = emCard ? 'Email the gift card' : 'Email the receipt';
+    $('emSale').textContent = emCard ? money(emCard.initial_cents) + ' gift card ' + emCard.code_fmt + '. Send it to whoever will use it.' : sale.sale_number + ' · ' + money(sale.total_cents);
     $('emTo').value = suggest || ''; $('emErr').hidden = true; $('emSend').disabled = false;
     $('dlgEmail').showModal(); $('emTo').focus();
   }
@@ -649,10 +709,10 @@
     var to = $('emTo').value.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) { $('emErr').textContent = 'Check the email address.'; $('emErr').hidden = false; return; }
     $('emSend').disabled = true;
-    post('email_receipt', { sale_id: emSale.id, email: to }).then(function (j) {
+    (emCard ? post('gift_card_email', { card_id: emCard.id, email: to }) : post('email_receipt', { sale_id: emSale.id, email: to })).then(function (j) {
       $('emSend').disabled = false;
       if (!j.ok) { $('emErr').textContent = j.message; $('emErr').hidden = false; return; }
-      $('dlgEmail').close(); flash('Receipt sent to ' + j.email);
+      $('dlgEmail').close(); flash((emCard ? 'Gift card' : 'Receipt') + ' sent to ' + j.email);
     }, function () { $('emSend').disabled = false; $('emErr').textContent = 'No connection. Try again.'; $('emErr').hidden = false; });
   });
 
@@ -675,7 +735,8 @@
     if (s.tax_exempt) tot.push(['Tax (exempt)', 0]);
     else Object.keys(s.tax_by_rate).forEach(function (r) { if (+r > 0) tot.push(['Tax ' + (r / 100) + '%', s.tax_by_rate[r]]); });
     var pays = s.payments.map(function (p) {
-      var r = [el('tr', {}, [el('td', { text: BOOT.tenders[p.tender] || p.tender }), el('td', { class: 'r', text: money(p.amount_cents) })])];
+      var r = [el('tr', {}, [el('td', { text: (BOOT.tenders[p.tender] || p.tender) + (p.gift_card ? ' ' + p.gift_card.masked : '') }), el('td', { class: 'r', text: money(p.amount_cents) })])];
+      if (p.gift_card) r.push(el('tr', {}, [el('td', { text: '  Left on card' }), el('td', { class: 'r', text: money(p.gift_card.balance_after_cents) })]));
       if (p.tender === 'cash' && +p.change_cents > 0) {
         r.push(el('tr', {}, [el('td', { text: '  Cash given' }), el('td', { class: 'r', text: money(p.tendered_cents) })]));
         r.push(el('tr', {}, [el('td', { text: '  Change' }), el('td', { class: 'r', text: money(p.change_cents) })]));
@@ -699,6 +760,10 @@
       el('table', {}, pays),
       s.status === 'voided' ? el('div', { class: 'note', text: 'VOIDED' + (s.voided_local ? ' ' + s.voided_local : '') }) : null,
       (s.refunds && s.refunds.length) ? el('table', {}, s.refunds.map(function (r) { return el('tr', {}, [el('td', { text: 'Refund ' + r.refund_number + ' ' + r.when }), el('td', { class: 'r', text: money(-r.total_cents) })]); })) : null,
+      (s.gift_cards && s.gift_cards.length) ? el('table', {}, s.gift_cards.map(function (c) {   // gift cards sold (Nov 11): the buyer keeps the code
+        return el('tr', {}, [el('td', { text: 'Gift card ' + c.code_fmt + (c.status === 'void' ? ' (cancelled)' : '') }), el('td', { class: 'r', text: money(c.initial_cents) })]);
+      })) : null,
+      (s.gift_cards && s.gift_cards.length) ? el('div', { class: 'note', text: 'Gift cards never expire. Treat the code like cash.' }) : null,
       thrift ? el('div', { class: 'note', text: 'Thrift shop items are sold as-is.' }) : null,
       f.policy ? el('p', { class: 'c', text: f.policy }) : null,
       el('p', { class: 'c', text: 'Thank you! ' + f.domain })

@@ -20,16 +20,20 @@
  * Nov 6: payment types turned off in Settings › Payments & Register are refused for new sales (bcrf_tenders_active()).
  * Phase 2 slice 2.1 (Nov 9): unit_cost_cents on each sale line is a snapshot of inventory.avg_cost_cents at sale time
  *   (vendors + cost; migration 0018). Null when cost is unknown. Margin reports use this, not the live average.
+ * Phase 2 gift cards (Nov 11; migration 0028, includes/gift_cards.php): a gift_card line issues one card per unit
+ *   (no tax, no discount, $5–$500 each); the "gift_card" tender spends from a card (payments.gift_card_code in the input).
+ *   Both happen in the sale's transaction, so a failed sale never leaves a card half-made or half-spent.
  */
 require_once __DIR__ . '/stock.php';
+require_once __DIR__ . '/gift_cards.php';
 
 if (!function_exists('bcrf_sale_complete')) {
 
 if (!class_exists('BcrfSaleError')) { class BcrfSaleError extends RuntimeException {} }
 
-/** In-person tenders the register offers (D-06). Online card, gift card and store credit come later. */
+/** In-person tenders the register offers (D-06). Gift card added Nov 11, 2026 (migration 0028). Online card and store credit come later. */
 function bcrf_tenders(): array {
-    return ['cash' => 'Cash', 'paypal' => 'PayPal', 'venmo' => 'Venmo', 'cashapp' => 'Cash App', 'check' => 'Check'];
+    return ['cash' => 'Cash', 'paypal' => 'PayPal', 'venmo' => 'Venmo', 'cashapp' => 'Cash App', 'check' => 'Check', 'gift_card' => 'Gift card'];
 }
 function bcrf_tender_is_p2p(string $t): bool { return in_array($t, ['paypal', 'venmo', 'cashapp'], true); }
 
@@ -206,6 +210,11 @@ function bcrf_sale_validate(array $in): array {
         if (bcrf_tender_is_p2p($t) && !$row['payer_handle']) {
             throw new BcrfSaleError($tenders[$t] . ' payments need the payer\'s name or handle (for matching later).');
         }
+        if ($t === 'gift_card') {
+            $row['gift_card_code'] = bcrf_gc_norm((string)($p['gift_card_code'] ?? ''));
+            if ($row['gift_card_code'] === '') throw new BcrfSaleError('A gift card payment needs the card\'s code. Remove it and add it again.');
+            $row['payer_handle'] = null; $row['reference'] = null;
+        }
         $pays[] = $row;
     }
     // No payments is fine only for a $0 sale (e.g. an Under-3 admission alone); checked once the total is known.
@@ -229,10 +238,18 @@ function bcrf_sale_get(PDO $pdo, ?int $id, ?string $key = null): ?array {
                                . (bcrf_sales_line_disc_ready($pdo) ? ", line_discount_bp" : ", 0 AS line_discount_bp") . "
                         FROM sale_lines WHERE sale_id = ? ORDER BY line_no");
     $l->execute([$s['id']]);
-    $p = $pdo->prepare("SELECT tender, amount_cents, tendered_cents, change_cents, payer_handle, reference FROM payments WHERE sale_id = ? ORDER BY id");
+    $p = $pdo->prepare("SELECT id, tender, amount_cents, tendered_cents, change_cents, payer_handle, reference FROM payments WHERE sale_id = ? ORDER BY id");
     $p->execute([$s['id']]);
     $s['lines'] = $l->fetchAll(PDO::FETCH_ASSOC);
     $s['payments'] = $p->fetchAll(PDO::FETCH_ASSOC);
+    // Gift cards (Nov 11): cards sold on this sale (full code: the buyer's receipt is how they hold it) and the card that paid.
+    $s['gift_cards'] = [];
+    if (bcrf_gift_cards_ready($pdo)) {
+        $gc = bcrf_gc_for_sale($pdo, (int)$s['id']);
+        $s['gift_cards'] = $gc['sold'];
+        foreach ($s['payments'] as &$py) if (isset($gc['used'][(int)$py['id']])) $py['gift_card'] = $gc['used'][(int)$py['id']];
+        unset($py);
+    }
     foreach (['id', 'subtotal_cents', 'discount_cents', 'tax_cents', 'total_cents', 'discount_bp', 'tax_exempt'] as $k) $s[$k] = (int)$s[$k];
     $s['customer_name'] = null; $s['customer_email'] = null;
     if ($s['customer_id'] && bcrf_customers_ready($pdo)) {
@@ -319,6 +336,11 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
             if ($customerName === false) throw new BcrfSaleError('That customer no longer exists. Remove them from the sale and try again.');
         }
         $priced = bcrf_sale_price($v['cart'], $products, $taxCats, $v['discount_bp'], $v['tax_exempt'], $customTax);
+        // Gift cards (migration 0028): selling one or paying with one.
+        $gcSelling = (bool)array_filter($priced['lines'], fn($l) => $l['product_type'] === 'gift_card');
+        $gcPaying  = in_array('gift_card', array_column($v['payments'], 'tender'), true);
+        if (($gcSelling || $gcPaying) && !bcrf_gift_cards_ready($pdo)) throw new BcrfSaleError('Gift cards are waiting for migration 0028 (Settings › Database).');
+        if ($gcSelling || $gcPaying) bcrf_gc_sale_check($priced['lines'], $v);
         $admission = [0, 0, []]; $ov = [null, null];
         if ($adm) {
             $admission = bcrf_admission_guests($pdo, $priced['lines']);
@@ -366,6 +388,9 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
                                $l['unit_price_cents'], $l['gross_cents'], $l['discount_cents'], $l['tax_category_id'], $l['tax_rate_bp'],
                                $l['tax_cents'], $l['line_total_cents'], $l['unit_cost_cents'] ?? null, $l['product_type'], mb_substr($l['category_label'], 0, 100), $l['note']],
                                $lineDiscCol ? [$l['line_discount_bp']] : []));
+            if ($l['product_type'] === 'gift_card') {   // one card per unit (gift cards, Nov 11)
+                bcrf_gc_issue_for_sale($pdo, $saleId, (int)$pdo->lastInsertId(), $l, $uid, $v['customer_id'] ? (int)$v['customer_id'] : null);
+            }
             if ($l['product_id'] && $l['track'] && $stockLoc) {   // slice 8: off the register's location; stops at zero there, as before
                 $mv = bcrf_stock_move($pdo, (int)$l['product_id'], $stockLoc, -$l['quantity'], 'sale', 'sale', $saleId, null, $uid, 'clamp');
                 if ($mv['short'] > 0) {
@@ -404,6 +429,7 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
                                  VALUES (?, ?, ?, ?, ?, ?, ?, 'completed', ?, UTC_TIMESTAMP(3), ?)");
         foreach ($v['payments'] as $p) {
             $insPay->execute([$saleId, $p['tender'], $p['amount_cents'], $p['tendered_cents'], $p['change_cents'], $p['payer_handle'], $p['reference'], $bdate, $uid]);
+            if ($p['tender'] === 'gift_card') bcrf_gc_redeem($pdo, $p['gift_card_code'], $p['amount_cents'], $saleId, (int)$pdo->lastInsertId(), $uid);
         }
 
         // Sales Log / dashboard compatibility (they read pos_receipts until the reports are rebuilt).

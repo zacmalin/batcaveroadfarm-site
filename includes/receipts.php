@@ -188,11 +188,17 @@ function bcrf_receipt_html(PDO $pdo, array $s): string {
     else foreach ($s['tax_by_rate'] as $r => $c) if ($r > 0) $o .= $row('Tax ' . $h($r / 100) . '%', $m($c));
     $o .= $row('Total', $m($s['total_cents']), true) . '</table><hr style="border:0;border-top:1px solid #e7e5e4;margin:10px 0;"><table role="presentation" style="width:100%;border-collapse:collapse;font-size:15px;">';
     foreach ($s['payments'] as $p) {
-        $o .= $row($h($tenders[$p['tender']] ?? $p['tender']), $m($p['amount_cents']));
+        $o .= $row($h($tenders[$p['tender']] ?? $p['tender']) . (!empty($p['gift_card']) ? ' ' . $h($p['gift_card']['masked']) : ''), $m($p['amount_cents']));
+        if (!empty($p['gift_card'])) $o .= $row($small('&nbsp;&nbsp;Left on card'), $m($p['gift_card']['balance_after_cents']));   // gift cards (Nov 11)
         if ($p['tender'] === 'cash' && (int)$p['change_cents'] > 0) $o .= $row($small('&nbsp;&nbsp;Cash given'), $m($p['tendered_cents'])) . $row($small('&nbsp;&nbsp;Change'), $m($p['change_cents']));
     }
     foreach (($s['refunds'] ?? []) as $r) $o .= $row('Refund ' . $h($r['refund_number']) . ' ' . $h($r['when'] ?? ''), $m(-(int)$r['total_cents']));
     $o .= '</table>';
+    if (!empty($s['gift_cards'])) {   // gift cards sold on this sale (Nov 11): the buyer keeps the code
+        $o .= '<table role="presentation" style="width:100%;border-collapse:collapse;font-size:15px;margin-top:10px;">';
+        foreach ($s['gift_cards'] as $c) $o .= $row('Gift card <b>' . $h($c['code_fmt']) . '</b>' . ($c['status'] === 'void' ? ' (cancelled)' : ''), $m($c['initial_cents']));
+        $o .= '</table><p style="color:#57534e;font-size:13px;">Gift cards never expire. Treat the code like cash.</p>';
+    }
     if ($thrift) $o .= '<p style="color:#57534e;font-size:13px;">Thrift shop items are sold as-is.</p>';
     $policy = bcrf_pos_settings($pdo)['policy'];
     if ($policy !== '') $o .= '<p style="color:#57534e;font-size:13px;">' . nl2br($h($policy)) . '</p>';

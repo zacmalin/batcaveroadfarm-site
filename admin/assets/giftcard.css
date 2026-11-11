@@ -1,0 +1,31 @@
+/* admin/assets/giftcard.css — printable gift cards (admin/gift_card_print.php, Nov 11, 2026).
+   Brand: Espresso #3E2A1E, Barn Red #8A3324, Wheat Gold #D9A441, Cream #F7F1E3. Card = 3.5in × 2in. */
+* { box-sizing: border-box; }
+body { margin: 0; padding: 16px; font-family: Lora, Georgia, serif; color: #3E2A1E; background: #f5f5f4; }
+header { max-width: 7.5in; margin: 0 auto 16px; font-size: 15px; }
+header a { color: #8A3324; }
+header button { margin-left: 8px; padding: 6px 16px; font: inherit; font-weight: 700; color: #fff; background: #8A3324; border: 0; border-radius: 6px; cursor: pointer; }
+header p { color: #57534e; font-size: 13px; }
+.none { max-width: 7.5in; margin: 0 auto; }
+.sheet { display: flex; flex-wrap: wrap; gap: 0.25in; max-width: 7.5in; margin: 0 auto; }
+.gc { position: relative; width: 3.5in; height: 2in; padding: 0.12in 0.16in; background: #F7F1E3; border: 1px dashed #a8a29e;
+      display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; break-inside: avoid; page-break-inside: avoid; }
+.gc::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 0.08in; background: #8A3324; }
+.gc-top { display: flex; align-items: center; gap: 0.08in; margin-top: 0.06in; }
+.gc-logo { width: 0.42in; height: 0.42in; object-fit: contain; }
+.gc-farm { font-family: "Young Serif", Georgia, serif; font-size: 11pt; line-height: 1.1; }
+.gc-kind { font-size: 8pt; letter-spacing: 0.12em; text-transform: uppercase; color: #8A3324; font-weight: 700; }
+.gc-amt { margin-left: auto; font-family: "Young Serif", Georgia, serif; font-size: 20pt; color: #3E2A1E; }
+.gc-mid { display: flex; align-items: center; gap: 0.1in; }
+.gc-qr { width: 0.8in; height: 0.8in; flex: none; background: #fff; padding: 2px; }
+.gc-qr img, .gc-qr canvas { width: 100% !important; height: 100% !important; display: block; }
+.gc-text { min-width: 0; }
+.gc-code { font-family: "Courier New", monospace; font-weight: 700; font-size: 10.5pt; letter-spacing: 0.02em; white-space: nowrap; }
+.gc-small { font-size: 6.5pt; line-height: 1.25; color: #57534e; margin-top: 2px; }
+.gc-foot { font-size: 7pt; color: #3E2A1E; border-top: 1px solid #D9A441; padding-top: 2px; }
+@media print {
+  @page { size: letter; margin: 0.5in; }
+  body { background: #fff; padding: 0; }
+  .noprint { display: none; }
+  .gc { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

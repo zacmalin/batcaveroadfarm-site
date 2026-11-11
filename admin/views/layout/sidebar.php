@@ -26,7 +26,8 @@ $_sections = [
             ['Categories', '?view=schema&table=inventory_categories', 'table', 'inventory_categories'],
         ]],
         ['label'=>'Sales & Drawers','short'=>'Sales','icon'=>'🧾','tabs'=>[['Receipts','?view=receipts','view','receipts'],
-                                                                         ['P2P matching','/admin/reconcile.php','view','p2p_reconcile']]],   // Farm OS slice 6
+                                                                         ['P2P matching','/admin/reconcile.php','view','p2p_reconcile'],      // Farm OS slice 6
+                                                                         ['Gift Cards','/admin/gift_cards.php','view','pos']]],              // Farm OS Phase 2 gift cards (Nov 11)
     ]],
     'visitors' => ['label'=>'Visitors & Events','icon'=>'🎟','items'=>[
         ['label'=>'Bookings',       'icon'=>'📋','tabs'=>[['Bookings','?view=bookings','view','bookings']]],
