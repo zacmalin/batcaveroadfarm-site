@@ -110,7 +110,7 @@ a:focus-visible,button:focus-visible,.cta-btn:focus-visible,input:focus-visible,
 .sub-modal-close{position:absolute;top:8px;right:12px;background:none;border:0;font-size:1.8rem;line-height:1;color:var(--brown-light,#8b5c2a);cursor:pointer;padding:4px 8px}
 .sub-modal-close:hover{color:var(--red-barn,#8b2018)}
 .sub-form label[for]{display:block;font-weight:600;margin:0 0 4px}
-.sub-form input[type=email]{width:100%;box-sizing:border-box;padding:11px 13px;border:1px solid var(--cream-dark,#e8d5b0);border-radius:9px;font-family:inherit;font-size:1rem;margin-bottom:12px;background:#fffdf8}
+.sub-form input[type=email]{width:100%;box-sizing:border-box;padding:11px 13px;border:1px solid var(--brown-light,#8b5c2a);border-radius:9px;font-family:inherit;font-size:1rem;margin-bottom:12px;background:#fffdf8}
 .sub-form input[type=email]:focus{outline:none;border-color:var(--gold,#c9923a);box-shadow:0 0 0 3px rgba(201,146,58,.25)}
 .sub-check{display:flex;gap:9px;align-items:flex-start;font-size:.9rem;line-height:1.4;margin:0 0 9px;font-weight:400;cursor:pointer}
 .sub-check input{margin-top:3px;accent-color:var(--green,#4a6741);flex-shrink:0}
@@ -122,7 +122,7 @@ a:focus-visible,button:focus-visible,.cta-btn:focus-visible,input:focus-visible,
 .subscribe-msg.is-err{background:#fcefe6;border:1px solid var(--red-barn,#8b2018);color:var(--red-barn,#8b2018)}
 .hp{position:absolute!important;left:-9999px!important;width:1px;height:1px;opacity:0;overflow:hidden}
 .chalk-subscribe-wrap{text-align:center;margin-top:12px}
-.chalk-subscribe{display:inline-block;font-family:'Caveat',cursive;font-size:1.4rem;line-height:1;color:#f3ece0;background:transparent;border:2px solid rgba(243,236,224,.5);border-radius:10px;padding:7px 24px;cursor:pointer;transition:background .2s,border-color .2s}
+.chalk-subscribe{display:inline-block;font-family:'Caveat',cursive;font-size:1.4rem;line-height:1;color:#f3ece0;background:transparent;border:2px solid #f3ece0;border-radius:10px;padding:7px 24px;cursor:pointer;transition:background .2s,border-color .2s}
 .chalk-subscribe:hover{background:rgba(243,236,224,.14);border-color:#f3ece0}
 .chalk-subscribe:focus-visible{outline:3px solid var(--gold-bright,#e8b84b);outline-offset:2px}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}.reveal{opacity:1!important;transform:none!important}}
@@ -398,3 +398,5 @@ nav.open .hamburger-label .hl-close{display:inline}
 .home-visit-actions{display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:22px}
 .home-visit-actions .cta-btn{display:flex;align-items:center;justify-content:center;box-sizing:border-box;width:min(100%,320px);max-width:100%;margin:0;text-align:center}
 @media (min-width:768px){.home-visit-actions{flex-direction:row;justify-content:center;gap:12px}.home-visit-actions .cta-btn{flex:1 1 0;min-width:0;max-width:220px;width:auto;padding-left:10px;padding-right:10px}}
+/* new-tab link icon, added by js/min.newtab.js (WCAG 3.2.5, Nov 11 2026) */
+.nt-icon{display:inline-block;margin-left:.2em;font-size:.8em;line-height:1;text-decoration:none}

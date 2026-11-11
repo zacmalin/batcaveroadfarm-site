@@ -106,7 +106,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.ph
                       <h3><a href="<?= htmlspecialchars($bUrl) ?>"><?= htmlspecialchars($latestPost['title']) ?></a></h3>
                       <?php if ($bDate): ?><p class="hbc-date"><?= htmlspecialchars($bDate) ?></p><?php endif; ?>
                       <?php if ($bExc): ?><p class="hbc-excerpt"><?= htmlspecialchars($bExc) ?></p><?php endif; ?>
-                      <a class="hbc-readmore" href="<?= htmlspecialchars($bUrl) ?>">Read full article &rarr;</a>
+                      <a class="hbc-readmore" href="<?= htmlspecialchars($bUrl) ?>">Read full article<span class="visually-hidden">: <?= htmlspecialchars($latestPost['title']) ?></span> <span aria-hidden="true">&rarr;</span></a>
                     </div>
                   </article>
                   <a class="home-col-link" href="/blog/">Go to the blog &rarr;</a>

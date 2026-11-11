@@ -32,6 +32,7 @@ const parts = [
   { file: 'js/min.subscribe.js', isolate: true  },
   { file: 'js/min.analytics.js', isolate: true  },
   { file: 'js/min.theme.js',     isolate: true  },
+  { file: 'js/min.newtab.js',    isolate: true  },   // new-tab link warning (Nov 11, 2026)
 ];
 
 let src = '';
