@@ -23,6 +23,7 @@ $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
 foreach ($pdo->query("SELECT table_name AS t FROM information_schema.tables WHERE table_schema = DATABASE()")->fetchAll(PDO::FETCH_COLUMN) as $t) $pdo->exec("DROP TABLE `$t`");
 $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
 
+bcrf_migrations_ensure_table($pdo);   // the runner's own log table, as bcrf_migrations_status() would create it
 $files = bcrf_migrations_files();
 $apply = function (string $v) use ($pdo, $files) {
     [$ok, $msg] = bcrf_migration_apply($pdo, $files[$v], null);
