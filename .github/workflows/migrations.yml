@@ -6,7 +6,7 @@ name: Migrations test
 
 on:
   push:
-    paths: ['admin/migrations/**', 'includes/**', 'tests/migrations_test.php', '.github/workflows/migrations.yml']
+    paths: ['admin/migrations/**', 'admin/includes/audit.php', 'includes/**', 'tests/migrations_test.php', 'tests/phase0_cleanup_test.php', '.github/workflows/migrations.yml']
   pull_request:
   workflow_dispatch:
 
