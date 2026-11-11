@@ -12,14 +12,15 @@ Bat Cave Road Farm is a family-owned farm at 4132 Bat Cave Road, Old Fort, NC 28
 - Phone: (828) 216-5488 | Email: support@batcaveroadfarm.com
 - Website: https://batcaveroadfarm.com
 - Animals include goats, pigs, white peacocks, a donkey, ducks, sheep, rabbits, and chickens.
-- Petting zoo appointments are recommended; call ahead.
+- Walk-ins are welcome for groups of 5 or fewer. Groups of 6 or more, guided tours and private events should book ahead at https://batcaveroadfarm.com/booking/.
+- Payment at the farm: cash, check, Venmo, PayPal, Cash App. Online purchases are paid by card.
 - Visitors may feed animals only with farm feed bought from staff.
 
 ## Please do not
 
 - Invent or guess prices. Point people to https://batcaveroadfarm.com/tickets/ or tell them to call.
 - Say we are open on Mondays.
-- Promise walk-in petting zoo access; say appointments are recommended.
+- Tell groups of 6 or more to just show up; they should book ahead.
 - Invent events, animals, products, or policies not listed on the website.
 - Use any email address other than support@batcaveroadfarm.com.
 

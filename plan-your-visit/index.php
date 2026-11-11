@@ -136,7 +136,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
               <li>🚼 Stroller accessible</li>
               <li>🐕 Dog friendly</li>
               <li>🧼 Hand-washing stations</li>
-              <li>💵 Cash, card, Venmo, PayPal &amp; CashApp accepted</li>
+              <li>💵 At the farm: cash, check, Venmo, PayPal &amp; Cash App · card for online purchases</li>
               <li>👨‍👩‍👧‍👦 Family-friendly — bring the kids!</li>
             </ul>
 

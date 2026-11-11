@@ -183,7 +183,7 @@ foreach ($faqSchemaItems as [$question, $answer]) {
                         <button class="faq-question">
                             What forms of payment do you accept? <span class="faq-chevron" aria-hidden="true">▼</span>
                         </button>
-                        <div class="faq-answer">We accept cash, credit and debit cards, CashApp, PayPal, and Venmo. We do not currently accept checks. There is no minimum purchase for card payments.</div>
+                        <div class="faq-answer">At the farm we accept cash, checks, Venmo, PayPal, and Cash App. Online purchases — tickets, passes, and the online shop — are paid by card.</div>
                     </div>
 
                     <div class="faq-item">
