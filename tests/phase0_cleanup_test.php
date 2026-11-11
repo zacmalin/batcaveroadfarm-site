@@ -4,6 +4,7 @@
 //   DB_HOST=127.0.0.1 DB_NAME=bcrf_migrate_test DB_USER=... DB_PASS=... php tests/phase0_cleanup_test.php
 // Refuses to run unless DB_NAME ends in "_test". Empties that database first. Exit 0 = all passed.
 if (PHP_SAPI !== 'cli') exit(1);
+set_exception_handler(function (Throwable $e) { fwrite(STDERR, 'Stopped: ' . $e->getMessage() . ' (' . basename($e->getFile()) . ':' . $e->getLine() . ")\n"); exit(1); });
 $db = getenv('DB_NAME') ?: '';
 if (!preg_match('/_test$/', $db)) { fwrite(STDERR, "Refusing: DB_NAME must end in _test.\n"); exit(2); }
 $pdo = new PDO('mysql:host=' . (getenv('DB_HOST') ?: '127.0.0.1') . ';dbname=' . $db . ';charset=utf8mb4', getenv('DB_USER') ?: 'root', getenv('DB_PASS') ?: '', [
