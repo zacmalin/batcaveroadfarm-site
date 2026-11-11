@@ -78,7 +78,7 @@ $_sections = [
     'reports' => ['label'=>'Reports','icon'=>'📈','items'=>[
         ['label'=>'Sales',   'icon'=>'💵','tabs'=>[['Sales','?view=sales_analytics','view','sales_analytics'],
                                                    ['Daily & tax','/admin/farm_reports.php','view','sales_analytics']]],   // Farm OS reports (Phase 1, slice 5)
-        ['label'=>'Website', 'icon'=>'🔎','tabs'=>[['Website','?view=search_analytics','view','search_analytics']]],
+        ['label'=>'Listings & Analytics', 'short'=>'Listings', 'icon'=>'📊','tabs'=>[['Listings & Analytics','?view=search_analytics','view','search_analytics']]],   // listings hub + GA4/GSC (Nov 11 2026)
     ]],
     'settings' => ['label'=>'Settings','icon'=>'⚙️','items'=>[
         ['label'=>'Hours & Contacts', 'short'=>'Hours','icon'=>'🏠','tabs'=>[['Hours & Contacts','?view=site_info','view','site_info']]],

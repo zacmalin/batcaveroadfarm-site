@@ -1,8 +1,33 @@
 <?php
 // admin/views/search_analytics.php
-// Search Console + Google Analytics 4 summary (Nov 2026). Data: includes/google_reports.php,
+// Listings & Analytics (Nov 2026). Top: listings hub — open/closed state, the hours every listing
+// should show, and one-tap links to Google, Microsoft and Apple dashboards (Phase 1, Nov 11 2026).
+// Below: Search Console + Google Analytics 4 summary. Data: includes/google_reports.php,
 // refreshed daily by admin/cron/fetch_google_reports.php or the Refresh button below.
 require_once __DIR__ . '/../../includes/google_reports.php';
+require_once __DIR__ . '/../../includes/site_info.php';
+
+// ── Listings hub data (no third-party calls: everything here is local) ──
+$openNow  = function_exists('site_open_status') ? site_open_status() : ['open' => false, 'label' => 'Unknown', 'detail' => ''];
+$hoursStr = function_exists('site_hours_compact') ? site_hours_compact() : '';
+$gcfg     = bcrf_greports_config();
+$farmUrl  = rtrim(bcrf_farm_url(), '/');
+$hub = [
+    ['Google', 'Google account', [
+        ['Business Profile', 'Search & Maps views, calls, direction requests', 'https://business.google.com/'],
+        ['Analytics (GA4)',  'Website visits and key events', $gcfg['property_id'] !== ''
+            ? 'https://analytics.google.com/analytics/web/#/p' . $gcfg['property_id'] . '/reports/intelligenthome'
+            : 'https://analytics.google.com/analytics/web/'],
+        ['Search Console',   'Searches, clicks and indexing', 'https://search.google.com/search-console?resource_id=' . rawurlencode($gcfg['gsc_site'])],
+    ]],
+    ['Microsoft', 'Microsoft account (or Google sign-in)', [
+        ['Bing Places',          'The Bing / Bing Maps listing', 'https://www.bing.com/forbusiness'],
+        ['Bing Webmaster Tools', 'Bing searches and clicks for the website', 'https://www.bing.com/webmasters/home?siteUrl=' . rawurlencode($farmUrl . '/')],
+    ]],
+    ['Apple', 'Apple ID', [
+        ['Apple Business', 'Apple Maps place card and Insights', 'https://business.apple.com/'],
+    ]],
+];
 
 $rep     = bcrf_greports_cached($pdo);
 $missing = bcrf_greports_missing();
@@ -60,8 +85,8 @@ $eventLabels = ['purchase' => 'Purchases', 'begin_checkout' => 'Started checkout
 
   <div class="flex flex-wrap items-end justify-between gap-3">
     <div>
-      <h1 class="text-xl font-bold text-stone-800">🔎 Search &amp; Analytics</h1>
-      <p class="text-xs text-stone-500 mt-0.5">Google Search Console and Google Analytics, last 28 days vs the 28 before.
+      <h1 class="text-xl font-bold text-stone-800">📊 Listings &amp; Analytics</h1>
+      <p class="text-xs text-stone-500 mt-0.5">Listing dashboards in one tap, then Google Search Console and Google Analytics, last 28 days vs the 28 before.
         Updated: Search <?= $h($local($rep['gsc']['fetched_at'])) ?> · Analytics <?= $h($local($rep['ga']['fetched_at'])) ?>.</p>
     </div>
     <form method="POST" action="/admin/admin.php?view=search_analytics">
@@ -70,6 +95,48 @@ $eventLabels = ['purchase' => 'Purchases', 'begin_checkout' => 'Started checkout
       <button type="submit" class="bg-stone-900 text-white font-bold px-4 py-2 rounded hover:bg-stone-700">↻ Refresh now</button>
     </form>
   </div>
+
+  <!-- ── LISTINGS HUB ── -->
+  <section class="bg-white border rounded-lg p-4 space-y-4" aria-labelledby="hubTitle">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <h2 id="hubTitle" class="font-bold text-stone-800 text-base">Listings</h2>
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold <?= $openNow['open'] ? 'bg-green-100 text-green-800' : 'bg-stone-200 text-stone-700' ?>">
+        <span aria-hidden="true"><?= $openNow['open'] ? '●' : '○' ?></span>
+        <?= $h($openNow['label']) ?><?= $openNow['detail'] !== '' ? ' · ' . $h($openNow['detail']) : '' ?>
+      </span>
+    </div>
+    <?php if ($hoursStr !== ''): ?>
+    <p class="text-xs text-stone-600">Every listing should show: <strong><?= $h($hoursStr) ?></strong> (from Settings › Hours &amp; Contacts).</p>
+    <?php endif; ?>
+
+    <div class="grid gap-3 md:grid-cols-3">
+      <?php foreach ($hub as [$group, $login, $links]): ?>
+      <div class="border rounded-lg p-3 bg-stone-50">
+        <div class="flex items-baseline justify-between gap-2 mb-2">
+          <h3 class="font-bold text-stone-800 text-sm"><?= $h($group) ?></h3>
+          <span class="text-[10px] text-stone-500">Sign in: <?= $h($login) ?></span>
+        </div>
+        <ul class="space-y-1.5">
+          <?php foreach ($links as [$label, $what, $href]): ?>
+          <li>
+            <a href="<?= $h($href) ?>" target="_blank" rel="noopener noreferrer"
+               class="flex items-center justify-between gap-2 rounded border bg-white px-3 py-2.5 hover:border-stone-500 hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-stone-500">
+              <span><span class="block font-bold text-stone-800"><?= $h($label) ?></span>
+                    <span class="block text-[11px] text-stone-500"><?= $h($what) ?></span></span>
+              <span class="text-stone-400 shrink-0" aria-hidden="true">↗</span>
+              <span class="sr-only">(opens in a new tab)</span>
+            </a>
+          </li>
+          <?php endforeach; ?>
+        </ul>
+      </div>
+      <?php endforeach; ?>
+    </div>
+
+    <p class="text-[11px] text-stone-500">Monthly check (the 1st): name, address, phone, hours and map pin on Apple and Bing match Google.
+      Who owns each account, the second admin and 2FA are in the password manager and the Notion account inventory.
+      Apple and Bing have no data feed for a single business, so their numbers stay on their own dashboards.</p>
+  </section>
 
   <?php if ($missing): ?>
   <div class="p-4 rounded border border-amber-300 bg-amber-50 text-amber-900">
