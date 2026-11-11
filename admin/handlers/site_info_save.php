@@ -30,25 +30,15 @@ if (!function_exists('_si_done')) {
     }
     function _si_audit(PDO $pdo, string $area, string $key, $old, $new): void {
         if ((string)$old === (string)$new) return;
-        // Farm OS Phase 0 (C-06): Site Info changes go to audit_events with before/after values;
-        // the old site_audit table is only used until migration 0003 has run.
+        // Farm OS Phase 0 (C-06): Site Info changes go to audit_events with before/after values.
+        // (The old site_audit table was removed on Nov 11, 2026, migration 0024.)
         require_once __DIR__ . '/../includes/audit.php';
-        if (function_exists('bcrf_audit_event')) {   // older audit.php on the server: use the old table
-            [$type, $uid, $name, $ip] = bcrf_audit_actor();
-            if (bcrf_audit_event($pdo, [
-                'actor_type' => $type, 'actor_id' => $uid, 'actor_label' => $name, 'ip' => $ip,
-                'action' => 'update', 'object_type' => 'site_info', 'object_label' => $area . ': ' . $key,
-                'before' => [$key => $old === null ? null : (string)$old], 'after' => [$key => $new === null ? null : (string)$new],
-            ])) return;
-        }
-        try {
-            $pdo->prepare("INSERT INTO site_audit (admin_user_id, admin_label, area, change_key, old_value, new_value) VALUES (?,?,?,?,?,?)")
-                ->execute([
-                    $_SESSION['user_id'] ?? null,
-                    (string)($_SESSION['user_name'] ?? $_SESSION['user_role'] ?? 'system'),
-                    $area, $key, ($old === null ? null : (string)$old), ($new === null ? null : (string)$new),
-                ]);
-        } catch (Throwable $e) { error_log('[BCRF site_audit] ' . $e->getMessage()); }
+        [$type, $uid, $name, $ip] = bcrf_audit_actor();
+        bcrf_audit_event($pdo, [
+            'actor_type' => $type, 'actor_id' => $uid, 'actor_label' => $name, 'ip' => $ip,
+            'action' => 'update', 'object_type' => 'site_info', 'object_label' => $area . ': ' . $key,
+            'before' => [$key => $old === null ? null : (string)$old], 'after' => [$key => $new === null ? null : (string)$new],
+        ]);
     }
     function _si_set(PDO $pdo, string $key, string $val): void {
         $pdo->prepare("INSERT INTO site_settings (setting_key, setting_value) VALUES (?,?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)")

@@ -1,7 +1,7 @@
 <?php
 // admin/views/audit_log.php — Settings › Audit Log (administrators only).
 // Farm OS Phase 0 (C-06, Nov 5, 2026): reads audit_events (UTC, before/after values), shown in the farm's
-// time zone. Falls back to the old audit_log table until migration 0003 has run.
+// time zone. (The old audit_log table was removed on Nov 11, 2026, migration 0024.)
 if ($current_role !== 'administrator') {
     echo "<p class='p-6 text-red-700 font-mono text-xs'>Access denied.</p>";
     return;
@@ -18,7 +18,7 @@ $filter_user   = trim((string)($_GET['user']   ?? ''));
 // A before/after value can itself be a list or object (multi-selects, JSON columns): print it as JSON instead
 // of letting PHP turn it into the word "Array" (48 warnings per page load in the Nov 4-9 error log).
 $h = fn($s) => htmlspecialchars(is_array($s) ? (string)json_encode($s, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : (string)$s, ENT_QUOTES, 'UTF-8');
-$logs = []; $total = 0; $source = 'audit_events';
+$logs = []; $total = 0;
 
 // New table: audit_events
 try {
@@ -41,27 +41,7 @@ try {
         $logs[] = $r;
     }
 } catch (Throwable $e) {
-    // Before migration 0003: the old audit_log table
-    $source = 'audit_log';
-    try {
-        $where = []; $params = [];
-        if ($filter_table  !== '') { $where[] = 'table_name = ?';  $params[] = $filter_table; }
-        if ($filter_action !== '') { $where[] = 'action = ?';      $params[] = $filter_action; }
-        if ($filter_user   !== '') { $where[] = 'user_name LIKE ?'; $params[] = '%' . $filter_user . '%'; }
-        $where_sql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
-        $cnt = $pdo->prepare("SELECT COUNT(*) FROM audit_log $where_sql");
-        $cnt->execute($params);
-        $total = (int)$cnt->fetchColumn();
-        $stmt = $pdo->prepare("SELECT * FROM audit_log $where_sql ORDER BY created_at DESC LIMIT " . (int)$per_page . " OFFSET " . (int)$offset);
-        $stmt->execute($params);
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
-            $logs[] = ['when' => date('M j, g:i A', strtotime((string)$r['created_at'])), 'actor_type' => '', 'actor_label' => $r['user_name'],
-                       'action' => $r['action'], 'object_type' => $r['table_name'], 'object_label' => $r['record_label'],
-                       'ip' => $r['ip_address'] ?? '', 'before_json' => null, 'after_json' => null];
-        }
-    } catch (Throwable $e2) {
-        error_log('[ERP] audit log query failed: ' . $e2->getMessage());
-    }
+    error_log('[ERP] audit log query failed: ' . $e->getMessage());
 }
 
 $pages = max(1, (int)ceil($total / $per_page));
@@ -94,7 +74,7 @@ $actorIcon = ['agent' => '🤖 ', 'system' => '⚙️ ', 'anonymous' => '❔ ', 
 <div class="flex justify-between items-center mb-4">
     <div>
         <h1 class="text-2xl font-serif font-black text-stone-800">Audit Log</h1>
-        <p class="text-xs text-stone-500 font-mono mt-0.5"><?= number_format($total) ?> entries · times in <?= $h(date_default_timezone_get()) ?><?= $source === 'audit_log' ? ' · old log (run migration 0003)' : '' ?></p>
+        <p class="text-xs text-stone-500 font-mono mt-0.5"><?= number_format($total) ?> entries · times in <?= $h(date_default_timezone_get()) ?></p>
     </div>
 </div>
 

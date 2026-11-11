@@ -2,15 +2,15 @@
 // admin/includes/audit.php — shared audit helpers (one copy, used by every handler).
 //
 // Farm OS Phase 0 (C-06, Nov 5, 2026): everything is written to audit_events (migration 0003),
-// one immutable table with UTC times and before/after values. Until 0003 has run, writes fall back
-// to the old audit_log table so nothing is lost; 0003 copies those rows across.
+// one immutable table with UTC times and before/after values. The old audit_log / site_audit tables
+// and the fallback writes to them were removed on Nov 11, 2026 (migration 0024).
 
 if (!function_exists('bcrf_audit_event')) {
     /**
      * Write one audit event. Never throws: a logging problem must not block the actual save.
      * $e keys: action, object_type (required); object_id, object_label, actor_type, actor_id,
      * actor_label, ip, before (array), after (array).
-     * Returns false only when audit_events isn't there yet (callers then use the old table).
+     * Returns false when the event could not be written (the reason goes to the PHP error log).
      */
     function bcrf_audit_event(PDO $pdo, array $e): bool
     {
@@ -36,9 +36,9 @@ if (!function_exists('bcrf_audit_event')) {
             $ready = true;
             return true;
         } catch (Throwable $ex) {
-            if ($ready === null && str_contains($ex->getMessage(), '42S02')) { $ready = false; return false; }   // table not created yet
+            if ($ready === null && str_contains($ex->getMessage(), '42S02')) $ready = false;   // table missing: stop trying this request
             error_log('[ERP] audit_events write failed: ' . $ex->getMessage());
-            return true;   // table exists; don't double-write to the old one
+            return false;
         }
     }
 
@@ -63,18 +63,10 @@ if (!function_exists('erp_audit')) {
     {
         if (!in_array($action, ['create', 'update', 'delete'], true)) return;
         [$type, $uid, $name, $ip] = bcrf_audit_actor($actor);
-        $ok = bcrf_audit_event($pdo, [
+        bcrf_audit_event($pdo, [
             'actor_type' => $type, 'actor_id' => $uid, 'actor_label' => $name, 'ip' => $ip,
             'action' => $action, 'object_type' => $table, 'object_id' => $record_id, 'object_label' => $label,
         ]);
-        if ($ok) return;
-        try {   // before migration 0003: old table
-            $pdo->prepare("INSERT INTO audit_log (user_id, user_name, action, table_name, record_id, record_label, ip_address)
-                           VALUES (?, ?, ?, ?, ?, ?, ?)")
-                ->execute([$uid, mb_substr($name, 0, 100), $action, $table, $record_id, mb_substr($label, 0, 255), $ip ? substr($ip, 0, 45) : null]);
-        } catch (Throwable $e) {
-            error_log('[ERP] Audit log failed: ' . $e->getMessage());
-        }
     }
 }
 
@@ -123,17 +115,9 @@ if (!function_exists('erp_audit_security')) {
         $name  = $user_name !== '' ? $user_name : 'Login guard';
         $label = $labels[$event] . ': ' . $email;
 
-        $ok = bcrf_audit_event($pdo, [
+        bcrf_audit_event($pdo, [
             'actor_type' => $user_id ? 'staff' : 'anonymous', 'actor_id' => $user_id, 'actor_label' => $name, 'ip' => $ip,
             'action' => $event, 'object_type' => 'staff_login', 'object_label' => $label,
         ]);
-        if ($ok) return;
-        try {   // before migration 0003: old table (its action column is VARCHAR(20))
-            $pdo->prepare("INSERT INTO audit_log (user_id, user_name, action, table_name, record_id, record_label, ip_address)
-                           VALUES (?, ?, ?, 'staff_login', NULL, ?, ?)")
-                ->execute([$user_id, mb_substr($name, 0, 100), $event, mb_substr($label, 0, 255), $ip ? substr((string)$ip, 0, 45) : null]);
-        } catch (Throwable $e) {
-            error_log('[ERP] Security audit failed: ' . $e->getMessage());
-        }
     }
 }

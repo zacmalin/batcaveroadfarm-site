@@ -39,3 +39,10 @@ jobs:
           DB_USER: root
           DB_PASS: root
         run: php tests/migrations_test.php
+      - name: Phase 0 cleanup (0024, 0025) on seeded data
+        env:
+          DB_HOST: 127.0.0.1
+          DB_NAME: bcrf_migrate_test
+          DB_USER: root
+          DB_PASS: root
+        run: php tests/phase0_cleanup_test.php
