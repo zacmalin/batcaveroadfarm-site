@@ -32,7 +32,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
                   <li><a href="#use">Using the website</a></li>
                   <li><a href="#ip">Our content</a></li>
                   <li><a href="#products">Products &amp; pricing</a></li>
-                  <li><a href="#purchases">Tickets, passes &amp; bookings</a></li>
+                  <li><a href="#purchases">Tickets, passes, gift cards &amp; bookings</a></li>
                   <li><a href="#rewards">Roost Rewards</a></li>
                   <li><a href="#visits">Farm visits &amp; the petting zoo</a></li>
                   <li><a href="#risk">Assumption of risk</a></li>
@@ -64,12 +64,16 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
                 always reflect current in-person stock. Thrift and second-hand goods are sold <strong>as is</strong>.
                 Nothing on the Site is a guarantee that a particular item is in stock.</p>
 
-              <h2 id="purchases">Tickets, passes &amp; bookings</h2>
+              <h2 id="purchases">Tickets, passes, gift cards &amp; bookings</h2>
               <p>Online payments are processed securely by Stripe.</p>
               <ul>
                 <li><strong>Online admission tickets</strong> are non-refundable. A ticket is good for any day we're
                   open — not only the date you pick — including days when a private event is booked.</li>
                 <li><strong>Annual passes</strong> are non-refundable.</li>
+                <li><strong>Gift cards</strong> never expire and have no fees. They're spent at the farm (farm stand,
+                  gate and thrift shop), aren't refundable once bought, and can't be exchanged for cash. Anyone who has
+                  the code can spend it, so keep it safe. If a card is lost, contact us with the receipt or order email
+                  and we'll cancel it and issue a new one for whatever was left on it.</li>
                 <li><strong>Group and party bookings</strong> get a full refund if you cancel at least 30 days before
                   your booked date. Cancellations made less than 30 days before the date are not refunded.</li>
                 <li><strong>Weather:</strong> we're open rain or shine. If the weather looks bad on the day of your

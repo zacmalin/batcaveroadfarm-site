@@ -28,6 +28,7 @@ $faqSchemaItems = [
     ['Do you host birthday parties or group events?', 'Yes. Request current packages and availability at ' . bcrf_farm_url('/private-events/') . '.'],
     ['Do you sell annual passes?', 'Yes. See current annual-pass options and prices at ' . bcrf_farm_url('/passes/') . '.'],
     ['Can I buy admission tickets online?', 'Yes. See ticket options and booking rules at ' . bcrf_farm_url('/tickets/') . '.'],
+    ['Do you sell gift cards?', 'Yes. Buy one online at ' . bcrf_farm_url('/gift-cards/') . ' (emailed right away) or at the farm stand. Gift cards never expire and work for admission, the farm stand and the thrift shop.'],
     ['How do I plan a birthday party or private event at the farm?', 'Use the inquiry form at ' . bcrf_farm_url('/private-events/') . ' or contact us at ' . bcrf_farm_url('/contact-us/') . '.'],
 ];
 // Roost Rewards questions appear (page and schema) only while the program is switched on.
@@ -183,7 +184,7 @@ foreach ($faqSchemaItems as [$question, $answer]) {
                         <button class="faq-question">
                             What forms of payment do you accept? <span class="faq-chevron" aria-hidden="true">▼</span>
                         </button>
-                        <div class="faq-answer">At the farm we accept cash, checks, Venmo, PayPal, and Cash App. Online purchases — tickets, passes, and the online shop — are paid by card.</div>
+                        <div class="faq-answer">At the farm we accept cash, checks, Venmo, PayPal, Cash App, and our own <a href="<?= bcrf_farm_url() ?>/gift-cards/">gift cards</a>. Online purchases — tickets, passes, gift cards, and the online shop — are paid by card.</div>
                     </div>
 
                     <div class="faq-item">
@@ -257,6 +258,13 @@ foreach ($faqSchemaItems as [$question, $answer]) {
                             Can I buy admission tickets online? <span class="faq-chevron" aria-hidden="true">▼</span>
                         </button>
                         <div class="faq-answer">Yes — groups of 5 or fewer can <a href="<?= bcrf_farm_url() ?>/tickets/">purchase day tickets online</a>. Choose the number of adults, children (ages 3–12), and little ones under 3, then pick your visit date. Groups of 6 or more should use our <a href="<?= bcrf_farm_url() ?>/booking/">group booking form</a> to reserve a dedicated time slot.</div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" id="gift-cards">
+                            Do you sell gift cards? <span class="faq-chevron" aria-hidden="true">▼</span>
+                        </button>
+                        <div class="faq-answer">Yes! <a href="<?= bcrf_farm_url() ?>/gift-cards/">Buy a gift card online</a> and we'll email it right away (to you, or straight to the lucky person), or pick one up at the farm stand. Gift cards never expire and work for admission, the farm stand and the thrift shop. They can't be used for online orders yet.</div>
                     </div>
 
                     <div class="faq-item">

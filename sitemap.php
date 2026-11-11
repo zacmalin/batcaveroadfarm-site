@@ -64,6 +64,7 @@ $static = [
     ['/tickets/', 'monthly', '0.8', [sitemapImg($base, '/img/og-pettingzoo.jpg', 'Buy Day Admission Tickets — Bat Cave Road Farm, Old Fort, NC')]],
     ['/private-events/', 'monthly', '0.8', []],
     ['/passes/', 'monthly', '0.9', [sitemapImg($base, '/img/og-pettingzoo.jpg', 'Annual Farm Passes — Bat Cave Road Farm, Old Fort, NC')]],
+    ['/gift-cards/', 'monthly', '0.6', []],   // gift cards (Nov 11, 2026)
     ['/events/', 'weekly', '0.7', []],
     ['/privacy/', 'yearly', '0.3', []],
     ['/terms/', 'yearly', '0.3', []],
