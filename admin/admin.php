@@ -49,7 +49,9 @@ $target_view     = $_GET['view']  ?? 'dashboard';
 $target_table    = $_GET['table'] ?? '';
 
 $system_tables = [
-    'users', 'customers', 'mailing_list',   // users = staff, customers = public accounts (Farm OS Phase 0, C-02) 'breeds', 'classifications', 'animals',
+    'users', 'customers', 'mailing_list',   // users = staff, customers = public accounts (Farm OS Phase 0, C-02)
+    'breeds', 'classifications', 'animals', // Nov 11, 2026: these three had ended up inside the comment above, so the
+                                            // Animals screens (Roster, Breeds, Classifications) loaded blank
     'fruits_vegetables', 'baked_goods', 'pantry', 'thrift_finds',
     'petting_zoo_products', 'ingredients', 'measurement_units',
     'unit_conversions', 'categories', 'recipes', 'blog_posts', 'inventory',
