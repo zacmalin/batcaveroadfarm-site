@@ -1,0 +1,16 @@
+# tools/admin-shell-exceptions.txt — PHP files in admin/ that are NOT pages in the Farm OS shell (Nov 11, 2026).
+# CI (.github/workflows/checks.yml) fails if any other admin/*.php file doesn't call bcrf_shell_open().
+# One file name per line; say why. See docs/ADMIN-PAGES.md.
+
+admin.php               # the console itself (renders the shell directly)
+index.php               # redirect
+register.php            # POS till: full screen
+pos.php                 # legacy till (?legacy=1), being retired
+gate.php                # gate check-in: full screen
+print_label.php         # print layout
+login.php               # sign-in
+logout.php              # sign-out
+two_step.php            # sign-in second step (also listed under Users & Roles)
+jobs_file.php           # résumé download endpoint
+pinterest_image.php     # image endpoint
+social_token_check.php  # cron / ping endpoint

@@ -87,6 +87,20 @@ jobs:
           if grep -nE '<style|style="' admin/views/layout/sidebar.php includes/admin_shell.php; then
             echo "::error::The admin shell must not use inline styles (strict policy). Put them in admin/assets/admin-shell.css."; exit 1; fi
 
+      - name: Admin pages use the shared shell
+        run: |
+          # Every admin/*.php page opens in the Farm OS shell unless it's a listed exception (docs/ADMIN-PAGES.md).
+          fail=0
+          for f in admin/*.php; do
+            n=$(basename "$f")
+            grep -qE "^${n//./\\.}([[:space:]]|$)" tools/admin-shell-exceptions.txt && continue
+            if ! grep -q "bcrf_shell_open(" "$f"; then
+              echo "::error file=$f::$n doesn't use the Farm OS shell. Call bcrf_shell_open()/bcrf_shell_close() (see docs/ADMIN-PAGES.md), or list it in tools/admin-shell-exceptions.txt with a reason."
+              fail=1
+            fi
+          done
+          exit $fail
+
       - name: Report result as a commit status
         if: always()
         env:
