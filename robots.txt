@@ -31,5 +31,5 @@ Allow: /
 # Sitemap location
 Sitemap: https://batcaveroadfarm.com/sitemap.php
 
-# AI Agent files
-AI-instructions: https://batcaveroadfarm.com/agent-instructions.md
+# AI agent instructions (a comment: "AI-instructions:" isn't a robots.txt directive, and PageSpeed
+# flagged the file as invalid because of it, Nov 11, 2026): https://batcaveroadfarm.com/agent-instructions.md
