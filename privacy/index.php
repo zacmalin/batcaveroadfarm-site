@@ -20,7 +20,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
 
           <div class="content-wrap1">
             <article class="legal-doc reveal">
-              <p class="legal-updated">Last updated: November 9, 2026</p>
+              <p class="legal-updated">Last updated: November 11, 2026</p>
               <p class="legal-intro">Bat Cave Road Farm ("we," "us," or "our") runs the website at
                 <strong><?= bcrf_farm_domain() ?></strong>. This policy explains what information the website
                 collects, how we use it, and the choices you have. It applies to this website only — not to
@@ -67,6 +67,16 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
                 Analytics across all websites by installing Google's
                 <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">opt-out
                 browser add-on</a>. Blocking these cookies will not break the website.</p>
+              <p>There are no advertising or social-media tracking pixels on this site. Our Facebook, Instagram and
+                Pinterest connections (see below) run in our own admin system, not on the pages you visit, so they set
+                no cookies in your browser.</p>
+              <h3>Linking a visit to a purchase</h3>
+              <p>If you buy tickets, an annual pass or a booking, we save the Google Analytics identifiers your browser
+                already sent with that order (a client ID and a session ID). When the payment goes through, we send
+                Google Analytics the purchase: the amount, what was bought and an order number, but not your name,
+                email or card details. This lets us see which pages and campaigns lead to purchases. These identifiers
+                are not used to identify you by name, are not used for advertising, and are not shared with anyone
+                other than Google Analytics. They stay with the order record.</p>
 
               <h2 id="thirdparty">Third-party services</h2>
               <p>A few features rely on outside services, which have their own privacy policies:</p>
@@ -78,13 +88,29 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
                 <li><strong>Instagram feed</strong> on our gallery page — displayed through a third-party widget
                   (Behold) that loads images from Instagram. Viewing it is subject to the privacy practices of
                   Behold and of Instagram/Meta.</li>
+                <li><strong>Facebook and Instagram</strong> — we publish posts to our own Facebook Page and Instagram
+                  account through Meta's Graph API, and may read the figures Meta reports for those posts (such as
+                  reach and likes). This runs in our admin system, not on the pages you visit: it sets no cookie in your
+                  browser and sends Meta nothing about visitors to this website. If you comment on or message our Page
+                  or profile, that happens on Meta's platforms under the
+                  <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener">Meta Privacy
+                  Policy</a>.</li>
+                <li><strong>Pinterest</strong> — we create and publish Pins to our own boards through Pinterest's API
+                  and read our own account and board details. As with Meta, this runs only in our admin system: there
+                  is no Pinterest tag on this website and nothing about your visit is sent to Pinterest. Pins you see
+                  on Pinterest are covered by the
+                  <a href="https://policy.pinterest.com/privacy-policy" target="_blank" rel="noopener">Pinterest
+                  Privacy Policy</a>.</li>
                 <li><strong>Stripe</strong> — processes payments for online tickets, annual passes and bookings.
                   You enter your card details on Stripe's secure checkout page; we never see or store your full
                   card number. We receive your name, email, what you bought and whether the payment succeeded.
                   See the <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe Privacy
                   Policy</a>.</li>
               </ul>
-              <p>We don't control how these third parties process data once it reaches them.</p>
+              <p>Each of these services receives only what it needs: Google Analytics gets usage data from your
+                browser, Google Maps loads when you view the map, Behold and Instagram load the gallery images, Stripe
+                gets your payment details, and Meta and Pinterest get only the posts and Pins we choose to publish.
+                Once information reaches them, it is handled under their own privacy policies.</p>
 
               <h2 id="use">How we use information</h2>
               <ul>
