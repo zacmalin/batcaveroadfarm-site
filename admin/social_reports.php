@@ -103,7 +103,8 @@ if ($run && bcrf_meta_ready()) {
 $want = ['pages_read_engagement', 'pages_read_user_content', 'read_insights', 'instagram_basic', 'instagram_manage_insights'];
 
 // ── Dashboard data ───────────────────────────────────────────────────────────
-$days = in_array((int)($_GET['days'] ?? 28), [7, 28, 90], true) ? (int)$_GET['days'] : 28;
+$days = (int)($_GET['days'] ?? 28);
+if (!in_array($days, [7, 28, 90], true)) $days = 28;   // no or odd ?days= → 28 (the sidebar link has none)
 $tzPT = new DateTimeZone('America/Los_Angeles');                                  // Meta's day boundary
 $to   = (new DateTimeImmutable('yesterday', $tzPT));
 $from = $to->modify('-' . ($days - 1) . ' day');
