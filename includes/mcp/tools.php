@@ -15,7 +15,7 @@ if (!class_exists('McpToolError')) {
 
 class McpToolError extends RuntimeException {}
 
-function mcp_tz(): DateTimeZone { return new DateTimeZone('America/New_York'); }
+function mcp_tz(): DateTimeZone { return new DateTimeZone((function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York')); }   // farm time zone setting
 function mcp_today(): string { return (new DateTime('now', mcp_tz()))->format('Y-m-d'); }
 
 function mcp_date_arg(array $a, string $k, ?string $default): ?string {

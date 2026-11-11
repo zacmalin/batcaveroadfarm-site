@@ -51,7 +51,7 @@ $rows = $pdo->query("SELECT c.client_id, c.client_name, c.redirect_uris, c.creat
 $local = function (?string $utc): string {
     if (!$utc) return '—';
     $d = new DateTime($utc, new DateTimeZone('UTC'));
-    $d->setTimezone(new DateTimeZone('America/New_York'));
+    $d->setTimezone(new DateTimeZone((function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York')));   // farm time zone setting
     return $d->format('M j, g:i A');
 };
 $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);

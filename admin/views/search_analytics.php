@@ -41,7 +41,7 @@ $pct = fn($v) => number_format((float)$v * 100, 1) . '%';
 $pos = fn($v) => number_format((float)$v, 1);
 $local = function (?string $utc): string {
     if (!$utc) return 'never';
-    $d = new DateTime($utc, new DateTimeZone('UTC')); $d->setTimezone(new DateTimeZone('America/New_York'));
+    $d = new DateTime($utc, new DateTimeZone('UTC')); $d->setTimezone(new DateTimeZone((function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York')));   // farm time zone setting
     return $d->format('M j, g:i A');
 };
 $fmtRange = fn(array $r) => date('M j', strtotime($r[0])) . ' – ' . date('M j', strtotime($r[1]));

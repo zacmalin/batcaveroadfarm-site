@@ -51,7 +51,7 @@ if (!function_exists('jobs_now')) {
     /** Current Eastern date-time as 'Y-m-d H:i:s' (server clock is Mountain; never use NOW()). */
     function jobs_now(): string
     {
-        return (new DateTime('now', new DateTimeZone('America/New_York')))->format('Y-m-d H:i:s');
+        return (new DateTime('now', new DateTimeZone((function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York'))))->format('Y-m-d H:i:s');   // farm time zone setting
     }
 
     function jobs_today(): string

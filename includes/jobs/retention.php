@@ -37,7 +37,7 @@ if (!function_exists('jobs_retention_months_options')) {
     /** Eastern 'Y-m-d H:i:s' that many months/days ago. */
     function jobs_ago(int $months = 0, int $days = 0): string
     {
-        $d = new DateTime(jobs_now(), new DateTimeZone('America/New_York'));
+        $d = new DateTime(jobs_now(), new DateTimeZone((function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York')));   // farm time zone setting
         if ($months) $d->modify('-' . $months . ' months');
         if ($days)   $d->modify('-' . $days . ' days');
         return $d->format('Y-m-d H:i:s');

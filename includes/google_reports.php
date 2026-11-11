@@ -96,7 +96,7 @@ function bcrf_greports_api(string $method, string $url, ?array $json = null): ar
 
 /** The two 28-day windows. Search Console data lags ~2-3 days, so it ends 3 days ago; GA ends yesterday. */
 function bcrf_greports_ranges(int $lagDays): array {
-    $end   = new DateTime('today -' . $lagDays . ' days', new DateTimeZone('America/New_York'));
+    $end   = new DateTime('today -' . $lagDays . ' days', new DateTimeZone((function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York')));   // farm time zone setting
     $start = (clone $end)->modify('-27 days');
     $pEnd  = (clone $start)->modify('-1 day');
     $pStart= (clone $pEnd)->modify('-27 days');

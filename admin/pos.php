@@ -546,9 +546,9 @@ $last_receipt = $_SESSION['last_receipt'] ?? null;
     <!-- Compact centered header -->
     <div style="text-align:center;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:10px;">
         <img src="<?= bcrf_farm_url() ?>/img/logos/logo.png" style="height:48px;width:auto;display:inline-block;margin-bottom:4px;">
-        <div style="font-size:17px;font-weight:900;font-family:serif;color:#000;line-height:1.1;">BAT CAVE ROAD FARM</div>
+        <?php if (!function_exists('site_address_lines')) require_once __DIR__ . '/../includes/site_info.php'; ?><div style="font-size:17px;font-weight:900;font-family:serif;color:#000;line-height:1.1;"><?= htmlspecialchars(strtoupper(site('business_name', 'Bat Cave Road Farm'))) ?></div>
         <div style="font-size:9px;font-weight:bold;text-transform:uppercase;font-family:sans-serif;letter-spacing:0.05em;color:#333;margin-top:2px;">Petting Zoo &bull; Farm Stand &bull; Thrift Shop</div>
-        <div style="font-size:9px;font-weight:bold;font-family:sans-serif;color:#555;margin-top:2px;">4132 Bat Cave Road, Old Fort, NC 28762 &bull; (828) 216-5488</div>
+        <div style="font-size:9px;font-weight:bold;font-family:sans-serif;color:#555;margin-top:2px;"><?php $__a = site_address_lines(); ?><?= htmlspecialchars($__a['line1'] . ', ' . $__a['line2'] . ' • ' . site_phone_display()) ?></div>
     </div>
     <table style="width:100%;background:#f5f5f5;font-size:10px;font-weight:bold;margin-bottom:10px;border:1px solid #ddd;">
         <tr>

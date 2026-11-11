@@ -187,7 +187,7 @@ if (!function_exists('jobs_app_find')) {
     /** Calendar invite for the interview email (Eastern time, 30 minutes by default). */
     function jobs_interview_ics(array $app, string $startEastern, string $location, int $minutes = 30): string
     {
-        $tz    = new DateTimeZone('America/New_York');
+        $tz    = new DateTimeZone((function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York'));   // farm time zone setting
         $start = new DateTime($startEastern, $tz);
         $end   = (clone $start)->modify('+' . max(5, $minutes) . ' minutes');
         $utc   = new DateTimeZone('UTC');

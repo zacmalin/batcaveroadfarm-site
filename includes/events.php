@@ -42,7 +42,7 @@ if (!function_exists('bcrf_events_ensure_schema')) {
 }
 
 if (!function_exists('bcrf_event_tz')) {
-    function bcrf_event_tz(): DateTimeZone { return new DateTimeZone('America/New_York'); }
+    function bcrf_event_tz(): DateTimeZone { return new DateTimeZone((function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York')); }   // farm time zone setting
 }
 
 if (!function_exists('bcrf_event_iso')) {
@@ -144,7 +144,7 @@ if (!function_exists('bcrf_event_schema')) {
                 '@type'            => 'Schedule',
                 'startDate'        => bcrf_event_iso($ev['start_datetime'] ?? '', true),
                 'repeatFrequency'  => ($rec === 'weekly') ? 'P1W' : 'P1Y',
-                'scheduleTimezone' => 'America/New_York',
+                'scheduleTimezone' => bcrf_event_tz()->getName(),
             ];
             if (!$allDay) {
                 try {

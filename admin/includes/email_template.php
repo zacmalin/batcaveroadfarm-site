@@ -87,7 +87,7 @@ function bcf_email_footer(bool $withUnsubscribe = true): string {
     <td align="center" bgcolor="#1a0f05"
         style="background-color:#1a0f05; padding:14px 24px; border-top:1px solid rgba(255,255,255,0.08);">
         <p style="margin:0; font-family:Georgia, serif; font-size:11px; color:rgba(245,234,214,0.45); line-height:1.7;">
-            You received this message because you subscribed to updates from Bat Cave Road Farm.<br>
+            You received this message because you subscribed to updates from {{FARM_NAME}}.<br>
             If you no longer wish to receive these emails,
             <a href="{{SITE_URL}}/unsubscribe.php"
                 style="color:rgba(245,234,214,0.65); text-decoration:underline;">click here to unsubscribe</a>.
@@ -120,17 +120,17 @@ UNSUB;
             <!-- Left col: contact info -->
             <td class="footer-col-left" width="50%" valign="top"
                 style="width:50%; padding-right:20px; padding-bottom:16px; vertical-align:top;">
-                <div style="font-family:Rye, Georgia, serif; font-size:18px; color:#e8b84b; margin-bottom:12px;">&#127807; Bat Cave Road Farm</div>
+                <div style="font-family:Rye, Georgia, serif; font-size:18px; color:#e8b84b; margin-bottom:12px;">&#127807; {{FARM_NAME}}</div>
                 <p style="color:#e8d5b0; line-height:2; font-size:14px; margin:0 0 10px;">
-                    <a href="http://maps.google.com/?q=4132+Bat+Cave+Road,+Old+Fort,+North+Carolina,+28762"
+                    <a href="{{MAP_URL}}"
                         rel="noopener" target="_blank"
-                        style="color:#e8d5b0; text-decoration:underline;">4132 Bat Cave Road<br>Old Fort, NC 28762</a><br>
-                    <a href="tel:8282165488" rel="noopener" target="_blank"
-                        style="color:#e8d5b0; text-decoration:underline;">(828) 216-5488</a><br>
+                        style="color:#e8d5b0; text-decoration:underline;">{{ADDR_LINE1}}<br>{{ADDR_LINE2}}</a><br>
+                    <a href="tel:{{TEL}}" rel="noopener" target="_blank"
+                        style="color:#e8d5b0; text-decoration:underline;">{{PHONE}}</a><br>
                     <a href="mailto:{{SUPPORT_EMAIL}}"
                         style="color:#e8d5b0; text-decoration:underline;">{{SUPPORT_EMAIL}}</a>
                 </p>
-                <div style="color:rgba(245,234,214,0.45); font-size:12px; margin-top:6px;">&copy; 2026 Bat Cave Road Farm &mdash; All Rights Reserved</div>
+                <div style="color:rgba(245,234,214,0.45); font-size:12px; margin-top:6px;">&copy; {{YEAR}} {{FARM_NAME}} &mdash; All Rights Reserved</div>
             </td>
 
             <!-- Right col: chalkboard social links -->
@@ -193,8 +193,15 @@ UNSUB;
 </html>
 EMAILHTML;
     // {{SITE_URL}} / {{SUPPORT_EMAIL}}: the farm's website and support email from Settings (Farm OS Phase 0)
-    return str_replace(['{{UNSUBSCRIBE_ROW}}', '{{SITE_URL}}', '{{SUPPORT_EMAIL}}'],
-                       [$unsubRow, bcrf_farm_url(), htmlspecialchars(bcrf_farm_email('support'), ENT_QUOTES)], $tpl);
+    // Name, address and phone come from Settings › Hours & Contacts (Phase 0 exit pass, Nov 11, 2026)
+    if (!function_exists('site_address_lines')) require_once dirname(__DIR__, 2) . '/includes/site_info.php';
+    $e = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES);
+    $addr = site_address_lines();
+    return str_replace(['{{UNSUBSCRIBE_ROW}}', '{{SITE_URL}}', '{{SUPPORT_EMAIL}}', '{{FARM_NAME}}', '{{ADDR_LINE1}}', '{{ADDR_LINE2}}',
+                        '{{MAP_URL}}', '{{TEL}}', '{{PHONE}}', '{{YEAR}}'],
+                       [str_replace('{{FARM_NAME}}', $e(site('business_name', 'Bat Cave Road Farm')), $unsubRow), bcrf_farm_url(),
+                        $e(bcrf_farm_email('support')), $e(site('business_name', 'Bat Cave Road Farm')), $e($addr['line1']), $e($addr['line2']),
+                        $e(site_map_query_url()), $e(site_tel()), $e(site_phone_display()), date('Y')], $tpl);
 }
 
 /**
