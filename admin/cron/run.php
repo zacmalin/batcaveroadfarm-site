@@ -52,6 +52,16 @@ if (bcrf_runner_schedule_on($pdo)) {
     $last = [];
     try { $last = $pdo->query("SELECT job, last_start FROM cron_runs")->fetchAll(PDO::FETCH_KEY_PAIR); } catch (Throwable $e) {}
     $root = dirname(__DIR__, 2);
+    // Children must run under CLI PHP. cPanel's cron can start this runner as php-cgi, and a child started with
+    // php-cgi thinks it's a web request, prints "403 / Direct web access blocked" and exits 0 (Nov 11, 2026).
+    $phpCli = PHP_BINARY;
+    if (PHP_SAPI !== 'cli' || preg_match('/php-cgi$/', $phpCli)) {
+        $phpCli = '';
+        foreach ([preg_replace('/php-cgi$/', 'php', PHP_BINARY), '/usr/local/bin/php', '/usr/bin/php'] as $cand) {
+            if ($cand && $cand !== PHP_BINARY && is_file($cand) && is_executable($cand)) { $phpCli = $cand; break; }
+        }
+        if ($phpCli === '') bcrf_cron_exit(1, 'No CLI PHP binary found for starting the scheduled jobs (runner is ' . PHP_BINARY . ').');
+    }
     foreach (bcrf_runner_tasks() as $job => [$script, $sched]) {
         if (bcrf_runner_next($sched, $last[$job] ?? null) > time()) continue;
         $path = $root . '/' . $script;
@@ -63,7 +73,7 @@ if (bcrf_runner_schedule_on($pdo)) {
         } catch (Throwable $e) {}
         $t0 = microtime(true);
         $timeout = (int)($sched['timeout'] ?? 10) * 60;
-        $p = proc_open([PHP_BINARY, $path], [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, dirname($path));
+        $p = proc_open([$phpCli, $path], [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, dirname($path));
         if (!is_resource($p)) { $problems[] = "{$job}: could not start"; continue; }
         stream_set_blocking($pipes[1], false); stream_set_blocking($pipes[2], false);
         $log = '';
@@ -78,6 +88,8 @@ if (bcrf_runner_schedule_on($pdo)) {
         fclose($pipes[1]); fclose($pipes[2]);
         $code = $st['running'] ? -1 : (int)$st['exitcode'];
         proc_close($p);
+        // A child that answered like a web page never ran its job (and never wrote its heartbeat).
+        if (preg_match('/^Status: \d{3}|Direct web access blocked/m', $log)) $problems[] = "{$job}: started as a web request, did not run";
         $out(sprintf('%s finished (exit %d, %.1fs)%s', $job, $code, microtime(true) - $t0, trim($log) !== '' ? ': ' . mb_substr(trim($log), 0, 400) : ''));
         // Each script records its own heartbeat; a non-zero exit is already a failure there.
     }
