@@ -18,6 +18,7 @@ require_once __DIR__ . '/../includes/queue.php';
 require_once __DIR__ . '/../includes/sales.php';
 require_once __DIR__ . '/../includes/drawers.php';
 require_once __DIR__ . '/../includes/reports.php';
+require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -33,12 +34,9 @@ if ($tab === 'locations' && !$isAdmin) $tab = 'stock';
 $self = function (array $p = []): string { $p = array_filter($p, fn($v) => $v !== null && $v !== '' && $v !== 0); return 'stock.php' . ($p ? '?' . http_build_query($p) : ''); };
 $isDate = fn($s) => is_string($s) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $s);
 
-$head = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
-      . '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">'
-      . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=6"><link rel="stylesheet" href="assets/reports.css?v=3">';
 if (!bcrf_sales_ready($pdo) || !bcrf_stock_ready($pdo)) {
-    echo $head, '<title>Stock</title></head><body class="page"><main class="narrow"><p><a href="admin.php">← Admin</a></p>',
-         '<p class="flash err">Run migration 0015 (stock by location) in Settings › Database first. Until then, counts stay on the Counts screen.</p></main></body></html>';
+    bcrf_shell_open('Stock', ['legacy' => true]); echo
+         '<p class="flash err">Run migration 0015 (stock by location) in Settings › Database first. Until then, counts stay on the Counts screen.</p></div></main></body></html>';
     exit;
 }
 
@@ -145,8 +143,7 @@ $histTable = function (array $rows, bool $showItem = true) use ($h, $q3, $pdo) {
 };
 
 $title = ['stock' => 'Stock', 'item' => 'Stock', 'counts' => 'Counts', 'count' => 'Count', 'history' => 'Stock history', 'locations' => 'Locations'][$tab];
-echo $head, '<title>', $h($title), '</title></head><body class="page"><main class="narrow wide">';
-echo '<p><a href="admin.php">← Admin</a> · <a href="register.php">Register</a> · <a href="receive.php">Receive</a></p>';
+bcrf_shell_open($title, ['legacy' => true]);
 echo '<h1>Stock</h1>';
 if ($flash) echo '<p class="flash', $flash[0] === 'err' ? ' err' : '', '">', $h($flash[1]), '</p>';
 if ($synced) echo '<p class="flash">', $synced, ' item', $synced === 1 ? '' : 's', ' had been changed outside Stock (old register, Full Editor or connector); the difference is now on ', $h($locById[bcrf_location_default($pdo)]['name'] ?? 'the default location'), ' and in the history.</p>';
@@ -352,4 +349,4 @@ if ($tab === 'locations') {
              '<button class="btn sm" type="submit">Save</button></form>';
     }
 }
-echo '</main></body></html>';
+echo '</div></main></body></html>';

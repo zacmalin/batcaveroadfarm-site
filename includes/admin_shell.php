@@ -26,6 +26,9 @@ function bcrf_shell_asset(string $file): string {
  * $opt: 'view'  => console view key this page belongs to (optional; tabs are matched by file name anyway)
  *       'toast' => ['ok'|'err'|'warning', 'message'] shown as the console's toast
  *       'width' => Tailwind max-width class for the content column (default 'max-w-5xl')
+ *       'legacy'=> true for pages built on the register.css class names (card, lrow, btn, stackf…): loads
+ *                  reports.css (layout) + admin-farmos.css (Hiring look) and wraps the content in .fos.
+ *                  Default width for these is 'max-w-3xl'.
  */
 function bcrf_shell_open(string $title, array $opt = []): void {
     global $pdo;
@@ -37,7 +40,8 @@ function bcrf_shell_open(string $title, array $opt = []): void {
     $target_view     = (string)($opt['view'] ?? '');
     $target_table    = '';
 
-    $GLOBALS['__bcrf_shell_width'] = (string)($opt['width'] ?? 'max-w-5xl');
+    $legacy = !empty($opt['legacy']);
+    $GLOBALS['__bcrf_shell_width'] = (string)($opt['width'] ?? ($legacy ? 'max-w-3xl' : 'max-w-5xl')) . ($legacy ? ' fos' : '');
 
     echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">',
          '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">',
@@ -47,6 +51,7 @@ function bcrf_shell_open(string $title, array $opt = []): void {
          '<link rel="stylesheet" href="', $h(bcrf_shell_asset('admin.css')), '">',
          '<link rel="stylesheet" href="', $h(bcrf_shell_asset('admin-shell.css')), '">',
          '<link rel="stylesheet" href="', $h(bcrf_shell_asset('admin-ui.css')), '">',
+         $legacy ? '<link rel="stylesheet" href="' . $h(bcrf_shell_asset('reports.css')) . '"><link rel="stylesheet" href="' . $h(bcrf_shell_asset('admin-farmos.css')) . '">' : '',
          '<script defer src="', $h(bcrf_shell_asset('admin-ui.js')), '"></script>',
          '</head>';
     echo '<body class="bg-stone-100 min-h-screen text-stone-900 flex text-xs select-none">';

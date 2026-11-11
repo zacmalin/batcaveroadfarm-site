@@ -9,6 +9,7 @@ require_once __DIR__ . '/includes/permission_checks.php';
 require_permission([['table', 'inventory', 'edit']]);
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/settlements.php';
+require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -17,13 +18,10 @@ $uid = (int)($_SESSION['user_id'] ?? 0) ?: null;
 $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
 $m = fn($c) => '$' . number_format(((int)$c) / 100, 2);
 
-$head = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
-      . '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data: https:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">'
-      . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=7"><link rel="stylesheet" href="assets/reports.css?v=5">';
 
 if (!bcrf_settlements_ready($pdo)) {
-    echo $head, '<title>Settlements</title></head><body class="page"><main class="narrow"><p class="flash err">Run migration 0022 in Settings › Database first.</p>',
-         '<p><a href="migrations.php">Database migrations</a></p></main></body></html>';
+    bcrf_shell_open('Settlements', ['legacy' => true]); echo '<p class="flash err">Run migration 0022 in Settings › Database first.</p>',
+         '<p><a href="migrations.php">Database migrations</a></p></div></main></body></html>';
     exit;
 }
 
@@ -54,14 +52,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 
 $flash = $_SESSION['set_flash'] ?? null; unset($_SESSION['set_flash']);
 
-echo $head, '<title>Settlements</title></head><body class="page"><main class="narrow wide">';
-echo '<p><a href="admin.php">← Admin</a> · <a href="thrift.php">Thrift</a> · <a href="register.php">Register</a></p>';
+bcrf_shell_open('Settlements', ['legacy' => true]);
 
 // Detail
 if (!empty($_GET['id'])) {
     $s = bcrf_settlement_get($pdo, (int)$_GET['id']);
     if (!$s) {
-        echo '<p class="card muted">That settlement doesn\'t exist. <a href="settlements.php">All settlements</a></p></main></body></html>';
+        echo '<p class="card muted">That settlement doesn\'t exist. <a href="settlements.php">All settlements</a></p></div></main></body></html>';
         exit;
     }
     echo '<p><a href="settlements.php">← Payable & history</a></p>';
@@ -84,7 +81,7 @@ if (!empty($_GET['id'])) {
              '<br><small class="muted">', $m($ln['sale_net_cents']), ' × ', $h(number_format(((int)$ln['share_bp']) / 100, 0)), '%</small></div>',
              '<div class="r"><b>', $m($ln['consignor_cents']), '</b></div></div>';
     }
-    echo '</div></main></body></html>';
+    echo '</div></div></main></body></html>';
     exit;
 }
 
@@ -135,4 +132,4 @@ else {
     }
     echo '</div>';
 }
-echo '</main></body></html>';
+echo '</div></main></body></html>';

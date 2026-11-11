@@ -12,6 +12,7 @@ require_once __DIR__ . '/includes/permission_checks.php';
 require_permission([['table', 'inventory', 'edit']]);
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/purchasing.php';
+require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -21,13 +22,10 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
 $m = fn($c) => '$' . number_format((int)$c / 100, 2);
 $q3 = fn($q) => bcrf_qtxt($q);
 
-$head = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
-      . '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data: https:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">'
-      . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=7"><link rel="stylesheet" href="assets/reports.css?v=5">';
 
 if (!bcrf_po_ready($pdo)) {
-    echo $head, '<title>Orders</title></head><body class="page"><main class="narrow"><p class="flash err">Run migration 0021 in Settings › Database first (and 0018 if needed).</p>',
-         '<p><a href="migrations.php">Database migrations</a></p></main></body></html>';
+    bcrf_shell_open('Orders', ['legacy' => true]); echo '<p class="flash err">Run migration 0021 in Settings › Database first (and 0018 if needed).</p>',
+         '<p><a href="migrations.php">Database migrations</a></p></div></main></body></html>';
     exit;
 }
 
@@ -102,14 +100,13 @@ $sel = function (string $name, array $opts, $cur, string $blank = '') use ($h) {
 };
 $statusLabel = bcrf_po_statuses();
 
-echo $head, '<title>Orders</title></head><body class="page"><main class="narrow wide">';
-echo '<p><a href="admin.php">← Admin</a> · <a href="receive.php">Receive</a> · <a href="vendors.php">Vendors</a> · <a href="stock.php">Stock</a></p>';
+bcrf_shell_open('Orders', ['legacy' => true]);
 
 // Detail
 if (!empty($_GET['id']) && empty($_GET['new'])) {
     $po = bcrf_po_get($pdo, (int)$_GET['id']);
     if (!$po) {
-        echo '<p class="card muted">That order doesn\'t exist. <a href="purchase_orders.php">All orders</a></p></main></body></html>';
+        echo '<p class="card muted">That order doesn\'t exist. <a href="purchase_orders.php">All orders</a></p></div></main></body></html>';
         exit;
     }
     echo '<p><a href="purchase_orders.php">← All orders</a> · <a href="purchase_orders.php?new=1">New order</a></p>';
@@ -180,7 +177,7 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
         }
         echo '</fieldset><div class="rbar"><button class="btn primary" type="submit">Save draft</button></div></form>';
     }
-    echo '</main></body></html>';
+    echo '</div></main></body></html>';
     exit;
 }
 
@@ -191,7 +188,7 @@ if (!empty($_GET['new'])) {
     echo '<p><a href="purchase_orders.php">← All orders</a></p><h1>New purchase order</h1>';
     if ($flash) echo '<p class="flash', $flash[0] === 'err' ? ' err' : '', '">', $h($flash[1]), '</p>';
     if (!$vendors) {
-        echo '<p class="card muted">Add a <a href="vendors.php?new=1">vendor</a> first.</p></main></body></html>';
+        echo '<p class="card muted">Add a <a href="vendors.php?new=1">vendor</a> first.</p></div></main></body></html>';
         exit;
     }
     echo '<form class="card stackf" method="POST" action="purchase_orders.php"><input type="hidden" name="csrf_token" value="', $h($csrf), '"><input type="hidden" name="act" value="save">';
@@ -209,7 +206,7 @@ if (!empty($_GET['new'])) {
     }
     echo '</fieldset><div class="rbar"><button class="btn primary" type="submit">Save draft</button></div></form>';
     echo '<p class="muted">After saving, mark ordered when you place it, then receive against it when the delivery arrives.</p>';
-    echo '</main></body></html>';
+    echo '</div></main></body></html>';
     exit;
 }
 
@@ -240,4 +237,4 @@ else {
     }
     echo '</div>';
 }
-echo '</main></body></html>';
+echo '</div></main></body></html>';

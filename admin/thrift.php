@@ -12,6 +12,7 @@ require_once __DIR__ . '/includes/permission_checks.php';
 require_permission([['table', 'inventory', 'edit']]);
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/thrift.php';
+require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -20,13 +21,10 @@ $uid = (int)($_SESSION['user_id'] ?? 0) ?: null;
 $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
 $m = fn($c) => '$' . number_format((float)$c, 2);
 
-$head = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
-      . '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data: https:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">'
-      . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=7"><link rel="stylesheet" href="assets/reports.css?v=4">';
 
 if (!bcrf_thrift_ready($pdo)) {
-    echo $head, '<title>Thrift</title></head><body class="page"><main class="narrow"><p class="flash err">Run migration 0020 in Settings › Database first.</p>',
-         '<p><a href="migrations.php">Database migrations</a></p></main></body></html>';
+    bcrf_shell_open('Thrift', ['legacy' => true]); echo '<p class="flash err">Run migration 0020 in Settings › Database first.</p>',
+         '<p><a href="migrations.php">Database migrations</a></p></div></main></body></html>';
     exit;
 }
 
@@ -64,14 +62,13 @@ $sel = function (string $name, array $opts, $cur, string $blank = '') use ($h) {
     return $o . '</select>';
 };
 
-echo $head, '<title>Thrift</title></head><body class="page"><main class="narrow wide">';
-echo '<p><a href="admin.php">← Admin</a> · <a href="register.php">Register</a> · <a href="stock.php">Stock</a> · <a href="products.php">Products</a> · <a href="settlements.php">Settlements</a></p>';
+bcrf_shell_open('Thrift', ['legacy' => true]);
 
 // Detail
 if (!empty($_GET['id']) && empty($_GET['new'])) {
     $p = bcrf_thrift_get($pdo, (int)$_GET['id']);
     if (!$p) {
-        echo '<p class="card muted">That thrift item doesn\'t exist. <a href="thrift.php">All thrift</a></p></main></body></html>';
+        echo '<p class="card muted">That thrift item doesn\'t exist. <a href="thrift.php">All thrift</a></p></div></main></body></html>';
         exit;
     }
     echo '<p><a href="thrift.php">← All thrift</a> · <a href="thrift.php?new=1">Intake</a></p>';
@@ -101,7 +98,7 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
     echo '</div>';
     echo '<p class="muted">Sell it on the <a href="register.php">register</a> (scan or search ', $h($p['sku']), '). When sold, it leaves the for-sale list automatically.</p>';
     echo '<p><a href="print_label.php?item_id=', (int)$p['id'], '">Print tag</a> · <a href="products.php?id=', (int)$p['id'], '">Product editor</a></p>';
-    echo '</main></body></html>';
+    echo '</div></main></body></html>';
     exit;
 }
 
@@ -126,7 +123,7 @@ if (!empty($_GET['new'])) {
     echo '<label>Photo address <small class="muted">(https://… or /media/…)</small><input type="text" name="image_url" value="', $h($d['image_url'] ?? ''), '" maxlength="255" autocomplete="off"></label>';
     echo '<div class="rbar"><button class="btn primary" type="submit">Take in</button></div></form>';
     echo '<p class="muted">Creates a quantity-1 product (SKU THR-…) on the register. After a consigned item sells, pay the consignor on <a href="settlements.php">Settlements</a>.</p>';
-    echo '</main></body></html>';
+    echo '</div></main></body></html>';
     exit;
 }
 
@@ -155,4 +152,4 @@ else {
     }
     echo '</div><p class="muted">', count($rows), ' item', count($rows) === 1 ? '' : 's', '.</p>';
 }
-echo '</main></body></html>';
+echo '</div></main></body></html>';

@@ -13,6 +13,7 @@ require_permission([['table', 'inventory', 'edit']]);
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/receiving.php';
 if (is_file(__DIR__ . '/../includes/purchasing.php')) require_once __DIR__ . '/../includes/purchasing.php';
+require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -22,13 +23,10 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
 $m = fn($c) => '$' . number_format((int)$c / 100, 2);
 $q3 = fn($q) => bcrf_qtxt($q);
 
-$head = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
-      . '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data: https:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">'
-      . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=7"><link rel="stylesheet" href="assets/reports.css?v=5">';
 
 if (!bcrf_receives_ready($pdo)) {
-    echo $head, '<title>Receive</title></head><body class="page"><main class="narrow"><p class="flash err">Run migration 0019 in Settings › Database first (and 0018 + 0015 if needed).</p>',
-         '<p><a href="migrations.php">Database migrations</a></p></main></body></html>';
+    bcrf_shell_open('Receive', ['legacy' => true]); echo '<p class="flash err">Run migration 0019 in Settings › Database first (and 0018 + 0015 if needed).</p>',
+         '<p><a href="migrations.php">Database migrations</a></p></div></main></body></html>';
     exit;
 }
 
@@ -126,14 +124,13 @@ $sel = function (string $name, array $opts, $cur, string $blank = '') use ($h) {
     return $o . '</select>';
 };
 
-echo $head, '<title>Receive</title></head><body class="page"><main class="narrow wide">';
-echo '<p><a href="admin.php">← Admin</a> · <a href="stock.php">Stock</a> · <a href="vendors.php">Vendors</a> · <a href="products.php">Products</a></p>';
+bcrf_shell_open('Receive', ['legacy' => true]);
 
 // Detail view
 if (!empty($_GET['id']) && empty($_GET['new'])) {
     $r = bcrf_receive_get($pdo, (int)$_GET['id']);
     if (!$r) {
-        echo '<p class="card muted">That receive doesn\'t exist. <a href="receive.php">All receives</a></p></main></body></html>';
+        echo '<p class="card muted">That receive doesn\'t exist. <a href="receive.php">All receives</a></p></div></main></body></html>';
         exit;
     }
     echo '<p><a href="receive.php">← All receives</a> · <a href="receive.php?new=1">New receive</a></p>';
@@ -155,7 +152,7 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
     }
     echo '<div class="lrow"><b>Total</b><span class="r"><b>', $m($sum), '</b></span></div></div>';
     echo '<p class="muted">Average cost on each product was updated. Stock history shows reason Received.</p>';
-    echo '</main></body></html>';
+    echo '</div></main></body></html>';
     exit;
 }
 
@@ -269,4 +266,4 @@ else {
     }
     echo '</div>';
 }
-echo '</main></body></html>';
+echo '</div></main></body></html>';

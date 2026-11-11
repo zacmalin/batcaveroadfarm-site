@@ -15,6 +15,7 @@ require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/queue.php';
 require_once __DIR__ . '/../includes/sales.php';
 require_once __DIR__ . '/../includes/products.php';
+require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -23,11 +24,8 @@ $uid = (int)($_SESSION['user_id'] ?? 0) ?: null;
 $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
 $money = fn($d) => '$' . number_format((float)$d, 2);
 $q3 = fn($q) => bcrf_qtxt($q);
-$head = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
-      . '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data: https:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">'
-      . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=7"><link rel="stylesheet" href="assets/reports.css?v=4">';
 if (!bcrf_sales_ready($pdo)) {
-    echo $head, '<title>Products</title></head><body class="page"><main class="narrow"><p class="flash err">Run migration 0009 in Settings › Database first.</p></main></body></html>';
+    bcrf_shell_open('Products', ['legacy' => true]); echo '<p class="flash err">Run migration 0009 in Settings › Database first.</p></div></main></body></html>';
     exit;
 }
 
@@ -65,8 +63,7 @@ $sel = function (string $name, array $opts, $cur, string $blank = '', array $att
 };
 $editing = isset($_GET['id']) || isset($_GET['new']);
 
-echo $head, '<title>Products</title></head><body class="page"><main class="narrow wide">';
-echo '<p><a href="admin.php">← Admin</a> · <a href="stock.php">Stock</a> · <a href="vendors.php">Vendors</a> · <a href="register.php">Register</a></p>';
+bcrf_shell_open('Products', ['legacy' => true]);
 
 if (!$editing) {
     $f = ['q' => trim((string)($_GET['q'] ?? '')), 'category_id' => (int)($_GET['cat'] ?? 0) ?: null,
@@ -92,12 +89,12 @@ if (!$editing) {
         }
         echo '</div><p class="muted">', count($rows), ' product', count($rows) === 1 ? '' : 's', '. Nothing is deleted: turn a product off to take it off the register and website.</p>';
     }
-    echo '</main></body></html>'; exit;
+    echo '</div></main></body></html>'; exit;
 }
 
 $id = (int)($_GET['id'] ?? 0);
 $p = $id ? bcrf_product_get($pdo, $id) : null;
-if ($id && !$p) { http_response_code(404); echo '<p class="card muted">That product doesn\'t exist. <a href="products.php">All products</a></p></main></body></html>'; exit; }
+if ($id && !$p) { http_response_code(404); echo '<p class="card muted">That product doesn\'t exist. <a href="products.php">All products</a></p></div></main></body></html>'; exit; }
 $d = $typed ?: ($p ?: ['name' => '', 'product_type' => 'retail', 'pricing_mode' => 'each', 'unit' => 'each', 'price' => '', 'track_inventory' => 1,
                        'is_active' => 1, 'is_alert_enabled' => 1, 'min_stock_level' => '1', 'category_id' => '', 'tax_category_id' => '']);
 if ($typed && $p) { foreach (['track_inventory', 'is_active', 'is_alert_enabled'] as $k) $d[$k] = isset($typed[$k]) ? 1 : 0; }
@@ -165,4 +162,4 @@ echo '<label class="check"><input type="checkbox" name="is_active" value="1"', $
      '<div class="rbar"><button class="btn primary" type="submit">', $p ? 'Save' : 'Add product', '</button>',
      $p ? '<a class="btn" href="print_label.php?item_id=' . (int)$p['id'] . '">Print label</a>' : '', '</div></form>';
 if ($p && in_array(($_SESSION['user_role'] ?? ''), ['administrator'], true)) echo '<p class="muted">Other fields: <a href="admin.php?view=schema&amp;table=inventory">Full editor</a> (administrators).</p>';
-echo '</main></body></html>';
+echo '</div></main></body></html>';
