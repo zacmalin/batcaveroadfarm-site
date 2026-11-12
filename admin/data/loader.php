@@ -277,6 +277,7 @@ if ($target_view === 'media') {
             $count = 0;
             foreach ($iterator as $file) {
                 if (!$file->isFile()) continue;
+                if (str_contains(str_replace('\\', '/', $file->getPathname()), '/img/_thumbs/')) continue;   // auto-made smaller copies (bcrf_img_thumb)
                 if (!in_array(strtolower($file->getExtension()), ['jpg', 'jpeg', 'png', 'webp'])) continue;
 
                 if ($count >= $vault_cap) { $vault_scan_capped = true; break; }

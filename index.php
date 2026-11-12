@@ -92,6 +92,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.ph
                 <div class="home-feature-cols reveal">
                   <?php if ($latestPost):
                       $bImg = $homeNorm($latestPost['feature_image'] ?? $latestPost['image_url'] ?? '');
+                      $bImg = bcrf_img_thumb($bImg, 960);   // phone-sized copy (PageSpeed, Nov 11 2026)
                       $bUrl = '/blog/' . rawurlencode($latestPost['slug']) . '/';
                       $bWhen = !empty($latestPost['date_published']) ? $latestPost['date_published'] : ($latestPost['created_at'] ?? '');
                       $bDate = $bWhen ? date('F j, Y', strtotime($bWhen)) : '';
@@ -121,7 +122,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.ph
                     if ($favRecipe && (!$latestRecipe || $favRecipe['id'] != $latestRecipe['id'])) { $rows[] = ['Farm Favorite', $favRecipe]; }
                     foreach ($rows as $row):
                         $label = $row[0]; $r = $row[1];
-                        $ri = $homeNorm($homeRecImg($r));
+                        $ri = bcrf_img_thumb($homeNorm($homeRecImg($r)), 640);   // phone-sized copy: originals can be 2400px (PageSpeed, Nov 11 2026)
                         $rUrl = '/recipes/' . rawurlencode($r['slug']) . '/';
                         $mins = (int)($r['prep_time'] ?? 0) + (int)($r['cook_time'] ?? 0);
                     ?>
