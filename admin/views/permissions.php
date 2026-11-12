@@ -4,6 +4,7 @@ if ($current_role !== 'administrator') {
     return;
 }
 
+// ── SECTIONED PERMISSION MAP ──────────────────────────────────────────────────
 // Sections and items live in includes/permission_sections.php (shared with the save handler, Nov 12, 2026).
 require_once dirname(__DIR__, 2) . '/includes/permission_sections.php';
 $permission_sections = bcrf_permission_sections();
