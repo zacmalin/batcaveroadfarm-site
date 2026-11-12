@@ -3,7 +3,8 @@
 // and consent, CRM extension "Account preferences").
 //   Always sent, no setting: booking and party confirmations, quotes and payments, tickets, passes, receipts, gift cards,
 //                sign-in and password links, weather closures (transactional, 07).
-//   Optional service emails, on unless turned off: visit reminders (day before a booking), Roost Rewards reminders.
+//   Optional service emails, on unless turned off: visit reminders (day before a booking) and the thank-you/review note
+//                after it (one setting), Roost Rewards reminders.
 //   Marketing, off unless the person opted in: the newsletter and its two topics, kept in mailing_list as before, so the
 //                signup form, unsubscribe link, admin Newsletter page and this page all show the same state.
 // Preferences are by email address, so guests without an account have them too. The preferences link carries a random
@@ -13,7 +14,7 @@ if (!function_exists('bcrf_email_prefs_ready')) {
 
 /** Optional service emails: setting => [label, what it is]. */
 define('BCRF_EMAIL_PREF_SERVICE', [
-    'visit_reminders'   => ['Visit reminders', 'A reminder the day before a visit you\'ve booked.'],
+    'visit_reminders'   => ['Visit reminders and thank-yous', 'A reminder the day before a visit you\'ve booked, and a thank-you note after.'],
     'rewards_reminders' => ['Roost Rewards reminders', 'A heads-up before your points expire.'],
 ]);
 /** Marketing: setting => [label, what it is, mailing_list column]. */

@@ -117,6 +117,10 @@ bcrf_email_prefs_save($pdo, 'quiet@x.test', ['visit_reminders' => false], 'link'
 $sentBefore = $GLOBALS['bcf_mail_last_error'] ?? null;
 $ok(booking_send_reminder(['email' => 'quiet@x.test', 'customer_name' => 'Q', 'booking_date' => '2026-12-05', 'start_time' => '10:00:00', 'token' => 't'], ['label' => 'Visit']) === false, 'visit reminder not sent when turned off');
 $ok(($GLOBALS['bcf_mail_last_error'] ?? null) === $sentBefore, 'mailer was not called');
+$ok(function_exists('booking_send_review_request'), 'the review-request cron has its sender');
+$ok(booking_send_review_request(['email' => 'quiet@x.test', 'customer_name' => 'Q Person'], ['label' => 'Visit']) === false, 'thank-you not sent when turned off');
+$ok(($GLOBALS['bcf_mail_last_error'] ?? null) === $sentBefore, 'mailer still not called');
+$ok(booking_send_review_request(['email' => '', 'customer_name' => 'Q'], null) === false, 'no email, no thank-you');
 $src = file_get_contents($root . '/includes/rewards.php');
 $ok(str_contains($src, "bcrf_email_pref_allowed(\$pdo, (string)\$r['email'], 'rewards_reminders')"), 'rewards reminders check the setting');
 

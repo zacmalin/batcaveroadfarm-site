@@ -287,8 +287,26 @@ function booking_send_reminder(array $b, ?array $type = null): bool {
         . '<p style="color:#e8d5b0;">A friendly reminder of your upcoming visit:</p>'
         . _booking_summary_html($b, $type)
         . '<p style="color:#e8d5b0;">Can\'t make it? <a style="color:#e8b84b;" href="' . _booking_cancel_url($b) . '">Cancel here</a> so we can free the spot.</p>'
-        . ($pdo instanceof PDO ? bcrf_email_prefs_footer($pdo, (string)$b['email'], 'visit reminders') : '');
+        . ($pdo instanceof PDO ? bcrf_email_prefs_footer($pdo, (string)$b['email'], 'visit reminders and thank-yous') : '');
     return _booking_mail($b['email'], 'Reminder: your visit tomorrow — Bat Cave Road Farm', $inner);
+}
+
+/** Thank-you after a visit, asking for a Google review (admin/cron/send_review_requests.php, about a day later).
+ *  Optional: it follows the "visit reminders and thank-yous" email setting (includes/email_prefs.php). */
+function booking_send_review_request(array $b, ?array $type = null): bool {
+    if (empty($b['email'])) return false;
+    $pdo = $GLOBALS['pdo'] ?? null;
+    if (!function_exists('bcrf_email_prefs_ready')) require_once __DIR__ . '/email_prefs.php';
+    if ($pdo instanceof PDO && !bcrf_email_pref_allowed($pdo, (string)$b['email'], 'visit_reminders')) return false;
+    $site  = function_exists('bcrf_farm_url') ? bcrf_farm_url() : 'https://batcaveroadfarm.com';
+    $first = trim(explode(' ', trim((string)($b['customer_name'] ?? '')))[0] ?? '');
+    $inner = '<h1 style="font-family:Georgia,serif;color:#f5ead6;">Thanks for visiting! 🐐</h1>'
+        . '<p style="color:#e8d5b0;">' . ($first !== '' ? 'Hi ' . htmlspecialchars($first) . ', thank' : 'Thank') . ' you for spending time with us at the farm. We hope everyone had a great day with the animals.</p>'
+        . '<p style="color:#e8d5b0;">If you have a minute, a Google review helps other families find us:</p>'
+        . '<p style="margin:18px 0;"><a style="background:#e8b84b;color:#3b2010;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold;" href="' . htmlspecialchars($site . '/review/', ENT_QUOTES) . '">Leave a review</a></p>'
+        . '<p style="color:#e8d5b0;">Anything we could do better? Just reply to this email.</p>'
+        . ($pdo instanceof PDO ? bcrf_email_prefs_footer($pdo, (string)$b['email'], 'visit reminders and thank-yous') : '');
+    return _booking_mail($b['email'], 'Thanks for visiting Bat Cave Road Farm', $inner);
 }
 
 /** Notify the farm of a new request. */
