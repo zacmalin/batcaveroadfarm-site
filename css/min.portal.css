@@ -28,3 +28,9 @@
 .portal-news p{margin:0 0 8px}
 .portal-btn-alt{background:#3E2A1E;color:#fdf4e3;border:0;border-radius:8px;padding:10px 18px;font-weight:bold;cursor:pointer;font-size:1rem}
 .portal-btn-alt:hover,.portal-btn-alt:focus-visible{background:#5b3d22}
+.pref-group{border:0;border-top:1px solid rgba(201,146,58,.35);margin:0 0 12px;padding:10px 0 0}
+.pref-group:first-child{border-top:0;padding-top:0}
+.pref-group legend{font-weight:700;color:#3E2A1E;padding:0 0 4px}
+.pref-row{display:flex;gap:10px;align-items:flex-start;padding:6px 0;cursor:pointer}
+.pref-row input[type=checkbox]{width:20px;height:20px;margin:3px 0 0;flex:0 0 auto;accent-color:#8a4b12}
+.pref-row input[type=checkbox]:disabled{opacity:.5}

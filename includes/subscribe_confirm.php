@@ -63,6 +63,11 @@ if (!function_exists('bcrf_subconf_token')) {
                     ->execute([$email, $nursery ? 1 : 0, $inventory ? 1 : 0]);
                 $id = (int)$pdo->lastInsertId();
             }
+            // Consent source and time (migration 0037; skipped quietly before it runs)
+            try {
+                $pdo->prepare("UPDATE mailing_list SET consent_source = 'signup', consent_at = UTC_TIMESTAMP(), unsubscribed_at = NULL WHERE id = ?")->execute([(int)$id]);
+                $pdo->prepare("INSERT INTO email_preference_log (email, setting, value, via, created_at) VALUES (?, 'newsletter', 1, 'signup', UTC_TIMESTAMP())")->execute([$email]);
+            } catch (Throwable $e) {}
             if (function_exists('erp_audit')) {
                 erp_audit($pdo, $existed ? 'update' : 'create', 'mailing_list', $id ? (int)$id : null, $email . ' - subscribed (confirmed by email)', 'Subscriber (self)');
             }

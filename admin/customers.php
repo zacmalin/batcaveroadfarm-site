@@ -3,9 +3,10 @@
 // duplicates (Farm OS Phase 3, Nov 12, 2026; includes/crm.php; 07 › Customer model, CRM extension Phase 1).
 //   GET  customers.php[?q=…]          search (name, email, phone); newest first when blank
 //   GET  customers.php?id=N           one customer: contact, notes, household, organizations, bookings, parties,
-//                                     passes, tickets, register sales, rewards, merges
+//                                     passes, tickets, register sales, rewards, email preferences, merges
 //   GET  customers.php?dupes=1        possible duplicates (same phone or same name) to review and merge
 //   POST act=save | household_new | household_join | household_leave | child_add | child_remove | merge | undo_merge
+//        | email_off (staff can turn an email off when a customer asks; only the customer can turn news on)
 // Permission: view 'customers' (Owners always; Managers by default). Merging and undoing need an Owner or Manager.
 // Opening the page links any new bookings, parties, passes and tickets to their customer by email first.
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
@@ -18,6 +19,7 @@ require_once __DIR__ . '/../includes/queue.php';
 require_once __DIR__ . '/../includes/booking.php';
 require_once __DIR__ . '/../includes/event_quotes.php';
 require_once __DIR__ . '/../includes/crm.php';
+require_once __DIR__ . '/../includes/email_prefs.php';
 require_once __DIR__ . '/../includes/admin_shell.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -77,6 +79,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $dup = (int)($_POST['dup_id'] ?? 0);
             bcrf_crm_merge($pdo, $id, $dup, $uid);
             $_SESSION['crm_flash'] = ['ok', 'Merged. Everything from the other record is on this one now. You can undo it below.'];
+        } elseif ($act === 'email_off') {
+            $k = (string)($_POST['setting'] ?? '');
+            $off = $k === 'all' ? null : (isset(BCRF_EMAIL_PREF_SERVICE[$k]) || isset(BCRF_EMAIL_PREF_TOPICS[$k]) ? [$k => false] : []);
+            if ($off === []) throw new BcrfCrmError('Unknown email setting.');
+            $changed = $off === null ? bcrf_email_prefs_all_off($pdo, (string)$c['email'], 'staff', $uid) : bcrf_email_prefs_save($pdo, (string)$c['email'], $off, 'staff', $uid);
+            $_SESSION['crm_flash'] = ['ok', $changed ? 'Turned off.' : 'It was already off.'];
         } elseif ($act === 'undo_merge') {
             if (!$mgr) throw new BcrfCrmError('Only an Owner or Manager can undo a merge.');
             bcrf_crm_merge_undo($pdo, (int)($_POST['merge_id'] ?? 0), $uid);
@@ -226,6 +234,32 @@ if ($id) {
     </ul>
     <?php endif; ?>
   </div>
+
+  <?php if (bcrf_email_prefs_ready($pdo)): $ep = bcrf_email_prefs_get($pdo, (string)$c['email']); $elog = bcrf_email_prefs_log($pdo, (string)$c['email'], 8); ?>
+  <div class="<?= $card ?>">
+    <h2 class="text-base font-semibold text-stone-800 mb-1">Emails</h2>
+    <p class="text-xs text-stone-500 mb-2">Confirmations, tickets, passes, receipts, payment links and weather closures always go. These are optional. You can turn one off when they ask; only they can turn news on.</p>
+    <ul class="divide-y divide-stone-100">
+      <?php foreach (BCRF_EMAIL_PREF_SERVICE + BCRF_EMAIL_PREF_TOPICS as $k => $def): ?>
+      <li class="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+        <span><?= $h($def[0]) ?> <?= $ep[$k] ? $chip('On', 'bg-green-100 text-green-800') : $chip('Off') ?></span>
+        <?php if ($ep[$k]): ?>
+        <form method="POST" action="customers.php"><?= $hidden($id) ?><input type="hidden" name="act" value="email_off"><input type="hidden" name="setting" value="<?= $h($k) ?>">
+          <button class="text-xs underline text-stone-500" data-confirm="Turn off <?= $h(strtolower($def[0])) ?> for <?= $h($c['first_name']) ?>?">Turn off</button></form>
+        <?php endif; ?>
+      </li>
+      <?php endforeach; ?>
+    </ul>
+    <?php if ($ep['consent'] && $ep['consent']['at']): ?><p class="text-xs text-stone-500 mt-2">Newsletter consent: <?= $h($ep['consent']['source']) ?>, <?= $h($date($ep['consent']['at'])) ?><?= $ep['consent']['unsubscribed_at'] ? ' · unsubscribed ' . $h($date($ep['consent']['unsubscribed_at'])) : '' ?></p><?php endif; ?>
+    <?php if ($elog): ?>
+    <details class="mt-2"><summary class="text-xs text-stone-600 cursor-pointer">Changes</summary>
+      <ul class="text-xs text-stone-600 mt-1">
+        <?php foreach ($elog as $l): ?><li><?= $h($date($l['created_at'])) ?> · <?= $h((BCRF_EMAIL_PREF_SERVICE[$l['setting']] ?? BCRF_EMAIL_PREF_TOPICS[$l['setting']] ?? [$l['setting']])[0]) ?> <?= $l['value'] ? 'on' : 'off' ?> (<?= $h($l['via']) ?>)</li><?php endforeach; ?>
+      </ul>
+    </details>
+    <?php endif; ?>
+  </div>
+  <?php endif; ?>
 
   <?php if ($p['merges']): ?>
   <div class="<?= $card ?>">

@@ -369,6 +369,7 @@ function bcrf_rewards_send_reminders(PDO $pdo): int {
     if (!$rows) return 0;
     $tpl = dirname(__DIR__) . '/admin/includes/email_template.php';
     if (!function_exists('bcf_send_mail')) { if (!is_file($tpl)) return 0; require_once $tpl; }
+    if (!function_exists('bcrf_email_prefs_ready')) require_once __DIR__ . '/email_prefs.php';
     $site = function_exists('bcrf_farm_url') ? bcrf_farm_url() : 'https://batcaveroadfarm.com';
     $tz = new DateTimeZone(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
     $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
@@ -380,12 +381,14 @@ function bcrf_rewards_send_reminders(PDO $pdo): int {
         $stage = ($r['reminder_for'] === $r['since']) ? (int)$r['reminder_stage'] : 0;
         $want = $daysLeft <= 7 ? 2 : 1;
         if ($daysLeft <= 0 || $stage >= $want || !filter_var($r['email'], FILTER_VALIDATE_EMAIL)) continue;
+        if (!bcrf_email_pref_allowed($pdo, (string)$r['email'], 'rewards_reminders')) continue;   // turned off (includes/email_prefs.php)
         $date = $expires->setTimezone($tz)->format('F j, Y');
         $html = '<p>Hi ' . $h($r['first_name']) . ',</p>'
               . '<p>Just a heads-up: your <strong>' . number_format((int)$r['balance_points']) . ' Roost Rewards points</strong> will expire on <strong>' . $h($date) . '</strong>.</p>'
               . '<p>Any visit or purchase at the farm before then keeps them active. Just give your phone number at the counter.</p>'
               . '<p>See your points and rewards at <a href="' . $h($site) . '/roost-rewards/">' . $h($site) . '/roost-rewards/</a>.</p>'
               . '<p><small>This is a one-time reminder about your points, not a marketing email.</small></p>';
+        $html .= bcrf_email_prefs_footer($pdo, (string)$r['email'], 'Roost Rewards reminders', 'you\'re a Roost Rewards member');
         $subject = $want === 2 ? 'Your Roost Rewards points expire in ' . $daysLeft . ' day' . ($daysLeft === 1 ? '' : 's') : 'Your Roost Rewards points expire next month';
         // Mark first, so a crash after sending can't send twice; unmark if the send fails.
         $mark->execute([$r['since'], $want, (int)$r['customer_id'], $r['since']]);

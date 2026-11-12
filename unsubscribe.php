@@ -21,6 +21,11 @@ function bcrf_do_unsubscribe(PDO $pdo, string $email, string $how): bool
         $st = $pdo->prepare("UPDATE mailing_list SET is_subscribed = 0 WHERE LOWER(email) = LOWER(?)");
         $st->execute([$email]);
         if ($st->rowCount() > 0) {
+            // When and how, for the consent record (migration 0037; skipped quietly before it runs)
+            try {
+                $pdo->prepare("UPDATE mailing_list SET unsubscribed_at = UTC_TIMESTAMP() WHERE LOWER(email) = LOWER(?)")->execute([$email]);
+                $pdo->prepare("INSERT INTO email_preference_log (email, setting, value, via, created_at) VALUES (LOWER(?), 'newsletter', 0, 'unsubscribe', UTC_TIMESTAMP())")->execute([$email]);
+            } catch (Throwable $e) {}
             $audit = __DIR__ . '/admin/includes/audit.php';
             if (is_file($audit)) {
                 require_once $audit;

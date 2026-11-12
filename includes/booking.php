@@ -279,10 +279,15 @@ function booking_send_confirmation(array $b, ?array $type = null): bool {
 /** 24h-out reminder. */
 function booking_send_reminder(array $b, ?array $type = null): bool {
     if (empty($b['email'])) return false;
+    // Visit reminders are optional (Farm OS Phase 3 notification preferences, includes/email_prefs.php).
+    $pdo = $GLOBALS['pdo'] ?? null;
+    if (!function_exists('bcrf_email_prefs_ready')) require_once __DIR__ . '/email_prefs.php';
+    if ($pdo instanceof PDO && !bcrf_email_pref_allowed($pdo, (string)$b['email'], 'visit_reminders')) return false;
     $inner = '<h1 style="font-family:Georgia,serif;color:#f5ead6;">See you tomorrow! 🌾</h1>'
         . '<p style="color:#e8d5b0;">A friendly reminder of your upcoming visit:</p>'
         . _booking_summary_html($b, $type)
-        . '<p style="color:#e8d5b0;">Can\'t make it? <a style="color:#e8b84b;" href="' . _booking_cancel_url($b) . '">Cancel here</a> so we can free the spot.</p>';
+        . '<p style="color:#e8d5b0;">Can\'t make it? <a style="color:#e8b84b;" href="' . _booking_cancel_url($b) . '">Cancel here</a> so we can free the spot.</p>'
+        . ($pdo instanceof PDO ? bcrf_email_prefs_footer($pdo, (string)$b['email'], 'visit reminders') : '');
     return _booking_mail($b['email'], 'Reminder: your visit tomorrow — Bat Cave Road Farm', $inner);
 }
 

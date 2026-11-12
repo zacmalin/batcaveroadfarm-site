@@ -1,10 +1,11 @@
 <?php
 // account/index.php — "My farm", the customer portal (Farm OS Phase 3 slice 6, Nov 12, 2026; includes/customer_portal.php).
 // Bookings and parties (what's left to pay, with the quote page to pay it), online tickets and annual passes (each opens
-// its QR page), register receipts, the newsletter switch, and name and phone. Signed-out visitors go to the emailed-link
+// its QR page), register receipts, email preferences (reminders, newsletter and topics), and name and phone. Signed-out visitors go to the emailed-link
 // sign-in. Bookings, tickets and passes show only once the account's email is verified.
 //   POST act=profile     first name, last name, phone
-//   POST act=newsletter  on / off
+//   POST act=newsletter  on / off (only before migration 0037)
+//   POST act=prefs       email preferences (includes/email_prefs.php); news can be turned on only with a verified email
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 ob_start();
 require_once '../config.php';
@@ -16,6 +17,7 @@ require_once '../includes/booking.php';
 require_once '../includes/event_quotes.php';
 require_once '../includes/tickets_online.php';
 require_once '../includes/customer_portal.php';
+require_once '../includes/email_prefs.php';
 header('Cache-Control: no-store, private');
 header('X-Robots-Tag: noindex, nofollow');
 
@@ -50,12 +52,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ob_end_clean(); header('Location: /account/#details'); exit;
         }
         $error = 'Verify your email first, then you can join the newsletter.';
+    } elseif ($act === 'prefs') {
+        try {
+            bcrf_email_prefs_save($pdo, (string)$c['email'], bcrf_email_prefs_from_post($_POST), 'portal', null, !empty($c['email_verified_at']));
+            $_SESSION['portal_flash'] = 'Email preferences saved.';
+            ob_end_clean(); header('Location: /account/#emails'); exit;
+        } catch (Throwable $e) {
+            error_log('[portal] prefs: ' . $e->getMessage());
+            $error = 'Could not save your email preferences. Please try again.';
+        }
     }
 }
 $flash = (string)($_SESSION['portal_flash'] ?? ''); unset($_SESSION['portal_flash']);
 
 $items = bcrf_portal_items($pdo, $c);
-$news = bcrf_portal_newsletter($pdo, (string)$c['email']);
+$prefs = bcrf_email_prefs_ready($pdo) ? bcrf_email_prefs_get($pdo, (string)$c['email']) : null;
+$news = $prefs === null ? bcrf_portal_newsletter($pdo, (string)$c['email']) : null;
 ob_end_clean();
 
 $pageTitle       = 'My Farm | ' . bcrf_farm_name();
@@ -199,7 +211,7 @@ $card = function (array $b) use ($h, $m) {
         <button type="submit" class="auth-btn">Save</button>
       </form>
 
-      <?php if ($news !== null): ?>
+      <?php if ($prefs === null && $news !== null): ?>
       <form method="POST" action="/account/" class="portal-news">
         <?= csrf_field() ?>
         <input type="hidden" name="act" value="newsletter">
@@ -214,6 +226,18 @@ $card = function (array $b) use ($h, $m) {
       <?php endif; ?>
       <p class="portal-muted"><?= empty($c['password']) ? 'You sign in with an emailed link. Want a password too? <a href="/account/forgot.php">Set one</a>.' : '<a href="/account/forgot.php">Change your password</a>' ?></p>
     </section>
+
+    <?php if ($prefs !== null): ?>
+    <section class="portal-card" id="emails">
+      <h2>Emails from us</h2>
+      <form method="POST" action="/account/" class="portal-form">
+        <?= csrf_field() ?>
+        <input type="hidden" name="act" value="prefs">
+        <?= bcrf_email_prefs_fields($prefs, !empty($c['email_verified_at'])) ?>
+        <button type="submit" class="auth-btn">Save</button>
+      </form>
+    </section>
+    <?php endif; ?>
   </div>
 </div>
 <?php require_once '../includes/footer.php'; ?>
