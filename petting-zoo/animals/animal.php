@@ -65,6 +65,26 @@ if (!$animal) {
     exit;
 }
 
+// Farm OS Phase 5 slice 9 (Nov 12, 2026; includes/animal_public.php, migration 0048): how the age shows, fun facts one
+// per line, and more photos. Only public fields are read; nothing private (health, weights, costs or incident reports) is.
+$extraPhotos = []; $ageLine = null; $funFacts = null;
+if (is_file(__DIR__ . '/../../includes/animal_public.php')) {
+    try {
+        require_once __DIR__ . '/../../includes/animal_public.php';
+        if (bcrf_public_ready($pdo)) {
+            $st = $pdo->prepare("SELECT birthday_display, birth_estimated FROM animals WHERE id = ?");
+            $st->execute([(int)$animal['id']]);
+            $pub = $st->fetch(PDO::FETCH_ASSOC) ?: [];
+            $ageLine = bcrf_public_age_line($animal['date_of_birth'] ?? null, !empty($pub['birth_estimated']), (string)($pub['birthday_display'] ?? 'age'));
+            $funFacts = bcrf_public_facts($animal['fun_fact'] ?? '');
+            foreach (bcrf_public_photos($pdo, (int)$animal['id']) as $p) {
+                $src = bcrfNormImg((string)$p['path']);
+                if ($src !== '') $extraPhotos[] = ['src' => $src, 'alt' => trim((string)($p['alt_text'] ?? '')) ?: (string)$animal['name']];
+            }
+        }
+    } catch (Throwable $e) { error_log('[animal page] ' . $e->getMessage()); }
+}
+
 $name      = (string)$animal['name'];
 $img       = bcrfNormImg((string)($animal['photo_url'] ?? ''));
 $imgAlt    = trim((string)($animal['photo_alt_text'] ?? '')) ?: $name;
@@ -153,12 +173,20 @@ require_once '../../includes/header.php';
         </div>
         <h1><?= htmlspecialchars($name) ?></h1>
         <?php if ($displayTag !== ''): ?><p class="ad-tagline"><?= htmlspecialchars($displayTag) ?></p><?php endif; ?>
-        <?php if ($age !== ''): ?><p class="ad-facts"><?= htmlspecialchars($age) ?> old</p><?php endif; ?>
+        <?php if ($ageLine !== null): ?><?php if ($ageLine !== ''): ?><p class="ad-facts"><?= htmlspecialchars($ageLine) ?></p><?php endif; ?>
+        <?php elseif ($age !== ''): ?><p class="ad-facts"><?= htmlspecialchars($age) ?> old</p><?php endif; ?>
         <?php if ($bio !== ''): ?><p class="ad-bio"><?= nl2br(htmlspecialchars($bio)) ?></p><?php endif; ?>
       </div>
     </div>
     <div class="ad-footer">
-      <?php if ($funFact !== ''): ?><p class="ad-funfact"><strong>Fun fact:</strong> <?= htmlspecialchars($funFact) ?></p><?php endif; ?>
+      <?php if ($funFacts !== null && count($funFacts) > 1): ?>
+      <div class="ad-funfact"><strong>Fun facts</strong><ul class="ad-funfacts"><?php foreach ($funFacts as $f): ?><li><?= htmlspecialchars($f) ?></li><?php endforeach; ?></ul></div>
+      <?php elseif ($funFact !== ''): ?><p class="ad-funfact"><strong>Fun fact:</strong> <?= htmlspecialchars($funFacts[0] ?? $funFact) ?></p><?php endif; ?>
+      <?php if ($extraPhotos): ?>
+      <section class="ad-gallery" aria-label="More photos of <?= htmlspecialchars($name) ?>">
+        <?php foreach ($extraPhotos as $p): ?><a href="<?= htmlspecialchars($p['src']) ?>" target="_blank" rel="noopener"><img src="<?= htmlspecialchars($p['src']) ?>" alt="<?= htmlspecialchars($p['alt']) ?>" loading="lazy" decoding="async"></a><?php endforeach; ?>
+      </section>
+      <?php endif; ?>
       <?php if ($wiki): ?>
       <section class="ad-wiki" aria-labelledby="adWikiH">
         <h2 id="adWikiH">About <?= htmlspecialchars($wiki['title']) ?></h2>

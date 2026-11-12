@@ -42,6 +42,7 @@ $_sections = [
     'animals' => ['label'=>'Animals','icon'=>'🐾','items'=>[
         ['label'=>'Roster',    'icon'=>'🐐','tabs'=>[['Roster','/admin/animals.php','table','animals'],                       // Farm OS Phase 5 slice 1 (Nov 12)
                                                      ['Enclosures','/admin/animals.php?tab=enclosures','table','animals'],
+                                                     ['Public pages','/admin/animal_public.php','table','animals'],                 // Farm OS Phase 5 slice 9 (Nov 12)
                                                      ['Full editor','?view=schema&table=animals','table','animals']]],
         ['label'=>'Care',      'icon'=>'🥕','tabs'=>[['Log care','/admin/animal_care.php','table','animals'],                   // Farm OS Phase 5 slice 2 (Nov 12)
                                                      ['Recent','/admin/animal_care.php?tab=log','table','animals'],

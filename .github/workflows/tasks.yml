@@ -18,12 +18,13 @@
 # then tests/animal_breeding_test.php (Phase 5 slice 6): breedings, the due task, outcomes, births adding kids, parents.
 # then tests/animal_expenses_test.php (Phase 5 slice 7): other expenses, vet and feed costs, feed split, totals, CSV.
 # then tests/incidents_test.php (Phase 5 slice 8): reports, owner email, follow-up task, waiver/check-in matching, change history.
+# then tests/animal_public_test.php (Phase 5 slice 9): public pages, age line, fun facts, photos, nothing private on the website.
 # Never touches a real database.
 name: Tasks test
 
 on:
   push:
-    paths: ['includes/tasks.php', 'includes/task_notify.php', 'admin/migrations/**', 'tests/tasks_test.php', 'tests/task_forms_test.php', 'includes/event_tasks.php', 'tests/event_tasks_test.php', 'includes/event_quotes.php', 'tests/event_quotes_test.php', 'includes/admission.php', 'includes/capacity_holds.php', 'includes/weather_days.php', 'tests/capacity_holds_test.php', 'includes/customer_portal.php', 'tests/customer_portal_test.php', 'includes/calendar.php', 'tests/calendar_test.php', 'includes/parties.php', 'tests/parties_test.php', 'includes/crm.php', 'tests/crm_test.php', 'includes/email_prefs.php', 'tests/email_prefs_test.php', 'includes/party_emails.php', 'tests/party_emails_test.php', 'includes/waivers.php', 'tests/waivers_test.php', 'includes/animals.php', 'tests/animals_test.php', 'includes/animal_care.php', 'tests/animal_care_test.php', 'includes/animal_health.php', 'tests/animal_health_test.php', 'includes/animal_weights.php', 'tests/animal_weights_test.php', 'includes/animal_schedules.php', 'tests/animal_schedules_test.php', 'includes/animal_breeding.php', 'tests/animal_breeding_test.php', 'includes/animal_expenses.php', 'tests/animal_expenses_test.php', 'includes/incidents.php', 'tests/incidents_test.php', 'includes/stock.php', 'admin/cron/send_booking_reminders.php', 'admin/cron/send_review_requests.php', '.github/workflows/tasks.yml']
+    paths: ['includes/tasks.php', 'includes/task_notify.php', 'admin/migrations/**', 'tests/tasks_test.php', 'tests/task_forms_test.php', 'includes/event_tasks.php', 'tests/event_tasks_test.php', 'includes/event_quotes.php', 'tests/event_quotes_test.php', 'includes/admission.php', 'includes/capacity_holds.php', 'includes/weather_days.php', 'tests/capacity_holds_test.php', 'includes/customer_portal.php', 'tests/customer_portal_test.php', 'includes/calendar.php', 'tests/calendar_test.php', 'includes/parties.php', 'tests/parties_test.php', 'includes/crm.php', 'tests/crm_test.php', 'includes/email_prefs.php', 'tests/email_prefs_test.php', 'includes/party_emails.php', 'tests/party_emails_test.php', 'includes/waivers.php', 'tests/waivers_test.php', 'includes/animals.php', 'tests/animals_test.php', 'includes/animal_care.php', 'tests/animal_care_test.php', 'includes/animal_health.php', 'tests/animal_health_test.php', 'includes/animal_weights.php', 'tests/animal_weights_test.php', 'includes/animal_schedules.php', 'tests/animal_schedules_test.php', 'includes/animal_breeding.php', 'tests/animal_breeding_test.php', 'includes/animal_expenses.php', 'tests/animal_expenses_test.php', 'includes/incidents.php', 'tests/incidents_test.php', 'includes/animal_public.php', 'tests/animal_public_test.php', 'includes/stock.php', 'admin/cron/send_booking_reminders.php', 'admin/cron/send_review_requests.php', '.github/workflows/tasks.yml']
   pull_request:
   workflow_dispatch:
 
@@ -189,3 +190,10 @@ jobs:
           DB_USER: root
           DB_PASS: root
         run: php tests/incidents_test.php
+      - name: Animal public pages
+        env:
+          DB_HOST: 127.0.0.1
+          DB_NAME: bcrf_tasks_test
+          DB_USER: root
+          DB_PASS: root
+        run: php tests/animal_public_test.php

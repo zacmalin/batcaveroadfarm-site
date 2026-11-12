@@ -25,6 +25,7 @@
 @source "../../admin/animal_breeding.php";
 @source "../../admin/animal_expenses.php";
 @source "../../admin/incidents.php";
+@source "../../admin/animal_public.php";
 @source "../../admin/assets/tasks.js";
 @source "../../admin/quotes.php";
 @source "../../admin/weather.php";

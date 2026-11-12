@@ -8,11 +8,12 @@
 //                                                 (slice 6: parents, kids, breedings; saved by admin/animal_breeding.php),
 //                                                 expenses (slice 7: vet, feed share, other; saved by admin/animal_expenses.php),
 //                                                 incidents it was in (slice 8, on History; admin/incidents.php),
-//                                                 where it has been, status history
+//                                                 public page (slice 9: on the website or not, words, photos; saved by
+//                                                 admin/animal_public.php), where it has been, status history
 //   GET  animals.php?tab=enclosures               pens, barns and pastures with counts and capacity
 //   POST act=identity | status | move | move_many | enclosure
-// Permission: table 'animals' view to look; edit to change anything. The public bio, photo and publish switch stay in
-// the full editor (?view=schema&table=animals) for now.
+// Permission: table 'animals' view to look; edit to change anything. The public bio, photos and publish switch are on
+// the Public tab (slice 9).
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
 check_admin();
@@ -27,6 +28,7 @@ if (is_file(__DIR__ . '/../includes/animal_schedules.php')) require_once __DIR__
 if (is_file(__DIR__ . '/../includes/animal_breeding.php')) require_once __DIR__ . '/../includes/animal_breeding.php';   // slice 6
 if (is_file(__DIR__ . '/../includes/animal_expenses.php')) require_once __DIR__ . '/../includes/animal_expenses.php';   // slice 7
 if (is_file(__DIR__ . '/../includes/incidents.php')) require_once __DIR__ . '/../includes/incidents.php';   // slice 8
+if (is_file(__DIR__ . '/../includes/animal_public.php')) require_once __DIR__ . '/../includes/animal_public.php';   // slice 9
 require_once __DIR__ . '/../includes/admin_shell.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -133,7 +135,8 @@ if ($id) {
     $weightOn = function_exists('bcrf_weights_ready') && bcrf_weights_ready($pdo);
     $breedOn = function_exists('bcrf_breeding_ready') && bcrf_breeding_ready($pdo);
     $expOn = function_exists('bcrf_expenses_ready') && bcrf_expenses_ready($pdo) && bcrf_expenses_can();
-    foreach (array_merge([['Overview', '']], $careOn ? [['Care', 'care']] : [], $healthOn ? [['Health', 'health']] : [], $weightOn ? [['Weight', 'weight']] : [], $breedOn ? [['Breeding', 'breeding']] : [], $expOn ? [['Expenses', 'expenses']] : [], [['Location', 'location'], ['History', 'history']]) as [$t, $k]) {
+    $pubOn = function_exists('bcrf_public_ready') && bcrf_public_ready($pdo);
+    foreach (array_merge([['Overview', '']], $careOn ? [['Care', 'care']] : [], $healthOn ? [['Health', 'health']] : [], $weightOn ? [['Weight', 'weight']] : [], $breedOn ? [['Breeding', 'breeding']] : [], $expOn ? [['Expenses', 'expenses']] : [], $pubOn ? [['Public', 'public']] : [], [['Location', 'location'], ['History', 'history']]) as [$t, $k]) {
         echo '<a href="animals.php?id=', $id, $k ? '&amp;tab=' . $k : '', '" class="px-3 py-2 rounded text-sm border ', $k === $tab ? 'border-stone-800 bg-stone-800 text-white' : 'border-stone-300 text-stone-700 bg-white hover:bg-stone-100', '">', $h($t), '</a>';
     }
     echo '</div>';
@@ -477,6 +480,85 @@ if ($id) {
     </form></details>
     <?php elseif ($canEdit && !$gone && ($a['sex'] ?? '') !== 'female' && !$breedings): ?>
     <p class="text-sm text-stone-500">Breedings are recorded on the mother's page<?= ($a['sex'] ?? '') === '' || ($a['sex'] ?? '') === 'unknown' ? '. Set the sex on Overview first if this is a female' : '' ?>.</p>
+    <?php endif; ?>
+  </div>
+<?php
+        bcrf_shell_close(); exit;
+    }
+
+    if ($tab === 'public' && $pubOn) {
+        $photos = bcrf_public_photos($pdo, $id);
+        $missing = bcrf_public_missing($a);
+        $live = (int)$a['is_active'] === 1;
+        $slug = trim(preg_replace('/[^a-z0-9]+/', '-', strtolower((string)$a['name'])), '-');
+        $pageUrl = (function_exists('bcrf_farm_url') ? bcrf_farm_url() : '') . '/petting-zoo/animals/' . $id . '/' . $slug . '/' . ($live ? '' : '?preview=1');
+        $ageLine = bcrf_public_age_line($a['date_of_birth'] ?? null, !empty($a['birth_estimated']), (string)($a['birthday_display'] ?? 'age'));
+        $phidden = $hidden . '<input type="hidden" name="id" value="' . $id . '">'; ?>
+  <div class="<?= $card ?>">
+    <div class="flex flex-wrap items-center gap-2 mb-2">
+      <h2 class="text-base font-semibold text-stone-800 flex-1"><?= $live ? 'On the website' : 'Not on the website' ?></h2>
+      <a class="<?= $btnSec ?>" href="<?= $h($pageUrl) ?>" target="_blank" rel="noopener"><?= $live ? 'View page' : 'Preview' ?></a>
+      <?php if ($canEdit && !$gone): ?>
+      <form method="POST" action="animal_public.php"><?= $phidden ?><input type="hidden" name="act" value="<?= $live ? 'unpublish' : 'publish' ?>">
+        <button class="<?= $live ? $btnSec : $btnMain ?>"<?= $live ? ' data-confirm="Take ' . $h($a['name']) . '\'s page off the website?"' : '' ?>><?= $live ? 'Take off the website' : 'Put on the website' ?></button></form>
+      <?php endif; ?>
+    </div>
+    <?php if ($gone): ?><p class="text-sm text-stone-500">It has left the farm, so its page stays off the website.</p>
+    <?php elseif ($missing): ?><p class="text-sm text-amber-800">Still missing: <?= $h(implode(', ', $missing)) ?>.<?= $live ? '' : ' You can put it on the website anyway.' ?></p>
+    <?php else: ?><p class="text-sm text-green-700">The page has everything.</p><?php endif; ?>
+    <p class="text-xs text-stone-500 mt-1">Only what's on this tab, plus its name, species and breed, goes on the website. Health, weights, costs and incidents never do.</p>
+  </div>
+
+  <form method="POST" action="animal_public.php" class="<?= $card ?>"><?= $phidden ?><input type="hidden" name="act" value="save">
+    <h2 class="text-base font-semibold text-stone-800 mb-2">Words</h2>
+    <div class="mb-3"><label class="<?= $label ?>" for="pt">Tagline (one short line under its name)</label><input id="pt" name="tagline" maxlength="255" value="<?= $h($a['tagline'] ?? '') ?>" class="<?= $input ?>" placeholder="e.g. The gentlest goat on the farm"<?= $canEdit ? '' : ' disabled' ?>></div>
+    <div class="mb-3"><label class="<?= $label ?>" for="pb">Bio</label><textarea id="pb" name="bio" rows="5" maxlength="5000" class="<?= $input ?>" placeholder="A few friendly sentences: personality, favorite snack, how it came to the farm."<?= $canEdit ? '' : ' disabled' ?>><?= $h($a['bio'] ?? '') ?></textarea></div>
+    <div class="mb-3"><label class="<?= $label ?>" for="pf">Fun facts (one per line, up to 6)</label><textarea id="pf" name="fun_fact" rows="3" maxlength="2000" class="<?= $input ?>" placeholder="Loves having her chin scratched"<?= $canEdit ? '' : ' disabled' ?>><?= $h($a['fun_fact'] ?? '') ?></textarea></div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div><label class="<?= $label ?>" for="pd">Show its age as</label><select id="pd" name="birthday_display" class="<?= $input ?>"<?= $canEdit ? '' : ' disabled' ?>><?php foreach (BCRF_PUBLIC_BIRTHDAY as $k => $v): ?><option value="<?= $k ?>"<?= ($a['birthday_display'] ?? 'age') === $k ? ' selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?></select>
+        <p class="text-xs text-stone-500 mt-1">The website shows: <?= $ageLine !== '' ? $h($ageLine) : 'nothing' ?>.<?= !empty($a['birth_estimated']) && ($a['birthday_display'] ?? '') === 'birthday' ? ' Its birth date is a guess, so it shows the age instead.' : '' ?> The birth date is on Overview.</p></div>
+      <div><label class="<?= $label ?>" for="pa">Main photo description (for screen readers)</label><input id="pa" name="photo_alt_text" maxlength="255" value="<?= $h($a['photo_alt_text'] ?? '') ?>" class="<?= $input ?>" placeholder="e.g. Hazel, a brown and white goat, in the Goat Barn"<?= $canEdit ? '' : ' disabled' ?>></div>
+    </div>
+    <?php if ($canEdit): ?><button class="<?= $btnMain ?>">Save words</button><?php endif; ?>
+  </form>
+
+  <div class="<?= $card ?>">
+    <h2 class="text-base font-semibold text-stone-800 mb-2">Photos</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <figure class="text-xs">
+        <?php if (trim((string)$a['photo_url']) !== ''): ?><img src="<?= $h($a['photo_url']) ?>" alt="<?= $h($a['photo_alt_text'] ?? '') ?>" class="w-full h-24 object-cover rounded border-2 border-amber-600" loading="lazy">
+        <?php else: ?><span class="w-full h-24 rounded border-2 border-dashed border-stone-300 bg-stone-50 text-stone-400 flex items-center justify-center">No main photo</span><?php endif; ?>
+        <figcaption class="mt-1 font-semibold text-stone-700">Main photo</figcaption>
+      </figure>
+      <?php foreach ($photos as $n => $p): ?>
+      <figure class="text-xs">
+        <img src="<?= $h($p['path']) ?>" alt="<?= $h($p['alt_text'] ?? '') ?>" class="w-full h-24 object-cover rounded border border-stone-200" loading="lazy">
+        <figcaption class="mt-1 text-stone-600"><?= $p['alt_text'] ? $h($p['alt_text']) : '<span class="text-amber-800">No description</span>' ?></figcaption>
+        <?php if ($canEdit): ?>
+        <details class="mt-1"><summary class="cursor-pointer text-amber-800 underline">Change</summary>
+          <form method="POST" action="animal_public.php" class="mt-1"><?= $phidden ?><input type="hidden" name="act" value="photo_alt"><input type="hidden" name="photo_id" value="<?= (int)$p['id'] ?>">
+            <label class="<?= $label ?>" for="pal<?= (int)$p['id'] ?>">Description</label><input id="pal<?= (int)$p['id'] ?>" name="alt_text" maxlength="255" value="<?= $h($p['alt_text'] ?? '') ?>" class="<?= $input ?>"><button class="<?= $btnSec ?> mt-1">Save</button></form>
+          <div class="flex flex-wrap gap-1 mt-1">
+            <form method="POST" action="animal_public.php"><?= $phidden ?><input type="hidden" name="act" value="photo_main"><input type="hidden" name="photo_id" value="<?= (int)$p['id'] ?>"><button class="<?= $btnSec ?>">Make main</button></form>
+            <?php if ($n > 0): ?><form method="POST" action="animal_public.php"><?= $phidden ?><input type="hidden" name="act" value="photo_up"><input type="hidden" name="photo_id" value="<?= (int)$p['id'] ?>"><button class="<?= $btnSec ?>" aria-label="Move earlier">←</button></form><?php endif; ?>
+            <?php if ($n < count($photos) - 1): ?><form method="POST" action="animal_public.php"><?= $phidden ?><input type="hidden" name="act" value="photo_down"><input type="hidden" name="photo_id" value="<?= (int)$p['id'] ?>"><button class="<?= $btnSec ?>" aria-label="Move later">→</button></form><?php endif; ?>
+            <form method="POST" action="animal_public.php"><?= $phidden ?><input type="hidden" name="act" value="photo_remove"><input type="hidden" name="photo_id" value="<?= (int)$p['id'] ?>"><button class="<?= $btnSec ?>" data-confirm="Take this photo off the page?">Remove</button></form>
+          </div>
+        </details>
+        <?php endif; ?>
+      </figure>
+      <?php endforeach; ?>
+    </div>
+    <?php if ($canEdit && count($photos) < BCRF_PUBLIC_PHOTO_MAX): ?>
+    <form method="POST" action="animal_public.php" enctype="multipart/form-data" class="mt-4 pt-3 border-t border-stone-100"><?= $phidden ?><input type="hidden" name="act" value="photo">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
+        <div><label class="<?= $label ?>" for="pp">Add a photo</label><input id="pp" name="photo" type="file" accept="image/*" required class="text-sm"></div>
+        <div><label class="<?= $label ?>" for="ppa">Description</label><input id="ppa" name="alt_text" maxlength="255" class="<?= $input ?>" placeholder="What's in the photo"></div>
+      </div>
+      <label class="flex items-center gap-2 text-sm mb-2"><input type="checkbox" name="main" value="1"<?= trim((string)$a['photo_url']) === '' ? ' checked disabled' : '' ?>> Make it the main photo</label>
+      <button class="<?= $btnSec ?>">Upload</button>
+      <p class="text-xs text-stone-500 mt-1">Photos are shrunk to 1600 pixels and saved as WebP. Up to <?= BCRF_PUBLIC_PHOTO_MAX ?> besides the main one.</p>
+    </form>
     <?php endif; ?>
   </div>
 <?php
