@@ -74,6 +74,30 @@ bcrf_care_set_feed_ids($pdo, [$feed, $hay, 99999, $feed]);
 $ok(bcrf_care_feed_ids($pdo) === [$feed, $hay], 'feed list keeps real products once');
 $ok(array_column(bcrf_care_feed_products($pdo), 'name') === ['Goat feed 50 lb', 'Hay from the field'], 'feed picker');
 
+// -- Setup picker: category filter and search (Nov 12, 2026) --
+$pdo->exec("INSERT INTO inventory_categories (name, slug, sort_order) VALUES ('Pantry', 'pantry-t', 1), ('Feed', 'feed-t', 2)");
+$catPantry = (int)$one("SELECT id FROM inventory_categories WHERE slug = 'pantry-t'");
+$catFeed = (int)$one("SELECT id FROM inventory_categories WHERE slug = 'feed-t'");
+$pdo->exec("INSERT INTO inventory (category, name, price, stock_quantity, product_type, pricing_mode, unit, track_inventory, is_active)
+            VALUES ('Zoo', 'Alfalfa pellets', 0, 3, 'retail', 'each', 'bag', 1, 0), ('Zoo', 'Chicken scratch', 0, 3, 'retail', 'each', 'bag', 1, 0)");
+$alf = (int)$one("SELECT id FROM inventory WHERE name = 'Alfalfa pellets'");
+$scr = (int)$one("SELECT id FROM inventory WHERE name = 'Chicken scratch'");
+$pdo->exec("UPDATE inventory SET category_id = $catFeed WHERE id IN ($alf, $scr, $feed)");
+$pdo->exec("UPDATE inventory SET category_id = $catPantry WHERE id = $jam");
+$ok(bcrf_care_feed_category($pdo) === $catFeed, 'picker opens on the Feed category');
+$pk = bcrf_care_pick_products($pdo, $catFeed, '');
+$ok(array_column($pk['ticked'], 'name') === ['Goat feed 50 lb', 'Hay from the field'], 'ticked products always first, any category');
+$ok(array_column($pk['others'], 'name') === ['Alfalfa pellets', 'Chicken scratch'], 'Feed category shows unticked feed only — got ' . implode(', ', array_column($pk['others'], 'name')));
+$ok(array_column(bcrf_care_pick_products($pdo, null, 'scrat')['others'], 'name') === ['Chicken scratch'], 'search across all categories');
+$ok(bcrf_care_pick_products($pdo, $catPantry, 'scrat')['others'] === [], 'search inside a category');
+$ok(count(bcrf_care_pick_products($pdo, null, '', 1)['others']) === 1 && bcrf_care_pick_products($pdo, null, '', 1)['more'], 'long lists are capped');
+// Saving: hay was shown and unticked -> off; alfalfa ticked -> on; nothing off screen changes
+bcrf_care_update_feed_ids($pdo, [$feed, $hay, $alf, $scr], [$feed, $alf]);
+$ok(bcrf_care_feed_ids($pdo) === [$feed, $alf], 'save changes only what was shown — got ' . implode(',', bcrf_care_feed_ids($pdo)));
+bcrf_care_update_feed_ids($pdo, [$scr], [$scr, $jam]);
+$ok(bcrf_care_feed_ids($pdo) === [$feed, $alf, $scr], 'products not on screen keep their tick, and can\'t be ticked from outside');
+bcrf_care_set_feed_ids($pdo, [$feed, $hay]);
+
 // -- Logging: refusals --
 $throws(fn() => bcrf_care_log($pdo, ['type' => 0, 'animals' => [$hazel]]), 'no type refused', 'what you did');
 $throws(fn() => bcrf_care_log($pdo, ['type' => $dust, 'animals' => [$hazel]]), 'switched-off type refused', 'what you did');

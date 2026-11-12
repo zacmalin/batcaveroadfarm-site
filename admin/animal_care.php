@@ -62,7 +62,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 if (function_exists('erp_audit')) erp_audit($pdo, $tid ? 'update' : 'create', 'animal_care_types', $saved, 'Care type ' . trim((string)$_POST['name']));
                 $_SESSION['ac_flash'] = ['ok', $tid ? 'Saved.' : 'Added.'];
             } else {
-                bcrf_care_set_feed_ids($pdo, (array)($_POST['feed'] ?? []));
+                bcrf_care_update_feed_ids($pdo, (array)($_POST['shown'] ?? []), (array)($_POST['feed'] ?? []));   // only what was on screen changes
+                $back .= '&fcat=' . rawurlencode((string)($_POST['fcat'] ?? '')) . '&fq=' . rawurlencode((string)($_POST['fq'] ?? ''));
                 if (function_exists('erp_audit')) erp_audit($pdo, 'update', 'site_settings', 0, 'Animal feed products changed');
                 $_SESSION['ac_flash'] = ['ok', 'Feed list saved.'];
             }
@@ -174,16 +175,37 @@ if ($tab === 'setup' && $canEdit) {
     <?php endif; ?>
   </div>
   <?php endif; ?>
-  <form method="POST" action="animal_care.php" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="feed">
+<?php
+    // Feed picker (Nov 12, 2026): filter by inventory category (opens on "Feed") and search; ticked products always show first.
+    $cats = bcrf_care_categories($pdo);
+    $fcat = (string)($_GET['fcat'] ?? '');
+    if ($fcat === '' || ($fcat !== 'all' && !isset($cats[(int)$fcat]))) { $fc = bcrf_care_feed_category($pdo); $fcat = $fc ? (string)$fc : 'all'; }
+    $fq = mb_substr(trim((string)($_GET['fq'] ?? '')), 0, 60);
+    $pick = bcrf_care_pick_products($pdo, $fcat === 'all' ? null : (int)$fcat, $fq); ?>
+  <div class="<?= $card ?>" id="feed">
     <h2 class="text-base font-semibold text-stone-800 mb-2">Feed products</h2>
     <p class="text-sm text-stone-500 mb-3">Tick the products you feed the animals. Logging a feeding takes the amount out of stock (as "Used on the farm") and records its cost. Products that aren't stocked are recorded without touching stock.</p>
+    <form method="GET" action="animal_care.php#feed" class="flex flex-wrap gap-2 items-end mb-3"><input type="hidden" name="tab" value="setup">
+      <div><label class="<?= $label ?>" for="fcat">Category</label><select id="fcat" name="fcat" class="<?= $input ?>"><option value="all"<?= $fcat === 'all' ? ' selected' : '' ?>>All categories</option><?php foreach ($cats as $cid => $cn): ?><option value="<?= (int)$cid ?>"<?= $fcat === (string)$cid ? ' selected' : '' ?>><?= $h($cn) ?></option><?php endforeach; ?></select></div>
+      <div class="flex-1 min-w-40"><label class="<?= $label ?>" for="fq">Search</label><input id="fq" name="fq" type="search" value="<?= $h($fq) ?>" class="<?= $input ?>" placeholder="Name or SKU"></div>
+      <button class="<?= $btnSec ?>">Show</button>
+    </form>
+    <form method="POST" action="animal_care.php"><?= $hidden ?><input type="hidden" name="act" value="feed"><input type="hidden" name="fcat" value="<?= $h($fcat) ?>"><input type="hidden" name="fq" value="<?= $h($fq) ?>">
     <div class="max-h-96 overflow-y-auto border border-stone-200 rounded p-2 mb-3">
-    <?php foreach (bcrf_care_all_products($pdo) as $p): ?>
-      <label class="flex gap-2 items-center text-sm py-1"><input type="checkbox" name="feed[]" value="<?= (int)$p['id'] ?>" <?= in_array((int)$p['id'], $feedIds, true) ? 'checked' : '' ?>> <?= $h($p['name']) ?></label>
+    <?php if ($pick['ticked']): ?><p class="text-xs font-semibold text-stone-500 uppercase tracking-wide">Feed now (<?= count($pick['ticked']) ?>)</p><?php endif; ?>
+    <?php foreach ($pick['ticked'] as $p): ?>
+      <label class="flex gap-2 items-center text-sm py-1"><input type="hidden" name="shown[]" value="<?= (int)$p['id'] ?>"><input type="checkbox" name="feed[]" value="<?= (int)$p['id'] ?>" checked> <?= $h($p['name']) ?><?php if ($p['category'] !== null): ?><span class="text-xs text-stone-500"><?= $h($p['category']) ?></span><?php endif; ?></label>
     <?php endforeach; ?>
+    <?php if ($pick['ticked'] && $pick['others']): ?><p class="text-xs font-semibold text-stone-500 uppercase tracking-wide mt-2 pt-2 border-t border-stone-100">More products</p><?php endif; ?>
+    <?php foreach ($pick['others'] as $p): ?>
+      <label class="flex gap-2 items-center text-sm py-1"><input type="hidden" name="shown[]" value="<?= (int)$p['id'] ?>"><input type="checkbox" name="feed[]" value="<?= (int)$p['id'] ?>"> <?= $h($p['name']) ?><?php if ($fcat === 'all' && $p['category'] !== null): ?><span class="text-xs text-stone-500"><?= $h($p['category']) ?></span><?php endif; ?></label>
+    <?php endforeach; ?>
+    <?php if (!$pick['others']): ?><p class="text-sm text-stone-500 py-1"><?= $fq !== '' ? 'No other products match.' : 'No other products in this category.' ?> Try All categories.</p><?php endif; ?>
+    <?php if ($pick['more']): ?><p class="text-xs text-stone-500 py-1">Showing the first 300. Search to narrow it down.</p><?php endif; ?>
     </div>
     <button class="<?= $btnMain ?>">Save feed list</button>
-  </form>
+    </form>
+  </div>
 <?php
     bcrf_shell_close(); exit;
 }

@@ -93,6 +93,51 @@ function bcrf_care_all_products(PDO $pdo): array {
     return $pdo->query("SELECT id, name FROM inventory ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
 }
 
+/** Inventory categories for the feed picker's dropdown: [id => name]. */
+function bcrf_care_categories(PDO $pdo): array {
+    try { return $pdo->query("SELECT id, name FROM inventory_categories ORDER BY sort_order, name")->fetchAll(PDO::FETCH_KEY_PAIR); }
+    catch (Throwable $e) { return []; }
+}
+
+/** The category the feed picker opens on: the one named "Feed" (null if there isn't one). */
+function bcrf_care_feed_category(PDO $pdo): ?int {
+    foreach (bcrf_care_categories($pdo) as $id => $name) if (strcasecmp(trim((string)$name), 'Feed') === 0) return (int)$id;
+    return null;
+}
+
+/**
+ * Products for the feed picker (Nov 12, 2026). Ticked feed products always come first, whatever the filter, so a
+ * filter can never hide (and so untick) one. Then unticked products in category $cat (null = all) whose name or SKU
+ * contains $q, up to $limit. Returns ['ticked' => [...], 'others' => [...], 'more' => bool]; each row id, name, category.
+ */
+function bcrf_care_pick_products(PDO $pdo, ?int $cat, string $q, int $limit = 300): array {
+    $feed = bcrf_care_feed_ids($pdo);
+    $sel = "SELECT i.id, i.name, c.name AS category FROM inventory i LEFT JOIN inventory_categories c ON c.id = i.category_id";
+    $ticked = [];
+    if ($feed) {
+        $st = $pdo->prepare("$sel WHERE i.id IN (" . implode(',', array_fill(0, count($feed), '?')) . ") ORDER BY i.name");
+        $st->execute($feed);
+        $ticked = $st->fetchAll(PDO::FETCH_ASSOC);
+    }
+    $w = []; $a = [];
+    if ($feed) { $w[] = 'i.id NOT IN (' . implode(',', array_fill(0, count($feed), '?')) . ')'; $a = $feed; }
+    if ($cat !== null) { $w[] = 'i.category_id = ?'; $a[] = $cat; }
+    $q = trim($q);
+    if ($q !== '') { $w[] = '(i.name LIKE ? OR i.sku LIKE ?)'; $like = '%' . addcslashes($q, '%_\\') . '%'; $a[] = $like; $a[] = $like; }
+    $st = $pdo->prepare("$sel" . ($w ? ' WHERE ' . implode(' AND ', $w) : '') . " ORDER BY i.name LIMIT " . ($limit + 1));
+    $st->execute($a);
+    $others = $st->fetchAll(PDO::FETCH_ASSOC);
+    $more = count($others) > $limit;
+    return ['ticked' => $ticked, 'others' => array_slice($others, 0, $limit), 'more' => $more];
+}
+
+/** Save the picker: only products that were on screen ($shown) change; ticked ones ($ticked) become feed. */
+function bcrf_care_update_feed_ids(PDO $pdo, array $shown, array $ticked): void {
+    $shown = array_map('intval', $shown);
+    $keep = array_filter(bcrf_care_feed_ids($pdo), fn($id) => !in_array($id, $shown, true));
+    bcrf_care_set_feed_ids($pdo, array_merge($keep, array_intersect(array_map('intval', $ticked), $shown)));
+}
+
 // ── Logging ─────────────────────────────────────────────────────────────────────────────────────
 
 /**
