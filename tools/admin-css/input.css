@@ -23,3 +23,5 @@
 @source "../../admin/calendar.php";
 @source "../../admin/party.php";
 @source "../../admin/party_packages.php";
+@source "../../admin/customers.php";
+@source "../../admin/organizations.php";

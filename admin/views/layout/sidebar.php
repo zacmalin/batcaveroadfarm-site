@@ -56,8 +56,12 @@ $_sections = [
             ['Unit Conversions',  '?view=schema&table=unit_conversions',  'table', 'unit_conversions'],
         ]],
     ]],
-    // Customers: no screens built yet — the section stays hidden until it has items.
-    'customers' => ['label'=>'Customers','icon'=>'👥','items'=>[]],
+    // Customers: one record across bookings, parties, passes and tickets; households; organizations (Farm OS Phase 3, Nov 12)
+    'customers' => ['label'=>'Customers','icon'=>'👥','items'=>[
+        ['label'=>'Customers', 'icon'=>'👥','tabs'=>[['Find','/admin/customers.php','view','customers'],
+                                                      ['Possible duplicates','/admin/customers.php?dupes=1','view','customers'],
+                                                      ['Organizations','/admin/organizations.php','view','customers']]],
+    ]],
     'content' => ['label'=>'Marketing & Content','icon'=>'📡','items'=>[
         ['label'=>'Blog',            'icon'=>'✍️','tabs'=>[['Blog','?view=schema&table=blog_posts','table','blog_posts']]],
         ['label'=>'Public Events',   'short'=>'Events','icon'=>'📅','tabs'=>[['Public Events','?view=events','view','events']]],
