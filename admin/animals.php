@@ -3,7 +3,8 @@
 //   GET  animals.php[?f=off|gone|all&enc=N&q=…]   the roster: on the farm (default), off visitor contact, left, or everyone
 //   GET  animals.php?id=N[&tab=care|health|weight|location|history]  one animal: overview (identity, status), care log (slice 2,
 //                                                 admin/animal_care.php), health (slice 3, saved by admin/animal_health.php),
-//                                                 weight (slice 4, saved by admin/animal_weights.php),
+//                                                 weight (slice 4, saved by admin/animal_weights.php); the Care tab lists
+//                                                 what its species' care schedules have coming up (slice 5),
 //                                                 where it has been, status history
 //   GET  animals.php?tab=enclosures               pens, barns and pastures with counts and capacity
 //   POST act=identity | status | move | move_many | enclosure
@@ -19,6 +20,7 @@ require_once __DIR__ . '/../includes/animals.php';
 if (is_file(__DIR__ . '/../includes/animal_care.php')) require_once __DIR__ . '/../includes/animal_care.php';   // slice 2
 if (is_file(__DIR__ . '/../includes/animal_health.php')) require_once __DIR__ . '/../includes/animal_health.php';   // slice 3
 if (is_file(__DIR__ . '/../includes/animal_weights.php')) require_once __DIR__ . '/../includes/animal_weights.php';   // slice 4
+if (is_file(__DIR__ . '/../includes/animal_schedules.php')) require_once __DIR__ . '/../includes/animal_schedules.php';   // slice 5
 require_once __DIR__ . '/../includes/admin_shell.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -135,10 +137,20 @@ if ($id) {
 
     if ($tab === 'care' && $careOn) {
         $last = bcrf_care_last_by_type($pdo, $id);
-        $log = bcrf_care_recent($pdo, $id, 50); ?>
+        $log = bcrf_care_recent($pdo, $id, 50);
+        $due = (!$gone && function_exists('bcrf_sched_for_animal')) ? bcrf_sched_for_animal($pdo, $id) : [];
+        $todayC = function_exists('bcrf_tasks_today') ? bcrf_tasks_today() : date('Y-m-d'); ?>
   <?php if (!$gone): ?>
   <div class="flex flex-wrap gap-2 mb-4">
     <?php foreach (bcrf_care_types($pdo) as $t): ?><a class="<?= $btnSec ?>" href="animal_care.php?type=<?= $t['id'] ?>&amp;animal=<?= $id ?>"><?= $h($t['name']) ?></a><?php endforeach; ?>
+  </div>
+  <?php endif; ?>
+  <?php if ($due): ?>
+  <div class="<?= $card ?>">
+    <h2 class="text-base font-semibold text-stone-800 mb-2">Coming up</h2>
+    <ul class="grid grid-cols-1 sm:grid-cols-2 gap-1 text-sm">
+    <?php foreach ($due as $d): ?><li><?= $h($d['type_name']) ?> (<?= $h(bcrf_sched_every_text($d['every_days'])) ?>): <span class="<?= $d['next'] < $todayC ? 'text-red-700 font-semibold' : 'text-stone-500' ?>"><?= $d['next'] < $todayC ? 'overdue since ' : 'due ' ?><?= $h(date('M j', strtotime($d['next']))) ?></span></li><?php endforeach; ?>
+    </ul>
   </div>
   <?php endif; ?>
   <div class="<?= $card ?>">

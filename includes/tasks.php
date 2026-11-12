@@ -8,6 +8,8 @@
 //             Finishing or skipping one day never changes the chore. Editing a chore rebuilds only days nobody touched.
 //   Template  a reusable checklist for one-off tasks.
 //
+//   Animals (Phase 5 slice 5, Nov 12, 2026): finishing a task made by an animal care schedule logs that care
+//             (includes/animal_schedules.php, bcrf_sched_on_task_done).
 //   Slice 2 (Nov 11, 2026; migration 0030): questions answered on finishing (form_json → answers_json), photos
 //             (task_photos, files outside the website folder), follow-up tasks from a flagged answer or unticked steps.
 //             Morning list and late-task emails: includes/task_notify.php.
@@ -544,6 +546,10 @@ function bcrf_task_set(PDO $pdo, int $id, string $act, string $note = '', bool $
             default: throw new BcrfTaskError('Unknown action.');
         }
         $pdo->prepare("UPDATE tasks SET $sql, updated_at = UTC_TIMESTAMP(), updated_by = ? WHERE id = ?")->execute(array_merge($args, [$uid, $id]));
+        if ($act === 'done' && ($t['related_type'] ?? '') === 'animal' && is_file(__DIR__ . '/animal_schedules.php')) {   // Phase 5 slice 5: a care-schedule task logs the care
+            require_once __DIR__ . '/animal_schedules.php';
+            bcrf_sched_on_task_done($pdo, $t, $uid);
+        }
         $pdo->commit();
     } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
     if (in_array($act, ['done', 'skip', 'cancel'], true) && function_exists('bcrf_event')) {

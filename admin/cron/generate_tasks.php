@@ -31,6 +31,11 @@ try {
         require_once dirname($bcrf_cfg) . '/includes/animal_health.php';
         if (bcrf_health_ready($pdo)) echo '[' . date('Y-m-d H:i:s') . '] Medication doses: ' . bcrf_med_generate($pdo) . " task(s) created.\n";
     }
+    // Farm OS Phase 5 slice 5 (Nov 12, 2026): species care schedules, e.g. hoof trims (includes/animal_schedules.php).
+    if (is_file(dirname($bcrf_cfg) . '/includes/animal_schedules.php')) {
+        require_once dirname($bcrf_cfg) . '/includes/animal_schedules.php';
+        if (bcrf_sched_ready($pdo)) { $r = bcrf_sched_generate($pdo); echo '[' . date('Y-m-d H:i:s') . "] Care schedules: {$r['made']} task(s) created, {$r['closed']} closed.\n"; }
+    }
 } catch (Throwable $e) {
     fwrite(STDERR, 'generate_tasks: ' . $e->getMessage() . "\n");
     bcrf_cron_exit(1, $e->getMessage());

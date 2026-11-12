@@ -3,8 +3,9 @@
 //   GET  animal_care.php[?enc=N]               big buttons for the quick care types, then the latest entries
 //   GET  animal_care.php?type=N[&animal=N|&enc=N]   the log form for one care type, ready for one animal or an enclosure
 //   GET  animal_care.php?tab=log               all recent entries, with void
-//   GET  animal_care.php?tab=setup             care types and which products are feed (edit permission)
-//   POST act=log | void | type | feed
+//   GET  animal_care.php?tab=setup             care types, care schedules per species (slice 5) and which products are feed
+//                                              (edit permission)
+//   POST act=log | void | type | feed | sched
 // Section tabs (Log care, Recent, Setup) come from the sidebar.
 // Permission: table 'animals' view to log care (staff do this from their phones); edit to void entries or change setup.
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
@@ -14,6 +15,7 @@ require_once __DIR__ . '/includes/permission_checks.php';
 require_permission([['table', 'animals']]);
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/animal_care.php';
+if (is_file(__DIR__ . '/../includes/animal_schedules.php')) require_once __DIR__ . '/../includes/animal_schedules.php';   // slice 5
 require_once __DIR__ . '/../includes/admin_shell.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -43,6 +45,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             if (function_exists('erp_audit')) erp_audit($pdo, 'create', 'animal_care_logs', $r['id'], 'Care logged for ' . $r['animals'] . ' animal(s)');
             $msg = 'Logged for ' . $r['animals'] . ' animal' . ($r['animals'] > 1 ? 's' : '') . '.';
             $_SESSION['ac_flash'] = $r['stock_note'] ? ['err', $msg . ' ' . $r['stock_note']] : ['ok', $msg];
+            if (function_exists('bcrf_sched_generate')) bcrf_sched_generate($pdo);   // closes schedule tasks this covered
         } elseif ($act === 'void') {
             if (!$canEdit) throw new BcrfCareError('Ask a manager to void an entry.');
             $id = (int)($_POST['id'] ?? 0);
@@ -63,6 +66,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 if (function_exists('erp_audit')) erp_audit($pdo, 'update', 'site_settings', 0, 'Animal feed products changed');
                 $_SESSION['ac_flash'] = ['ok', 'Feed list saved.'];
             }
+        } elseif ($act === 'sched' && function_exists('bcrf_sched_save')) {
+            if (!$canEdit) throw new BcrfCareError('You can log care but not change the setup.');
+            $back = 'animal_care.php?tab=setup';
+            $sid = (int)($_POST['sched_id'] ?? 0);
+            $saved = bcrf_sched_save($pdo, $sid, $_POST, $uid);
+            if (function_exists('erp_audit')) erp_audit($pdo, $sid ? 'update' : 'create', 'animal_care_schedules', $saved, 'Care schedule saved');
+            $_SESSION['ac_flash'] = ['ok', ($sid ? 'Saved.' : 'Added.') . ' Tasks are made a week before each animal is due.'];
         } else {
             throw new BcrfCareError('Unknown action.');
         }
@@ -124,6 +134,46 @@ if ($tab === 'setup' && $canEdit) {
       <label class="flex gap-1 items-center text-sm"><input type="checkbox" name="is_feeding" value="1"> Feeding</label>
       <button class="<?= $btnMain ?>">Add</button></form>
   </div>
+  <?php if (function_exists('bcrf_sched_ready') && bcrf_sched_ready($pdo)):
+      $scheds = bcrf_sched_list($pdo); $species = bcrf_sched_species($pdo); $activeTypes = bcrf_care_types($pdo);
+      $everyIn = function (array $s) { $d = (int)$s['every_days']; return $d % 7 === 0 ? [$d / 7, 'weeks'] : [$d, 'days']; }; ?>
+  <div class="<?= $card ?>">
+    <h2 class="text-base font-semibold text-stone-800 mb-2">Care schedules</h2>
+    <p class="text-sm text-stone-500 mb-3">Routines by species, like hoof trims every 8 weeks for goats. A week before each animal is due, a task shows up on Tasks. Finishing the task logs the care, and the next one is counted from that day.</p>
+    <?php if ($scheds): ?>
+    <ul class="divide-y divide-stone-100 mb-3">
+    <?php foreach ($scheds as $s): [$en, $eu] = $everyIn($s); $sid = (int)$s['id']; ?>
+      <li class="py-2"><details><summary class="cursor-pointer text-sm <?= $s['active'] ? '' : 'text-stone-500' ?>"><strong><?= $h($s['class_name']) ?>: <?= $h($s['type_name']) ?></strong> <?= $h(bcrf_sched_every_text((int)$s['every_days'])) ?> · <?= (int)$s['animal_count'] ?> on the farm<?= $s['active'] ? '' : ' · off' ?></summary>
+        <form method="POST" action="animal_care.php" class="mt-3"><?= $hidden ?><input type="hidden" name="act" value="sched"><input type="hidden" name="sched_id" value="<?= $sid ?>">
+          <input type="hidden" name="classification_id" value="<?= (int)$s['classification_id'] ?>"><input type="hidden" name="care_type_id" value="<?= (int)$s['care_type_id'] ?>">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+            <div><label class="<?= $label ?>" for="se<?= $sid ?>">Every</label><input id="se<?= $sid ?>" name="every" type="number" min="1" max="730" required value="<?= $en ?>" class="<?= $input ?>"></div>
+            <div><label class="<?= $label ?>" for="su<?= $sid ?>">Unit</label><select id="su<?= $sid ?>" name="unit" class="<?= $input ?>"><option value="weeks" <?= $eu === 'weeks' ? 'selected' : '' ?>>weeks</option><option value="days" <?= $eu === 'days' ? 'selected' : '' ?>>days</option></select></div>
+            <div class="col-span-2"><label class="<?= $label ?>" for="ss<?= $sid ?>">First due (animals never done)</label><input id="ss<?= $sid ?>" name="start_date" type="date" required value="<?= $h($s['start_date']) ?>" class="<?= $input ?>"></div>
+          </div>
+          <div class="mb-3"><label class="<?= $label ?>" for="sn<?= $sid ?>">Note on each task</label><input id="sn<?= $sid ?>" name="note" maxlength="500" value="<?= $h($s['note']) ?>" class="<?= $input ?>"></div>
+          <label class="flex gap-1 items-center text-sm mb-3"><input type="checkbox" name="active" value="1" <?= $s['active'] ? 'checked' : '' ?>> In use (off cancels tasks nobody started)</label>
+          <button class="<?= $btnSec ?>">Save</button>
+        </form></details></li>
+    <?php endforeach; ?>
+    </ul>
+    <?php endif; ?>
+    <?php if ($species && $activeTypes): ?>
+    <details <?= $scheds ? '' : 'open' ?>><summary class="cursor-pointer text-sm text-amber-800 underline">Add a schedule</summary>
+    <form method="POST" action="animal_care.php" class="mt-3"><?= $hidden ?><input type="hidden" name="act" value="sched"><input type="hidden" name="sched_id" value="0">
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <div><label class="<?= $label ?>" for="nsc">Species</label><select id="nsc" name="classification_id" class="<?= $input ?>"><?php foreach ($species as $c): ?><option value="<?= (int)$c['id'] ?>"><?= $h($c['class_name']) ?></option><?php endforeach; ?></select></div>
+        <div><label class="<?= $label ?>" for="nst">What</label><select id="nst" name="care_type_id" class="<?= $input ?>"><?php foreach ($activeTypes as $t): ?><option value="<?= (int)$t['id'] ?>"><?= $h($t['name']) ?></option><?php endforeach; ?></select></div>
+        <div><label class="<?= $label ?>" for="nse">Every</label><input id="nse" name="every" type="number" min="1" max="730" required value="8" class="<?= $input ?>"></div>
+        <div><label class="<?= $label ?>" for="nsu">Unit</label><select id="nsu" name="unit" class="<?= $input ?>"><option value="weeks">weeks</option><option value="days">days</option></select></div>
+        <div class="col-span-2"><label class="<?= $label ?>" for="nss">First due (animals never done)</label><input id="nss" name="start_date" type="date" required value="<?= $h(bcrf_tasks_today()) ?>" class="<?= $input ?>"></div>
+      </div>
+      <div class="mb-3"><label class="<?= $label ?>" for="nsn">Note on each task (optional)</label><input id="nsn" name="note" maxlength="500" class="<?= $input ?>" placeholder="e.g. trimmers are in the barn cabinet"></div>
+      <button class="<?= $btnMain ?>">Add schedule</button>
+    </form></details>
+    <?php endif; ?>
+  </div>
+  <?php endif; ?>
   <form method="POST" action="animal_care.php" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="feed">
     <h2 class="text-base font-semibold text-stone-800 mb-2">Feed products</h2>
     <p class="text-sm text-stone-500 mb-3">Tick the products you feed the animals. Logging a feeding takes the amount out of stock (as "Used on the farm") and records its cost. Products that aren't stocked are recorded without touching stock.</p>
@@ -206,6 +256,7 @@ if ($typeId) {
 }
 
 // ── Log care: big buttons ──
+if (function_exists('bcrf_sched_generate')) { try { bcrf_sched_generate($pdo); } catch (Throwable $e) { error_log('[animal_care] schedules: ' . $e->getMessage()); } }   // backstop for the nightly run
 $types = bcrf_care_types($pdo);
 $quick = array_values(array_filter($types, fn($t) => $t['quick']));
 $other = array_values(array_filter($types, fn($t) => !$t['quick']));
