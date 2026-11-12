@@ -17,6 +17,8 @@ $low_stock_items = $pdo->query("
     SELECT name, stock_quantity, min_stock_level 
     FROM inventory 
     WHERE is_alert_enabled = 1 
+    AND is_active = 1
+    AND track_inventory = 1          -- skip untracked items (gift card, admissions) that always sit at 0
     AND stock_quantity <= min_stock_level
 ")->fetchAll();
 
