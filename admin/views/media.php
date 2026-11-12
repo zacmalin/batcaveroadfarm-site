@@ -51,13 +51,13 @@ $displayed_images = ($active_folder === '_all')
                 <div>
                     <label class="block font-bold text-stone-500 mb-0.5">Method A: Upload File</label>
                     <!-- Fix 9: accept restricts browser picker to images -->
-                    <input type="file" name="image_source_file" accept="image/*"
+                    <input type="file" name="image_source_file" id="gdSourceFile" accept="image/*"
                         class="w-full text-xxs text-stone-500 bg-white border p-1 rounded">
                 </div>
                 <div class="text-center font-bold font-mono text-stone-300 text-[9px] uppercase tracking-widest">&mdash; OR &mdash;</div>
                 <div>
                     <label class="block font-bold text-stone-500 mb-0.5">Method B: Remote HTTPS URL</label>
-                    <input type="url" name="image_source_url"
+                    <input type="url" name="image_source_url" id="gdSourceUrl"
                         class="w-full p-2 border bg-white rounded text-xxs placeholder-stone-300"
                         placeholder="https://example.com/image.jpg">
                 </div>
@@ -67,10 +67,12 @@ $displayed_images = ($active_folder === '_all')
                 <div>
                     <label class="block font-bold text-stone-600 mb-1">Output Filename</label>
                     <!-- Fix 4: hint that only safe chars are kept -->
-                    <input type="text" name="output_filename_override"
-                        class="w-full p-2 border bg-stone-50 rounded"
-                        placeholder="e.g., miniature_donkey"
+                    <input type="text" name="output_filename_override" id="gdOutputName"
+                        class="w-full p-2 border bg-stone-50 rounded font-mono"
+                        placeholder="e.g., miniature-donkey" maxlength="80"
+                        autocomplete="off" autocapitalize="off" spellcheck="false"
                         title="Letters, numbers, hyphens, underscores only">
+                    <p class="text-[10px] text-stone-400 mt-1">Filled in from the picked file. Blank = automatic name.</p>
                 </div>
                 <div>
                     <label class="block font-bold text-stone-600 mb-1">Scale Width (px)</label>
@@ -95,6 +97,11 @@ $displayed_images = ($active_folder === '_all')
                         class="w-full p-2 border font-mono bg-stone-50 rounded">
                 </div>
             </div>
+
+            <label class="flex items-start gap-2 text-stone-600">
+                <input type="checkbox" name="replace_existing" value="1" class="mt-0.5">
+                <span>Replace an existing image with the same name <span class="text-stone-400">(otherwise -2, -3&hellip; is added)</span></span>
+            </label>
 
             <button type="submit"
                 class="w-full bg-stone-950 text-white font-mono font-bold uppercase tracking-wider py-3 rounded text-center text-xs hover:bg-stone-800 transition">
@@ -195,6 +202,31 @@ $displayed_images = ($active_folder === '_all')
 </div>
 
 <script>
+    // Output Filename: prefill from the picked file (or the remote URL) unless staff typed their own.
+    (function () {
+        var out = document.getElementById('gdOutputName');
+        var fileIn = document.getElementById('gdSourceFile');
+        var urlIn  = document.getElementById('gdSourceUrl');
+        if (!out) return;
+        function slug(n) {
+            var s = String(n || '').replace(/\.[^.\/]+$/, '');
+            if (s.normalize) s = s.normalize('NFKD').replace(/[̀-ͯ]/g, '');
+            return s.toLowerCase().replace(/[^a-z0-9_\-]+/g, '-').replace(/-{2,}/g, '-').replace(/^[-_]+|[-_]+$/g, '').slice(0, 80);
+        }
+        function fill(name) {
+            if (out.value.trim() !== '' && out.dataset.auto !== '1') return;   // keep what they typed
+            out.value = slug(name);
+            out.dataset.auto = '1';
+        }
+        out.addEventListener('input', function () { out.dataset.auto = ''; });
+        if (fileIn) fileIn.addEventListener('change', function () {
+            if (fileIn.files && fileIn.files[0]) { fill(fileIn.files[0].name); out.focus(); out.select(); }
+        });
+        if (urlIn) urlIn.addEventListener('change', function () {
+            try { var p = new URL(urlIn.value).pathname.split('/').pop(); if (p) fill(decodeURIComponent(p)); } catch (e) {}
+        });
+    })();
+
     function copyVaultPath(btn, url) {
         navigator.clipboard.writeText(url).then(() => {
             const orig = btn.textContent;

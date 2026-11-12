@@ -23,6 +23,7 @@ if (!in_array($_SESSION['user_role'] ?? '', ['administrator', 'moderator', 'Shop
 require_once __DIR__ . '/../includes/permission_checks.php';   // audit #8: same Permissions Matrix rules as the console
 require_permission([['view', 'media'], ['view', 'site_info']], true);   // vault picker: Image Library + Site Info
 require_once __DIR__ . '/../includes/audit.php';   // fix pack O: audit log
+require_once __DIR__ . '/../includes/image_names.php';   // shared filename rules (rename before upload)
 
 $csrf = $_POST['csrf_token'] ?? '';
 if (!hash_equals($_SESSION['csrf_token'] ?? '', $csrf)) jx(false, 'Security token expired.');
@@ -70,7 +71,11 @@ try {
     $dir  = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/img/' . $subfolder . '/';
     if (!is_dir($dir)) mkdir($dir, 0755, true);
 
-    $filename = uniqid('img_') . '.webp';
+    // Staff can name the file before upload. Blank keeps the automatic name;
+    // a name that's already taken gets -2, -3 ... instead of overwriting.
+    $wanted   = bcrf_image_basename((string)($_POST['filename'] ?? ''));
+    $filename = $wanted !== '' ? bcrf_image_free_name($dir, $wanted, 'webp') : uniqid('img_') . '.webp';
+    $renamed  = $wanted !== '' && $filename !== $wanted . '.webp';
     $path     = $dir . $filename;
 
     if (!imagewebp($source, $path, 82)) {
@@ -79,7 +84,11 @@ try {
 
     $url = '/img/' . $subfolder . '/' . $filename;
     erp_audit($pdo, 'create', 'media', null, 'Image added (quick upload): ' . $url);
-    jx(true, 'Uploaded.', ['url' => $url, 'full_url' => (bcrf_farm_url()) . $url]);
+    bcrf_image_bust_vault_cache();   // so the Vault picker shows the new file straight away
+    jx(true, $renamed ? "That name was taken, so it was saved as {$filename}." : 'Uploaded.', [
+        'url' => $url, 'full_url' => (bcrf_farm_url()) . $url,
+        'filename' => $filename, 'renamed' => $renamed,
+    ]);
 
 } catch (Throwable $e) {
     error_log('[ERP] quick_upload failed: ' . $e->getMessage());

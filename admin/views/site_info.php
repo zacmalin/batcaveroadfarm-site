@@ -198,7 +198,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 font-mo
                             <input type="text" id="imgUrl_soc<?= $i ?>" name="social[<?= $i ?>][image]" value="<?= htmlspecialchars((string)$s['image'], ENT_QUOTES) ?>" class="<?= $inputCls ?> flex-1 font-mono" placeholder="/img/social/icon.svg" oninput="updateImgPreview('soc<?= $i ?>')">
                             <button type="button" onclick="openVaultPicker('soc<?= $i ?>')" class="shrink-0 border border-stone-300 px-3 py-2 rounded text-xs font-semibold bg-stone-50 hover:bg-stone-900 hover:text-white transition whitespace-nowrap">📁 Vault</button>
                             <label class="shrink-0 border border-stone-300 px-3 py-2 rounded text-xs font-semibold bg-stone-50 hover:bg-stone-900 hover:text-white transition whitespace-nowrap cursor-pointer">⬆ Upload
-                                <input type="file" accept="image/*" class="hidden" onchange="quickUploadImage(this,'soc<?= $i ?>')">
+                                <input type="file" accept="image/*" class="hidden" data-folder="social" onchange="quickUploadImage(this,'soc<?= $i ?>')">
                             </label>
                             <span id="imgProgress_soc<?= $i ?>" class="hidden text-xs text-stone-500 animate-pulse">Uploading...</span>
                         </div>
@@ -219,7 +219,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 font-mo
                         <input type="text" id="imgUrl_soc__I__" name="social[__I__][image]" value="" class="<?= $inputCls ?> flex-1 font-mono" placeholder="/img/social/icon.svg" oninput="updateImgPreview('soc__I__')">
                         <button type="button" onclick="openVaultPicker('soc__I__')" class="shrink-0 border border-stone-300 px-3 py-2 rounded text-xs font-semibold bg-stone-50 hover:bg-stone-900 hover:text-white transition whitespace-nowrap">📁 Vault</button>
                         <label class="shrink-0 border border-stone-300 px-3 py-2 rounded text-xs font-semibold bg-stone-50 hover:bg-stone-900 hover:text-white transition whitespace-nowrap cursor-pointer">⬆ Upload
-                            <input type="file" accept="image/*" class="hidden" onchange="quickUploadImage(this,'soc__I__')">
+                            <input type="file" accept="image/*" class="hidden" data-folder="social" onchange="quickUploadImage(this,'soc__I__')">
                         </label>
                         <span id="imgProgress_soc__I__" class="hidden text-xs text-stone-500 animate-pulse">Uploading...</span>
                     </div>

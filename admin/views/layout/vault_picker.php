@@ -12,6 +12,11 @@
  *   (optional) <span id="imgProgress_<KEY>"></span>
  * <KEY> is any bracket-free token; it only builds element IDs and need not match
  * the input's name. Requires sysAlert() (defined in layout/head.php).
+ *
+ * Picking a file opens a "Name this image" dialog (file name prefilled from the
+ * picked file, plus the folder) before anything is uploaded. The folder defaults
+ * to the widget's own <select id="imgSubfolder_<KEY>"> if it has one, else to
+ * data-folder="..." on the file input, else inventory.
  */
 if (defined('BCRF_VAULT_PICKER_RENDERED')) return;
 define('BCRF_VAULT_PICKER_RENDERED', 1);
@@ -48,6 +53,39 @@ define('BCRF_VAULT_PICKER_RENDERED', 1);
             </div>
         </div>
     </div>
+</div>
+
+<!-- ── NAME-BEFORE-UPLOAD DIALOG ── -->
+<div id="uploadNameModal" role="dialog" aria-modal="true" aria-labelledby="uploadNameTitle"
+    style="display:none;position:fixed;inset:0;z-index:999;align-items:center;justify-content:center;padding:1rem;">
+    <div id="uploadNameBackdrop" style="position:absolute;inset:0;background:rgba(28,25,23,0.7);"></div>
+    <form id="uploadNameForm" novalidate
+        style="position:relative;background:#fff;border-radius:12px;box-shadow:0 20px 50px rgba(0,0,0,.3);width:100%;max-width:26rem;padding:1.25rem;font-size:13px;color:#292524;">
+        <h3 id="uploadNameTitle" class="font-serif" style="font-weight:700;font-size:1.1rem;margin:0 0 .75rem;">Name this image</h3>
+        <div style="display:flex;gap:.75rem;align-items:center;margin-bottom:1rem;">
+            <img id="uploadNamePreview" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid #e7e5e4;background:#f5f5f4;flex-shrink:0;">
+            <div style="min-width:0;">
+                <div id="uploadNameOrig" style="font-family:monospace;font-size:11px;color:#57534e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+                <div style="font-size:11px;color:#a8a29e;margin-top:2px;">Saved as WebP, resized to 1200px wide if larger.</div>
+            </div>
+        </div>
+        <label for="uploadNameInput" style="display:block;font-weight:700;color:#57534e;margin-bottom:4px;">File name</label>
+        <div style="display:flex;align-items:center;border:1px solid #d6d3d1;border-radius:6px;background:#fafaf9;">
+            <input id="uploadNameInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="80"
+                placeholder="e.g. miniature-donkey-stand"
+                style="flex:1;min-width:0;border:0;background:transparent;padding:.55rem .6rem;font-family:monospace;font-size:13px;outline:none;">
+            <span style="padding-right:.6rem;font-family:monospace;color:#a8a29e;">.webp</span>
+        </div>
+        <p id="uploadNameHint" style="font-size:11px;color:#a8a29e;margin:4px 0 0;">Letters, numbers, hyphens and underscores; anything else becomes _. Leave blank for an automatic name.</p>
+        <label for="uploadNameFolder" style="display:block;font-weight:700;color:#57534e;margin:.85rem 0 4px;">Folder</label>
+        <select id="uploadNameFolder" style="width:100%;border:1px solid #d6d3d1;border-radius:6px;background:#fafaf9;padding:.5rem;font-family:monospace;font-size:13px;"></select>
+        <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1.1rem;">
+            <button type="button" id="uploadNameCancel"
+                style="border:1px solid #d6d3d1;background:#fafaf9;border-radius:6px;padding:.55rem 1rem;font-weight:700;cursor:pointer;">Cancel</button>
+            <button type="submit" id="uploadNameGo"
+                style="border:0;background:#1c1917;color:#fff;border-radius:6px;padding:.55rem 1.1rem;font-weight:700;cursor:pointer;">⬆ Upload</button>
+        </div>
+    </form>
 </div>
 
 <script>
@@ -209,18 +247,87 @@ function selectVaultImage(url) {
 }
 
 // ── QUICK UPLOAD ──────────────────────────────────────────────────────────────
+// Folders offered in the naming dialog (value => label). recipies keeps its
+// historical spelling because existing recipes already point at it.
+var UPLOAD_FOLDERS = [['inventory','inventory'],['recipies','recipes'],['zoo','zoo'],['stand','stand'],['blog','blog'],['thrift','thrift'],['social','social']];
+
+// "IMG 2041 (1).JPG" -> "img-2041-1". Mirrors the server rule, plus lowercase and hyphens.
+function bcrfSlugFromFilename(n) {
+    var s = String(n || '').replace(/\.[^.\/]+$/, '');
+    if (s.normalize) s = s.normalize('NFKD').replace(/[̀-ͯ]/g, '');
+    return s.toLowerCase().replace(/[^a-z0-9_\-]+/g, '-').replace(/-{2,}/g, '-').replace(/^[-_]+|[-_]+$/g, '').slice(0, 80);
+}
+
+// Opens the naming dialog. Resolves {name, folder} on Upload, or null on Cancel.
+function askUploadName(file, defaultFolder) {
+    return new Promise(function (resolve) {
+        var modal  = document.getElementById('uploadNameModal');
+        var form   = document.getElementById('uploadNameForm');
+        var input  = document.getElementById('uploadNameInput');
+        var sel    = document.getElementById('uploadNameFolder');
+        var prev   = document.getElementById('uploadNamePreview');
+        var orig   = document.getElementById('uploadNameOrig');
+        if (!modal || !form || !input || !sel) { resolve({ name: '', folder: defaultFolder }); return; }
+
+        sel.innerHTML = '';
+        var folders = UPLOAD_FOLDERS.slice();
+        if (defaultFolder && !folders.some(function (f) { return f[0] === defaultFolder; })) folders.unshift([defaultFolder, defaultFolder]);
+        folders.forEach(function (f) {
+            var o = document.createElement('option');
+            o.value = f[0]; o.textContent = f[1];
+            if (f[0] === defaultFolder) o.selected = true;
+            sel.appendChild(o);
+        });
+
+        input.value = bcrfSlugFromFilename(file.name);
+        orig.textContent = file.name + ' · ' + (file.size >= 1048576 ? (file.size / 1048576).toFixed(1) + ' MB' : Math.round(file.size / 1024) + ' KB');
+        orig.title = file.name;
+        var objUrl = null;
+        try { objUrl = URL.createObjectURL(file); prev.src = objUrl; prev.style.visibility = ''; } catch (e) { prev.style.visibility = 'hidden'; }
+
+        var prevOverflow = document.body.style.overflow;
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        setTimeout(function () { input.focus(); input.select(); }, 30);
+
+        function finish(result) {
+            modal.style.display = 'none';
+            document.body.style.overflow = prevOverflow;
+            if (objUrl) { try { URL.revokeObjectURL(objUrl); } catch (e) {} }
+            prev.removeAttribute('src');
+            form.removeEventListener('submit', onSubmit);
+            document.getElementById('uploadNameCancel').removeEventListener('click', onCancel);
+            document.getElementById('uploadNameBackdrop').removeEventListener('click', onCancel);
+            document.removeEventListener('keydown', onKey);
+            resolve(result);
+        }
+        function onSubmit(e) { e.preventDefault(); finish({ name: input.value.trim(), folder: sel.value || defaultFolder }); }
+        function onCancel() { finish(null); }
+        function onKey(e) { if (e.key === 'Escape') { e.preventDefault(); finish(null); } }
+        form.addEventListener('submit', onSubmit);
+        document.getElementById('uploadNameCancel').addEventListener('click', onCancel);
+        document.getElementById('uploadNameBackdrop').addEventListener('click', onCancel);
+        document.addEventListener('keydown', onKey);
+    });
+}
+
 async function quickUploadImage(fileInput, fieldName) {
     const file = fileInput.files[0];
     if (!file) return;
-    const progress = document.getElementById('imgProgress_' + fieldName);
-    const subRow   = document.getElementById('imgSubfolderRow_' + fieldName);
-    if (subRow)   subRow.classList.remove('hidden');
+    const progress  = document.getElementById('imgProgress_' + fieldName);
+    const widgetSel = document.getElementById('imgSubfolder_' + fieldName);
+    const defFolder = (widgetSel && widgetSel.value) || fileInput.dataset.folder || 'inventory';
+
+    const choice = await askUploadName(file, defFolder);
+    if (!choice) { fileInput.value = ''; return; }   // cancelled: nothing uploaded
+    if (widgetSel) widgetSel.value = choice.folder;  // remember the folder for this field
+
     if (progress) progress.classList.remove('hidden');
-    const subfolder = document.getElementById('imgSubfolder_' + fieldName)?.value || 'inventory';
     const fd = new FormData();
     fd.append('csrf_token', IMG_CSRF);
     fd.append('image', file);
-    fd.append('subfolder', subfolder);
+    fd.append('subfolder', choice.folder);
+    fd.append('filename', choice.name);
     try {
         const res = await fetch('/admin/handlers/quick_upload.php', { method: 'POST', body: fd });
         const rawText = await res.text();
@@ -230,7 +337,13 @@ async function quickUploadImage(fileInput, fieldName) {
         if (data.ok) {
             const input = document.getElementById('imgUrl_' + fieldName);
             if (input) { input.value = data.full_url; updateImgPreview(fieldName); }
-            if (progress) { progress.textContent = '✅ Uploaded!'; setTimeout(function () { progress.classList.add('hidden'); progress.textContent = 'Uploading...'; }, 2500); }
+            const saved = data.filename || '';
+            if (progress) {
+                progress.textContent = data.renamed ? ('✅ Name taken, saved as ' + saved) : ('✅ Uploaded' + (saved ? ' as ' + saved : '!'));
+                setTimeout(function () { progress.classList.add('hidden'); progress.textContent = 'Uploading...'; }, data.renamed ? 6000 : 2500);
+            } else if (data.renamed) {
+                sysAlert(data.message, 'Uploaded', 'ℹ️');
+            }
         } else {
             sysAlert(data.message || 'Upload failed.', 'Upload Error', '⚠️');
             if (progress) progress.classList.add('hidden');

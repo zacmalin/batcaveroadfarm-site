@@ -12,9 +12,11 @@ try {
         exit;
     }
 
-    // Fix 4: sanitize output filename — alphanumeric, hyphens, underscores only
-    $raw_name      = trim($_POST['output_filename_override'] ?? '');
-    $clean_name    = preg_replace('/[^a-zA-Z0-9_\-]/', '_', basename($raw_name));
+    // Fix 4: sanitize output filename — alphanumeric, hyphens, underscores only.
+    // Same rule as the quick-upload widget (admin/includes/image_names.php).
+    require_once __DIR__ . '/../includes/image_names.php';
+    $clean_name    = bcrf_image_basename((string)($_POST['output_filename_override'] ?? ''));
+    $allow_replace = !empty($_POST['replace_existing']);   // opt-in; otherwise a taken name gets -2, -3 ...
 
     // Fix pack O: folder names only (letters, numbers, - _ /), no "..", so files
     // always land inside /img/.
@@ -123,7 +125,13 @@ try {
     }
 
     // ── WRITE ─────────────────────────────────────────────────────────────────
-    $output_filename = ($clean_name ?: uniqid('farm_asset_')) . '.' . $target_format;
+    $base_name       = $clean_name ?: uniqid('farm_asset_');
+    $output_filename = $base_name . '.' . $target_format;
+    $suffixed        = false;
+    if (!$allow_replace && is_file(rtrim($base_storage_root, '/') . '/' . $output_filename)) {
+        $output_filename = bcrf_image_free_name($base_storage_root, $base_name, $target_format);
+        $suffixed        = true;
+    }
     $absolute_path   = rtrim($base_storage_root, '/') . '/' . $output_filename;
 
     $replacing = is_file($absolute_path);
@@ -141,9 +149,10 @@ try {
     $rel_path = '/img/' . ($target_dir !== '' ? $target_dir . '/' : '') . $output_filename;
     erp_audit($pdo, $replacing ? 'update' : 'create', 'media', null, ($replacing ? 'Image replaced: ' : 'Image added: ') . $rel_path);
 
-    $_SESSION['toast_msg']  = "Image saved: /{$output_filename}";
-    // Bust vault image cache
-    foreach (array_keys($_SESSION) as $_sk) { if (str_starts_with($_sk, 'vault_images_')) unset($_SESSION[$_sk]); }
+    $_SESSION['toast_msg']  = $suffixed
+        ? "That name was taken, so the image was saved as {$rel_path}"
+        : ($replacing ? "Image replaced: {$rel_path}" : "Image saved: {$rel_path}");
+    bcrf_image_bust_vault_cache();   // Bust vault image cache
     $_SESSION['toast_type'] = 'success';
 
 } catch (Throwable $e) {
