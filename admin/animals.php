@@ -6,6 +6,7 @@
 //                                                 weight (slice 4, saved by admin/animal_weights.php); the Care tab lists
 //                                                 what its species' care schedules have coming up (slice 5), breeding
 //                                                 (slice 6: parents, kids, breedings; saved by admin/animal_breeding.php),
+//                                                 expenses (slice 7: vet, feed share, other; saved by admin/animal_expenses.php),
 //                                                 where it has been, status history
 //   GET  animals.php?tab=enclosures               pens, barns and pastures with counts and capacity
 //   POST act=identity | status | move | move_many | enclosure
@@ -23,6 +24,7 @@ if (is_file(__DIR__ . '/../includes/animal_health.php')) require_once __DIR__ . 
 if (is_file(__DIR__ . '/../includes/animal_weights.php')) require_once __DIR__ . '/../includes/animal_weights.php';   // slice 4
 if (is_file(__DIR__ . '/../includes/animal_schedules.php')) require_once __DIR__ . '/../includes/animal_schedules.php';   // slice 5
 if (is_file(__DIR__ . '/../includes/animal_breeding.php')) require_once __DIR__ . '/../includes/animal_breeding.php';   // slice 6
+if (is_file(__DIR__ . '/../includes/animal_expenses.php')) require_once __DIR__ . '/../includes/animal_expenses.php';   // slice 7
 require_once __DIR__ . '/../includes/admin_shell.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -128,7 +130,8 @@ if ($id) {
     $healthOn = function_exists('bcrf_health_ready') && bcrf_health_ready($pdo) && bcrf_health_can();
     $weightOn = function_exists('bcrf_weights_ready') && bcrf_weights_ready($pdo);
     $breedOn = function_exists('bcrf_breeding_ready') && bcrf_breeding_ready($pdo);
-    foreach (array_merge([['Overview', '']], $careOn ? [['Care', 'care']] : [], $healthOn ? [['Health', 'health']] : [], $weightOn ? [['Weight', 'weight']] : [], $breedOn ? [['Breeding', 'breeding']] : [], [['Location', 'location'], ['History', 'history']]) as [$t, $k]) {
+    $expOn = function_exists('bcrf_expenses_ready') && bcrf_expenses_ready($pdo) && bcrf_expenses_can();
+    foreach (array_merge([['Overview', '']], $careOn ? [['Care', 'care']] : [], $healthOn ? [['Health', 'health']] : [], $weightOn ? [['Weight', 'weight']] : [], $breedOn ? [['Breeding', 'breeding']] : [], $expOn ? [['Expenses', 'expenses']] : [], [['Location', 'location'], ['History', 'history']]) as [$t, $k]) {
         echo '<a href="animals.php?id=', $id, $k ? '&amp;tab=' . $k : '', '" class="px-3 py-2 rounded text-sm border ', $k === $tab ? 'border-stone-800 bg-stone-800 text-white' : 'border-stone-300 text-stone-700 bg-white hover:bg-stone-100', '">', $h($t), '</a>';
     }
     echo '</div>';
@@ -321,6 +324,61 @@ if ($id) {
         <?php endif; ?></li>
       <?php endforeach; ?>
     </ul>
+    <?php endif; ?>
+  </div>
+<?php
+        bcrf_shell_close(); exit;
+    }
+
+    if ($tab === 'expenses' && $expOn) {
+        $today = bcrf_expense_today();
+        $yearFrom = substr($today, 0, 4) . '-01-01';
+        $all = bcrf_expense_lines($pdo, '2000-01-01', $today, $id, $healthOn);
+        $year = array_values(array_filter($all, fn($l) => $l['date'] >= $yearFrom));
+        $tAll = bcrf_expense_totals($all)['total']; $tYear = bcrf_expense_totals($year)['total'];
+        $shown = array_slice(array_reverse($all), 0, 50);
+        $xhidden = $hidden . '<input type="hidden" name="return_animal" value="' . $id . '">';
+        $mm = fn($c) => $h(bcrf_expense_fmt((int)$c)); ?>
+  <div class="<?= $card ?>">
+    <h2 class="text-base font-semibold text-stone-800 mb-2">Costs for <?= $h($a['name']) ?></h2>
+    <table class="w-full text-sm"><thead><tr class="text-left text-xs text-stone-500 border-b border-stone-200"><th class="py-2 pr-2"></th><th class="py-2 px-2 text-right">Vet</th><th class="py-2 px-2 text-right">Feed</th><th class="py-2 px-2 text-right">Other</th><th class="py-2 pl-2 text-right">Total</th></tr></thead><tbody>
+      <?php foreach ([[substr($today, 0, 4), $tYear], ['All time', $tAll]] as [$lbl, $r]): ?>
+      <tr class="border-b border-stone-100"><td class="py-2 pr-2"><?= $h($lbl) ?></td><td class="py-2 px-2 text-right"><?= $mm($r['vet']) ?></td><td class="py-2 px-2 text-right"><?= $mm($r['feed']) ?></td><td class="py-2 px-2 text-right"><?= $mm($r['other']) ?></td><td class="py-2 pl-2 text-right font-semibold"><?= $mm($r['all']) ?></td></tr>
+      <?php endforeach; ?>
+    </tbody></table>
+    <p class="text-xs text-stone-500 mt-2">Only costs for <?= $h($a['name']) ?> alone. Costs for the whole species or all animals are on <a class="underline text-amber-800" href="animal_expenses.php">Expenses</a>.</p>
+  </div>
+  <?php if ($canEdit): ?>
+  <details class="<?= $card ?>"><summary class="cursor-pointer text-base font-semibold text-stone-800">Add an expense for <?= $h($a['name']) ?></summary>
+    <form method="POST" action="animal_expenses.php" class="mt-3"><?= $xhidden ?><input type="hidden" name="act" value="add">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+        <div><label class="<?= $label ?>" for="xd">Date</label><input id="xd" name="spent_on" type="date" required max="<?= $h($today) ?>" value="<?= $h($today) ?>" class="<?= $input ?>"></div>
+        <div><label class="<?= $label ?>" for="xa">Amount ($)</label><input id="xa" name="amount" inputmode="decimal" required class="<?= $input ?>" placeholder="e.g. 42.50"></div>
+        <div><label class="<?= $label ?>" for="xc">What for</label><select id="xc" name="category" class="<?= $input ?>"><?php foreach (BCRF_EXPENSE_CATEGORIES as $k => $v): ?><option value="<?= $k ?>"><?= $h($v) ?></option><?php endforeach; ?></select></div>
+        <div class="sm:col-span-2"><label class="<?= $label ?>" for="xs">Description</label><input id="xs" name="description" maxlength="200" required class="<?= $input ?>" placeholder="e.g. Farrier visit"></div>
+        <div><label class="<?= $label ?>" for="xv">Where from (optional)</label><input id="xv" name="vendor" maxlength="120" class="<?= $input ?>"></div>
+      </div>
+      <button class="<?= $btnMain ?>">Save expense</button>
+      <p class="text-xs text-stone-500 mt-2">Vet visits with a medical record already count from Health; feed counts from Care.</p>
+    </form>
+  </details>
+  <?php endif; ?>
+  <div class="<?= $card ?>">
+    <h2 class="text-base font-semibold text-stone-800 mb-2">Every cost</h2>
+    <?php if (!$shown): ?><p class="text-sm text-stone-500">No costs yet.</p><?php else: ?>
+    <ul class="divide-y divide-stone-100">
+      <?php foreach ($shown as $l): ?>
+      <li class="py-2 text-sm"><strong><?= $mm($l['cents']) ?></strong> · <?= $h(date('M j, Y', strtotime($l['date']))) ?> · <?= $h($l['source'] === 'other' ? (BCRF_EXPENSE_CATEGORIES[$l['category']] ?? 'Other') : BCRF_EXPENSE_SOURCES[$l['source']]) ?>
+        <span class="block text-xs text-stone-500"><?= $h($l['description']) ?></span>
+        <?php if ($canEdit && $l['expense_id']): ?>
+        <details class="mt-1"><summary class="cursor-pointer text-xs text-amber-800 underline">Void</summary>
+          <form method="POST" action="animal_expenses.php" class="flex flex-wrap gap-2 items-end mt-2"><?= $xhidden ?><input type="hidden" name="act" value="void"><input type="hidden" name="expense_id" value="<?= (int)$l['expense_id'] ?>">
+            <div class="flex-1 min-w-48"><label class="<?= $label ?>" for="xx<?= (int)$l['expense_id'] ?>">Why</label><input id="xx<?= (int)$l['expense_id'] ?>" name="reason" maxlength="255" required class="<?= $input ?>" placeholder="e.g. entered twice"></div>
+            <button class="<?= $btnSec ?>" data-confirm="Void this expense? It stays on file.">Void</button></form></details>
+        <?php endif; ?></li>
+      <?php endforeach; ?>
+    </ul>
+    <?php if (count($all) > 50): ?><p class="text-xs text-stone-500 mt-2">Showing the latest 50. The full list is in the CSV on <a class="underline text-amber-800" href="animal_expenses.php">Expenses</a>.</p><?php endif; ?>
     <?php endif; ?>
   </div>
 <?php
