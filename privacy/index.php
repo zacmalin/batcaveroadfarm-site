@@ -67,6 +67,9 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
                 Analytics across all websites by installing Google's
                 <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">opt-out
                 browser add-on</a>. Blocking these cookies will not break the website.</p>
+              <p>We also use <strong>Cloudflare Web Analytics</strong> to measure how quickly our pages load for
+                real visitors (for example, how long the main photo takes to appear) and which pages are viewed. It sets
+                no cookies and stores nothing in your browser.</p>
               <p>There are no advertising or social-media tracking pixels on this site. Our Facebook, Instagram and
                 Pinterest connections (see below) run in our own admin system, not on the pages you visit, so they set
                 no cookies in your browser.</p>
@@ -85,6 +88,11 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
                   page) — handled by Google under the
                   <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy
                   Policy</a>.</li>
+                <li><strong>Cloudflare</strong> — delivers this website. Pages and images pass through Cloudflare's
+                  network, which protects the site from attacks and keeps copies of images and files so they load
+                  faster. Cloudflare Web Analytics (above) also runs through it. See the
+                  <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">Cloudflare
+                  Privacy Policy</a>.</li>
                 <li><strong>Instagram feed</strong> on our gallery page — displayed through a third-party widget
                   (Behold) that loads images from Instagram. Viewing it is subject to the privacy practices of
                   Behold and of Instagram/Meta.</li>
@@ -108,7 +116,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
                   Policy</a>.</li>
               </ul>
               <p>Each of these services receives only what it needs: Google Analytics gets usage data from your
-                browser, Google Maps loads when you view the map, Behold and Instagram load the gallery images, Stripe
+                browser, Cloudflare delivers the pages and measures how fast they load, Google Maps loads when you view the map, Behold and Instagram load the gallery images, Stripe
                 gets your payment details, and Meta and Pinterest get only the posts and Pins we choose to publish.
                 Once information reaches them, it is handled under their own privacy policies.</p>
 
