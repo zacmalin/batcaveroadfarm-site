@@ -281,6 +281,26 @@ if ($canV('tasks')) {
     } catch (Throwable $e) { /* tasks not installed */ }
 }
 
+// Open incident reports (Farm OS Phase 5 slice 8 follow-up, Nov 12, 2026; includes/incidents.php) — Owners and anyone
+// with the 'incidents' view. A serious one makes it urgent.
+try {
+    if (is_file(dirname(__DIR__, 2) . '/includes/incidents.php')) {
+        require_once dirname(__DIR__, 2) . '/includes/incidents.php';
+        if (bcrf_incidents_ready($pdo) && bcrf_incidents_can()) {
+            $oi = bcrf_incident_list($pdo, ['status' => 'open'], 50);
+            if ($oi) {
+                $serious = count(array_filter($oi, fn($i) => $i['severity'] === 'serious'));
+                $add(['id' => 'incidents', 'priority' => $serious ? 'urgent' : 'today', 'icon' => '🩹',
+                      'title' => count($oi) . ' open incident report' . (count($oi) === 1 ? '' : 's') . ($serious ? ' (' . $serious . ' serious)' : ''),
+                      'items' => array_map(fn($i) => '#' . (int)$i['id'] . ' ' . (BCRF_INCIDENT_TYPES[$i['type']] ?? $i['type']) . ' · ' . (BCRF_INCIDENT_SEVERITY[$i['severity']] ?? $i['severity'])
+                                                     . ' · ' . bcrf_incident_local((string)$i['happened_at'])->format('D M j') . ($i['animal_names'] ? ' (' . $i['animal_names'] . ')' : ''), array_slice($oi, 0, 4)),
+                      'detail' => (count($oi) > 4 ? '…and ' . (count($oi) - 4) . ' more. ' : '') . 'Follow up, then close each report.', 'count' => count($oi) * 10 + $serious,
+                      'actions' => [count($oi) === 1 ? ['Open report', '/admin/incidents.php?id=' . (int)$oi[0]['id'], true] : ['Open incidents', '/admin/incidents.php?status=open', true]]]);
+            }
+        }
+    }
+} catch (Throwable $e) { /* incidents not installed */ }
+
 $prioOrder = ['urgent' => 0, 'today' => 1, 'fyi' => 2];
 usort($alerts, fn($a, $b) => $prioOrder[$a['priority']] <=> $prioOrder[$b['priority']]);
 $prioCount = array_count_values(array_column($alerts, 'priority'));
