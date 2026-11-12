@@ -63,7 +63,7 @@ try {
         LIMIT 100
     ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-    if (!$rows) { rr_log('No review requests due.'); exit; }
+    if (!$rows) rr_log('No review requests due.');
 
     $mark = $pdo->prepare("UPDATE bookings SET review_request_sent_at = NOW() WHERE id = ?");
     $sent = 0;
@@ -79,7 +79,14 @@ try {
         usleep(120000); // ~0.12s, gentle on the mail queue
     }
 
-    rr_log('Review requests: ' . count($rows) . ' due, ' . $sent . ' sent.');
+    if ($rows) rr_log('Review requests: ' . count($rows) . ' due, ' . $sent . ' sent.');
+
+    // Parties get the same email (includes/party_emails.php, migration 0038, Nov 12, 2026).
+    require_once dirname($bcrf_cfg) . '/includes/party_emails.php';
+    if (bcrf_party_emails_ready($pdo)) {
+        [$pDue, $pSent] = bcrf_party_emails_run($pdo, 'thank_you');
+        rr_log('Parties: ' . $pDue . ' due, ' . $pSent . ' sent.');
+    }
 
 } catch (Throwable $e) {
     error_log('[BCRF] review requests failed: ' . $e->getMessage());
