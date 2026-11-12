@@ -1,7 +1,8 @@
 <?php
 // admin/animals.php — Animals › Roster and Enclosures (Farm OS Phase 5 slice 1, Nov 12, 2026; includes/animals.php, migration 0040).
 //   GET  animals.php[?f=off|gone|all&enc=N&q=…]   the roster: on the farm (default), off visitor contact, left, or everyone
-//   GET  animals.php?id=N[&tab=location|history]  one animal: overview (identity, status), where it has been, status history
+//   GET  animals.php?id=N[&tab=care|location|history]  one animal: overview (identity, status), care log (slice 2,
+//                                                 admin/animal_care.php), where it has been, status history
 //   GET  animals.php?tab=enclosures               pens, barns and pastures with counts and capacity
 //   POST act=identity | status | move | move_many | enclosure
 // Permission: table 'animals' view to look; edit to change anything. The public bio, photo and publish switch stay in
@@ -13,6 +14,7 @@ require_once __DIR__ . '/includes/permission_checks.php';
 require_permission([['table', 'animals']]);
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/animals.php';
+if (is_file(__DIR__ . '/../includes/animal_care.php')) require_once __DIR__ . '/../includes/animal_care.php';   // slice 2
 require_once __DIR__ . '/../includes/admin_shell.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -92,13 +94,6 @@ $pill = function (string $status) use ($h): string {
          : (bcrf_animal_is_leaving($status) ? 'bg-stone-100 text-stone-600 border border-stone-300' : 'bg-white text-green-700 border border-stone-200');
     return '<span class="inline-block rounded-full px-2 text-xs ' . $cls . '">' . $h(BCRF_ANIMAL_STATUSES[$status] ?? $status) . '</span>';
 };
-$tabs = function (string $on) use ($h) {
-    $out = '<div class="flex flex-wrap gap-1 mb-4">';
-    foreach ([['Roster', 'animals.php', ''], ['Enclosures', 'animals.php?tab=enclosures', 'enclosures']] as [$t, $u, $k]) {
-        $out .= '<a href="' . $u . '" class="px-3 py-2 rounded text-sm border ' . ($k === $on ? 'border-stone-800 bg-stone-800 text-white' : 'border-stone-300 text-stone-700 bg-white hover:bg-stone-100') . '">' . $h($t) . '</a>';
-    }
-    return $out . '</div>';
-};
 $enclosures = bcrf_enclosures($pdo);
 $encOptions = function (?int $sel, bool $none) use ($enclosures, $h): string {
     $o = $none ? '<option value="0">Not in an enclosure</option>' : '';
@@ -121,13 +116,43 @@ if ($id) {
     echo '<h1 class="text-2xl font-bold text-stone-800 mt-2 mb-1">', $h($a['name']), ' ', $pill($status), '</h1>';
     echo '<p class="text-sm text-stone-500 mb-3">', $h(trim(($a['class_name'] ?? '') . ' · ' . ($a['breed_name'] ?? ''), ' ·')), '</p>';
     echo '<div class="flex flex-wrap gap-1 mb-4">';
-    foreach ([['Overview', ''], ['Location', 'location'], ['History', 'history']] as [$t, $k]) {
+    $careOn = function_exists('bcrf_care_ready') && bcrf_care_ready($pdo);
+    foreach (array_merge([['Overview', '']], $careOn ? [['Care', 'care']] : [], [['Location', 'location'], ['History', 'history']]) as [$t, $k]) {
         echo '<a href="animals.php?id=', $id, $k ? '&amp;tab=' . $k : '', '" class="px-3 py-2 rounded text-sm border ', $k === $tab ? 'border-stone-800 bg-stone-800 text-white' : 'border-stone-300 text-stone-700 bg-white hover:bg-stone-100', '">', $h($t), '</a>';
     }
     echo '</div>';
     if ($error) echo bcrf_shell_notice('err', $error);
     if (in_array($status, BCRF_ANIMAL_OFF_CONTACT, true)) echo bcrf_shell_notice('warning', BCRF_ANIMAL_STATUSES[$status] . ': keep visitors away. It shows on the gate screen.');
     if ($gone) echo bcrf_shell_notice('info', 'This animal has left the farm (' . strtolower(BCRF_ANIMAL_STATUSES[$status]) . ' ' . $local($a['status_changed_at'], 'M j, Y') . '). Its records are kept.');
+
+    if ($tab === 'care' && $careOn) {
+        $last = bcrf_care_last_by_type($pdo, $id);
+        $log = bcrf_care_recent($pdo, $id, 50); ?>
+  <?php if (!$gone): ?>
+  <div class="flex flex-wrap gap-2 mb-4">
+    <?php foreach (bcrf_care_types($pdo) as $t): ?><a class="<?= $btnSec ?>" href="animal_care.php?type=<?= $t['id'] ?>&amp;animal=<?= $id ?>"><?= $h($t['name']) ?></a><?php endforeach; ?>
+  </div>
+  <?php endif; ?>
+  <div class="<?= $card ?>">
+    <h2 class="text-base font-semibold text-stone-800 mb-2">Last done</h2>
+    <ul class="grid grid-cols-1 sm:grid-cols-2 gap-1 text-sm">
+    <?php foreach (bcrf_care_types($pdo) as $t): ?><li><?= $h($t['name']) ?>: <span class="text-stone-500"><?= isset($last[$t['id']]) ? $h($local($last[$t['id']], 'M j, g:i A')) : 'never' ?></span></li><?php endforeach; ?>
+    </ul>
+  </div>
+  <div class="<?= $card ?>">
+    <h2 class="text-base font-semibold text-stone-800 mb-2">Care log</h2>
+    <?php if (!$log): ?><p class="text-sm text-stone-500">Nothing logged yet.</p><?php else: ?>
+    <ul class="divide-y divide-stone-100">
+      <?php foreach ($log as $r): ?>
+      <li class="py-2 text-sm <?= $r['voided_at'] ? 'line-through text-stone-500' : '' ?>"><strong><?= $h($r['type_name']) ?></strong><?= $r['feed_name'] ? ' · ' . $h(bcrf_qtxt((float)$r['feed_qty']) . ' of ' . $r['feed_name']) : '' ?>
+        <span class="block text-xs text-stone-500"><?= $h($local($r['logged_at'], 'M j, g:i A')) ?><?= $r['by_name'] ? ' · ' . $h($r['by_name']) : '' ?><?= $r['enclosure_name'] ? ' · whole ' . $h($r['enclosure_name']) : (count($r['animals']) > 1 ? ' · with ' . $h(implode(', ', array_diff($r['animals'], [$a['name']]))) : '') ?><?= $r['note'] ? ' · ' . $h($r['note']) : '' ?></span></li>
+      <?php endforeach; ?>
+    </ul>
+    <?php endif; ?>
+  </div>
+<?php
+        bcrf_shell_close(); exit;
+    }
 
     if ($tab === 'location') {
         $locs = bcrf_animal_locations($pdo, $id);
@@ -217,12 +242,13 @@ if ($id) {
 if ($tab === 'enclosures') {
     $all = bcrf_enclosures($pdo, true);
     bcrf_shell_open('Enclosures', ['toast' => $toast, 'width' => 'max-w-3xl']);
-    echo '<h1 class="text-2xl font-bold text-stone-800 mb-1">Animals</h1>', $tabs('enclosures');
+    echo '<h1 class="text-2xl font-bold text-stone-800 mb-3">Animals</h1>';
     if ($error) echo bcrf_shell_notice('err', $error);
     foreach ($all as $e): $over = $e['capacity'] !== null && $e['animal_count'] > $e['capacity']; ?>
   <form method="POST" action="animals.php" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="enclosure"><input type="hidden" name="enclosure_id" value="<?= $e['id'] ?>">
     <div class="flex flex-wrap items-baseline justify-between gap-2 mb-2">
       <h2 class="text-base font-semibold text-stone-800"><?= $h($e['name']) ?><?= $e['active'] ? '' : ' (not in use)' ?></h2>
+      <?php if ($e['animal_count'] && function_exists('bcrf_care_ready') && bcrf_care_ready($pdo)): ?><a class="text-sm underline text-amber-800" href="animal_care.php?enc=<?= $e['id'] ?>">Log care</a><?php endif; ?>
       <a class="text-sm underline <?= $over ? 'text-red-700' : 'text-amber-800' ?>" href="animals.php?enc=<?= $e['id'] ?>"><?= $e['animal_count'] ?> animal<?= $e['animal_count'] === 1 ? '' : 's' ?><?= $e['capacity'] !== null ? ' of ' . $e['capacity'] : '' ?><?= $over ? ', over capacity' : '' ?></a>
     </div>
     <?php if ($canEdit): ?>
@@ -259,7 +285,7 @@ $q = trim((string)($_GET['q'] ?? ''));
 $rows = bcrf_animals_list($pdo, $f, $enc, $q);
 $off = bcrf_animals_off_contact($pdo);
 bcrf_shell_open('Animals', ['toast' => $toast, 'width' => 'max-w-4xl']);
-echo '<h1 class="text-2xl font-bold text-stone-800 mb-1">Animals</h1>', $tabs('');
+echo '<h1 class="text-2xl font-bold text-stone-800 mb-3">Animals</h1>';
 if ($error) echo bcrf_shell_notice('err', $error);
 if ($off) echo bcrf_shell_notice('warning', 'Off visitor contact: ' . implode(', ', array_map(fn($o) => $o['name'] . ' (' . strtolower(BCRF_ANIMAL_STATUSES[$o['status']]) . ')', $off)) . '.');
 ?>
