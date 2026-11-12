@@ -85,6 +85,21 @@ if ($ticketId > 0) {
     }
 }
 
+// ── QUOTES: deposits and balances for group bookings and parties (Farm OS Phase 3 slice 4, Nov 12, 2026) ──
+$quoteId = (int)($session['metadata']['quote_id'] ?? 0);
+if ($quoteId > 0) {
+    try {
+        require_once __DIR__ . '/../../includes/queue.php';
+        require_once __DIR__ . '/../../includes/event_quotes.php';
+        $done = bcrf_quote_stripe_paid($pdo, $quoteId, $sessionId, (int)($session['amount_total'] ?? 0), (string)($session['payment_intent'] ?? ''));
+        error_log('[BCRF stripe webhook] Quote #' . $quoteId . ($done ? ' payment recorded.' : ' payment already recorded.'));
+        http_response_code(200); echo $done ? 'ok' : 'Quote payment already recorded'; exit;
+    } catch (Throwable $e) {
+        error_log('[BCRF stripe webhook] Quote error: ' . $e->getMessage());
+        http_response_code(500); echo 'Server error'; exit;
+    }
+}
+
 if ($bookingId <= 0 && $passId <= 0) {
     error_log('[BCRF stripe webhook] No booking_id or pass_id in session metadata');
     http_response_code(200); echo 'No known entity id'; exit;

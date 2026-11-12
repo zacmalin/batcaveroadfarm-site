@@ -14,13 +14,13 @@ $pending = $daySched = $blackouts = $confirmed = [];
 if ($ready) {
     try {
         $pending = $pdo->query(
-            "SELECT b.*, t.label FROM bookings b JOIN booking_types t ON t.id = b.type_id
+            "SELECT b.*, t.label, t.type_key FROM bookings b JOIN booking_types t ON t.id = b.type_id
              WHERE b.status = 'pending' AND b.booking_date >= CURDATE()
              ORDER BY b.booking_date, b.start_time"
         )->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
         $q = $pdo->prepare(
-            "SELECT b.*, t.label FROM bookings b JOIN booking_types t ON t.id = b.type_id
+            "SELECT b.*, t.label, t.type_key FROM bookings b JOIN booking_types t ON t.id = b.type_id
              WHERE b.booking_date = ?
              ORDER BY FIELD(b.status,'confirmed','pending','completed','no_show','cancelled'), b.start_time"
         );
@@ -33,6 +33,19 @@ if ($ready) {
         )->fetchAll(PDO::FETCH_ASSOC) ?: [];
     } catch (Throwable $e) { $ready = false; }
 }
+
+// Quotes & payments (Farm OS Phase 3 slice 4): a Quote button and where the money stands, for group bookings (not day tickets)
+$quoteBadges = null;
+try {
+    require_once __DIR__ . '/../../includes/event_quotes.php';
+    if ($ready && bcrf_quotes_ready($pdo)) $quoteBadges = bcrf_quote_badges($pdo, 'booking', array_merge(array_column($pending, 'id'), array_column($daySched, 'id')));
+} catch (Throwable $e) { $quoteBadges = null; }
+$quoteLink = function (array $row) use (&$quoteBadges): string {
+    if ($quoteBadges === null || ($row['type_key'] ?? '') === 'day_admission' || !empty($row['date_flexible'])) return '';
+    $b = $quoteBadges[(int)$row['id']] ?? null;
+    return '<a href="/admin/quotes.php?for=booking:' . (int)$row['id'] . '" class="inline-flex items-center justify-center min-h-10 md:min-h-8 px-3 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 hover:bg-amber-100">'
+         . ($b ? '💲 ' . htmlspecialchars($b['status']['label']) : '💲 Quote') . '</a>';
+};
 
 // open-hours window for the selected weekday -> hourly buckets
 $openH = 10; $closeH = 16;
@@ -172,6 +185,7 @@ $allPendingPay = count(array_filter($pending,    fn($r) => ($r['payment_status']
             <?php if (($p['payment_status'] ?? '') === 'pending'): ?>
               <?php $act('waive', (int)$p['id'], 'Mark paid (cash)', $btn . ' bg-teal-50 text-teal-700 hover:bg-teal-100', 'Mark this booking as paid in cash/in-person?'); ?>
             <?php endif; ?>
+            <?= $quoteLink($p) ?>
             <a href="/admin/admin.php?view=bookings&day=<?= urlencode($p['booking_date']) ?>" class="<?= $btn ?> bg-stone-100 text-stone-600 hover:bg-stone-200">View day</a>
             <?php $act('cancel', (int)$p['id'], 'Decline', $btn . ' bg-stone-100 text-stone-500 hover:bg-stone-200', 'Decline and cancel this request?'); ?>
           </div>
@@ -240,6 +254,7 @@ $allPendingPay = count(array_filter($pending,    fn($r) => ($r['payment_status']
           <?php if (!empty($r['admin_note'])): ?><span class="text-stone-400 italic text-xs">— <?= htmlspecialchars($r['admin_note']) ?></span><?php endif; ?>
         </div>
         <div class="flex flex-wrap gap-2">
+          <?= $quoteLink($r) ?>
           <?php
             if ($r['status'] === 'pending')   $act('confirm', (int)$r['id'], 'Confirm', $btn . ' bg-green-600 text-white hover:bg-green-700');
             if ($r['status'] === 'confirmed') {

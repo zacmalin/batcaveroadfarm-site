@@ -30,8 +30,10 @@ $_sections = [
                                                                          ['Gift Cards','/admin/gift_cards.php','view','pos']]],              // Farm OS Phase 2 gift cards (Nov 11)
     ]],
     'visitors' => ['label'=>'Visitors & Events','icon'=>'🎟','items'=>[
-        ['label'=>'Bookings',       'icon'=>'📋','tabs'=>[['Bookings','?view=bookings','view','bookings']]],
-        ['label'=>'Private Events', 'short'=>'Parties','icon'=>'🎉','tabs'=>[['Private Events','?view=event_inquiries','view','event_inquiries']]],
+        ['label'=>'Bookings',       'icon'=>'📋','tabs'=>[['Bookings','?view=bookings','view','bookings'],
+                                                         ['Quotes & payments','/admin/quotes.php','view','bookings']]],          // Farm OS Phase 3 slice 4 (Nov 12)
+        ['label'=>'Private Events', 'short'=>'Parties','icon'=>'🎉','tabs'=>[['Private Events','?view=event_inquiries','view','event_inquiries'],
+                                                                         ['Party quotes','/admin/quotes.php?kind=party','view','event_inquiries']]],
         ['label'=>'Annual Passes',  'short'=>'Passes','icon'=>'🎫','tabs'=>[['Annual Passes','?view=passes','view','passes']]],
         ['label'=>'Roost Rewards',  'short'=>'Rewards','icon'=>'🐓','tabs'=>[['Roost Rewards','/admin/rewards.php','view','pos']]],   // lean rewards, Nov 2026
     ]],

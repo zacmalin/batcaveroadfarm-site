@@ -1,0 +1,21 @@
+/* css/min.quote.css — customer quote page (booking/quote.php) and its Stripe hand-off (booking/quote_pay.php). Farm OS Phase 3 slice 4, Nov 12, 2026 */
+.quote-card{text-align:left}
+.quote-card h1{text-align:center}
+.quote-card h2{font-family:'Young Serif',Georgia,serif;font-size:1.15rem;margin:22px 0 8px;color:#3E2A1E}
+.quote-when{text-align:center;margin:0 0 16px;line-height:1.6}
+.quote-lines{width:100%;border-collapse:collapse;margin:0 0 16px;font-size:.98rem}
+.quote-lines td{padding:7px 0;border-bottom:1px solid rgba(201,146,58,.3);vertical-align:top}
+.quote-lines .quote-amt{text-align:right;white-space:nowrap;padding-left:12px}
+.quote-total td{font-weight:bold;border-top:2px solid #c9923a}
+.quote-paid td{color:#2f6b3a}
+.quote-muted{color:#7a5a3c;font-size:.88rem}
+.quote-note{border-left:3px solid #D9A441;padding:6px 12px;margin:14px 0;font-style:italic}
+.quote-terms{margin:0 0 16px;padding-left:20px;line-height:1.55}
+.quote-terms li{margin:0 0 6px}
+.quote-pay{text-align:center;margin:18px 0 6px}
+.quote-pay .cta-btn{display:inline-block;margin:6px}
+.quote-btn-alt{background:#3E2A1E}
+.quote-flash{background:#F7F1E3;border:1px solid #D9A441;border-radius:9px;padding:10px 14px;margin:0 0 16px}
+.quote-flash-err{background:#fde8e8;border-color:#f5c6c6;color:#8A3324}
+.quote-redirect{font-family:Georgia,serif;background:#F7F1E3;color:#3E2A1E;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px;box-sizing:border-box;text-align:center}
+.quote-redirect a{color:#635bff;font-weight:bold}

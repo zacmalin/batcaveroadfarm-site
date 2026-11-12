@@ -22,6 +22,13 @@ try {
 
 $statusBadge = fn(string $s): string => ui_chip($s);
 
+// Quotes & payments (Farm OS Phase 3 slice 4, Nov 12, 2026): price, send, payments for each party
+$quoteBadges = null;
+try {
+    require_once __DIR__ . '/../../includes/event_quotes.php';
+    if (bcrf_quotes_ready($pdo)) $quoteBadges = bcrf_quote_badges($pdo, 'event_inquiry', array_column($inquiries, 'id'));
+} catch (Throwable $e) { $quoteBadges = null; }
+
 $eventLabels = [
     'birthday'   => '🎂 Birthday Party',
     'field_trip' => '🎒 Field Trip',
@@ -116,6 +123,9 @@ $eventLabels = [
                 </select>
                 <button type="submit" class="<?= ui_btn('primary') ?>">Update status</button>
             </form>
+            <?php if ($quoteBadges !== null): $qb = $quoteBadges[(int)$inq['id']] ?? null; ?>
+            <a href="/admin/quotes.php?for=event_inquiry:<?= (int)$inq['id'] ?>" class="<?= ui_btn('secondary') ?>">💲 <?= $qb ? htmlspecialchars($qb['status']['label']) : 'Quote' ?></a>
+            <?php endif; ?>
             <?php if ($inq['status'] === 'confirmed' && function_exists('bcrf_event_task_counts')): $ck = bcrf_event_task_counts($pdo, 'event_inquiry', (int)$inq['id']); if ($ck['total']): ?>
             <a href="/admin/tasks.php?tab=all&amp;status=all&amp;related=event_inquiry:<?= (int)$inq['id'] ?>" class="<?= ui_btn('secondary') ?>">✅ Checklist <?= $ck['done'] ?>/<?= $ck['total'] ?></a>
             <?php endif; endif; ?>
