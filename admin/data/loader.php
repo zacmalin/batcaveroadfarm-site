@@ -98,12 +98,14 @@ $forecast_trends  = [];
 
 if ($target_view === 'dashboard') {
 
-    // Low stock — from unified inventory table
+    // Low stock — from unified inventory table. Only items whose stock is counted
+    // (track_inventory = 1); gift cards, admissions and other untracked items sit at 0.
     try {
         $low_stock_items = $pdo->query("
             SELECT category AS cat, name, stock_quantity
             FROM   inventory
             WHERE  is_active = 1
+              AND  track_inventory = 1
               AND  stock_quantity < 5
             ORDER  BY stock_quantity ASC
         ")->fetchAll();
@@ -169,6 +171,7 @@ if ($target_view === 'dashboard') {
                    COALESCE(min_stock_level, 0) AS min_stock_level
             FROM   inventory
             WHERE  is_active = 1
+              AND  track_inventory = 1
             ORDER  BY name ASC
         ")->fetchAll();
     } catch (Throwable $e) {
