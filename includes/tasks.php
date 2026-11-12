@@ -8,7 +8,11 @@
 //             Finishing or skipping one day never changes the chore. Editing a chore rebuilds only days nobody touched.
 //   Template  a reusable checklist for one-off tasks.
 //
-// Screens: admin/tasks.php. Nightly: admin/cron/generate_tasks.php. Dashboard: bcrf_tasks_counts().
+//   Slice 2 (Nov 11, 2026; migration 0030): questions answered on finishing (form_json → answers_json), photos
+//             (task_photos, files outside the website folder), follow-up tasks from a flagged answer or unticked steps.
+//             Morning list and late-task emails: includes/task_notify.php.
+//
+// Screens: admin/tasks.php, admin/task_photo.php. Nightly: admin/cron/generate_tasks.php. Dashboard: bcrf_tasks_counts().
 if (!function_exists('bcrf_tasks_ready')) {
 
 class BcrfTaskError extends RuntimeException {}
@@ -17,12 +21,24 @@ define('BCRF_TASK_PRIORITIES', ['urgent' => 'Urgent', 'high' => 'High', 'normal'
 define('BCRF_TASK_STATUSES', ['open' => 'To do', 'in_progress' => 'Started', 'done' => 'Done', 'skipped' => 'Skipped', 'cancelled' => 'Cancelled']);
 define('BCRF_TASK_ROLES', ['Staff' => 'Farm staff', 'Shopkeep' => 'Shopkeepers', 'moderator' => 'Managers', 'administrator' => 'Owners']);
 define('BCRF_TASK_FREQS', ['daily' => 'Every day', 'every_n' => 'Every few days', 'weekly' => 'Certain weekdays', 'monthly' => 'Once a month']);
+define('BCRF_TASK_PHOTO_RULES', ['none' => 'No photo', 'optional' => 'Photo if they like', 'required' => 'Photo required']);
+define('BCRF_TASK_PHOTO_MAX', 6);                  // photos per task
+define('BCRF_TASK_PHOTO_BYTES', 15 * 1024 * 1024); // largest upload accepted (it is shrunk before saving)
 
 function bcrf_tasks_ready(PDO $pdo): bool {
     static $ok = null;
     if ($ok !== null) return $ok;
     try { $pdo->query("SELECT 1 FROM tasks LIMIT 0"); $pdo->query("SELECT 1 FROM task_recurrences LIMIT 0"); return $ok = true; }
     catch (Throwable $e) { return $ok = false; }
+}
+
+/** Migration 0030 run? (questions, photos, follow-ups, alerts) */
+function bcrf_tasks_v2(PDO $pdo): bool {
+    static $ok = [];
+    $k = spl_object_id($pdo);
+    if (isset($ok[$k]) && empty($GLOBALS['bcrf_tasks_nocache'])) return $ok[$k];
+    try { $pdo->query("SELECT form_json, photo_rule, answers_json FROM tasks LIMIT 0"); $pdo->query("SELECT 1 FROM task_photos LIMIT 0"); return $ok[$k] = true; }
+    catch (Throwable $e) { return $ok[$k] = false; }
 }
 
 function bcrf_tasks_tz(): DateTimeZone {
@@ -177,9 +193,11 @@ function bcrf_tasks_generate(PDO $pdo, ?int $recId = null, bool $force = false):
     $today = bcrf_tasks_today();
     $sql = "SELECT * FROM task_recurrences WHERE active = 1" . ($recId ? " AND id = " . (int)$recId : '');
     $made = 0;
+    $v2 = bcrf_tasks_v2($pdo);
     $ins = $pdo->prepare("INSERT IGNORE INTO tasks (title, description, checklist_json, priority, status, due_date, due_time,
-                              assignee_user_id, assignee_role, recurrence_id, occurrence_date, created_at)
-                          VALUES (?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())");
+                              assignee_user_id, assignee_role, recurrence_id, occurrence_date, created_at"
+                              . ($v2 ? ", form_json, photo_rule, followup_unticked" : '') . ")
+                          VALUES (?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP()" . ($v2 ? ', ?, ?, ?' : '') . ")");
     $mark = $pdo->prepare("UPDATE task_recurrences SET generated_through = ? WHERE id = ?");
     foreach ($pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC) as $r) {
         $to = bcrf_tasks_add_days($today, max(1, min(60, (int)$r['horizon_days'])) - 1);
@@ -190,8 +208,10 @@ function bcrf_tasks_generate(PDO $pdo, ?int $recId = null, bool $force = false):
         $list = bcrf_tasks_checklist_new(json_decode((string)$r['checklist_json'], true) ?: []);
         for ($d = $from; $d <= $to; $d = bcrf_tasks_add_days($d, 1)) {
             if (!bcrf_rec_falls_on($pdo, $r, $d)) continue;
-            $ins->execute([$r['title'], $r['description'], $list ? json_encode($list, JSON_UNESCAPED_UNICODE) : null, $r['priority'],
-                           $d, bcrf_rec_due_time($pdo, $r, $d), $r['assignee_user_id'], $r['assignee_role'], (int)$r['id'], $d]);
+            $args = [$r['title'], $r['description'], $list ? json_encode($list, JSON_UNESCAPED_UNICODE) : null, $r['priority'],
+                     $d, bcrf_rec_due_time($pdo, $r, $d), $r['assignee_user_id'], $r['assignee_role'], (int)$r['id'], $d];
+            if ($v2) array_push($args, $r['form_json'] ?: null, $r['photo_rule'] ?: 'none', (int)$r['followup_unticked']);
+            $ins->execute($args);
             $made += $ins->rowCount();
         }
         if ($to >= $today) $mark->execute([$to, (int)$r['id']]);
@@ -246,6 +266,9 @@ function bcrf_tasks_decode(array $t): array {
     $t['checklist'] = json_decode((string)($t['checklist_json'] ?? ''), true) ?: [];
     $t['checked'] = count(array_filter($t['checklist'], fn($i) => !empty($i['done'])));
     $t['overdue'] = in_array($t['status'], ['open', 'in_progress'], true) && bcrf_tasks_is_late($t);
+    $t['form'] = json_decode((string)($t['form_json'] ?? ''), true) ?: [];
+    $t['answers'] = json_decode((string)($t['answers_json'] ?? ''), true) ?: [];
+    $t['photo_rule'] = (string)($t['photo_rule'] ?? 'none') ?: 'none';
     return $t;
 }
 
@@ -408,7 +431,8 @@ function bcrf_tasks_clean(PDO $pdo, array $d): array {
             'due_date' => $date ?: null, 'due_time' => $time ?: null, 'assignee_user_id' => $uid, 'assignee_role' => $role,
             'related_type' => $rt !== '' ? mb_substr(preg_replace('/[^a-z_]/', '', strtolower($rt)), 0, 40) : null,
             'related_id' => $ri !== '' ? mb_substr($ri, 0, 64) : null,
-            'lines' => bcrf_tasks_lines($d['checklist'] ?? [])];
+            'lines' => bcrf_tasks_lines($d['checklist'] ?? []),
+            'photo_rule' => isset(BCRF_TASK_PHOTO_RULES[(string)($d['photo_rule'] ?? '')]) ? (string)$d['photo_rule'] : 'none'];
 }
 
 /** New one-off task. Returns its id. */
@@ -422,6 +446,12 @@ function bcrf_task_create(PDO $pdo, array $d): int {
         ->execute([$c['title'], $c['description'], $list ? json_encode($list, JSON_UNESCAPED_UNICODE) : null, $c['priority'], $c['due_date'], $c['due_time'],
                    $c['assignee_user_id'], $c['assignee_role'], $c['related_type'], $c['related_id'], $tpl, bcrf_tasks_uid(), bcrf_tasks_uid()]);
     $id = (int)$pdo->lastInsertId();
+    if (bcrf_tasks_v2($pdo)) {
+        // A saved checklist brings its questions and follow-up setting; the photo choice comes from the form (prefilled from it).
+        $form = null; $fu = 0;
+        if ($tpl) { try { $tp = bcrf_tpl_get($pdo, $tpl); $form = $tp['form_json'] ?: null; $fu = (int)$tp['followup_unticked']; } catch (BcrfTaskError $e) {} }
+        $pdo->prepare("UPDATE tasks SET form_json = ?, photo_rule = ?, followup_unticked = ? WHERE id = ?")->execute([$form, $c['photo_rule'], $fu, $id]);
+    }
     if (function_exists('bcrf_event')) bcrf_event('task.created', 'tasks', $id, ['title' => $c['title'], 'due' => $c['due_date']]);
     return $id;
 }
@@ -438,6 +468,7 @@ function bcrf_task_update(PDO $pdo, int $id, array $d): void {
                        assignee_role = ?, related_type = ?, related_id = ?, updated_at = UTC_TIMESTAMP(), updated_by = ? WHERE id = ?")
         ->execute([$c['title'], $c['description'], $list ? json_encode($list, JSON_UNESCAPED_UNICODE) : null, $c['priority'], $c['due_date'], $c['due_time'],
                    $c['assignee_user_id'], $c['assignee_role'], $c['related_type'], $c['related_id'], bcrf_tasks_uid(), $id]);
+    if (bcrf_tasks_v2($pdo)) $pdo->prepare("UPDATE tasks SET photo_rule = ? WHERE id = ?")->execute([$c['photo_rule'], $id]);
 }
 
 function bcrf_tasks_can_edit(array $t): bool {
@@ -467,8 +498,9 @@ function bcrf_task_check(PDO $pdo, int $id, int $idx, bool $done): array {
  * Move a task: start | done | skip | cancel | reopen. $note goes on done/skip/cancel.
  * Done with checklist items left needs $force (the screen asks first). Skip is for chore days.
  */
-function bcrf_task_set(PDO $pdo, int $id, string $act, string $note = '', bool $force = false): array {
+function bcrf_task_set(PDO $pdo, int $id, string $act, string $note = '', bool $force = false, ?array $answers = null): array {
     $note = mb_substr(trim($note), 0, 500);
+    $made = [];
     $pdo->beginTransaction();
     try {
         $t = bcrf_task_get($pdo, $id, true);
@@ -485,6 +517,13 @@ function bcrf_task_set(PDO $pdo, int $id, string $act, string $note = '', bool $
                 $left = count($t['checklist']) - $t['checked'];
                 if ($left > 0 && !$force) throw new BcrfTaskError($left . ' checklist item' . ($left === 1 ? ' is' : 's are') . ' not ticked. Tick them, or finish anyway.');
                 $sql = "status = 'done', completed_at = UTC_TIMESTAMP(), completed_by = ?, completion_note = ?"; $args = [$uid, $note ?: null];
+                if (bcrf_tasks_v2($pdo)) {
+                    $ans = bcrf_task_form_answers($t['form'], $answers ?? []);   // throws when a must-answer question is blank
+                    if ($t['photo_rule'] === 'required' && !count(bcrf_task_photos($pdo, $id))) throw new BcrfTaskError('This task needs a photo. Add one, then finish.');
+                    $sql .= ", answers_json = ?"; $args[] = $ans ? json_encode($ans, JSON_UNESCAPED_UNICODE) : null;
+                    $t['answers'] = $ans;
+                    $made = bcrf_task_followups($pdo, $t, $note);
+                }
                 break;
             case 'skip':
                 if ($closed) throw new BcrfTaskError('That task is already closed.');
@@ -499,7 +538,7 @@ function bcrf_task_set(PDO $pdo, int $id, string $act, string $note = '', bool $
                 break;
             case 'reopen':
                 if (!$closed) throw new BcrfTaskError('That task is still open.');
-                $sql = "status = IF(checklist_json LIKE '%\"done\":true%', 'in_progress', 'open'), completed_at = NULL, completed_by = NULL, completion_note = NULL"; $args = [];
+                $sql = "status = IF(checklist_json LIKE '%\"done\":true%', 'in_progress', 'open'), completed_at = NULL, completed_by = NULL, completion_note = NULL"; $args = [];   // answers stay, to fill the form again
                 break;
             default: throw new BcrfTaskError('Unknown action.');
         }
@@ -510,7 +549,263 @@ function bcrf_task_set(PDO $pdo, int $id, string $act, string $note = '', bool $
         bcrf_event('task.' . ['done' => 'completed', 'skip' => 'skipped', 'cancel' => 'cancelled'][$act], 'tasks', $id,
                    ['title' => $t['title'], 'recurrence_id' => $t['recurrence_id'] ? (int)$t['recurrence_id'] : null, 'due' => $t['due_date']]);
     }
+    if ($made && function_exists('bcrf_event')) foreach ($made as $fid) bcrf_event('task.created', 'tasks', $fid, ['followup_of' => $id]);
+    $GLOBALS['bcrf_task_followups_made'] = $made;   // for the screen's "2 follow-up tasks added" message
     return bcrf_task_get($pdo, $id);
+}
+
+// ── Questions on finishing (completion forms) ─────────────────────────────────────────────────────
+//
+// Written one per line on the chore or saved checklist, e.g.
+//   Any animal off feed or limping? (yes/no, follow up if yes)
+//   Water trough temperature (number, °F)
+//   Gate condition (choice: good, needs repair, broken)*
+//   Anything the vet should know (text)
+// No brackets means a yes/no question. A * at the end means it must be answered. "follow up" (= if no) or
+// "follow up if yes" makes a follow-up task when that answer is given.
+
+/** Text → [{k, q, type, options, unit, required, followup}] (max 20). Throws on a line it can't read. */
+function bcrf_task_form_parse($text): array {
+    $lines = is_array($text) ? $text : preg_split('/\R/', (string)$text);
+    $out = []; $n = 0;
+    foreach ($lines as $ln => $raw) {
+        $line = trim((string)$raw);
+        if ($line === '') continue;
+        if (++$n > 20) throw new BcrfTaskError('Up to 20 questions.');
+        $req = false;
+        if (str_ends_with($line, '*')) { $req = true; $line = rtrim(substr($line, 0, -1)); }
+        $spec = 'yes/no';
+        if (preg_match('/^(.*?)\s*\(([^()]*)\)\s*$/u', $line, $m) && trim($m[1]) !== '') { $line = trim($m[1]); $spec = trim($m[2]); }
+        $q = mb_substr($line, 0, 150);
+        $parts = array_values(array_filter(array_map('trim', explode(',', $spec)), 'strlen'));
+        $head = strtolower($parts[0] ?? 'yes/no');
+        $f = ['k' => 'q' . $n, 'q' => $q, 'type' => '', 'options' => [], 'unit' => '', 'required' => $req, 'followup' => ''];
+        $rest = array_slice($parts, 1);
+        if (in_array($head, ['yes/no', 'yesno', 'yes or no', 'y/n'], true)) {
+            $f['type'] = 'yesno';
+            foreach ($rest as $r) {
+                $r = strtolower($r);
+                if (preg_match('/^follow[\s-]?up(?:\s+if\s+(yes|no))?$/', $r, $mm)) $f['followup'] = $mm[1] ?? 'no';
+                else throw new BcrfTaskError('Question ' . $n . ': after yes/no, only "follow up" or "follow up if yes" is understood.');
+            }
+        } elseif ($head === 'number') {
+            $f['type'] = 'number';
+            $f['unit'] = mb_substr(implode(', ', $rest), 0, 20);
+        } elseif ($head === 'text') {
+            $f['type'] = 'text';
+        } elseif (str_starts_with($head, 'choice')) {
+            $f['type'] = 'choice';
+            $first = trim((string)substr($parts[0], strpos($parts[0] . ':', ':') + 1));
+            $opts = array_values(array_unique(array_filter(array_map(fn($o) => mb_substr(trim($o), 0, 60), array_merge([$first], $rest)), 'strlen')));
+            if (count($opts) < 2) throw new BcrfTaskError('Question ' . $n . ': list at least two choices, like (choice: good, needs repair).');
+            $f['options'] = array_slice($opts, 0, 10);
+        } else {
+            throw new BcrfTaskError('Question ' . $n . ': use (yes/no), (number), (text) or (choice: a, b) after the question.');
+        }
+        $out[] = $f;
+    }
+    return $out;
+}
+
+/** Form definition → the text staff edit. */
+function bcrf_task_form_text(array $form): string {
+    $lines = [];
+    foreach ($form as $f) {
+        $spec = match ($f['type'] ?? 'yesno') {
+            'number' => 'number' . (($f['unit'] ?? '') !== '' ? ', ' . $f['unit'] : ''),
+            'text'   => 'text',
+            'choice' => 'choice: ' . implode(', ', (array)($f['options'] ?? [])),
+            default  => 'yes/no' . (($f['followup'] ?? '') === 'yes' ? ', follow up if yes' : (($f['followup'] ?? '') === 'no' ? ', follow up' : '')),
+        };
+        $lines[] = $f['q'] . ' (' . $spec . ')' . (!empty($f['required']) ? '*' : '');
+    }
+    return implode("\n", $lines);
+}
+
+/** Check typed answers against the form. Returns {k: value} (blank answers left out); throws for a blank must-answer. */
+function bcrf_task_form_answers(array $form, array $in): array {
+    $out = [];
+    foreach ($form as $f) {
+        $k = (string)$f['k'];
+        $v = trim((string)($in[$k] ?? ''));
+        if ($v === '') {
+            if (!empty($f['required'])) throw new BcrfTaskError('Answer “' . $f['q'] . '” before finishing.');
+            continue;
+        }
+        switch ($f['type']) {
+            case 'yesno':
+                $v = strtolower($v);
+                if (!in_array($v, ['yes', 'no'], true)) throw new BcrfTaskError('Answer “' . $f['q'] . '” with yes or no.');
+                break;
+            case 'number':
+                $v = str_replace(',', '', $v);
+                if (!is_numeric($v) || abs((float)$v) > 1e9) throw new BcrfTaskError('“' . $f['q'] . '” needs a number.');
+                $v = rtrim(rtrim(number_format((float)$v, 3, '.', ''), '0'), '.');
+                break;
+            case 'choice':
+                if (!in_array($v, (array)$f['options'], true)) throw new BcrfTaskError('Pick one of the choices for “' . $f['q'] . '”.');
+                break;
+            default:
+                $v = mb_substr($v, 0, 500);
+        }
+        $out[$k] = $v;
+    }
+    return $out;
+}
+
+/** "Yes" / "12.5 °F" / text, for showing an answer. */
+function bcrf_task_answer_label(array $f, $v): string {
+    if ($v === null || $v === '') return '—';
+    if (($f['type'] ?? '') === 'yesno') return $v === 'yes' ? 'Yes' : 'No';
+    if (($f['type'] ?? '') === 'number' && ($f['unit'] ?? '') !== '') return $v . ' ' . $f['unit'];
+    return (string)$v;
+}
+
+/** Did this answer ask for a follow-up? */
+function bcrf_task_answer_flags(array $f, $v): bool {
+    return ($f['type'] ?? '') === 'yesno' && ($f['followup'] ?? '') !== '' && $v === $f['followup'];
+}
+
+/**
+ * Follow-up tasks when $t is finished (call inside the finishing transaction): one per flagged answer, and one per
+ * unticked step when the task asks for that. Same person or group as the task, due today, high priority, linked back.
+ * A follow-up that already exists for the same line (task reopened and finished again) is not made twice. Returns new ids.
+ */
+function bcrf_task_followups(PDO $pdo, array $t, string $note = ''): array {
+    $items = [];
+    foreach ($t['form'] as $f) {
+        $v = $t['answers'][$f['k']] ?? null;
+        if (bcrf_task_answer_flags($f, $v)) $items[] = [$f['q'], 'Answered ' . bcrf_task_answer_label($f, $v) . ' to “' . $f['q'] . '”'];
+    }
+    if (!empty($t['followup_unticked'])) {
+        foreach ($t['checklist'] as $i) if (empty($i['done'])) $items[] = [$i['t'], 'Not ticked: “' . $i['t'] . '”'];
+    }
+    if (!$items) return [];
+    $day = !empty($t['due_date']) ? date('D, M j', strtotime((string)$t['due_date'])) : 'today';
+    $exists = $pdo->prepare("SELECT COUNT(*) FROM tasks WHERE followup_of = ? AND title = ?");
+    $ins = $pdo->prepare("INSERT INTO tasks (title, description, priority, status, due_date, assignee_user_id, assignee_role, related_type, related_id,
+                              followup_of, created_at, created_by, updated_at, updated_by)
+                          VALUES (?, ?, 'high', 'open', ?, ?, ?, 'task', ?, ?, UTC_TIMESTAMP(), ?, UTC_TIMESTAMP(), ?)");
+    $made = [];
+    foreach ($items as [$what, $why]) {
+        $title = mb_substr('Follow up: ' . $what, 0, 150);
+        $exists->execute([(int)$t['id'], $title]);
+        if ((int)$exists->fetchColumn()) continue;
+        $desc = 'From “' . $t['title'] . '” (' . $day . '). ' . $why . '.' . ($note !== '' ? "\nNote: " . $note : '');
+        $ins->execute([$title, $desc, bcrf_tasks_today(), $t['assignee_user_id'] ?: null, $t['assignee_role'] ?: null, (string)(int)$t['id'], (int)$t['id'], bcrf_tasks_uid(), bcrf_tasks_uid()]);
+        $made[] = (int)$pdo->lastInsertId();
+    }
+    return $made;
+}
+
+/** Follow-up tasks made from this one. */
+function bcrf_task_followups_of(PDO $pdo, int $id): array {
+    if (!bcrf_tasks_v2($pdo)) return [];
+    $st = $pdo->prepare(bcrf_tasks_select() . " WHERE t.followup_of = ? ORDER BY t.id");
+    $st->execute([$id]);
+    return array_map('bcrf_tasks_decode', $st->fetchAll(PDO::FETCH_ASSOC));
+}
+
+// ── Photos ───────────────────────────────────────────────────────────────────────────────────────
+
+/** Folder for task photos: outside the website folder (like job résumés), served only through admin/task_photo.php. */
+function bcrf_task_photo_dir(): string {
+    $base = getenv('BCRF_UPLOAD_DIR') ?: '';
+    if ($base === '') $base = dirname(__DIR__, 3) . '/bcrf-uploads';   // includes → site root → public_html → home folder
+    $dir = rtrim($base, '/') . '/tasks';
+    if (!is_dir($dir)) @mkdir($dir, 0700, true);
+    if (is_dir($dir) && !is_file($dir . '/.htaccess')) @file_put_contents($dir . '/.htaccess', "Require all denied\nDeny from all\n");
+    return $dir;
+}
+
+function bcrf_task_photos(PDO $pdo, int $taskId): array {
+    if (!bcrf_tasks_v2($pdo)) return [];
+    $st = $pdo->prepare("SELECT p.*, CONCAT(u.first_name, ' ', u.last_name) AS by_name FROM task_photos p LEFT JOIN users u ON u.id = p.created_by WHERE p.task_id = ? ORDER BY p.id");
+    $st->execute([$taskId]);
+    return $st->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function bcrf_task_photo_get(PDO $pdo, int $id): array {
+    $st = $pdo->prepare("SELECT * FROM task_photos WHERE id = ?");
+    $st->execute([$id]);
+    $r = $st->fetch(PDO::FETCH_ASSOC);
+    if (!$r) throw new BcrfTaskError('That photo was not found.');
+    return $r;
+}
+
+/** Full path of a stored photo, or '' if its name is not one this code made. */
+function bcrf_task_photo_path(array $p): string {
+    $f = (string)($p['file'] ?? '');
+    if (!preg_match('#^\d{4}/\d{2}/[a-f0-9]{24}\.webp$#', $f)) return '';
+    return bcrf_task_photo_dir() . '/' . $f;
+}
+
+/**
+ * Save one uploaded photo ($_FILES entry) on a task: checked to be a real image, turned upright, shrunk to 1600px on its
+ * long side and saved as WebP under a random name. Returns the photo id. ($GLOBALS['bcrf_tasks_test_upload'] lets the
+ * test suite pass a plain file instead of an HTTP upload.)
+ */
+function bcrf_task_photo_add(PDO $pdo, int $taskId, array $file): int {
+    if (!bcrf_tasks_v2($pdo)) throw new BcrfTaskError('Run migration 0030 first.');
+    $t = bcrf_task_get($pdo, $taskId);
+    if (!bcrf_tasks_can_see($t)) throw new BcrfTaskError('That task is not yours.');
+    if (count(bcrf_task_photos($pdo, $taskId)) >= BCRF_TASK_PHOTO_MAX) throw new BcrfTaskError('Up to ' . BCRF_TASK_PHOTO_MAX . ' photos on one task.');
+    $err = (int)($file['error'] ?? UPLOAD_ERR_NO_FILE);
+    if ($err === UPLOAD_ERR_INI_SIZE || $err === UPLOAD_ERR_FORM_SIZE) throw new BcrfTaskError('That photo is too big to upload. Try a smaller one.');
+    if ($err !== UPLOAD_ERR_OK) throw new BcrfTaskError('The photo did not upload. Try again.');
+    $tmp = (string)($file['tmp_name'] ?? '');
+    if (empty($GLOBALS['bcrf_tasks_test_upload']) && !is_uploaded_file($tmp)) throw new BcrfTaskError('The photo did not upload. Try again.');
+    $size = (int)@filesize($tmp);
+    if ($size <= 0 || $size > BCRF_TASK_PHOTO_BYTES) throw new BcrfTaskError('Photos can be up to 15 MB.');
+    $info = @getimagesize($tmp);
+    if (!$info || !in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP, IMAGETYPE_GIF], true)) throw new BcrfTaskError('That file is not a photo (JPEG, PNG or WebP).');
+    if ($info[0] * $info[1] > 50000000) throw new BcrfTaskError('That photo is too large to open.');
+    $im = match ($info[2]) {
+        IMAGETYPE_JPEG => @imagecreatefromjpeg($tmp),
+        IMAGETYPE_PNG  => @imagecreatefrompng($tmp),
+        IMAGETYPE_WEBP => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($tmp) : false,
+        IMAGETYPE_GIF  => @imagecreatefromgif($tmp),
+        default        => false,
+    };
+    if (!$im) throw new BcrfTaskError('That photo could not be opened.');
+    if (!imageistruecolor($im)) imagepalettetotruecolor($im);
+    if ($info[2] === IMAGETYPE_JPEG && function_exists('exif_read_data')) {   // phone photos: stand them upright
+        $o = (int)(@exif_read_data($tmp)['Orientation'] ?? 1);
+        $rot = [3 => 180, 6 => -90, 8 => 90][$o] ?? 0;
+        if ($rot) { $r = imagerotate($im, $rot, 0); if ($r) $im = $r; }
+    }
+    $w = imagesx($im); $h = imagesy($im);
+    $scale = min(1, 1600 / max($w, $h));
+    if ($scale < 1) {
+        $nw = max(1, (int)round($w * $scale)); $nh = max(1, (int)round($h * $scale));
+        $c = imagecreatetruecolor($nw, $nh);
+        imagecopyresampled($c, $im, 0, 0, 0, 0, $nw, $nh, $w, $h);
+        $im = $c; $w = $nw; $h = $nh;
+    }
+    $rel = gmdate('Y/m') . '/' . bin2hex(random_bytes(12)) . '.webp';
+    $path = bcrf_task_photo_dir() . '/' . $rel;
+    if (!is_dir(dirname($path)) && !@mkdir(dirname($path), 0700, true) && !is_dir(dirname($path))) throw new BcrfTaskError('Could not save the photo (folder).');
+    if (!@imagewebp($im, $path, 78)) throw new BcrfTaskError('Could not save the photo.');
+    @chmod($path, 0600);
+    clearstatcache(true, $path);
+    $pdo->prepare("INSERT INTO task_photos (task_id, file, width, height, bytes, created_at, created_by) VALUES (?, ?, ?, ?, ?, UTC_TIMESTAMP(), ?)")
+        ->execute([$taskId, $rel, $w, $h, (int)filesize($path), bcrf_tasks_uid()]);
+    $pid = (int)$pdo->lastInsertId();
+    $pdo->prepare("UPDATE tasks SET updated_at = UTC_TIMESTAMP(), updated_by = ? WHERE id = ?")->execute([bcrf_tasks_uid(), $taskId]);
+    return $pid;
+}
+
+/** Remove a photo (whoever added it, or a manager) while the task is still open. */
+function bcrf_task_photo_delete(PDO $pdo, int $photoId): int {
+    $p = bcrf_task_photo_get($pdo, $photoId);
+    $t = bcrf_task_get($pdo, (int)$p['task_id']);
+    if (!bcrf_tasks_can_see($t)) throw new BcrfTaskError('That task is not yours.');
+    if (!bcrf_tasks_is_manager() && (int)$p['created_by'] !== (int)bcrf_tasks_uid()) throw new BcrfTaskError('Only whoever added a photo, or a manager, can remove it.');
+    if (in_array($t['status'], ['done', 'skipped', 'cancelled'], true)) throw new BcrfTaskError('Reopen the task first.');
+    $pdo->prepare("DELETE FROM task_photos WHERE id = ?")->execute([$photoId]);
+    $path = bcrf_task_photo_path($p);
+    if ($path !== '' && is_file($path)) @unlink($path);
+    return (int)$t['id'];
 }
 
 // ── Chores and checklists (managers) ─────────────────────────────────────────────────────────────
@@ -538,7 +833,8 @@ function bcrf_rec_list(PDO $pdo): array {
 function bcrf_rec_save(PDO $pdo, array $d, ?int $id = null): int {
     if (!bcrf_tasks_is_manager()) throw new BcrfTaskError('Only an Owner or Manager can change chores.');
     $c = bcrf_tasks_clean($pdo, ['title' => $d['title'] ?? '', 'description' => $d['description'] ?? '', 'checklist' => $d['checklist'] ?? '',
-                                 'priority' => $d['priority'] ?? 'normal', 'who' => $d['who'] ?? 'anyone']);
+                                 'priority' => $d['priority'] ?? 'normal', 'who' => $d['who'] ?? 'anyone', 'photo_rule' => $d['photo_rule'] ?? 'none']);
+    if (array_key_exists('questions', $d)) bcrf_task_form_parse($d['questions']);   // stop before saving anything if a question can't be read
     $freq = (string)($d['freq'] ?? 'daily');
     if (!isset(BCRF_TASK_FREQS[$freq])) throw new BcrfTaskError('Pick how often.');
     $n = (int)($d['interval_n'] ?? 1);
@@ -591,6 +887,8 @@ function bcrf_rec_save(PDO $pdo, array $d, ?int $id = null): int {
         $id = (int)$pdo->lastInsertId();
         bcrf_tasks_audit($pdo, 'create', 'task_recurrences', $id, 'Chore: ' . $c['title']);
     }
+    bcrf_tasks_save_extras($pdo, 'task_recurrences', $id, $d, $c['photo_rule']);
+    if (bcrf_tasks_v2($pdo) && !empty($GLOBALS['bcrf_tasks_extras_changed'])) bcrf_tasks_clear_untouched($pdo, $id);   // days already made get the new questions
     bcrf_tasks_generate($pdo, $id, true);
     return $id;
 }
@@ -622,8 +920,9 @@ function bcrf_tpl_get(PDO $pdo, int $id): array {
 function bcrf_tpl_save(PDO $pdo, array $d, ?int $id = null): int {
     if (!bcrf_tasks_is_manager()) throw new BcrfTaskError('Only an Owner or Manager can change saved checklists.');
     $c = bcrf_tasks_clean($pdo, ['title' => $d['title'] ?? '', 'description' => $d['description'] ?? '', 'checklist' => $d['checklist'] ?? '',
-                                 'priority' => $d['priority'] ?? 'normal', 'who' => $d['who'] ?? 'anyone']);
-    if (!$c['lines']) throw new BcrfTaskError('Add at least one checklist line.');
+                                 'priority' => $d['priority'] ?? 'normal', 'who' => $d['who'] ?? 'anyone', 'photo_rule' => $d['photo_rule'] ?? 'none']);
+    if (array_key_exists('questions', $d)) bcrf_task_form_parse($d['questions']);
+    if (!$c['lines'] && trim((string)($d['questions'] ?? '')) === '') throw new BcrfTaskError('Add at least one checklist line or question.');
     $args = [$c['title'], $c['description'], json_encode($c['lines'], JSON_UNESCAPED_UNICODE), $c['priority'], $c['assignee_user_id'], $c['assignee_role'], !empty($d['active']) || !$id ? 1 : 0];
     if ($id) {
         bcrf_tpl_get($pdo, $id);
@@ -634,8 +933,23 @@ function bcrf_tpl_save(PDO $pdo, array $d, ?int $id = null): int {
                        VALUES (?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), ?)")->execute(array_merge($args, [bcrf_tasks_uid()]));
         $id = (int)$pdo->lastInsertId();
     }
+    bcrf_tasks_save_extras($pdo, 'task_templates', $id, $d, $c['photo_rule']);
     bcrf_tasks_audit($pdo, 'update', 'task_templates', $id, 'Checklist: ' . $c['title']);
     return $id;
+}
+
+/** Questions, photo rule and follow-up setting on a chore or saved checklist (only when the form sent them). */
+function bcrf_tasks_save_extras(PDO $pdo, string $table, int $id, array $d, string $photo): void {
+    $GLOBALS['bcrf_tasks_extras_changed'] = false;
+    if (!bcrf_tasks_v2($pdo) || !in_array($table, ['task_recurrences', 'task_templates'], true) || !array_key_exists('questions', $d)) return;
+    $form = bcrf_task_form_parse($d['questions']);
+    $json = $form ? json_encode($form, JSON_UNESCAPED_UNICODE) : null;
+    $fu = !empty($d['followup_unticked']) ? 1 : 0;
+    $st = $pdo->prepare("SELECT form_json, photo_rule, followup_unticked FROM `$table` WHERE id = ?");
+    $st->execute([$id]);
+    $old = $st->fetch(PDO::FETCH_ASSOC) ?: [];
+    $GLOBALS['bcrf_tasks_extras_changed'] = ($old['form_json'] ?? null) !== $json || ($old['photo_rule'] ?? 'none') !== $photo || (int)($old['followup_unticked'] ?? 0) !== $fu;
+    $pdo->prepare("UPDATE `$table` SET form_json = ?, photo_rule = ?, followup_unticked = ? WHERE id = ?")->execute([$json, $photo, $fu, $id]);
 }
 
 }

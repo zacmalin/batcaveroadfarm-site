@@ -1,12 +1,13 @@
 # .github/workflows/tasks.yml — tasks and chores (Farm OS Phase 3, Nov 11, 2026).
 # Runs tests/tasks_test.php against a throwaway MySQL 8 database built from every migration:
-# chore days, open-days-only, seasons, the generator, checklists, statuses, and who sees what.
+# chore days, open-days-only, seasons, the generator, checklists, statuses, and who sees what;
+# then tests/task_forms_test.php (slice 2): questions, follow-ups, photos, the morning list and late-task emails.
 # Never touches a real database.
 name: Tasks test
 
 on:
   push:
-    paths: ['includes/tasks.php', 'admin/migrations/**', 'tests/tasks_test.php', '.github/workflows/tasks.yml']
+    paths: ['includes/tasks.php', 'includes/task_notify.php', 'admin/migrations/**', 'tests/tasks_test.php', 'tests/task_forms_test.php', '.github/workflows/tasks.yml']
   pull_request:
   workflow_dispatch:
 
@@ -29,7 +30,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
-          extensions: pdo_mysql
+          extensions: pdo_mysql, gd
           coverage: none
           tools: none
       - name: Task and chore rules
@@ -39,3 +40,10 @@ jobs:
           DB_USER: root
           DB_PASS: root
         run: php tests/tasks_test.php
+      - name: Questions, photos, follow-ups and task emails
+        env:
+          DB_HOST: 127.0.0.1
+          DB_NAME: bcrf_tasks_test
+          DB_USER: root
+          DB_PASS: root
+        run: php tests/task_forms_test.php

@@ -246,6 +246,8 @@ function bcrf_runner_tasks(): array {
         'purge_job_records'      => ['admin/cron/purge_job_records.php',      ['at' => '03:20']],
         'rewards_expire'         => ['admin/cron/rewards_expire.php',         ['at' => '03:25']],
         'generate_tasks'         => ['admin/cron/generate_tasks.php',         ['at' => '02:30']],   // Farm OS Phase 3 chores (Nov 11)
+        'task_digest'            => ['admin/cron/task_digest.php',            ['at' => '06:30']],   // Phase 3 slice 2: morning task list
+        'task_alerts'            => ['admin/cron/task_alerts.php',            ['every' => 15]],     // Phase 3 slice 2: late-task emails
         'backup_files'           => ['admin/cron/backup_files.php',           ['at' => '03:40', 'day' => 0, 'timeout' => 40]],
         'fetch_google_reports'   => ['admin/cron/fetch_google_reports.php',   ['at' => '06:10']],
         'fetch_social_reports'   => ['admin/cron/fetch_social_reports.php',   ['at' => '06:20']],
