@@ -4,6 +4,7 @@ require_once __DIR__ . '/layout/ui.php';   // shared chips, buttons, empty state
 $csrf = $_SESSION['csrf_token'] ?? '';      // was never set here, so status/note saves posted an empty token and were refused
 $statusFilter = trim((string)($_GET['status'] ?? 'new'));
 $allowedStatuses = ['new','contacted','quoted','confirmed','declined','archived','all'];
+try { require_once __DIR__ . '/../../includes/event_tasks.php'; } catch (Throwable $e) { /* checklist link just won't show */ }
 if (!in_array($statusFilter, $allowedStatuses, true)) $statusFilter = 'new';
 
 $inquiries = [];
@@ -105,6 +106,9 @@ $eventLabels = [
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
                 <input type="hidden" name="inquiry_action" value="status">
                 <input type="hidden" name="id" value="<?= (int)$inq['id'] ?>">
+                <label class="sr-only" for="ev_date_<?= (int)$inq['id'] ?>">Party date</label>
+                <input type="date" id="ev_date_<?= (int)$inq['id'] ?>" name="event_date" value="<?= htmlspecialchars((string)($inq['preferred_date'] ?? ''), ENT_QUOTES) ?>" title="Party date (checklist tasks are dated from it)"
+                       class="min-h-10 md:min-h-8 px-2 text-xs border border-stone-300 rounded-lg bg-stone-50">
                 <select name="new_status" class="min-h-10 md:min-h-8 px-2 text-xs border border-stone-300 rounded-lg bg-stone-50">
                     <?php foreach (['new','contacted','quoted','confirmed','declined','archived'] as $s): ?>
                     <option value="<?= $s ?>" <?= $inq['status'] === $s ? 'selected' : '' ?>><?= ucfirst($s) ?></option>
@@ -112,6 +116,9 @@ $eventLabels = [
                 </select>
                 <button type="submit" class="<?= ui_btn('primary') ?>">Update status</button>
             </form>
+            <?php if ($inq['status'] === 'confirmed' && function_exists('bcrf_event_task_counts')): $ck = bcrf_event_task_counts($pdo, 'event_inquiry', (int)$inq['id']); if ($ck['total']): ?>
+            <a href="/admin/tasks.php?tab=all&amp;status=all&amp;related=event_inquiry:<?= (int)$inq['id'] ?>" class="<?= ui_btn('secondary') ?>">✅ Checklist <?= $ck['done'] ?>/<?= $ck['total'] ?></a>
+            <?php endif; endif; ?>
 
             <!-- Add / edit note -->
             <form method="POST" action="/admin/admin.php?view=event_inquiries&status=<?= htmlspecialchars($statusFilter) ?>" class="flex gap-2 items-center flex-1 min-w-[220px]">

@@ -54,13 +54,13 @@
   }
 
   // ── Chore form: show the fields for the chosen schedule ──
-  var freq = document.getElementById('c_freq'), anchor = document.getElementById('c_anchor');
+  var freq = document.getElementById('c_freq'), anchor = document.getElementById('c_anchor') || document.getElementById('e_anchor');
   function sync() {
     if (freq) document.querySelectorAll('[data-freq]').forEach(function (el) {
       el.hidden = el.getAttribute('data-freq').split(' ').indexOf(freq.value) < 0;
     });
     if (anchor) document.querySelectorAll('[data-anchor]').forEach(function (el) {
-      el.hidden = el.getAttribute('data-anchor') !== anchor.value;
+      el.hidden = el.getAttribute('data-anchor').split(' ').indexOf(anchor.value) < 0;
     });
   }
   on(freq, 'change', sync); on(anchor, 'change', sync); sync();

@@ -11,10 +11,18 @@ $back    = '/admin/admin.php?view=event_inquiries&status=' . rawurlencode($statu
 if ($action === 'status' && $id > 0) {
     $newStatus = trim((string)($_POST['new_status'] ?? ''));
     $allowed   = ['new','contacted','quoted','confirmed','declined','archived'];
+    // Party date (Farm OS Phase 3, Nov 11): the agreed date can differ from the one asked for; checklists follow it.
+    $newDate = trim((string)($_POST['event_date'] ?? ''));
+    $dateOk = $newDate !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $newDate) && checkdate((int)substr($newDate, 5, 2), (int)substr($newDate, 8, 2), (int)substr($newDate, 0, 4));
     if (in_array($newStatus, $allowed, true)) {
-        $pdo->prepare("UPDATE event_inquiries SET status=? WHERE id=?")->execute([$newStatus, $id]);
-        erp_audit($pdo, 'update', 'event_inquiries', $id, erp_row_label($pdo, 'event_inquiries', $id) . ' - status ' . $newStatus);
-        $_SESSION['toast_msg']  = 'Inquiry status updated to ' . $newStatus . '.';
+        $pdo->prepare("UPDATE event_inquiries SET status=?" . ($dateOk ? ", preferred_date=?" : '') . " WHERE id=?")->execute($dateOk ? [$newStatus, $newDate, $id] : [$newStatus, $id]);
+        erp_audit($pdo, 'update', 'event_inquiries', $id, erp_row_label($pdo, 'event_inquiries', $id) . ' - status ' . $newStatus . ($dateOk ? ', date ' . $newDate : ''));
+        $made = 0;
+        try {   // make or cancel this party's checklist tasks (Tasks › Events); never stops the status change
+            require_once __DIR__ . '/../../includes/event_tasks.php';
+            $made = (int)bcrf_event_tasks_sync($pdo, 'event_inquiry', $id)['made'];
+        } catch (Throwable $e) { error_log('[inquiries] checklist sync: ' . $e->getMessage()); }
+        $_SESSION['toast_msg']  = 'Inquiry status updated to ' . $newStatus . '.' . ($made ? ' ' . $made . ' checklist task' . ($made === 1 ? '' : 's') . ' added.' : '');
         $_SESSION['toast_type'] = 'success';
     }
 }

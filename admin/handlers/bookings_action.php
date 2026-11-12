@@ -12,6 +12,15 @@ try {
 
     require_once __DIR__ . '/../../includes/booking.php';
     require_once __DIR__ . '/../includes/audit.php';
+    if (!function_exists('bcrf_booking_checklists')) {
+        /** Make or cancel this booking's checklist tasks (includes/event_tasks.php). Never stops the status change. Returns tasks made. */
+        function bcrf_booking_checklists(PDO $pdo, int $id): int {
+            try {
+                require_once __DIR__ . '/../../includes/event_tasks.php';
+                return (int)bcrf_event_tasks_sync($pdo, 'booking', $id)['made'];
+            } catch (Throwable $e) { error_log('[bookings] checklist sync: ' . $e->getMessage()); return 0; }
+        }
+    }
 
     $action = $_POST['bookings_action'] ?? '';
     $id     = (int)($_POST['id'] ?? 0);
@@ -146,6 +155,7 @@ try {
     if (isset($simple[$action])) {
         $pdo->prepare("UPDATE bookings SET status = ? WHERE id = ?")->execute([$simple[$action], $id]);
         erp_audit($pdo, 'update', 'bookings', $id, trim(($bk['customer_name'] ?? '') . ' (' . ($bk['booking_date'] ?? '') . ')') . ' - ' . ($bk['status'] ?? '?') . ' -> ' . $simple[$action]);
+        bcrf_booking_checklists($pdo, $id);   // cancels its open checklist tasks (Farm OS Phase 3, event checklists)
         $_SESSION['toast_msg']  = 'Booking marked ' . str_replace('_', '-', $simple[$action]) . '.';
         $_SESSION['toast_type'] = 'success';
         header('Location: ' . $back); exit;
@@ -189,8 +199,9 @@ try {
         erp_audit($pdo, 'update', 'bookings', $id, trim(($bk['customer_name'] ?? '') . ' (' . ($bk['booking_date'] ?? '') . ')') . ' - ' . ($bk['status'] ?? '?') . ' -> confirmed' . ($force ? ' (capacity override)' : ''));
         $bk['status'] = 'confirmed';
         if (function_exists('booking_send_confirmation')) { @booking_send_confirmation($bk, $type); }
+        $made = bcrf_booking_checklists($pdo, $id);   // makes its checklist tasks (Tasks › Events)
 
-        $_SESSION['toast_msg']  = $force ? 'Confirmed (capacity override) — email sent.' : 'Booking confirmed — email sent.';
+        $_SESSION['toast_msg']  = ($force ? 'Confirmed (capacity override) — email sent.' : 'Booking confirmed — email sent.') . ($made ? ' ' . $made . ' checklist task' . ($made === 1 ? '' : 's') . ' added.' : '');
         $_SESSION['toast_type'] = 'success';
         header('Location: ' . $back); exit;
     }

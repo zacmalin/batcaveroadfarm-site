@@ -9,6 +9,8 @@
 //   POST tasks.php  act=add | edit | check | set | rec_save | rec_active | tpl_save     (check also answers JSON for tasks.js)
 //                   set to=done takes answers (ans[k]) and photos (photos[]); to=photo only saves photos   (slice 2, Nov 11)
 //                   act=photo_del | prefs (morning list / late emails)
+//   GET  tasks.php?tab=events      party and booking checklists, ?step=N | ?step=new&plan=party (managers; slice 3)
+//   POST act=step_save | step_active;  GET tasks.php?tab=all&related=booking:12 lists one event's tasks
 // Permission: view 'tasks' to see and do tasks; 'tasks_manage' (managers) for chores, checklists and everyone's tasks.
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
@@ -19,6 +21,7 @@ require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/queue.php';
 require_once __DIR__ . '/../includes/tasks.php';
 require_once __DIR__ . '/../includes/task_notify.php';
+require_once __DIR__ . '/../includes/event_tasks.php';
 require_once __DIR__ . '/../includes/admin_shell.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -38,6 +41,7 @@ if (!bcrf_tasks_ready($pdo)) {
 
 // Make sure this week's chore days exist (the nightly job does this too; this is a cheap backstop).
 try { bcrf_tasks_generate($pdo); } catch (Throwable $e) { error_log('[tasks] generate: ' . $e->getMessage()); }
+try { bcrf_event_tasks_sync($pdo); } catch (Throwable $e) { error_log('[tasks] event checklists: ' . $e->getMessage()); }   // same backstop for party/booking checklists
 
 $today = bcrf_tasks_today();
 $v2 = bcrf_tasks_v2($pdo);   // migration 0030: questions, photos, follow-ups, emails
@@ -132,6 +136,22 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 $_SESSION['task_flash'] = ['ok', !empty($_POST['on']) ? 'Chore restarted.' : 'Chore paused. Its days ahead were removed.'];
                 $back = 'tasks.php?tab=chores';
                 break;
+            case 'step_save':
+                $need();
+                $sid = bcrf_event_step_save($pdo, $_POST, $id ?: null);
+                $_SESSION['task_flash'] = ['ok', 'Step saved. Upcoming events were updated.'];
+                $back = 'tasks.php?tab=events#plan-' . rawurlencode((string)bcrf_event_step_get($pdo, $sid)['plan']);
+                break;
+            case 'step_active':
+                $need();
+                $stp = bcrf_event_step_get($pdo, $id);
+                $pdo->prepare("UPDATE event_task_steps SET active = ?, updated_at = UTC_TIMESTAMP() WHERE id = ?")->execute([!empty($_POST['on']) ? 1 : 0, $id]);
+                if (empty($_POST['on'])) $pdo->prepare("DELETE FROM tasks WHERE event_step_id = ? AND status = 'open' AND updated_at IS NULL AND due_date >= ?")->execute([$id, $today]);
+                else bcrf_event_tasks_sync($pdo);
+                bcrf_tasks_audit($pdo, empty($_POST['on']) ? 'disable' : 'update', 'event_task_steps', $id, (empty($_POST['on']) ? 'Paused' : 'Restarted') . ' event step: ' . $stp['title']);
+                $_SESSION['task_flash'] = ['ok', empty($_POST['on']) ? 'Step paused. Its upcoming tasks nobody started were removed.' : 'Step restarted.'];
+                $back = 'tasks.php?tab=events';
+                break;
             case 'tpl_save':
                 $need();
                 bcrf_tpl_save($pdo, $_POST, $id ?: null);
@@ -149,6 +169,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         if ($act === 'edit') $back = 'tasks.php?edit=' . $id;
         if ($act === 'rec_save') $back = 'tasks.php?tab=chores&rec=' . ($id ?: 'new');
         if ($act === 'tpl_save') $back = 'tasks.php?tab=templates&tpl_edit=' . ($id ?: 'new');
+        if ($act === 'step_save') $back = 'tasks.php?tab=events&step=' . ($id ?: 'new&plan=' . rawurlencode((string)($_POST['plan'] ?? '')));
     } catch (Throwable $e) {
         error_log('[tasks] ' . $act . ': ' . $e->getMessage());
         if ($ajax) { header('Content-Type: application/json'); http_response_code(500); echo json_encode(['ok' => false, 'error' => 'Could not save. Try again.']); exit; }
@@ -288,6 +309,8 @@ if (isset($_GET['id'])) {
     <?= $h($dayLabel($t['due_date'])) ?><?= $t['due_time'] ? ' at ' . $h(bcrf_tasks_fmt_time($t['due_time'])) : '' ?> · <?= $h(bcrf_tasks_who($t)) ?>
     <?php if ($rec): ?> · 🔁 <?= $h(bcrf_rec_describe($rec)) ?><?php endif; ?>
     <?php if ($parent): ?> · follow-up of <a class="underline" href="tasks.php?id=<?= (int)$parent['id'] ?>"><?= $h($parent['title']) ?></a>
+    <?php elseif ($t['related_type'] === 'booking'): ?> · <a class="underline" href="/admin/admin.php?view=bookings">booking #<?= $h($t['related_id']) ?></a> · <a class="underline" href="tasks.php?tab=all&amp;status=all&amp;related=booking:<?= $h($t['related_id']) ?>">its checklist</a>
+    <?php elseif ($t['related_type'] === 'event_inquiry'): ?> · <a class="underline" href="/admin/admin.php?view=event_inquiries&amp;status=confirmed">party #<?= $h($t['related_id']) ?></a> · <a class="underline" href="tasks.php?tab=all&amp;status=all&amp;related=event_inquiry:<?= $h($t['related_id']) ?>">its checklist</a>
     <?php elseif ($t['related_type']): ?> · linked to <?= $h($t['related_type']) ?> <?= $h($t['related_id']) ?><?php endif; ?>
   </p>
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
@@ -586,6 +609,128 @@ if ($tab === 'chores') {
     exit;
 }
 
+// ── EVENT CHECKLISTS (parties and bookings) ──
+if ($tab === 'events') {
+    if (!bcrf_event_tasks_ready($pdo)) {
+        $open('Event checklists', 'events');
+        echo '<h1 class="text-2xl font-bold text-stone-800 mb-4">Event checklists</h1>', bcrf_shell_notice('warning', 'Run migration 0031 in Settings › Database first.');
+        bcrf_shell_close();
+        exit;
+    }
+    $plans = bcrf_event_plans($pdo);
+    if (isset($_GET['step'])) {
+        $r = null;
+        if ($_GET['step'] !== 'new') { try { $r = bcrf_event_step_get($pdo, (int)$_GET['step']); } catch (BcrfTaskError $e) { $notFound('Step'); } }
+        $plan = $r ? (string)$r['plan'] : (string)($_GET['plan'] ?? 'party');
+        if (!isset($plans[$plan]) && !$r) $plan = 'party';
+        $isBooking = str_starts_with($plan, 'booking:');
+        $d = $typed ?: ($r ? ['title' => $r['title'], 'description' => $r['description'], 'checklist' => implode("\n", $r['lines']), 'priority' => $r['priority'],
+                              'who' => bcrf_tasks_who_value($r), 'questions' => bcrf_task_form_text($r['form']), 'photo_rule' => $r['photo_rule'], 'followup_unticked' => $r['followup_unticked'],
+                              'day_offset' => $r['day_offset'], 'anchor' => $r['anchor'], 'at_time' => $r['at_time'] ? substr($r['at_time'], 0, 5) : '', 'minute_offset' => $r['minute_offset'],
+                              'sort_order' => $r['sort_order'], 'active' => $r['active']]
+                           : ['who' => 'anyone', 'priority' => 'normal', 'day_offset' => -1, 'anchor' => 'time', 'at_time' => '10:00', 'minute_offset' => 0, 'active' => 1]);
+        $off = (int)($d['day_offset'] ?? 0);
+        $open($r ? 'Change step' : 'New step', 'events', 'max-w-2xl');
+        ?>
+  <a href="tasks.php?tab=events" class="inline-flex items-center min-h-10 text-sm text-stone-500 hover:text-stone-800 mb-1">← Event checklists</a>
+  <h1 class="text-2xl font-bold text-stone-800 mb-1"><?= $r ? 'Change step' : 'New step' ?></h1>
+  <p class="text-sm text-stone-500 mb-3"><?= $h($plans[$plan] ?? $plan) ?>. Every confirmed <?= $isBooking ? 'booking of this kind' : 'party' ?> gets this as a task, with the <?= $isBooking ? 'booking' : 'party' ?> details in its notes. Saving updates upcoming tasks nobody has started.</p>
+  <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
+  <form method="POST" action="tasks.php" class="<?= $card ?> p-4 space-y-3">
+    <?= $hidden('step_save', $r ? (int)$r['id'] : 0) ?><input type="hidden" name="plan" value="<?= $h($plan) ?>">
+    <div><label for="e_title" class="<?= $label ?>">Step</label><input id="e_title" name="title" maxlength="120" required value="<?= $h($d['title'] ?? '') ?>" class="<?= $input ?>" placeholder="e.g. Party prep">
+      <p class="text-xs text-stone-500 mt-1">The task is named “<?= $h(($d['title'] ?? '') ?: 'Step') ?>: <i>customer name</i>”.</p></div>
+    <fieldset class="border border-stone-200 rounded-lg p-3 space-y-3">
+      <legend class="px-1 text-xs font-semibold text-stone-600">When</legend>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <div><label for="e_off" class="<?= $label ?>">Day</label>
+          <div class="flex items-center gap-2">
+            <input id="e_off" name="day_offset" type="number" min="-60" max="30" value="<?= $off ?>" class="<?= $input ?> w-24">
+            <span class="text-sm text-stone-600">days from the <?= $isBooking ? 'booking' : 'party' ?> (−1 = day before, 0 = on the day)</span></div></div>
+        <div><label for="e_anchor" class="<?= $label ?>">Due</label>
+          <select id="e_anchor" name="anchor" class="<?= $input ?>">
+            <?php foreach (BCRF_EVENT_ANCHORS as $k => $v): if (!$isBooking && in_array($k, ['start', 'end'], true)) continue; ?>
+            <option value="<?= $k ?>"<?= ($d['anchor'] ?? 'time') === $k ? ' selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?></select></div>
+        <div data-anchor="time"><label for="e_time" class="<?= $label ?>">Time <span class="font-normal text-stone-400">optional</span></label><input id="e_time" name="at_time" type="time" value="<?= $h($d['at_time'] ?? '') ?>" class="<?= $input ?>"></div>
+        <?php if ($isBooking): ?>
+        <div data-anchor="start end"><label for="e_min" class="<?= $label ?>">Minutes <span class="font-normal text-stone-400">before (−) or after</span></label><input id="e_min" name="minute_offset" type="number" min="-720" max="720" value="<?= (int)($d['minute_offset'] ?? 0) ?>" class="<?= $input ?>"></div>
+        <?php endif; ?>
+      </div>
+      <p class="text-xs text-stone-500">If the day has already passed when the <?= $isBooking ? 'booking' : 'party' ?> is confirmed, the task is due right away.</p>
+    </fieldset>
+    <div class="grid gap-3 sm:grid-cols-2">
+      <div><label for="e_who" class="<?= $label ?>">Who</label><select id="e_who" name="who" class="<?= $input ?>"><?= $whoOptions((string)($d['who'] ?? 'anyone')) ?></select></div>
+      <div><label for="e_prio" class="<?= $label ?>">Priority</label><select id="e_prio" name="priority" class="<?= $input ?>"><?= $prioOptions((string)($d['priority'] ?? 'normal')) ?></select></div>
+    </div>
+    <div><label for="e_list" class="<?= $label ?>">Checklist <span class="font-normal text-stone-400">one step per line</span></label>
+      <textarea id="e_list" name="checklist" rows="6" class="<?= $input ?>"><?= $h(is_array($d['checklist'] ?? '') ? implode("\n", $d['checklist']) : ($d['checklist'] ?? '')) ?></textarea></div>
+    <div><label for="e_desc" class="<?= $label ?>">Notes <span class="font-normal text-stone-400">optional, shown above the event details</span></label>
+      <textarea id="e_desc" name="description" rows="2" class="<?= $input ?>"><?= $h($d['description'] ?? '') ?></textarea></div>
+    <?= $extras($d, 'e') ?>
+    <div class="grid gap-3 sm:grid-cols-2">
+      <div><label for="e_sort" class="<?= $label ?>">Order <span class="font-normal text-stone-400">within the same day</span></label><input id="e_sort" name="sort_order" type="number" min="0" max="99" value="<?= (int)($d['sort_order'] ?? 0) ?>" class="<?= $input ?> w-24"></div>
+    </div>
+    <input type="hidden" name="active" value="<?= !empty($d['active']) ? '1' : '' ?>">
+    <button type="submit" class="<?= $btnMain ?>">Save step</button>
+  </form>
+  <?php if ($r): ?>
+  <form method="POST" action="tasks.php" class="mt-3"><?= $hidden('step_active', (int)$r['id']) ?><input type="hidden" name="on" value="<?= $r['active'] ? '' : '1' ?>">
+    <button type="submit" class="<?= $btnSec ?>"><?= $r['active'] ? 'Pause this step' : 'Restart this step' ?></button>
+    <span class="text-xs text-stone-500 ml-2"><?= $r['active'] ? 'Upcoming tasks nobody started are removed; history stays.' : 'Adds it back to upcoming events.' ?></span></form>
+  <?php endif;
+        bcrf_shell_close();
+        exit;
+    }
+    $all = bcrf_event_steps($pdo);
+    $by = []; foreach ($all as $st) $by[$st['plan']][] = $st;
+    $upcoming = bcrf_event_list($pdo, $today);
+    usort($upcoming, fn($a, $b) => strcmp($a['date'] . ($a['start'] ?? ''), $b['date'] . ($b['start'] ?? '')));
+    $open('Event checklists', 'events', 'max-w-3xl');
+    ?>
+  <h1 class="text-2xl font-bold text-stone-800 mb-1">Event checklists</h1>
+  <p class="text-sm text-stone-500 mb-4">When a party or a booking is confirmed, these steps become tasks dated around it. If it's declined or cancelled, the tasks nobody finished are cancelled too.</p>
+  <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
+
+  <?php if ($upcoming): ?>
+  <section class="mb-6">
+    <h2 class="text-xs font-black uppercase tracking-widest text-stone-500 mb-2">Coming up · <?= count($upcoming) ?></h2>
+    <div class="space-y-2">
+      <?php foreach (array_slice($upcoming, 0, 12) as $ev): $cnt = bcrf_event_task_counts($pdo, $ev['type'], $ev['id']); ?>
+      <a href="tasks.php?tab=all&amp;status=all&amp;related=<?= $h($ev['type'] . ':' . $ev['id']) ?>" class="<?= $card ?> flex items-center gap-3 p-3 hover:border-stone-400">
+        <span class="flex-1 min-w-0"><span class="block text-sm font-bold text-stone-900"><?= $h($ev['name']) ?> <span class="font-normal text-stone-500">· <?= $h($plans[$ev['plan']] ?? $ev['plan']) ?></span></span>
+          <span class="block text-xs text-stone-500"><?= $h($dayLabel($ev['date'])) ?><?= $ev['start'] ? ' · ' . $h(bcrf_tasks_fmt_time($ev['start'])) : '' ?> · <?= (int)$ev['guests'] ?> guests</span></span>
+        <span class="shrink-0 text-xs font-bold <?= $cnt['total'] && $cnt['done'] === $cnt['total'] ? 'text-emerald-700' : 'text-stone-500' ?>"><?= $cnt['total'] ? $cnt['done'] . '/' . $cnt['total'] . ' done' : 'no steps' ?></span>
+      </a>
+      <?php endforeach; ?>
+    </div>
+  </section>
+  <?php endif; ?>
+
+  <?php foreach ($plans as $pk => $pl): $steps = $by[$pk] ?? []; ?>
+  <section class="mb-5" id="plan-<?= $h($pk) ?>">
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+      <h2 class="text-lg font-semibold text-stone-800"><?= $h($pl) ?></h2>
+      <a href="tasks.php?tab=events&amp;step=new&amp;plan=<?= $h(rawurlencode($pk)) ?>" class="<?= $btnSec ?>">+ Step</a>
+    </div>
+    <div class="space-y-2">
+      <?php foreach ($steps as $st): ?>
+      <a href="tasks.php?tab=events&amp;step=<?= (int)$st['id'] ?>" class="<?= $card ?> block p-3 hover:border-stone-400<?= $st['active'] ? '' : ' opacity-60' ?>">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-sm font-bold text-stone-900"><?= $h($st['title']) ?></span>
+          <?php if (!$st['active']): ?><span class="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-stone-100 text-stone-500">Paused</span><?php endif; ?>
+          <span class="ml-auto text-xs text-stone-500"><?= count($st['lines']) ?> step<?= count($st['lines']) === 1 ? '' : 's' ?><?= $st['form'] ? ' · ' . count($st['form']) . ' question' . (count($st['form']) === 1 ? '' : 's') : '' ?><?= $st['photo_rule'] === 'required' ? ' · 📷' : '' ?></span>
+        </div>
+        <div class="text-xs text-stone-500 mt-0.5"><?= $h(bcrf_event_step_when($st)) ?> · <?= $h(bcrf_tasks_who($st)) ?></div>
+      </a>
+      <?php endforeach; ?>
+      <?php if (!$steps): ?><p class="text-sm text-stone-500">No steps<?= str_contains(strtolower($pl), 'admission') ? ' (day tickets don\'t need any)' : '' ?>.</p><?php endif; ?>
+    </div>
+  </section>
+  <?php endforeach;
+    bcrf_shell_close();
+    exit;
+}
+
 // ── SAVED CHECKLISTS ──
 if ($tab === 'templates') {
     if (isset($_GET['tpl_edit'])) {
@@ -647,15 +792,19 @@ if ($tab === 'templates') {
 // ── EVERYONE'S TASKS ──
 if ($tab === 'all') {
     $f = ['status' => (string)($_GET['status'] ?? 'open'), 'who' => (string)($_GET['who'] ?? ''), 'from' => (string)($_GET['from'] ?? ''),
-          'to' => (string)($_GET['to'] ?? ''), 'q' => (string)($_GET['q'] ?? '')];
+          'to' => (string)($_GET['to'] ?? ''), 'q' => (string)($_GET['q'] ?? ''), 'related' => (string)($_GET['related'] ?? '')];
+    if (!preg_match('/^(booking|event_inquiry):\d+$/', $f['related'])) $f['related'] = '';
     foreach (['from', 'to'] as $k) if ($f[$k] !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $f[$k])) $f[$k] = '';
-    if ($f['status'] === 'open' && $f['to'] === '' && !isset($_GET['to'])) $f['to'] = bcrf_tasks_add_days($today, 7);
+    if ($f['status'] === 'open' && $f['to'] === '' && !isset($_GET['to']) && $f['related'] === '') $f['to'] = bcrf_tasks_add_days($today, 7);
     $list = bcrf_tasks_list($pdo, $f);
     $open('Everyone', 'all', 'max-w-4xl');
     ?>
   <h1 class="text-2xl font-bold text-stone-800 mb-3">Everyone's tasks</h1>
+  <?php if ($f['related'] !== ''): [$rt, $rid] = explode(':', $f['related']); ?>
+  <p class="text-sm text-stone-600 mb-3">Checklist for <?= $rt === 'booking' ? 'booking' : 'party' ?> #<?= (int)$rid ?> · <a class="underline" href="tasks.php?tab=all">show everything</a></p>
+  <?php endif; ?>
   <form method="GET" action="tasks.php" class="<?= $card ?> p-3 mb-3 grid gap-2 sm:grid-cols-6 items-end">
-    <input type="hidden" name="tab" value="all">
+    <input type="hidden" name="tab" value="all"><?php if ($f['related'] !== ''): ?><input type="hidden" name="related" value="<?= $h($f['related']) ?>"><?php endif; ?>
     <div class="sm:col-span-2"><label for="a_q" class="<?= $label ?>">Search</label><input id="a_q" name="q" value="<?= $h($f['q']) ?>" class="<?= $input ?>"></div>
     <div><label for="a_s" class="<?= $label ?>">Status</label><select id="a_s" name="status" class="<?= $input ?>">
       <?php foreach (['open' => 'Still to do', 'closed' => 'Finished', 'all' => 'All'] + BCRF_TASK_STATUSES as $k => $v): ?><option value="<?= $k ?>"<?= $f['status'] === $k ? ' selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?></select></div>

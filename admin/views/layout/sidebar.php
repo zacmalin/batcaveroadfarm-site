@@ -68,7 +68,8 @@ $_sections = [
         ['label'=>'Tasks',      'icon'=>'✅','tabs'=>[['My tasks',  '/admin/tasks.php?tab=my',        'view', 'tasks'],          // Farm OS Phase 3 (Nov 11)
                                                        ['Everyone',  '/admin/tasks.php?tab=all',       'view', 'tasks_manage'],
                                                        ['Chores',    '/admin/tasks.php?tab=chores',    'view', 'tasks_manage'],
-                                                       ['Checklists','/admin/tasks.php?tab=templates', 'view', 'tasks_manage']]],
+                                                       ['Checklists','/admin/tasks.php?tab=templates', 'view', 'tasks_manage'],
+                                                       ['Events',    '/admin/tasks.php?tab=events',    'view', 'tasks_manage']]],   // party/booking checklists (slice 3)
         ['label'=>'Staff',      'icon'=>'🪪','tabs'=>[['Staff','?view=jobs_staff','view','jobs_staff']], 'match'=>['jobs_alerts','jobs_records']],
         ['label'=>'Time Clock', 'short'=>'Clock','icon'=>'⏰','tabs'=>[['Time Clock','?view=timecard','view','timecard']]],
         ['label'=>'Timesheets', 'icon'=>'🗓️','tabs'=>[['Timesheets','?view=timesheet','view','timesheet']]],
