@@ -86,23 +86,31 @@ function bcrf_on_site(PDO $pdo): array {
 }
 
 function bcrf_occupancy(PDO $pdo): array {
-    $limit = max(1, bcrf_adm_setting($pdo, 'capacity_limit', 20));
+    $base = max(1, bcrf_adm_setting($pdo, 'capacity_limit', 20));
     $rows = bcrf_on_site($pdo);
     $on = array_sum(array_map(fn($r) => (int)$r['guests_counted'], $rows));
+    // Capacity holds (Phase 3 slice 5, includes/capacity_holds.php): confirmed groups raise the allowance for their window;
+    // walk-ins are measured against the usual limit (the "pool").
+    $pool = $on; $held = 0; $waiting = 0; $holds = []; $poolRows = $rows;
+    if (!function_exists('bcrf_holds_ready')) require_once __DIR__ . '/capacity_holds.php';
+    if (bcrf_holds_ready($pdo)) [$pool, $held, $waiting, $holds, $poolRows] = bcrf_holds_split($pdo, $rows);
+    $limit = $base + $held;
     $pct = (int)floor($on * 100 / $limit);
-    $outs = array_map(fn($r) => [$r['expected_out_at'], (int)$r['guests_counted']], $rows);
+    $poolPct = (int)floor($pool * 100 / $base);
+    $outs = array_map(fn($r) => [$r['expected_out_at'], (int)$r['guests_counted']], $poolRows);
     usort($outs, fn($a, $b) => strcmp($a[0], $b[0]));
     $st = $pdo->prepare("SELECT COALESCE(SUM(party_size), 0), COUNT(*) FROM check_ins WHERE business_date = ?");
     $st->execute([bcrf_business_date()]);
     [$today, $parties] = array_map('intval', $st->fetch(PDO::FETCH_NUM));
-    return ['on_site' => $on, 'limit' => $limit, 'free' => max(0, $limit - $on), 'pct' => $pct,
-            'level' => $on >= $limit ? 'full' : ($pct >= 80 ? 'busy' : 'ok'), 'outs' => $outs,
-            'visitors_today' => $today, 'parties_today' => $parties];
+    return ['on_site' => $on, 'limit' => $limit, 'free' => max(0, $base - $pool), 'pct' => $pct,
+            'level' => $pool >= $base ? 'full' : ($poolPct >= 80 ? 'busy' : 'ok'), 'outs' => $outs,
+            'visitors_today' => $today, 'parties_today' => $parties,
+            'base_limit' => $base, 'pool_on' => $pool, 'held' => $held, 'held_waiting' => $waiting, 'holds' => $holds];
 }
 
 /** Minutes until $need spaces are free (0 if they are now). */
 function bcrf_wait_minutes(array $occ, int $need): int {
-    $free = $occ['limit'] - $occ['on_site'];
+    $free = ($occ['base_limit'] ?? $occ['limit']) - ($occ['pool_on'] ?? $occ['on_site']);
     if ($need <= $free) return 0;
     foreach ($occ['outs'] as [$at, $g]) {
         $free += $g;
@@ -122,29 +130,37 @@ function bcrf_capacity_unlock(PDO $pdo): void { try { $pdo->query("SELECT RELEAS
 /**
  * Would $guests fit? Returns [override_reason|null, override_by|null]. Throws BcrfCapacityError when full and
  * there is no override, or when the override isn't allowed for this user. Call with the capacity lock held.
+ * $hold: a group arriving against its capacity hold (includes/capacity_holds.php): only guests beyond the hold need
+ * walk-in spaces.
  */
-function bcrf_capacity_check(PDO $pdo, int $guests, ?string $override): array {
+function bcrf_capacity_check(PDO $pdo, int $guests, ?string $override, ?array $hold = null): array {
     if ($guests <= 0) return [null, null];
     $occ = bcrf_occupancy($pdo);
-    if ($occ['on_site'] + $guests <= $occ['limit']) return [null, null];
+    $need = $hold ? bcrf_hold_overflow($hold, $guests) : $guests;
+    if ($need <= 0 || $occ['pool_on'] + $need <= $occ['base_limit']) return [null, null];
     $override = trim((string)$override);
-    $wait = bcrf_wait_minutes($occ, $guests);
-    $msg = sprintf('The farm is full: %d of %d on site, and this party is %d.', $occ['on_site'], $occ['limit'], $guests)
+    $wait = bcrf_wait_minutes($occ, $need);
+    $msg = ($occ['held'] > 0
+            ? sprintf('The farm is full: %d of %d walk-in spaces in use (groups have %d more held), and this party needs %d.', $occ['pool_on'], $occ['base_limit'], $occ['held'], $need)
+            : sprintf('The farm is full: %d of %d on site, and this party is %d.', $occ['on_site'], $occ['limit'], $guests))
+         . ($hold ? sprintf(' They are %d more than the %d booked.', $need, $hold['guests']) : '')
          . ($wait > 0 ? sprintf(' About %d minute%s until there is room.', $wait, $wait === 1 ? '' : 's') : '');
     if ($override === '') throw new BcrfCapacityError($msg, $occ + ['wait_minutes' => $wait, 'party' => $guests]);
     if (!bcrf_can_override_capacity()) throw new BcrfCapacityError($msg . ' Only an Owner or Manager can let them in anyway.', $occ + ['wait_minutes' => $wait, 'party' => $guests]);
     return [mb_substr($override, 0, 255), (int)($_SESSION['user_id'] ?? 0) ?: null];
 }
 
-/** Insert one check-in. $c: source_type, party_size, guests_counted, ticket_id?, pass_id?, sale_id?, pass_visit_id?, override?, override_by?, note? */
+/** Insert one check-in. $c: source_type, party_size, guests_counted, ticket_id?, pass_id?, sale_id?, pass_visit_id?, override?, override_by?, note?,
+ *  minutes? (expected stay; default visit_length_minutes), booking_id? / event_inquiry_id? (a group arriving, slice 5) */
 function bcrf_check_in_row(PDO $pdo, array $c): int {
-    $mins = max(15, bcrf_adm_setting($pdo, 'visit_length_minutes', 90));
+    $mins = isset($c['minutes']) ? max(15, (int)$c['minutes']) : max(15, bcrf_adm_setting($pdo, 'visit_length_minutes', 90));
+    $group = !empty($c['booking_id']) || !empty($c['event_inquiry_id']);
     $pdo->prepare("INSERT INTO check_ins (source_type, ticket_id, pass_id, sale_id, pass_visit_id, party_size, guests_counted, checked_in_at,
-                          expected_out_at, business_date, staff_user_id, capacity_override_reason, override_by, note)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP() + INTERVAL ? MINUTE, ?, ?, ?, ?, ?)")
-        ->execute([$c['source_type'], $c['ticket_id'] ?? null, $c['pass_id'] ?? null, $c['sale_id'] ?? null, $c['pass_visit_id'] ?? null,
+                          expected_out_at, business_date, staff_user_id, capacity_override_reason, override_by, note" . ($group ? ', booking_id, event_inquiry_id' : '') . ")
+                   VALUES (?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP() + INTERVAL ? MINUTE, ?, ?, ?, ?, ?" . ($group ? ', ?, ?' : '') . ")")
+        ->execute(array_merge([$c['source_type'], $c['ticket_id'] ?? null, $c['pass_id'] ?? null, $c['sale_id'] ?? null, $c['pass_visit_id'] ?? null,
                    (int)$c['party_size'], (int)$c['guests_counted'], $mins, bcrf_business_date(), (int)($_SESSION['user_id'] ?? 0) ?: null,
-                   $c['override'] ?? null, $c['override_by'] ?? null, $c['note'] ?? null]);
+                   $c['override'] ?? null, $c['override_by'] ?? null, $c['note'] ?? null], $group ? [$c['booking_id'] ?? null, $c['event_inquiry_id'] ?? null] : []));
     $id = (int)$pdo->lastInsertId();
     if (function_exists('bcrf_event')) bcrf_event('checkin.created', 'check_ins', $id, ['source' => $c['source_type'], 'party' => (int)$c['party_size'],
         'override' => !empty($c['override'])]);
@@ -350,7 +366,8 @@ function bcrf_check_out(PDO $pdo, int $checkInId): void {
 /** On-site parties for the gate screen. */
 function bcrf_on_site_view(PDO $pdo): array {
     return array_map(function ($r) {
-        $who = $r['source_type'] === 'pass' ? ($r['holder_name'] ?: 'Passholder') : ($r['source_type'] === 'gate_sale' ? 'Walk-in' : ($r['purchaser_name'] ?: 'Ticket'));
+        $who = $r['source_type'] === 'pass' ? ($r['holder_name'] ?: 'Passholder') : ($r['source_type'] === 'gate_sale' ? 'Walk-in'
+             : (in_array($r['source_type'], ['booking', 'party'], true) ? ((string)$r['note'] ?: 'Group') : ($r['purchaser_name'] ?: 'Ticket')));
         return ['id' => (int)$r['id'], 'who' => $who, 'source' => $r['source_type'], 'party' => (int)$r['party_size'], 'counted' => (int)$r['guests_counted'],
                 'in' => bcrf_adm_local($r['checked_in_at']), 'out' => bcrf_adm_local($r['expected_out_at']), 'override' => (string)$r['capacity_override_reason']];
     }, bcrf_on_site($pdo));

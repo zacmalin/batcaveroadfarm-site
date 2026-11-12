@@ -16,7 +16,16 @@ if ($action === 'status' && $id > 0) {
     $dateOk = $newDate !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $newDate) && checkdate((int)substr($newDate, 5, 2), (int)substr($newDate, 8, 2), (int)substr($newDate, 0, 4));
     if (in_array($newStatus, $allowed, true)) {
         $pdo->prepare("UPDATE event_inquiries SET status=?" . ($dateOk ? ", preferred_date=?" : '') . " WHERE id=?")->execute($dateOk ? [$newStatus, $newDate, $id] : [$newStatus, $id]);
-        erp_audit($pdo, 'update', 'event_inquiries', $id, erp_row_label($pdo, 'event_inquiries', $id) . ' - status ' . $newStatus . ($dateOk ? ', date ' . $newDate : ''));
+        // Start time (Phase 3 slice 5, Nov 12): the field only shows once migration 0033 added the column; blank clears it.
+        $timeNote = '';
+        if (array_key_exists('event_time', $_POST)) {
+            $t = trim((string)$_POST['event_time']);
+            if ($t === '' || preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $t)) {
+                try { $pdo->prepare("UPDATE event_inquiries SET start_time=? WHERE id=?")->execute([$t === '' ? null : $t . ':00', $id]); $timeNote = $t === '' ? '' : ', start ' . $t; }
+                catch (Throwable $e) { error_log('[inquiries] start time: ' . $e->getMessage()); }
+            }
+        }
+        erp_audit($pdo, 'update', 'event_inquiries', $id, erp_row_label($pdo, 'event_inquiries', $id) . ' - status ' . $newStatus . ($dateOk ? ', date ' . $newDate : '') . $timeNote);
         $made = 0;
         try {   // make or cancel this party's checklist tasks (Tasks › Events); never stops the status change
             require_once __DIR__ . '/../../includes/event_tasks.php';

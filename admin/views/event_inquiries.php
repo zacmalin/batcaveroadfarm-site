@@ -78,7 +78,7 @@ $eventLabels = [
                 <span><?= htmlspecialchars($typeLabel) ?></span>
                 <span>👥 <?= $guests ?> guests</span>
                 <?php if ($inq['preferred_date']): ?>
-                <span>📅 <?= date('M j, Y', strtotime($inq['preferred_date'])) ?><?= $inq['date_flexible'] ? ' ±' : '' ?></span>
+                <span>📅 <?= date('M j, Y', strtotime($inq['preferred_date'])) ?><?= !empty($inq['start_time']) ? ' · ' . date('g:i A', strtotime($inq['start_time'])) : '' ?><?= $inq['date_flexible'] ? ' ±' : '' ?></span>
                 <?php endif; ?>
             </div>
         </div>
@@ -116,6 +116,11 @@ $eventLabels = [
                 <label class="sr-only" for="ev_date_<?= (int)$inq['id'] ?>">Party date</label>
                 <input type="date" id="ev_date_<?= (int)$inq['id'] ?>" name="event_date" value="<?= htmlspecialchars((string)($inq['preferred_date'] ?? ''), ENT_QUOTES) ?>" title="Party date (checklist tasks are dated from it)"
                        class="min-h-10 md:min-h-8 px-2 text-xs border border-stone-300 rounded-lg bg-stone-50">
+                <?php if (array_key_exists('start_time', $inq)): // Phase 3 slice 5: start time for the capacity hold and the gate ?>
+                <label class="sr-only" for="ev_time_<?= (int)$inq['id'] ?>">Start time</label>
+                <input type="time" id="ev_time_<?= (int)$inq['id'] ?>" name="event_time" step="900" value="<?= htmlspecialchars(substr((string)($inq['start_time'] ?? ''), 0, 5), ENT_QUOTES) ?>" title="Start time (the gate holds space for the party from then)"
+                       class="min-h-10 md:min-h-8 px-2 text-xs border border-stone-300 rounded-lg bg-stone-50">
+                <?php endif; ?>
                 <select name="new_status" class="min-h-10 md:min-h-8 px-2 text-xs border border-stone-300 rounded-lg bg-stone-50">
                     <?php foreach (['new','contacted','quoted','confirmed','declined','archived'] as $s): ?>
                     <option value="<?= $s ?>" <?= $inq['status'] === $s ? 'selected' : '' ?>><?= ucfirst($s) ?></option>

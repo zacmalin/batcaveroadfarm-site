@@ -31,7 +31,8 @@ $_sections = [
     ]],
     'visitors' => ['label'=>'Visitors & Events','icon'=>'🎟','items'=>[
         ['label'=>'Bookings',       'icon'=>'📋','tabs'=>[['Bookings','?view=bookings','view','bookings'],
-                                                         ['Quotes & payments','/admin/quotes.php','view','bookings']]],          // Farm OS Phase 3 slice 4 (Nov 12)
+                                                         ['Quotes & payments','/admin/quotes.php','view','bookings'],          // Farm OS Phase 3 slice 4 (Nov 12)
+                                                         ['Weather day','/admin/weather.php','view','bookings']]],             // slice 5 (Nov 12)
         ['label'=>'Private Events', 'short'=>'Parties','icon'=>'🎉','tabs'=>[['Private Events','?view=event_inquiries','view','event_inquiries'],
                                                                          ['Party quotes','/admin/quotes.php?kind=party','view','event_inquiries']]],
         ['label'=>'Annual Passes',  'short'=>'Passes','icon'=>'🎫','tabs'=>[['Annual Passes','?view=passes','view','passes']]],

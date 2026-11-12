@@ -7,7 +7,9 @@
 //   GET  gate.php?api=search&q=…       a scanned QR (ticket code / pass link) or a name, email or phone
 //   POST gate.php?api=admit            {kind: ticket|pass, id, n, override?}   (JSON, X-CSRF-Token)
 //   POST gate.php?api=checkout         {id}
-// Logic: includes/admission.php.
+//   POST gate.php?api=arrive           {type: booking|event_inquiry, id, n, update_quote?, override?}   a group checks in against
+//                                      its capacity hold (Phase 3 slice 5, Nov 12, 2026)
+// Logic: includes/admission.php, includes/capacity_holds.php (today's groups, holds, arrivals).
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
 check_admin();
@@ -18,6 +20,7 @@ require_permission([['view', 'pos'], ['view', 'passes']], $api !== '');
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/queue.php';
 require_once __DIR__ . '/../includes/admission.php';
+require_once __DIR__ . '/../includes/capacity_holds.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -34,7 +37,8 @@ if ($api !== '') {
         $o = bcrf_occupancy($pdo);
         return ['on_site' => $o['on_site'], 'limit' => $o['limit'], 'free' => $o['free'], 'pct' => $o['pct'], 'level' => $o['level'],
                 'wait_minutes' => bcrf_wait_minutes($o, 1), 'visitors_today' => $o['visitors_today'], 'parties_today' => $o['parties_today'],
-                'parties' => bcrf_on_site_view($pdo)];
+                'parties' => bcrf_on_site_view($pdo), 'held' => $o['held'] ?? 0, 'held_waiting' => $o['held_waiting'] ?? 0,
+                'groups' => bcrf_holds_gate_view($pdo)];
     };
     try {
         if ($api === 'state') {
@@ -53,6 +57,10 @@ if ($api !== '') {
             $n = (int)($in['n'] ?? 0); $id = (int)($in['id'] ?? 0); $ov = (string)($in['override'] ?? '');
             ($in['kind'] ?? '') === 'pass' ? bcrf_pass_admit($pdo, $id, $n, $ov) : bcrf_ticket_redeem($pdo, $id, $n, $ov);
             $out(200, ['ok' => true, 'state' => $state()]);
+        }
+        if ($api === 'arrive') {
+            $r = bcrf_hold_arrive($pdo, (string)($in['type'] ?? ''), (int)($in['id'] ?? 0), (int)($in['n'] ?? 0), !empty($in['update_quote']), (string)($in['override'] ?? ''));
+            $out(200, ['ok' => true, 'state' => $state(), 'arrived' => $r['arrived'], 'quote' => $r['quote']]);
         }
         if ($api === 'checkout') {
             bcrf_check_out($pdo, (int)($in['id'] ?? 0));
@@ -78,7 +86,7 @@ $boot = ['ready' => $ready, 'csrf' => $csrf];
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; base-uri 'self'; form-action 'self'">
 <meta name="robots" content="noindex">
 <title>Gate — <?= $h(bcrf_farm_name()) ?></title>
-<link rel="stylesheet" href="assets/register.css?v=8">
+<link rel="stylesheet" href="assets/register.css?v=9">
 </head>
 <body class="gate">
 <script type="application/json" id="gateBoot"><?= json_encode($boot, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
@@ -103,10 +111,15 @@ $boot = ['ready' => $ready, 'csrf' => $csrf];
   <p class="muted" id="findMsg">Walk-ins: sell admission on the <a href="register.php">register</a>; it checks them in.</p>
   <div id="results"></div>
 
+  <section id="groupsWrap" hidden>
+    <h2 class="sect">Groups today</h2>
+    <div id="groups"></div>
+  </section>
+
   <h2 class="sect">On site now</h2>
   <ul class="onsite" id="onsite"></ul>
 </main>
 <div class="toast" id="toast" role="status" hidden></div>
-<script src="assets/gate.js?v=2"></script>
+<script src="assets/gate.js?v=3"></script>
 </body>
 </html>

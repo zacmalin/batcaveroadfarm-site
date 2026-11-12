@@ -86,7 +86,7 @@ function bcrf_quote_subject(PDO $pdo, string $type, int $id): ?array {
         if (!$r) return null;
         $a = (int)$r['adult_count']; $c = (int)$r['child_count'];
         return ['type' => 'event_inquiry', 'id' => (int)$r['id'], 'name' => (string)$r['customer_name'], 'email' => (string)$r['email'],
-                'phone' => (string)($r['phone'] ?? ''), 'date' => (string)($r['preferred_date'] ?? ''), 'start' => '', 'end' => '',
+                'phone' => (string)($r['phone'] ?? ''), 'date' => (string)($r['preferred_date'] ?? ''), 'start' => (string)($r['start_time'] ?? ''), 'end' => '',
                 'guests' => $a + $c, 'adults' => $a, 'children' => $c,
                 'what' => BCRF_QUOTE_PARTY_KINDS[$r['event_type']] ?? (BCRF_QUOTE_PARTY_KINDS['other']),
                 'status' => (string)$r['status'], 'live' => !in_array($r['status'], ['declined', 'archived'], true), 'is_party' => true, 'raw' => $r];

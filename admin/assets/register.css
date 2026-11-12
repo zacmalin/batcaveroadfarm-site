@@ -210,3 +210,5 @@ h3.mt{margin-top:1rem}
 .top .back.drawerbtn{color:#fff;display:inline-flex;align-items:center}
 .top a.drawerbtn{color:#fff}
 @media (max-width:520px){.top .setbtn .lbl{display:none}.top .setbtn{padding:.3rem .6rem}}
+/* Gate: groups today (Phase 3 slice 5, Nov 12, 2026) */
+.gcard.group.later{opacity:.75}.gform{margin-top:.6rem;display:grid;gap:.5rem}.gform[hidden]{display:none}.gform .qinput{width:6rem;font-size:1.2rem;padding:.4rem;border:1px solid var(--line);border-radius:8px}.gcount,.gcheck{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}.gcheck input{width:1.2rem;height:1.2rem}

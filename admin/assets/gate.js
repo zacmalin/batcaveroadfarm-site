@@ -1,4 +1,5 @@
 // admin/assets/gate.js — Farm OS gate screen (Phase 1, slice 4a, Nov 6, 2026). Server logic: includes/admission.php via admin/gate.php.
+// Groups today (Phase 3 slice 5, Nov 12, 2026): confirmed bookings and parties, with Arrived (actual headcount) against their hold.
 (function () {
   'use strict';
   var BOOT = JSON.parse(document.getElementById('gateBoot').textContent);
@@ -30,10 +31,12 @@
     $('meter').className = 'meter ' + s.level;
     $('mBar').style.width = Math.min(100, s.pct) + '%';
     var sub = s.level === 'full' ? 'Full. ' + (s.wait_minutes > 0 ? 'About ' + s.wait_minutes + ' min until there is room.' : '') : s.free + (s.free === 1 ? ' space free.' : ' spaces free.');
+    if (s.held_waiting > 0) sub += ' ' + s.held_waiting + ' more held for groups.';
     $('mSub').textContent = sub + ' Today: ' + s.visitors_today + ' visitor' + (s.visitors_today === 1 ? '' : 's') + ' in ' + s.parties_today + ' part' + (s.parties_today === 1 ? 'y' : 'ies') + '.';
+    renderGroups(s.groups || []);
     if (!s.parties.length) { $('onsite').replaceChildren(el('li', { class: 'muted', text: 'Nobody checked in right now.' })); return; }
     $('onsite').replaceChildren.apply($('onsite'), s.parties.map(function (p) {
-      var src = { ticket: 'Online ticket', pass: 'Annual pass', gate_sale: 'Gate sale', booking: 'Booking', comp: 'Comp' }[p.source] || p.source;
+      var src = { ticket: 'Online ticket', pass: 'Annual pass', gate_sale: 'Gate sale', booking: 'Group booking', party: 'Party', comp: 'Comp' }[p.source] || p.source;
       return el('li', {}, [
         el('span', {}, [el('b', { text: p.who + ' · ' + p.party }), el('br'), el('small', { class: 'muted', text: src + ' · in ' + p.in + ' · out by ' + p.out + (p.override ? ' · override: ' + p.override : '') })]),
         el('button', { type: 'button', class: 'btn sm', text: 'Out', 'aria-label': 'Check out ' + p.who, onclick: function () {
@@ -42,6 +45,59 @@
       ]);
     }));
   }
+  // ── groups today (bookings and parties holding capacity) ─────────────────
+  var groupOpen = false;
+  function renderGroups(gs) {
+    if (groupOpen) return;   // don't wipe a headcount someone is typing
+    $('groupsWrap').hidden = !gs.length;
+    $('groups').replaceChildren.apply($('groups'), gs.map(groupCard));
+  }
+  function groupCard(g) {
+    var left = Math.max(0, g.guests - g.arrived);
+    var num = el('input', { type: 'number', inputmode: 'numeric', min: '1', max: '500', value: String(left || 1), class: 'qinput', 'aria-label': 'Guests arriving' });
+    var upd = g.per_guest_quote ? el('input', { type: 'checkbox', checked: true }) : null;
+    var cap = el('div', { class: 'capbox', hidden: true });
+    var form = el('div', { class: 'gform', hidden: true });
+    var status = g.arrived ? g.arrived + ' of ' + g.guests + ' arrived' + (g.on_site ? ' · ' + g.on_site + ' here now' : '') : 'Expected ' + g.guests;
+    var go = function (override) {
+      var body = { type: g.type, id: g.id, n: +num.value, update_quote: !!(upd && upd.checked) };
+      if (!(body.n > 0)) { num.focus(); return; }
+      if (override) body.override = override;
+      api('arrive', body).then(function (j) {
+        if (j.ok) { groupOpen = false; renderState(j.state); toast(body.n + ' in: ' + g.name + (j.quote ? '. ' + j.quote : '')); return; }
+        if (j.code === 'capacity') {
+          var reason = el('input', { type: 'text', maxlength: '255', placeholder: 'Reason (e.g. extra parents with the party)' });
+          cap.replaceChildren.apply(cap, [el('p', { class: 'err', text: j.message }),
+            j.can_override ? el('label', {}, ['Let them in anyway', reason]) : null,
+            j.can_override ? el('button', { type: 'button', class: 'btn danger', text: 'Override and check in', onclick: function () {
+              if (!reason.value.trim()) { reason.focus(); return; }
+              go(reason.value.trim());
+            } }) : null].filter(Boolean));
+          cap.hidden = false; return;
+        }
+        cap.replaceChildren(el('p', { class: 'err', text: j.message })); cap.hidden = false;
+      }, function () { cap.replaceChildren(el('p', { class: 'err', text: 'No connection. Try again.' })); cap.hidden = false; });
+    };
+    form.replaceChildren.apply(form, [
+      el('label', { class: 'gcount' }, ['How many arrived? ', num]),
+      upd ? el('label', { class: 'gcheck' }, [upd, ' Update the quote to this many guests']) : null,
+      el('div', { class: 'admit' }, [
+        el('button', { type: 'button', class: 'btn', text: 'Cancel', onclick: function () { form.hidden = true; cap.hidden = true; groupOpen = false; } }),
+        el('button', { type: 'button', class: 'btn primary', text: 'Check them in', onclick: function () { go(null); } })
+      ]),
+      cap
+    ].filter(Boolean));
+    return el('div', { class: 'gcard group' + (g.active ? '' : ' later') }, [
+      el('div', { class: 'gtop' }, [el('b', { text: g.name }), el('span', { class: 'chip ' + (g.type === 'booking' ? 'ticket' : 'pass'), text: g.what })]),
+      el('div', { class: 'muted', text: g.when + (g.money ? ' · ' + g.money : '') }),
+      el('div', { text: status }),
+      el('div', { class: 'admit' }, [el('button', { type: 'button', class: 'btn primary', text: g.arrived ? 'More arrived' : 'Arrived', onclick: function () {
+        form.hidden = false; groupOpen = true; num.focus(); num.select();
+      } })]),
+      form
+    ]);
+  }
+
   function loadState() {
     if (!BOOT.ready) return;
     api('state').then(function (j) { if (j.ok) renderState(j.state); }, function () {});
