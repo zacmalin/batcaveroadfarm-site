@@ -3,7 +3,8 @@
 // 08 › Animal profile, Status and disposition, Movement).
 //   Status     active, resting (off visitor contact for now), quarantined, or a leaving status: sold, transferred,
 //              adopted, deceased. Every change is written to animal_status_history with a reason. Leaving ends the
-//              animal's stay in its enclosure, cancels its open tasks and takes its public profile off the website.
+//              animal's stay in its enclosure, cancels its open tasks, stops its medications (slice 3) and takes its
+//              public profile off the website.
 //              Resting and quarantined animals are listed on the gate so staff keep visitors away; their public
 //              profile can stay up.
 //   Movement   moving an animal ends its open animal_locations row and starts a new one. Several animals can move
@@ -184,6 +185,10 @@ function bcrf_animal_set_status(PDO $pdo, int $id, string $to, string $reason, s
                 $st->execute(['Animal ' . strtolower(BCRF_ANIMAL_STATUSES[$to]), $uid, (string)$id]);
                 $done['tasks'] = $st->rowCount();
             } catch (PDOException $e) { /* tasks table not there yet */ }
+            try {   // slice 3 (migration 0042): leaving stops its medications; their dose tasks were cancelled just above
+                $pdo->prepare("UPDATE animal_medications SET stopped_at = UTC_TIMESTAMP(), stopped_by = ?, stop_reason = ? WHERE animal_id = ? AND stopped_at IS NULL")
+                    ->execute([$uid, 'Animal ' . strtolower(BCRF_ANIMAL_STATUSES[$to]), $id]);
+            } catch (PDOException $e) { /* health tables not there yet */ }
         }
         if ($own) $pdo->commit();
     } catch (Throwable $e) {

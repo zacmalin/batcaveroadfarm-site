@@ -19,6 +19,7 @@
 @source "../../admin/tasks.php";
 @source "../../admin/animals.php";
 @source "../../admin/animal_care.php";
+@source "../../admin/animal_health.php";
 @source "../../admin/assets/tasks.js";
 @source "../../admin/quotes.php";
 @source "../../admin/weather.php";

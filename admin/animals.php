@@ -1,8 +1,9 @@
 <?php
 // admin/animals.php — Animals › Roster and Enclosures (Farm OS Phase 5 slice 1, Nov 12, 2026; includes/animals.php, migration 0040).
 //   GET  animals.php[?f=off|gone|all&enc=N&q=…]   the roster: on the farm (default), off visitor contact, left, or everyone
-//   GET  animals.php?id=N[&tab=care|location|history]  one animal: overview (identity, status), care log (slice 2,
-//                                                 admin/animal_care.php), where it has been, status history
+//   GET  animals.php?id=N[&tab=care|health|location|history]  one animal: overview (identity, status), care log (slice 2,
+//                                                 admin/animal_care.php), health (slice 3, saved by admin/animal_health.php),
+//                                                 where it has been, status history
 //   GET  animals.php?tab=enclosures               pens, barns and pastures with counts and capacity
 //   POST act=identity | status | move | move_many | enclosure
 // Permission: table 'animals' view to look; edit to change anything. The public bio, photo and publish switch stay in
@@ -15,6 +16,7 @@ require_permission([['table', 'animals']]);
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/animals.php';
 if (is_file(__DIR__ . '/../includes/animal_care.php')) require_once __DIR__ . '/../includes/animal_care.php';   // slice 2
+if (is_file(__DIR__ . '/../includes/animal_health.php')) require_once __DIR__ . '/../includes/animal_health.php';   // slice 3
 require_once __DIR__ . '/../includes/admin_shell.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -117,12 +119,14 @@ if ($id) {
     echo '<p class="text-sm text-stone-500 mb-3">', $h(trim(($a['class_name'] ?? '') . ' · ' . ($a['breed_name'] ?? ''), ' ·')), '</p>';
     echo '<div class="flex flex-wrap gap-1 mb-4">';
     $careOn = function_exists('bcrf_care_ready') && bcrf_care_ready($pdo);
-    foreach (array_merge([['Overview', '']], $careOn ? [['Care', 'care']] : [], [['Location', 'location'], ['History', 'history']]) as [$t, $k]) {
+    $healthOn = function_exists('bcrf_health_ready') && bcrf_health_ready($pdo) && bcrf_health_can();
+    foreach (array_merge([['Overview', '']], $careOn ? [['Care', 'care']] : [], $healthOn ? [['Health', 'health']] : [], [['Location', 'location'], ['History', 'history']]) as [$t, $k]) {
         echo '<a href="animals.php?id=', $id, $k ? '&amp;tab=' . $k : '', '" class="px-3 py-2 rounded text-sm border ', $k === $tab ? 'border-stone-800 bg-stone-800 text-white' : 'border-stone-300 text-stone-700 bg-white hover:bg-stone-100', '">', $h($t), '</a>';
     }
     echo '</div>';
     if ($error) echo bcrf_shell_notice('err', $error);
     if (in_array($status, BCRF_ANIMAL_OFF_CONTACT, true)) echo bcrf_shell_notice('warning', BCRF_ANIMAL_STATUSES[$status] . ': keep visitors away. It shows on the gate screen.');
+    if ($healthOn && !$gone) foreach (bcrf_health_alerts($pdo, $id) as $al) echo bcrf_shell_notice('warning', $al . '.');
     if ($gone) echo bcrf_shell_notice('info', 'This animal has left the farm (' . strtolower(BCRF_ANIMAL_STATUSES[$status]) . ' ' . $local($a['status_changed_at'], 'M j, Y') . '). Its records are kept.');
 
     if ($tab === 'care' && $careOn) {
@@ -149,6 +153,115 @@ if ($id) {
       <?php endforeach; ?>
     </ul>
     <?php endif; ?>
+  </div>
+<?php
+        bcrf_shell_close(); exit;
+    }
+
+    if ($tab === 'health' && $healthOn) {
+        $recs = bcrf_medical_list($pdo, $id);
+        $meds = bcrf_med_list($pdo, $id);
+        $vaccs = bcrf_vacc_list($pdo, $id);
+        $today = bcrf_tasks_today();
+        $hhidden = $hidden . '<input type="hidden" name="animal_id" value="' . $id . '">';
+        $dd = fn($ymd) => $ymd ? date('M j, Y', strtotime($ymd)) : ''; ?>
+  <div class="<?= $card ?>">
+    <h2 class="text-base font-semibold text-stone-800 mb-2">Medications</h2>
+    <?php if (!$meds): ?><p class="text-sm text-stone-500 mb-2">None.</p><?php else: ?>
+    <ul class="divide-y divide-stone-100 mb-3">
+      <?php foreach ($meds as $m): ?>
+      <li class="py-2 text-sm"><strong><?= $h($m['name'] . ' ' . $m['dose']) ?></strong><?= $m['route'] ? ' · ' . $h(strtolower(BCRF_MED_ROUTES[$m['route']] ?? $m['route'])) : '' ?> · <?= $h(bcrf_med_freq_text($m)) ?>
+        <span class="block text-xs text-stone-500"><?= $h($dd($m['start_date'])) ?> – <?= $m['end_date'] ? $h($dd($m['end_date'])) : 'until stopped' ?><?= $m['stopped_at'] ? ' · stopped ' . $h($local($m['stopped_at'], 'M j')) . ($m['stop_reason'] ? ': ' . $h($m['stop_reason']) : '') : ($m['active'] ? ' · active' : ($m['start_date'] > $today ? ' · starts later' : ' · finished')) ?><?= $m['notes'] ? ' · ' . $h($m['notes']) : '' ?></span>
+        <?php if (!$m['stopped_at'] && (!$m['end_date'] || $m['end_date'] >= $today)): ?>
+        <form method="POST" action="animal_health.php" class="flex flex-wrap gap-2 items-end mt-1"><?= $hhidden ?><input type="hidden" name="act" value="med_stop"><input type="hidden" name="med_id" value="<?= (int)$m['id'] ?>">
+          <input name="reason" maxlength="255" aria-label="Why stop" placeholder="Why stop (optional)" class="<?= $input ?> flex-1 min-w-48"><button class="<?= $btnSec ?>" data-confirm="Stop <?= $h($m['name']) ?>? Upcoming dose tasks are cancelled.">Stop</button></form>
+        <?php endif; ?></li>
+      <?php endforeach; ?>
+    </ul>
+    <?php endif; ?>
+    <?php if (!$gone): ?>
+    <details><summary class="cursor-pointer text-sm text-amber-800 underline">Add a medication</summary>
+    <form method="POST" action="animal_health.php" class="mt-3"><?= $hhidden ?><input type="hidden" name="act" value="med">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        <div><label class="<?= $label ?>" for="mdn">Medication</label><input id="mdn" name="name" maxlength="120" required class="<?= $input ?>" placeholder="e.g. Penicillin"></div>
+        <div><label class="<?= $label ?>" for="mdd">One dose</label><input id="mdd" name="dose" maxlength="60" required class="<?= $input ?>" placeholder="e.g. 2 ml"></div>
+        <div><label class="<?= $label ?>" for="mdr">Given</label><select id="mdr" name="route" class="<?= $input ?>"><option value="">—</option><?php foreach (BCRF_MED_ROUTES as $k => $v): ?><option value="<?= $k ?>"><?= $h($v) ?></option><?php endforeach; ?></select></div>
+        <div><label class="<?= $label ?>" for="mdf">How often</label><select id="mdf" name="frequency" class="<?= $input ?>"><?php foreach (BCRF_MED_FREQS as $k => $v): ?><option value="<?= $k ?>"><?= $h($v) ?></option><?php endforeach; ?></select></div>
+        <div><label class="<?= $label ?>" for="mdi">Every how many days (every few days only)</label><input id="mdi" name="interval_days" type="number" min="2" max="60" class="<?= $input ?>"></div>
+        <div><label class="<?= $label ?>" for="mds">First day</label><input id="mds" name="start_date" type="date" required value="<?= $h($today) ?>" class="<?= $input ?>"></div>
+        <div><label class="<?= $label ?>" for="mde">Last day (blank = until stopped)</label><input id="mde" name="end_date" type="date" class="<?= $input ?>"></div>
+        <div><label class="<?= $label ?>" for="mdo">Notes for whoever gives it</label><input id="mdo" name="notes" maxlength="500" class="<?= $input ?>" placeholder="e.g. with a little grain"></div>
+      </div>
+      <p class="text-xs text-stone-500 mb-3">Each dose becomes a task (8 AM, and 5 PM for twice a day) for today and tomorrow, topped up every night.</p>
+      <button class="<?= $btnMain ?>">Add medication</button>
+    </form></details>
+    <?php endif; ?>
+  </div>
+  <div class="<?= $card ?>">
+    <h2 class="text-base font-semibold text-stone-800 mb-2">Vaccinations</h2>
+    <?php if (!$vaccs): ?><p class="text-sm text-stone-500 mb-2">None recorded.</p><?php else: ?>
+    <ul class="divide-y divide-stone-100 mb-3">
+      <?php foreach ($vaccs as $v): ?>
+      <li class="py-2 text-sm"><strong><?= $h($v['vaccine']) ?></strong> · given <?= $h($dd($v['given_on'])) ?><?= $v['given_by'] ? ' by ' . $h($v['given_by']) : '' ?>
+        <span class="block text-xs text-stone-500"><?= $v['lot'] ? 'Lot ' . $h($v['lot']) . ' · ' : '' ?><?= $v['next_due'] ? 'next due ' . $h($dd($v['next_due'])) : 'no next date' ?><?= $v['notes'] ? ' · ' . $h($v['notes']) : '' ?></span></li>
+      <?php endforeach; ?>
+    </ul>
+    <?php endif; ?>
+    <details><summary class="cursor-pointer text-sm text-amber-800 underline">Record a vaccination</summary>
+    <form method="POST" action="animal_health.php" class="mt-3"><?= $hhidden ?><input type="hidden" name="act" value="vacc">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        <div><label class="<?= $label ?>" for="vcv">Vaccine</label><input id="vcv" name="vaccine" maxlength="120" required class="<?= $input ?>" placeholder="e.g. CDT" list="vaccList">
+          <datalist id="vaccList"><?php foreach (array_unique(array_column($vaccs, 'vaccine')) as $vn): ?><option value="<?= $h($vn) ?>"><?php endforeach; ?></datalist></div>
+        <div><label class="<?= $label ?>" for="vcg">Date given</label><input id="vcg" name="given_on" type="date" required max="<?= $h($today) ?>" value="<?= $h($today) ?>" class="<?= $input ?>"></div>
+        <div><label class="<?= $label ?>" for="vcb">Given by</label><input id="vcb" name="given_by" maxlength="120" class="<?= $input ?>" placeholder="e.g. Dr. Smith, or Casey"></div>
+        <div><label class="<?= $label ?>" for="vcl">Lot number</label><input id="vcl" name="lot" maxlength="60" class="<?= $input ?>"></div>
+        <div><label class="<?= $label ?>" for="vcn">Next due</label><input id="vcn" name="next_due" type="date" class="<?= $input ?>"></div>
+        <div><label class="<?= $label ?>" for="vco">Notes</label><input id="vco" name="notes" maxlength="500" class="<?= $input ?>"></div>
+      </div>
+      <p class="text-xs text-stone-500 mb-3">A next due date puts a task on that day and on the Health page 14 days ahead. Recording the same vaccine again closes it.</p>
+      <button class="<?= $btnMain ?>">Record vaccination</button>
+    </form></details>
+  </div>
+  <div class="<?= $card ?>">
+    <h2 class="text-base font-semibold text-stone-800 mb-2">Medical records</h2>
+    <?php if (!$recs): ?><p class="text-sm text-stone-500 mb-2">None yet.</p><?php else: ?>
+    <ul class="divide-y divide-stone-100 mb-3">
+      <?php foreach ($recs as $r): ?>
+      <li class="py-2 text-sm"><details><summary class="cursor-pointer"><strong><?= $h($r['title']) ?></strong> · <?= $h(BCRF_MED_KINDS[$r['kind']] ?? $r['kind']) ?> · <?= $h($dd($r['record_date'])) ?><?= $r['cost_cents'] !== null ? ' · $' . $h(number_format($r['cost_cents'] / 100, 2)) : '' ?><?= $r['follow_up_date'] ? ' · follow up ' . $h($dd($r['follow_up_date'])) : '' ?></summary>
+        <?php if ($r['vet_name']): ?><p class="mt-2">Vet: <?= $h($r['vet_name']) ?></p><?php endif; ?>
+        <?php if ($r['diagnosis']): ?><p class="mt-1"><span class="font-semibold">Diagnosis:</span> <?= nl2br($h($r['diagnosis'])) ?></p><?php endif; ?>
+        <?php if ($r['treatment']): ?><p class="mt-1"><span class="font-semibold">Treatment:</span> <?= nl2br($h($r['treatment'])) ?></p><?php endif; ?>
+        <p class="mt-1 text-xs text-stone-500">Added <?= $h($local($r['created_at'], 'M j, Y')) ?><?= $r['by_name'] ? ' by ' . $h($r['by_name']) : '' ?><?= $r['updated_at'] ? ' · edited ' . $h($local($r['updated_at'], 'M j, Y')) : '' ?></p>
+        <form method="POST" action="animal_health.php" class="mt-3 border-t border-stone-100 pt-3"><?= $hhidden ?><input type="hidden" name="act" value="medical"><input type="hidden" name="record_id" value="<?= (int)$r['id'] ?>">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <div><label class="<?= $label ?>" for="mt<?= (int)$r['id'] ?>">Title</label><input id="mt<?= (int)$r['id'] ?>" name="title" maxlength="150" required value="<?= $h($r['title']) ?>" class="<?= $input ?>"></div>
+            <div><label class="<?= $label ?>" for="mk<?= (int)$r['id'] ?>">Kind</label><select id="mk<?= (int)$r['id'] ?>" name="kind" class="<?= $input ?>"><?php foreach (BCRF_MED_KINDS as $k => $v): ?><option value="<?= $k ?>" <?= $r['kind'] === $k ? 'selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?></select></div>
+            <div><label class="<?= $label ?>" for="md<?= (int)$r['id'] ?>">Date</label><input id="md<?= (int)$r['id'] ?>" name="record_date" type="date" required max="<?= $h($today) ?>" value="<?= $h($r['record_date']) ?>" class="<?= $input ?>"></div>
+            <div><label class="<?= $label ?>" for="mv<?= (int)$r['id'] ?>">Vet</label><input id="mv<?= (int)$r['id'] ?>" name="vet_name" maxlength="120" value="<?= $h($r['vet_name']) ?>" class="<?= $input ?>"></div>
+            <div><label class="<?= $label ?>" for="mc<?= (int)$r['id'] ?>">Cost ($)</label><input id="mc<?= (int)$r['id'] ?>" name="cost" inputmode="decimal" value="<?= $r['cost_cents'] !== null ? $h(number_format($r['cost_cents'] / 100, 2, '.', '')) : '' ?>" class="<?= $input ?>"></div>
+            <div><label class="<?= $label ?>" for="mf<?= (int)$r['id'] ?>">Follow up on</label><input id="mf<?= (int)$r['id'] ?>" name="follow_up_date" type="date" value="<?= $h($r['follow_up_date']) ?>" class="<?= $input ?>"></div>
+          </div>
+          <div class="mb-3"><label class="<?= $label ?>" for="mg<?= (int)$r['id'] ?>">Diagnosis</label><textarea id="mg<?= (int)$r['id'] ?>" name="diagnosis" rows="2" class="<?= $input ?>"><?= $h($r['diagnosis']) ?></textarea></div>
+          <div class="mb-3"><label class="<?= $label ?>" for="mr<?= (int)$r['id'] ?>">Treatment</label><textarea id="mr<?= (int)$r['id'] ?>" name="treatment" rows="2" class="<?= $input ?>"><?= $h($r['treatment']) ?></textarea></div>
+          <button class="<?= $btnSec ?>">Save changes</button>
+        </form></details></li>
+      <?php endforeach; ?>
+    </ul>
+    <?php endif; ?>
+    <details <?= $recs ? '' : 'open' ?>><summary class="cursor-pointer text-sm text-amber-800 underline">Add a record</summary>
+    <form method="POST" action="animal_health.php" class="mt-3"><?= $hhidden ?><input type="hidden" name="act" value="medical"><input type="hidden" name="record_id" value="0">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        <div><label class="<?= $label ?>" for="nmt">Title</label><input id="nmt" name="title" maxlength="150" required class="<?= $input ?>" placeholder="e.g. Limping, back left"></div>
+        <div><label class="<?= $label ?>" for="nmk">Kind</label><select id="nmk" name="kind" class="<?= $input ?>"><?php foreach (BCRF_MED_KINDS as $k => $v): ?><option value="<?= $k ?>"><?= $h($v) ?></option><?php endforeach; ?></select></div>
+        <div><label class="<?= $label ?>" for="nmd">Date</label><input id="nmd" name="record_date" type="date" required max="<?= $h($today) ?>" value="<?= $h($today) ?>" class="<?= $input ?>"></div>
+        <div><label class="<?= $label ?>" for="nmv">Vet</label><input id="nmv" name="vet_name" maxlength="120" class="<?= $input ?>"></div>
+        <div><label class="<?= $label ?>" for="nmc">Cost ($)</label><input id="nmc" name="cost" inputmode="decimal" class="<?= $input ?>"></div>
+        <div><label class="<?= $label ?>" for="nmf">Follow up on (makes a task)</label><input id="nmf" name="follow_up_date" type="date" min="<?= $h($today) ?>" class="<?= $input ?>"></div>
+      </div>
+      <div class="mb-3"><label class="<?= $label ?>" for="nmg">Diagnosis</label><textarea id="nmg" name="diagnosis" rows="2" class="<?= $input ?>"></textarea></div>
+      <div class="mb-3"><label class="<?= $label ?>" for="nmr">Treatment</label><textarea id="nmr" name="treatment" rows="2" class="<?= $input ?>"></textarea></div>
+      <button class="<?= $btnMain ?>">Add record</button>
+    </form></details>
   </div>
 <?php
         bcrf_shell_close(); exit;

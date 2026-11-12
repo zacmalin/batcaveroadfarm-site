@@ -46,6 +46,7 @@ $_sections = [
         ['label'=>'Care',      'icon'=>'🥕','tabs'=>[['Log care','/admin/animal_care.php','table','animals'],                   // Farm OS Phase 5 slice 2 (Nov 12)
                                                      ['Recent','/admin/animal_care.php?tab=log','table','animals'],
                                                      ['Setup','/admin/animal_care.php?tab=setup','table','animals']]],
+        ['label'=>'Health',    'icon'=>'🩺','tabs'=>[['Health','/admin/animal_health.php','view','animal_health']]],                  // Farm OS Phase 5 slice 3 (Nov 12)
         ['label'=>'Reference', 'short'=>'Ref','icon'=>'📚','tabs'=>[
             ['Breeds',          '?view=schema&table=breeds',          'table', 'breeds'],
             ['Classifications', '?view=schema&table=classifications', 'table', 'classifications'],
