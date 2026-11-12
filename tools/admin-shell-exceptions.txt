@@ -18,3 +18,4 @@ pinterest_image.php     # image endpoint
 social_token_check.php  # cron / ping endpoint
 gift_card_print.php     # printable gift cards (business-card print layout)
 task_photo.php          # task photo image endpoint (Farm OS Phase 3 slice 2)
+incident_photo.php      # incident photo image endpoint (Farm OS Phase 5 slice 8)
