@@ -47,7 +47,7 @@ $csrf = $_SESSION['csrf_token'];
 <title>Complete Your Booking — Bat Cave Road Farm</title>
 <meta name="robots" content="noindex, nofollow">
 <?php require_once __DIR__ . '/../includes/ga.php'; echo bcrf_ga_tags_html(); ?>
-<link href="https://fonts.googleapis.com/css2?family=Rye&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<?php require_once __DIR__ . '/../includes/fonts.php'; echo bcrf_fonts_head(); ?>
 <style>
   *{box-sizing:border-box}
   body{margin:0;min-height:100vh;background:#f5ead6;font-family:Lora,Georgia,serif;color:#3b2010;padding:24px;display:flex;align-items:flex-start;justify-content:center;padding-top:48px}

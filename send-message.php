@@ -114,7 +114,7 @@ if (!empty($_POST['website'])) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?php echo $isError ? "That didn't go through" : "Message Sent"; ?> &mdash; Bat Cave Road Farm</title>
-<link href="https://fonts.googleapis.com/css2?family=Rye&family=Lora:wght@400;600&display=swap" rel="stylesheet">
+<?php require_once __DIR__ . '/includes/fonts.php'; echo bcrf_fonts_head(); ?>
 <style>
   body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
     background:#f5ead6;font-family:Lora,Georgia,serif;color:#3b2010;padding:24px}

@@ -12,7 +12,7 @@ $token = trim((string)($_GET['token'] ?? ''));
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Payment Cancelled — Bat Cave Road Farm</title>
-<link href="https://fonts.googleapis.com/css2?family=Rye&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<?php require_once __DIR__ . '/../includes/fonts.php'; echo bcrf_fonts_head(); ?>
 <style>
   *{box-sizing:border-box}
   body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;

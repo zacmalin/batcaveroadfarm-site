@@ -49,7 +49,7 @@ if ($booking && $paid) bcrf_ga_purchase($pdo, 'bookings', (int)$booking['id']);
 <meta name="robots" content="noindex, nofollow">
 <?= bcrf_ga_tags_html() ?><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Booking Confirmed — Bat Cave Road Farm</title>
-<link href="https://fonts.googleapis.com/css2?family=Rye&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<?php require_once __DIR__ . '/../includes/fonts.php'; echo bcrf_fonts_head(); ?>
 <style>
   *{box-sizing:border-box}
   body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;

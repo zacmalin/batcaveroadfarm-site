@@ -61,7 +61,7 @@ else switch ((string)($_GET['msg'] ?? '')) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Pass Verification — Bat Cave Road Farm</title>
-<link href="https://fonts.googleapis.com/css2?family=Rye&family=Lora:wght@400;600&display=swap" rel="stylesheet">
+<?php require_once __DIR__ . '/../includes/fonts.php'; echo bcrf_fonts_head(); ?>
 <link rel="stylesheet" href="<?= bcrf_farm_url() ?>/css/min.passes.css?v=<?= bcrf_asset_v('/css/min.passes.css') ?>">
 </head><body style="background:#f5ead6;margin:0;padding:16px">
 
