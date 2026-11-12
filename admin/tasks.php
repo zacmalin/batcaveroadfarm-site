@@ -11,10 +11,13 @@
 //                   act=photo_del | prefs (morning list / late emails)
 //   GET  tasks.php?tab=events      party and booking checklists, ?step=N | ?step=new&plan=party (managers; slice 3)
 //   POST act=step_save | step_active;  GET tasks.php?tab=all&related=booking:12 lists one event's tasks
+//   GET  tasks.php?incident=new | N  report an incident / see your report (admin/incidents.php; Phase 5 slice 8, Nov 12).
+//                   Staff can only open this page (config.php), so the incident form loads here for every staff member.
 // Permission: view 'tasks' to see and do tasks; 'tasks_manage' (managers) for chores, checklists and everyone's tasks.
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
 check_admin();
+if (isset($_GET['incident']) && is_file(__DIR__ . '/incidents.php')) { require __DIR__ . '/incidents.php'; exit; }
 require_once __DIR__ . '/includes/permission_checks.php';
 require_permission([['view', 'tasks']]);
 require_once __DIR__ . '/includes/audit.php';
@@ -311,6 +314,7 @@ if (isset($_GET['id'])) {
     <?php if ($parent): ?> · follow-up of <a class="underline" href="tasks.php?id=<?= (int)$parent['id'] ?>"><?= $h($parent['title']) ?></a>
     <?php elseif ($t['related_type'] === 'booking'): ?> · <a class="underline" href="/admin/admin.php?view=bookings">booking #<?= $h($t['related_id']) ?></a> · <a class="underline" href="tasks.php?tab=all&amp;status=all&amp;related=booking:<?= $h($t['related_id']) ?>">its checklist</a>
     <?php elseif ($t['related_type'] === 'event_inquiry'): ?> · <a class="underline" href="/admin/admin.php?view=event_inquiries&amp;status=confirmed">party #<?= $h($t['related_id']) ?></a> · <a class="underline" href="tasks.php?tab=all&amp;status=all&amp;related=event_inquiry:<?= $h($t['related_id']) ?>">its checklist</a>
+    <?php elseif ($t['related_type'] === 'incident'): ?> · <a class="underline" href="/admin/incidents.php?id=<?= (int)$t['related_id'] ?>">incident #<?= $h($t['related_id']) ?></a>
     <?php elseif ($t['related_type']): ?> · linked to <?= $h($t['related_type']) ?> <?= $h($t['related_id']) ?><?php endif; ?>
   </p>
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>

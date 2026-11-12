@@ -51,6 +51,8 @@ $_sections = [
                                                      ['Setup','/admin/animal_weights.php?tab=setup','table','animals']]],
         ['label'=>'Breeding',  'icon'=>'🐣','tabs'=>[['Breeding','/admin/animal_breeding.php','table','animals']]],                       // Farm OS Phase 5 slice 6 (Nov 12)
         ['label'=>'Expenses',  'icon'=>'🧾','tabs'=>[['Expenses','/admin/animal_expenses.php','view','animal_expenses']]],              // Farm OS Phase 5 slice 7 (Nov 12)
+        ['label'=>'Incidents', 'icon'=>'🚑','tabs'=>[['Incidents','/admin/incidents.php','view','incidents'],                         // Farm OS Phase 5 slice 8 (Nov 12)
+                                                     ['Report','/admin/tasks.php?incident=new','always','']]],                   // any staff member (Staff can only open tasks.php)
         ['label'=>'Reference', 'short'=>'Ref','icon'=>'📚','tabs'=>[
             ['Breeds',          '?view=schema&table=breeds',          'table', 'breeds'],
             ['Classifications', '?view=schema&table=classifications', 'table', 'classifications'],

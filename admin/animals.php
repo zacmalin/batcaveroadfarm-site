@@ -7,6 +7,7 @@
 //                                                 what its species' care schedules have coming up (slice 5), breeding
 //                                                 (slice 6: parents, kids, breedings; saved by admin/animal_breeding.php),
 //                                                 expenses (slice 7: vet, feed share, other; saved by admin/animal_expenses.php),
+//                                                 incidents it was in (slice 8, on History; admin/incidents.php),
 //                                                 where it has been, status history
 //   GET  animals.php?tab=enclosures               pens, barns and pastures with counts and capacity
 //   POST act=identity | status | move | move_many | enclosure
@@ -25,6 +26,7 @@ if (is_file(__DIR__ . '/../includes/animal_weights.php')) require_once __DIR__ .
 if (is_file(__DIR__ . '/../includes/animal_schedules.php')) require_once __DIR__ . '/../includes/animal_schedules.php';   // slice 5
 if (is_file(__DIR__ . '/../includes/animal_breeding.php')) require_once __DIR__ . '/../includes/animal_breeding.php';   // slice 6
 if (is_file(__DIR__ . '/../includes/animal_expenses.php')) require_once __DIR__ . '/../includes/animal_expenses.php';   // slice 7
+if (is_file(__DIR__ . '/../includes/incidents.php')) require_once __DIR__ . '/../includes/incidents.php';   // slice 8
 require_once __DIR__ . '/../includes/admin_shell.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -511,7 +513,21 @@ if ($id) {
     }
 
     if ($tab === 'history') {
-        $hist = bcrf_animal_status_history($pdo, $id); ?>
+        $hist = bcrf_animal_status_history($pdo, $id);
+        $incs = function_exists('bcrf_incidents_ready') && bcrf_incidents_ready($pdo) && bcrf_incidents_can() ? bcrf_incident_list($pdo, ['animal' => $id], 50) : null; ?>
+  <?php if ($incs !== null): ?>
+  <div class="<?= $card ?>">
+    <h2 class="text-base font-semibold text-stone-800 mb-2">Incidents</h2>
+    <?php if (!$incs): ?><p class="text-sm text-stone-500">None.</p><?php else: ?>
+    <ul class="divide-y divide-stone-100">
+      <?php foreach ($incs as $r): ?>
+      <li class="py-2 text-sm"><a class="underline text-amber-800" href="incidents.php?id=<?= (int)$r['id'] ?>">#<?= (int)$r['id'] ?> · <?= $h($local($r['happened_at'])) ?></a><?= $r['status'] === 'closed' ? ' · closed' : '' ?>
+        <span class="block text-xs text-stone-500"><?= $h(bcrf_incident_line($r)) ?></span></li>
+      <?php endforeach; ?>
+    </ul>
+    <?php endif; ?>
+  </div>
+  <?php endif; ?>
   <div class="<?= $card ?>">
     <h2 class="text-base font-semibold text-stone-800 mb-2">Status changes</h2>
     <?php if (!$hist): ?><p class="text-sm text-stone-500">Active since it was added. No changes yet.</p><?php else: ?>
