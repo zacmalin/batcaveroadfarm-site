@@ -1,8 +1,9 @@
 <?php
 // admin/animals.php — Animals › Roster and Enclosures (Farm OS Phase 5 slice 1, Nov 12, 2026; includes/animals.php, migration 0040).
 //   GET  animals.php[?f=off|gone|all&enc=N&q=…]   the roster: on the farm (default), off visitor contact, left, or everyone
-//   GET  animals.php?id=N[&tab=care|health|location|history]  one animal: overview (identity, status), care log (slice 2,
+//   GET  animals.php?id=N[&tab=care|health|weight|location|history]  one animal: overview (identity, status), care log (slice 2,
 //                                                 admin/animal_care.php), health (slice 3, saved by admin/animal_health.php),
+//                                                 weight (slice 4, saved by admin/animal_weights.php),
 //                                                 where it has been, status history
 //   GET  animals.php?tab=enclosures               pens, barns and pastures with counts and capacity
 //   POST act=identity | status | move | move_many | enclosure
@@ -17,6 +18,7 @@ require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/animals.php';
 if (is_file(__DIR__ . '/../includes/animal_care.php')) require_once __DIR__ . '/../includes/animal_care.php';   // slice 2
 if (is_file(__DIR__ . '/../includes/animal_health.php')) require_once __DIR__ . '/../includes/animal_health.php';   // slice 3
+if (is_file(__DIR__ . '/../includes/animal_weights.php')) require_once __DIR__ . '/../includes/animal_weights.php';   // slice 4
 require_once __DIR__ . '/../includes/admin_shell.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -120,13 +122,15 @@ if ($id) {
     echo '<div class="flex flex-wrap gap-1 mb-4">';
     $careOn = function_exists('bcrf_care_ready') && bcrf_care_ready($pdo);
     $healthOn = function_exists('bcrf_health_ready') && bcrf_health_ready($pdo) && bcrf_health_can();
-    foreach (array_merge([['Overview', '']], $careOn ? [['Care', 'care']] : [], $healthOn ? [['Health', 'health']] : [], [['Location', 'location'], ['History', 'history']]) as [$t, $k]) {
+    $weightOn = function_exists('bcrf_weights_ready') && bcrf_weights_ready($pdo);
+    foreach (array_merge([['Overview', '']], $careOn ? [['Care', 'care']] : [], $healthOn ? [['Health', 'health']] : [], $weightOn ? [['Weight', 'weight']] : [], [['Location', 'location'], ['History', 'history']]) as [$t, $k]) {
         echo '<a href="animals.php?id=', $id, $k ? '&amp;tab=' . $k : '', '" class="px-3 py-2 rounded text-sm border ', $k === $tab ? 'border-stone-800 bg-stone-800 text-white' : 'border-stone-300 text-stone-700 bg-white hover:bg-stone-100', '">', $h($t), '</a>';
     }
     echo '</div>';
     if ($error) echo bcrf_shell_notice('err', $error);
     if (in_array($status, BCRF_ANIMAL_OFF_CONTACT, true)) echo bcrf_shell_notice('warning', BCRF_ANIMAL_STATUSES[$status] . ': keep visitors away. It shows on the gate screen.');
     if ($healthOn && !$gone) foreach (bcrf_health_alerts($pdo, $id) as $al) echo bcrf_shell_notice('warning', $al . '.');
+    if ($weightOn && !$gone) foreach (bcrf_weight_alerts($pdo, $id) as $al) echo bcrf_shell_notice('warning', bcrf_weight_alert_text($al) . '.');
     if ($gone) echo bcrf_shell_notice('info', 'This animal has left the farm (' . strtolower(BCRF_ANIMAL_STATUSES[$status]) . ' ' . $local($a['status_changed_at'], 'M j, Y') . '). Its records are kept.');
 
     if ($tab === 'care' && $careOn) {
@@ -262,6 +266,46 @@ if ($id) {
       <div class="mb-3"><label class="<?= $label ?>" for="nmr">Treatment</label><textarea id="nmr" name="treatment" rows="2" class="<?= $input ?>"></textarea></div>
       <button class="<?= $btnMain ?>">Add record</button>
     </form></details>
+  </div>
+<?php
+        bcrf_shell_close(); exit;
+    }
+
+    if ($tab === 'weight' && $weightOn) {
+        $hist = bcrf_weight_history($pdo, $id);
+        $today = bcrf_weight_today();
+        $chart = bcrf_weight_chart_svg($hist);
+        $whidden = $hidden . '<input type="hidden" name="return_animal" value="' . $id . '">'; ?>
+  <?php if (!$gone): ?>
+  <form method="POST" action="animal_weights.php" class="<?= $card ?>"><?= $whidden ?><input type="hidden" name="act" value="weigh">
+    <h2 class="text-base font-semibold text-stone-800 mb-2">Weigh <?= $h($a['name']) ?></h2>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+      <div><label class="<?= $label ?>" for="ww">Pounds</label><input id="ww" name="w[<?= $id ?>][weight]" inputmode="decimal" required class="<?= $input ?>" placeholder="e.g. 48.5"></div>
+      <div><label class="<?= $label ?>" for="wb">Condition (1–5)</label><input id="wb" name="w[<?= $id ?>][body_condition]" type="number" min="1" max="5" step="0.5" class="<?= $input ?>"></div>
+      <div><label class="<?= $label ?>" for="wd">Date</label><input id="wd" name="weighed_on" type="date" required max="<?= $h($today) ?>" value="<?= $h($today) ?>" class="<?= $input ?>"></div>
+      <div><label class="<?= $label ?>" for="wn">Note</label><input id="wn" name="w[<?= $id ?>][note]" maxlength="255" class="<?= $input ?>"></div>
+    </div>
+    <button class="<?= $btnMain ?>">Save weight</button>
+  </form>
+  <?php endif; ?>
+  <?php if ($chart): ?><div class="<?= $card ?>"><h2 class="text-base font-semibold text-stone-800 mb-2">Weight over time</h2><?= $chart ?></div><?php endif; ?>
+  <div class="<?= $card ?>">
+    <h2 class="text-base font-semibold text-stone-800 mb-2">Weighings</h2>
+    <?php if (!$hist): ?><p class="text-sm text-stone-500">Not weighed yet.</p><?php else: ?>
+    <ul class="divide-y divide-stone-100">
+      <?php foreach ($hist as $w): ?>
+      <li class="py-2 text-sm"><span class="<?= $w['voided_at'] ? 'line-through text-stone-500' : '' ?>"><strong><?= $h(bcrf_weight_fmt($w['weight_lb'])) ?></strong> · <?= $h(date('M j, Y', strtotime($w['weighed_on']))) ?><?= $w['body_condition'] !== null ? ' · condition ' . $h(rtrim(rtrim($w['body_condition'], '0'), '.')) : '' ?></span>
+        <?php if ($w['change'] !== null): ?><span class="<?= $w['flag'] ? ($w['change'] < 0 ? 'text-red-700 font-semibold' : 'text-amber-800 font-semibold') : 'text-stone-500' ?>"> (<?= $w['change'] > 0 ? '+' : '' ?><?= $h($w['change']) ?>%)</span><?php endif; ?>
+        <span class="block text-xs text-stone-500"><?= $w['by_name'] ? $h($w['by_name']) : '' ?><?= $w['note'] ? ($w['by_name'] ? ' · ' : '') . $h($w['note']) : '' ?><?= $w['voided_at'] ? ' · voided: ' . $h($w['void_reason']) : '' ?></span>
+        <?php if ($canEdit && !$w['voided_at']): ?>
+        <details class="mt-1"><summary class="cursor-pointer text-xs text-amber-800 underline">Void</summary>
+          <form method="POST" action="animal_weights.php" class="flex flex-wrap gap-2 items-end mt-2"><?= $whidden ?><input type="hidden" name="act" value="void"><input type="hidden" name="weight_id" value="<?= (int)$w['id'] ?>">
+            <div class="flex-1 min-w-48"><label class="<?= $label ?>" for="wv<?= (int)$w['id'] ?>">Why</label><input id="wv<?= (int)$w['id'] ?>" name="reason" maxlength="255" required class="<?= $input ?>" placeholder="e.g. wrong animal"></div>
+            <button class="<?= $btnSec ?>" data-confirm="Void this weighing? It stays on file.">Void</button></form></details>
+        <?php endif; ?></li>
+      <?php endforeach; ?>
+    </ul>
+    <?php endif; ?>
   </div>
 <?php
         bcrf_shell_close(); exit;
