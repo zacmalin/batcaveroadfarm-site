@@ -100,13 +100,15 @@ if ($target_view === 'dashboard') {
 
     // Low stock — from unified inventory table. Only items whose stock is counted
     // (track_inventory = 1); gift cards, admissions and other untracked items sit at 0.
+    // Same rule as Stock › Low only (includes/stock.php): at or below the item's own minimum.
     try {
         $low_stock_items = $pdo->query("
-            SELECT category AS cat, name, stock_quantity
+            SELECT category AS cat, name, stock_quantity, min_stock_level
             FROM   inventory
             WHERE  is_active = 1
               AND  track_inventory = 1
-              AND  stock_quantity < 5
+              AND  min_stock_level IS NOT NULL AND min_stock_level > 0
+              AND  stock_quantity <= min_stock_level
             ORDER  BY stock_quantity ASC
         ")->fetchAll();
     } catch (Throwable $e) {
