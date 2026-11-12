@@ -203,7 +203,7 @@ function mcp_t_overview(PDO $pdo, array $a): array {
     $out['pending_bookings'] = ($one($q("SELECT COUNT(*) AS n FROM bookings WHERE status = 'pending' AND booking_date >= ?", [$today])) ?? [])['n'] ?? null;
     $out['new_inquiries'] = ($one($q("SELECT COUNT(*) AS n FROM event_inquiries WHERE status = 'new'")) ?? [])['n'] ?? null;
     $out['low_stock'] = $q("SELECT id, name, stock_quantity, min_stock_level FROM inventory
-                             WHERE is_active = 1 AND min_stock_level IS NOT NULL AND stock_quantity <= min_stock_level ORDER BY name LIMIT 30");
+                             WHERE is_active = 1 AND track_inventory = 1 AND min_stock_level IS NOT NULL AND stock_quantity <= min_stock_level ORDER BY name LIMIT 30");
     $out['pos_today'] = $one($q("SELECT COUNT(*) AS receipts, COALESCE(SUM(total),0) AS total FROM pos_receipts WHERE DATE(created_at) = ?", [$today]));
     $out['upcoming_events'] = $q("SELECT id, title, start_datetime, status FROM events
                                    WHERE status = 'published' AND (start_datetime >= NOW() OR recurrence <> 'none') ORDER BY start_datetime LIMIT 5");
@@ -269,7 +269,11 @@ function mcp_t_list_inventory(PDO $pdo, array $a): array {
     $select[] = 'ic.slug AS category_slug';
     $w = []; $p = [];
     if (empty($a['include_inactive']) && in_array('is_active', $cols, true)) $w[] = 'i.is_active = 1';
-    if (!empty($a['low_stock_only'])) $w[] = 'i.min_stock_level IS NOT NULL AND i.stock_quantity <= i.min_stock_level';
+    if (!empty($a['low_stock_only'])) {
+        // Untracked items (gift card, admissions) always sit at 0, so leave them out.
+        $w[] = 'i.min_stock_level IS NOT NULL AND i.stock_quantity <= i.min_stock_level';
+        if (in_array('track_inventory', $cols, true)) $w[] = 'i.track_inventory = 1';
+    }
     if (trim((string)($a['search'] ?? '')) !== '') {
         $w[] = in_array('sku', $cols, true) ? '(i.name LIKE ? OR i.sku LIKE ?)' : 'i.name LIKE ?';
         $s = '%' . trim((string)$a['search']) . '%'; $p[] = $s; if (in_array('sku', $cols, true)) $p[] = $s;
