@@ -40,7 +40,9 @@ $_sections = [
         ['label'=>'Roost Rewards',  'short'=>'Rewards','icon'=>'🐓','tabs'=>[['Roost Rewards','/admin/rewards.php','view','pos']]],   // lean rewards, Nov 2026
     ]],
     'animals' => ['label'=>'Animals','icon'=>'🐾','items'=>[
-        ['label'=>'Roster',    'icon'=>'🐐','tabs'=>[['Roster','?view=schema&table=animals','table','animals']]],
+        ['label'=>'Roster',    'icon'=>'🐐','tabs'=>[['Roster','/admin/animals.php','table','animals'],                       // Farm OS Phase 5 slice 1 (Nov 12)
+                                                     ['Enclosures','/admin/animals.php?tab=enclosures','table','animals'],
+                                                     ['Full editor','?view=schema&table=animals','table','animals']]],
         ['label'=>'Reference', 'short'=>'Ref','icon'=>'📚','tabs'=>[
             ['Breeds',          '?view=schema&table=breeds',          'table', 'breeds'],
             ['Classifications', '?view=schema&table=classifications', 'table', 'classifications'],

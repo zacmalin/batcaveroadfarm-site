@@ -25,6 +25,7 @@ require_once __DIR__ . '/../includes/queue.php';
 require_once __DIR__ . '/../includes/admission.php';
 require_once __DIR__ . '/../includes/capacity_holds.php';
 require_once __DIR__ . '/../includes/waivers.php';
+require_once __DIR__ . '/../includes/animals.php';   // Phase 5: resting and quarantined animals (Nov 12)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -128,6 +129,7 @@ $boot = ['ready' => $ready, 'csrf' => $csrf];
 </header>
 <main class="gatewrap">
   <?php if (!$ready): ?><p class="banner err">The gate needs migration 0012. An administrator can run it in Settings › Database.</p><?php endif; ?>
+  <?php $offContact = bcrf_animals_off_contact($pdo); if ($offContact): ?><p class="banner warn"><span>Keep visitors away from: <?= $h(implode(', ', array_map(fn($o) => $o['name'] . ' (' . strtolower(BCRF_ANIMAL_STATUSES[$o['status']] ?? $o['status']) . ($o['enclosure_name'] ? ', ' . $o['enclosure_name'] : '') . ')', $offContact))) ?></span></p><?php endif; ?>
   <section class="meter" id="meter" aria-live="polite">
     <div class="meternum"><b id="mOn">–</b> <span>of <span id="mLimit">–</span> on site</span></div>
     <div class="meterbar"><span id="mBar"></span></div>
