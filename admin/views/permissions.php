@@ -4,51 +4,9 @@ if ($current_role !== 'administrator') {
     return;
 }
 
-// ── SECTIONED PERMISSION MAP ──────────────────────────────────────────────────
-// Mirrors the sidebar structure. type: 'view'|'table'|'admin_only'
-$permission_sections = [
-    'storefront' => ['label' => 'Storefront', 'icon' => '🏪', 'items' => [
-        ['view',       'timecard',         '⏰', 'Time Clock'],
-        ['view',       'pos',              '💳', 'POS Register'],
-        ['view',       'inventory_update', '📦', 'Inventory'],
-        ['table',      'inventory',        '🗂️', 'Inventory Editor'],
-        ['table',      'inventory_categories', '🏷️', 'Inv. Categories'],
-        ['view',       'receipts',         '🧾', 'Receipts'],
-        ['view',       'bookings',         '📋', 'Bookings'],
-        ['view',       'event_inquiries',  '🎉', 'Private Events'],
-        ['view',       'passes',           '🎟', 'Annual Passes'],
-    ]],
-    'animals' => ['label' => 'Animals', 'icon' => '🐾', 'items' => [
-        ['table', 'animals',         '📋', 'Roster'],
-        ['table', 'breeds',          '🐄', 'Breeds'],
-        ['table', 'classifications', '🔬', 'Classification'],
-    ]],
-    'kitchen' => ['label' => 'Kitchen', 'icon' => '🍳', 'items' => [
-        ['table', 'recipes',           '📖', 'Recipes'],
-        ['table', 'cuisines',          '🌍', 'Cuisines'],
-        ['table', 'ingredients',       '🌿', 'Ingredients'],
-        ['table', 'categories',        '🏷️', 'Categories'],
-        ['table', 'measurement_units', '⚖️', 'Measurement Units'],
-        ['table', 'unit_conversions',  '🔄', 'Unit Conversions'],
-    ]],
-    'media' => ['label' => 'Media', 'icon' => '📡', 'items' => [
-        ['table', 'blog_posts',         '✍️', 'Blog'],
-        ['table', 'blog_categories',    '🏷️', 'Blog Categories'],
-        ['view',  'newsletter',         '📧', 'Newsletter'],
-        ['view',  'social',             '📣', 'Social Queue'],
-        ['view',  'events',             '📅', 'Events'],
-        ['view',  'media',              '🖼️', 'Image Library'],
-        ['view',  'comment_moderation', '💬', 'Comments'],
-        ['table', 'mailing_list',       '👥', 'Subscribers'],
-    ]],
-    'admin' => ['label' => 'Admin', 'icon' => '⚙️', 'items' => [
-        ['view',       'timesheet',   '📋', 'Timesheets'],
-        ['admin_only', 'permissions', '🔐', 'Permission Matrix'],
-        ['table',      'users',       '👤', 'Staff'],
-        ['view',       'sales_analytics', '📈', 'Sales Analytics'],
-        ['view',       'site_info',       '🏠', 'Site Info'],
-    ]],
-];
+// Sections and items live in includes/permission_sections.php (shared with the save handler, Nov 12, 2026).
+require_once dirname(__DIR__, 2) . '/includes/permission_sections.php';
+$permission_sections = bcrf_permission_sections();
 
 $inspect_role   = $_GET['inspect_role'] ?? '';
 $matrix_fetched = [];
