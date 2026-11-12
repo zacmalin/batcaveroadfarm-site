@@ -36,7 +36,22 @@ require_once __DIR__ . '/ga.php';   // GA4: staff visits tagged internal, queued
 <script defer src="<?= bcrf_farm_url() ?>/js/min.site.js?v=<?= bcrf_asset_v('/js/min.site.js') ?>"></script>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <?php if (!empty($preloadImage)): ?><link rel="preload" as="image" href="<?php echo htmlspecialchars($preloadImage); ?>" fetchpriority="high"><?php endif; ?>
+        <?php
+        // Hero photo preload. Hero photos sit at the top of /img/ and are CSS backgrounds
+        // (--hero-img). Phones get an 828px copy (bcrf_img_thumb) instead of the full desktop
+        // file: PageSpeed's mobile LCP is the hero, and its size competes for the slow-4G
+        // connection (Nov 11, 2026). Item pages preload images from subfolders: unchanged.
+        $__heroMobile = '';
+        if (!empty($preloadImage) && preg_match('#^(?:https?://[^/]+)?/img/[^/]+\.(?:webp|jpe?g|png)$#i', (string)$preloadImage)) {
+            require_once __DIR__ . '/img_dims.php';
+            $__t = bcrf_img_thumb((string)$preloadImage, 828);
+            if ($__t !== $preloadImage && preg_match('#^[A-Za-z0-9:/._%?=\-]+$#', $__t)) $__heroMobile = $__t;
+        }
+        if ($__heroMobile !== ''): ?>
+        <link rel="preload" as="image" href="<?= htmlspecialchars($__heroMobile) ?>" media="(max-width: 600px)" fetchpriority="high">
+        <link rel="preload" as="image" href="<?= htmlspecialchars($preloadImage) ?>" media="(min-width: 601px)" fetchpriority="high">
+        <style>@media (max-width:600px){.hero-photo{--hero-img:url('<?= $__heroMobile ?>') !important}}</style>
+        <?php elseif (!empty($preloadImage)): ?><link rel="preload" as="image" href="<?php echo htmlspecialchars($preloadImage); ?>" fetchpriority="high"><?php endif; ?>
         <title><?php echo isset($pageTitle) ? htmlspecialchars($pageTitle) : "Bat Cave Road Farm | Petting Zoo, Farmstand & Thrift Shop — Old Fort, NC"; ?></title>
         <?php require_once __DIR__ . '/fonts.php'; echo bcrf_fonts_head(); /* self-hosted fonts (Nov 11, 2026), was Google Fonts */ ?>
 
