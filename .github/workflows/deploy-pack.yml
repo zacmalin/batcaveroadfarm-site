@@ -1,0 +1,58 @@
+# .github/workflows/deploy-pack.yml — build a cPanel upload pack from main (Nov 2026).
+# For files the BCRF connector can't write (config.php, .htaccess, admin/admin.php, api/, includes/mcp/* ...).
+# Phone steps: Actions → "Deploy pack" → Run workflow → list the files → Run. When it's green, open the run,
+# download the artifact at the bottom, upload that zip in cPanel File Manager to the site folder, Extract, delete the zip.
+# The run summary lists each file's sha256 so the live copy can be checked afterwards. See docs/DEPLOY.md.
+name: Deploy pack
+
+on:
+  workflow_dispatch:
+    inputs:
+      files:
+        description: 'Files to deploy, separated by spaces or commas (e.g. js/min.site.js .htaccess)'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build pack
+        env:
+          FILES: ${{ inputs.files }}
+        run: |
+          set -euo pipefail
+          sha=$(git rev-parse --short HEAD)
+          mkdir -p pack
+          fail=0; n=0
+          for f in $(printf '%s' "$FILES" | tr ',' ' '); do
+            f="${f#./}"; f="${f#/}"
+            case "$f" in
+              *..*|bcrf-secrets.php|*/bcrf-secrets.php|vendor/*|uploads/*|img/*|.git/*|.github/*)
+                echo "::error::Refusing $f (never deployed from a pack)"; fail=1; continue;;
+            esac
+            if [ ! -f "$f" ]; then echo "::error::Not found on $GITHUB_REF_NAME: $f"; fail=1; continue; fi
+            mkdir -p "pack/$(dirname "$f")"; cp "$f" "pack/$f"; n=$((n+1))
+          done
+          [ "$fail" -eq 0 ] && [ "$n" -gt 0 ] || { echo "::error::Pack not built"; exit 1; }
+          echo "SHA=$sha" >> "$GITHUB_ENV"
+          {
+            echo "## Deploy pack from \`$sha\` ($n files)"
+            echo
+            echo "Upload the zip below to \`/home2/ddailnmy/public_html/batcaveroadfarm/\`, Extract (overwrite), then delete the zip."
+            echo
+            echo "| File | sha256 |"
+            echo "|---|---|"
+            (cd pack && find . -type f | sort | while read -r p; do echo "| ${p#./} | \`$(sha256sum "$p" | cut -c1-64)\` |"; done)
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bcrf-pack-${{ env.SHA }}
+          path: pack/
+          include-hidden-files: true
+          retention-days: 7

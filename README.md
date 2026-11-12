@@ -30,5 +30,5 @@ E cleanup (.htaccess redirects, secure cookie, print CSS), F SameSite=Lax + same
 G secrets moved above public_html, H one-tap unsubscribe (RFC 8058).
 
 ## Deploy
-Edit -> commit -> upload changed files via cPanel File Manager (or cPanel Git Version Control).
+Follow docs/DEPLOY.md: connector lane for most files, "Deploy pack" workflow + cPanel for the files the connector can't write.
 Always back up the server copy of a file before overwriting it.
