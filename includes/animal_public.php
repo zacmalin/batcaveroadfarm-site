@@ -97,7 +97,7 @@ function bcrf_public_set(PDO $pdo, int $id, bool $on): void {
     $pdo->prepare("UPDATE animals SET is_active = ? WHERE id = ?")->execute([$on ? 1 : 0, $id]);
 }
 
-// ── Photos ──────────────────────────────────────────────────────────────────────────────────────────
+// Photos
 
 /** Public folder for animal photos: <site>/img/animals (BCRF_PUBLIC_IMG_DIR overrides it for tests). */
 function bcrf_public_photo_dir(): string {
