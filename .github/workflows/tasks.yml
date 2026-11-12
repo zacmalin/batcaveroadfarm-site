@@ -6,13 +6,14 @@
 # then tests/event_quotes_test.php (slice 4): quotes, deposits and payments for bookings and parties;
 # then tests/capacity_holds_test.php (slice 5): capacity holds, group arrival at the gate and weather days;
 # then tests/customer_portal_test.php (slice 6): sign-in links and what a customer sees in My farm;
-# then tests/calendar_test.php: the master calendar and phone calendar feeds.
+# then tests/calendar_test.php: the master calendar and phone calendar feeds;
+# then tests/parties_test.php: party packages, guest lists and assigned staff.
 # Never touches a real database.
 name: Tasks test
 
 on:
   push:
-    paths: ['includes/tasks.php', 'includes/task_notify.php', 'admin/migrations/**', 'tests/tasks_test.php', 'tests/task_forms_test.php', 'includes/event_tasks.php', 'tests/event_tasks_test.php', 'includes/event_quotes.php', 'tests/event_quotes_test.php', 'includes/admission.php', 'includes/capacity_holds.php', 'includes/weather_days.php', 'tests/capacity_holds_test.php', 'includes/customer_portal.php', 'tests/customer_portal_test.php', 'includes/calendar.php', 'tests/calendar_test.php', '.github/workflows/tasks.yml']
+    paths: ['includes/tasks.php', 'includes/task_notify.php', 'admin/migrations/**', 'tests/tasks_test.php', 'tests/task_forms_test.php', 'includes/event_tasks.php', 'tests/event_tasks_test.php', 'includes/event_quotes.php', 'tests/event_quotes_test.php', 'includes/admission.php', 'includes/capacity_holds.php', 'includes/weather_days.php', 'tests/capacity_holds_test.php', 'includes/customer_portal.php', 'tests/customer_portal_test.php', 'includes/calendar.php', 'tests/calendar_test.php', 'includes/parties.php', 'tests/parties_test.php', '.github/workflows/tasks.yml']
   pull_request:
   workflow_dispatch:
 
@@ -87,3 +88,10 @@ jobs:
           DB_USER: root
           DB_PASS: root
         run: php tests/calendar_test.php
+      - name: Party packages, guest lists and staff
+        env:
+          DB_HOST: 127.0.0.1
+          DB_NAME: bcrf_tasks_test
+          DB_USER: root
+          DB_PASS: root
+        run: php tests/parties_test.php

@@ -105,6 +105,9 @@ function bcrf_quote_when(array $s): string {
 /** Starting price lines for a new quote. */
 function bcrf_quote_default_lines(PDO $pdo, array $s): array {
     if ($s['is_party']) {
+        // The party's package sets the price when one is picked (includes/parties.php, Nov 12, 2026).
+        if (!empty($s['raw']['package_id']) && function_exists('bcrf_party_package')
+            && ($p = bcrf_party_package($pdo, (int)$s['raw']['package_id'])) && ($lines = bcrf_party_price_lines($p, $s['guests']))) return $lines;
         return [['label' => 'Party guests (admission, plus a feed cup for each child)', 'qty' => max(1, $s['guests']),
                  'unit_cents' => bcrf_quote_party_price($pdo)]];
     }

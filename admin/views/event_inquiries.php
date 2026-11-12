@@ -29,6 +29,13 @@ try {
     if (bcrf_quotes_ready($pdo)) $quoteBadges = bcrf_quote_badges($pdo, 'event_inquiry', array_column($inquiries, 'id'));
 } catch (Throwable $e) { $quoteBadges = null; }
 
+// Party plan (Nov 12, 2026): package, guest list and assigned staff (admin/party.php)
+$partyPlans = null;
+try {
+    require_once __DIR__ . '/../../includes/parties.php';
+    if (bcrf_party_ready($pdo)) $partyPlans = bcrf_party_summaries($pdo, array_column($inquiries, 'id'));
+} catch (Throwable $e) { $partyPlans = null; }
+
 $eventLabels = [
     'birthday'   => '🎂 Birthday Party',
     'field_trip' => '🎒 Field Trip',
@@ -128,6 +135,9 @@ $eventLabels = [
                 </select>
                 <button type="submit" class="<?= ui_btn('primary') ?>">Update status</button>
             </form>
+            <?php if ($partyPlans !== null): $pp = $partyPlans[(int)$inq['id']] ?? null; ?>
+            <a href="/admin/party.php?id=<?= (int)$inq['id'] ?>" class="<?= ui_btn('secondary') ?>">🎉 Party plan<?php if ($pp && ($pp['package'] !== '' || $pp['guests'] || $pp['staff'])): ?> <span class="opacity-70">(<?= htmlspecialchars(implode(' · ', array_filter([$pp['package'], $pp['guests'] ? $pp['guests'] . ' on list' : '', $pp['staff'] ? implode(', ', $pp['staff']) : '']))) ?>)</span><?php endif; ?></a>
+            <?php endif; ?>
             <?php if ($quoteBadges !== null): $qb = $quoteBadges[(int)$inq['id']] ?? null; ?>
             <a href="/admin/quotes.php?for=event_inquiry:<?= (int)$inq['id'] ?>" class="<?= ui_btn('secondary') ?>">💲 <?= $qb ? htmlspecialchars($qb['status']['label']) : 'Quote' ?></a>
             <?php endif; ?>

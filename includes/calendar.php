@@ -1,7 +1,8 @@
 <?php
 // includes/calendar.php — Farm OS master calendar and phone calendar feeds (Phase 3, Nov 12, 2026; 12 › Master calendar).
 // An aggregated view over the source records (D-15); nothing is copied or stored. Layers:
-//   parties     private events (event_inquiries) on their date, at their start time when set; unconfirmed ones say so
+//   parties     private events (event_inquiries) on their date, at their start time when set; unconfirmed ones say so.
+//               People working a party (party_staff) always see it, even without the Parties layer.
 //   bookings    group bookings (not day tickets), pending or confirmed
 //   events      published public events (one-off, multi-day, weekly and yearly repeats)
 //   tasks       open tasks with a due date (everyone's for a manager; otherwise mine, my role's and anyone's)
@@ -14,6 +15,7 @@
 if (!function_exists('bcrf_cal_items')) {
 
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';
+require_once __DIR__ . '/parties.php';
 
 define('BCRF_CAL_LAYERS', [
     'parties'    => ['label' => 'Parties',        'perm' => ['view', 'event_inquiries']],
@@ -62,18 +64,30 @@ function bcrf_cal_items(PDO $pdo, string $from, string $to, array $layers, array
     $on = array_flip($layers);
     $admin = '/admin/admin.php';
 
-    if (isset($on['parties'])) {
+    // Parties: all of them with the Parties layer; otherwise the ones this person is working (party_staff, Nov 12).
+    $mine = [];
+    if (!isset($on['parties']) && !empty($viewer['user_id'])) {
+        try { $st = $pdo->prepare("SELECT event_inquiry_id FROM party_staff WHERE user_id = ?"); $st->execute([(int)$viewer['user_id']]); $mine = array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN)); }
+        catch (Throwable $e) {}
+    }
+    if (isset($on['parties']) || $mine) {
         try {
-            $st = $pdo->prepare("SELECT * FROM event_inquiries WHERE preferred_date BETWEEN ? AND ? AND status IN ('new', 'contacted', 'quoted', 'confirmed') ORDER BY preferred_date, id");
+            $st = $pdo->prepare("SELECT * FROM event_inquiries WHERE preferred_date BETWEEN ? AND ? AND status IN ('new', 'contacted', 'quoted', 'confirmed')"
+                              . (isset($on['parties']) ? '' : ' AND id IN (' . implode(',', $mine) . ')') . " ORDER BY preferred_date, id");
             $st->execute([$from, $to]);
+            $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+            $sum = function_exists('bcrf_party_summaries') ? bcrf_party_summaries($pdo, array_column($rows, 'id')) : [];
             $len = bcrf_cal_setting_int($pdo, 'party_length_minutes', 120);
-            foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            foreach ($rows as $r) {
                 $kind = function_exists('bcrf_quote_subject') && defined('BCRF_QUOTE_PARTY_KINDS') ? (BCRF_QUOTE_PARTY_KINDS[$r['event_type']] ?? 'Party') : 'Party';
                 $guests = (int)$r['adult_count'] + (int)$r['child_count'];
+                $mins = function_exists('bcrf_party_length') ? bcrf_party_length($pdo, $r) : $len;
                 $start = $r['preferred_date'] . (!empty($r['start_time']) ? ' ' . $r['start_time'] : '');
-                $end = !empty($r['start_time']) ? (new DateTimeImmutable($start))->modify("+{$len} minutes")->format('Y-m-d H:i:s') : null;
+                $end = !empty($r['start_time']) ? (new DateTimeImmutable($start))->modify("+{$mins} minutes")->format('Y-m-d H:i:s') : null;
+                $s = $sum[(int)$r['id']] ?? null;
+                $note = $guests . ' guests · ' . $r['status'] . ($s && $s['package'] !== '' ? ' · ' . $s['package'] : '') . ($s && $s['staff'] ? ' · Staff: ' . implode(', ', $s['staff']) : '');
                 $items[] = bcrf_cal_item('parties', 'party-' . $r['id'], $kind . ': ' . $r['customer_name'], $start, $end,
-                    $admin . '?view=event_inquiries&status=all', $guests . ' guests · ' . $r['status'], $r['status'] !== 'confirmed');
+                    '/admin/party.php?id=' . (int)$r['id'], $note, $r['status'] !== 'confirmed');
             }
         } catch (Throwable $e) {}
     }
@@ -276,7 +290,7 @@ function bcrf_cal_feed_owner(PDO $pdo, string $token): ?array {
     return $r;
 }
 
-/** The ICS text for a feed owner: their tasks, plus parties and group bookings when they chose them, and closed days. */
+/** The ICS text for a feed owner: their tasks and the parties they work, plus all parties and group bookings when they chose them, and closed days. */
 function bcrf_cal_feed_ics(PDO $pdo, array $owner, ?string $today = null): string {
     $today = $today ?? bcrf_cal_today();
     $from = (new DateTimeImmutable($today))->modify('-14 days')->format('Y-m-d');

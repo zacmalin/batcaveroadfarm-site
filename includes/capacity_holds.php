@@ -5,7 +5,7 @@
 //            window goes up by the group's expected guests, so the group's spaces are theirs and walk-ins keep the
 //            usual limit (capacity_limit). Nothing is stored: holds are worked out from confirmed bookings (not day
 //            tickets, not "date flexible") and confirmed parties each time, so a date or status change can't leave a
-//            stale hold. Window: bookings start–end; parties start + party_length_minutes, or the whole open day
+//            stale hold. Window: bookings start–end; parties start + their package's length (else party_length_minutes), or the whole open day
 //            when no start time is set. A hold counts from hold_early_minutes before the start, and for as long as
 //            any of the group is still checked in.
 //   Arrival  The gate checks a group in against its booking or party (check_ins.booking_id / event_inquiry_id).
@@ -74,13 +74,16 @@ function bcrf_holds_for_date(PDO $pdo, string $date): array {
     }
     $kinds = defined('BCRF_QUOTE_PARTY_KINDS') ? BCRF_QUOTE_PARTY_KINDS
            : ['birthday' => 'Birthday party', 'field_trip' => 'Field trip', 'buyout' => 'Farm buyout', 'corporate' => 'Corporate event', 'other' => 'Private event'];
-    $st = $pdo->prepare("SELECT id, customer_name, adult_count, child_count, start_time, event_type FROM event_inquiries
+    $pkgLen = [];   // a party's package sets its length (migration 0035, Nov 12, 2026)
+    try { foreach ($pdo->query("SELECT id, duration_minutes FROM party_packages") as $p) $pkgLen[(int)$p['id']] = max(15, (int)$p['duration_minutes']); } catch (Throwable $e) {}
+    $st = $pdo->prepare("SELECT * FROM event_inquiries
                          WHERE preferred_date = ? AND status = 'confirmed' ORDER BY start_time IS NULL, start_time, id");
     $st->execute([$date]);
     foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
         if ($r['start_time']) {
             $start = (string)$r['start_time'];
-            $end = (new DateTimeImmutable($date . ' ' . $start))->modify("+{$partyLen} minutes")->format('H:i:s');
+            $len = $pkgLen[(int)($r['package_id'] ?? 0)] ?? $partyLen;
+            $end = (new DateTimeImmutable($date . ' ' . $start))->modify("+{$len} minutes")->format('H:i:s');
             if ($end < $start) $end = '23:59:00';   // ran past midnight
             $timed = true;
         } else {
