@@ -122,6 +122,20 @@ $ok(count(bcrf_public_photos($pdo, $hazel)) === 2 && is_file($imgDir . '/' . bas
 for ($i = 0; $i < BCRF_PUBLIC_PHOTO_MAX - 2; $i++) bcrf_public_photo_add($pdo, $hazel, $photo(50, 50), '', false, 1);
 $throws(fn() => bcrf_public_photo_add($pdo, $hazel, $photo(50, 50), '', false, 1), 'photo limit', 'Up to');
 
+// -- Migration 0049: blank main photo descriptions filled from the roster --
+$pdo->exec("INSERT INTO classifications (class_name) VALUES ('Donkey')");
+$pdo->exec("INSERT INTO breeds (breed_name, slug) VALUES ('Miniature Donkey', 'md'), ('Unknown', 'unk'), ('Alpine', 'alp')");
+$pdo->exec("INSERT INTO animals (name, breed_id, classification_id, date_of_birth, is_active, photo_url, photo_alt_text) VALUES
+    ('Jack', 2, 2, '2020-01-01', 1, '/img/animals/donkey1.webp', NULL), ('Pip', 3, 1, '2021-01-01', 1, '/img/p.webp', ''),
+    ('Ace', 4, 1, '2021-01-01', 1, '/img/a.webp', NULL), ('Kept', 1, 1, '2021-01-01', 1, '/img/k.webp', 'Kept in the sun'),
+    ('NoPhoto', 1, 1, '2021-01-01', 1, NULL, NULL)");
+(require $root . '/admin/migrations/0049_animal_photo_alt.php')($pdo);
+$alt = fn(string $n) => $one("SELECT photo_alt_text FROM animals WHERE name = ?", [$n]);
+$ok($alt('Jack') === 'Jack, a Miniature Donkey at Bat Cave Road Farm', '0049: breed already names the species — got ' . $alt('Jack'));
+$ok($alt('Pip') === 'Pip, a goat at Bat Cave Road Farm', '0049: unknown breed uses the species — got ' . $alt('Pip'));
+$ok($alt('Ace') === 'Ace, an Alpine goat at Bat Cave Road Farm', '0049: "an" before a vowel — got ' . $alt('Ace'));
+$ok($alt('Kept') === 'Kept in the sun' && $alt('NoPhoto') === null, '0049: written descriptions and photo-less animals left alone');
+
 // -- Public page reads only public fields --
 $page = file_get_contents($root . '/petting-zoo/animals/animal.php');
 $ok(!preg_match('/animal_(medical|med|vacc|weights|expenses|care)|incident_|microchip|\btag\b,/i', $page), 'public page reads nothing private');
