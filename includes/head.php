@@ -30,8 +30,7 @@ require_once __DIR__ . '/ga.php';   // GA4: staff visits tagged internal, queued
 <html lang="en"<?= bcrf_ga_html_attrs() ?>>
 
     <head>
-        <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-DLB6LEFWQZ"></script>
+        <!-- Google tag (gtag.js): the library now loads after the page finishes loading, from js/min.gtag.js (bundled in min.site.js). Nov 11, 2026 performance fix. -->
 <!-- Fix pack M: one combined file replaces min.gtag/nav/app/hours/subscribe/analytics/theme.js (built by tools/build-js.mjs) -->
 <script defer src="<?= bcrf_farm_url() ?>/js/min.site.js?v=<?= bcrf_asset_v('/js/min.site.js') ?>"></script>
         <meta charset="utf-8">

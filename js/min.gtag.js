@@ -19,3 +19,18 @@ window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);
   if(document.documentElement.getAttribute('data-ga-internal')==='1') cfg.traffic_type='internal';
   gtag('config','G-DLB6LEFWQZ',cfg);
 })();
+/* Load the GA library only after the page has finished loading (Nov 11, 2026 performance fix).
+   It is 177 KB and was downloading alongside the hero photo, PageSpeed's mobile LCP element.
+   Everything above (config, cleaned page address) and any event sent meanwhile waits in
+   dataLayer and is sent once the library arrives. Pages that still put the library in a
+   <script> tag of their own (booking, contact form) keep doing so: skipped here. */
+(function(){
+  if(document.querySelector('script[src*="googletagmanager.com/gtag/js"]')) return;
+  function load(){
+    var s=document.createElement('script'); s.async=true;
+    s.src='https://www.googletagmanager.com/gtag/js?id=G-DLB6LEFWQZ';
+    document.head.appendChild(s);
+  }
+  if(document.readyState==='complete') setTimeout(load,0);
+  else window.addEventListener('load',function(){ setTimeout(load,0); });
+})();
