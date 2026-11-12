@@ -68,6 +68,7 @@ $_sections = [
         ['label'=>'Seasonal Themes', 'short'=>'Themes','icon'=>'🎨','tabs'=>[['Seasonal Themes','?view=theme_scheduler','view','theme_scheduler']]],
     ]],
     'team' => ['label'=>'Team','icon'=>'🧑‍🌾','items'=>[
+        ['label'=>'Calendar',   'icon'=>'📅','tabs'=>[['Calendar',  '/admin/calendar.php',            'view', 'calendar']]],      // master calendar + phone feed (Nov 12)
         ['label'=>'Tasks',      'icon'=>'✅','tabs'=>[['My tasks',  '/admin/tasks.php?tab=my',        'view', 'tasks'],          // Farm OS Phase 3 (Nov 11)
                                                        ['Everyone',  '/admin/tasks.php?tab=all',       'view', 'tasks_manage'],
                                                        ['Chores',    '/admin/tasks.php?tab=chores',    'view', 'tasks_manage'],

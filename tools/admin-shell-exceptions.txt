@@ -7,6 +7,7 @@ index.php               # redirect
 register.php            # POS till: full screen
 pos.php                 # legacy till (?legacy=1), being retired
 gate.php                # gate check-in: full screen
+calendar_feed.php       # phone calendar feed (ICS text, not a page)
 print_label.php         # print layout
 login.php               # sign-in
 logout.php              # sign-out
