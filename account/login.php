@@ -79,6 +79,7 @@ require_once '../includes/header.php';
       </form>
 
       <p class="auth-alt"><a href="/account/forgot.php">Forgot your password?</a></p>
+      <p class="auth-alt">No password? <a href="/account/link.php<?= $next !== '/' ? '?next=' . urlencode($next) : '' ?>">Email me a sign-in link</a></p>
       <p class="auth-alt">New here? <a href="/account/register.php<?= $next !== '/' ? '?next=' . urlencode($next) : '' ?>">Create an account</a></p>
     </div>
   </div>

@@ -46,6 +46,7 @@
             	<a href="<?= bcrf_farm_url() ?>/tickets/"> Day Tickets</a> <span aria-hidden="true">✦</span>
             	<a href="<?= bcrf_farm_url() ?>/passes/"> Annual Passes</a> <span aria-hidden="true">✦</span>
             	<a href="<?= bcrf_farm_url() ?>/gift-cards/"> Gift Cards</a> <span aria-hidden="true">✦</span>
+            	<a href="<?= bcrf_farm_url() ?>/account/"> My Bookings &amp; Tickets</a> <span aria-hidden="true">✦</span>
 <?php if (!empty($navShowRewards)): ?>
             	<a href="<?= bcrf_farm_url() ?>/roost-rewards/"> Roost Rewards</a> <span aria-hidden="true">✦</span>
 <?php endif; ?>

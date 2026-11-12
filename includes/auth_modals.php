@@ -11,7 +11,7 @@
       <div class="auth-field"><label>Email</label><input type="email" name="email" autocomplete="email"></div>
       <div class="auth-field"><label>Password</label><input type="password" name="password" autocomplete="current-password"></div>
       <button type="button" class="auth-btn" data-auth-submit="login">Log In</button>
-      <p class="auth-alt"><a href="/account/forgot.php">Forgot password?</a></p>
+      <p class="auth-alt"><a href="/account/forgot.php">Forgot password?</a> · <a href="/account/link.php">Email me a sign-in link</a></p>
       <p class="auth-alt">New here? <a href="#" data-auth-switch="register">Create an account</a></p>
     </div>
 

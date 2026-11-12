@@ -11,11 +11,14 @@ header('Cache-Control: no-store, private');
 
 // ?staff=1 (linked from the console sign-in): reset a staff password (users) instead of a customer one.
 $staffMode = !empty($_GET['staff']) || !empty($_POST['staff']);
-if (!$staffMode && is_logged_in()) { ob_end_clean(); header('Location: /'); exit; }
-
 $error = '';
 $sent  = false;
 $emailOld = '';
+// Signed in (My farm's "Set a password" link, slice 6): fill in the account's own email.
+if (!$staffMode && is_logged_in() && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    $me = bcrf_customer_find($pdo, current_user_id());
+    $emailOld = (string)($me['email'] ?? '');
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $emailOld = trim((string)($_POST['email'] ?? ''));

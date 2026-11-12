@@ -18,7 +18,7 @@ $token = preg_replace('/[^a-f0-9]/', '', strtolower($token)); // tokens are hex
 /** Look up a live (unused, unexpired) reset row for a raw token. */
 $findReset = function (PDO $pdo, string $rawToken) {
     if ($rawToken === '') return null;
-    $st = $pdo->prepare("SELECT * FROM password_resets WHERE token_hash = ? AND used_at IS NULL AND expires_at > NOW() LIMIT 1");
+    $st = $pdo->prepare("SELECT * FROM password_resets WHERE token_hash = ? AND used_at IS NULL AND expires_at > NOW() AND purpose <> 'signin' LIMIT 1");
     $st->execute([hash('sha256', $rawToken)]);
     $row = $st->fetch(PDO::FETCH_ASSOC);
     return $row ?: null;
