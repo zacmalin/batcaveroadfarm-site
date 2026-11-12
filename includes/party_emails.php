@@ -7,6 +7,7 @@
 // A party with no start time counts from the farm's opening time that day. Both follow the "Visit reminders and
 // thank-yous" email setting (includes/email_prefs.php). Each party is claimed before sending (reminder_sent_at /
 // thank_you_sent_at, UTC), so two overlapping cron runs can't send twice, and a bad address isn't retried every hour.
+// Once a waiver is published (includes/waivers.php), the reminder links to it when the host hasn't signed one.
 if (!function_exists('bcrf_party_emails_ready')) {
 
 if (!function_exists('bcrf_holds_day_hours')) require_once __DIR__ . '/capacity_holds.php';
@@ -78,10 +79,23 @@ function bcrf_party_reminder_email(PDO $pdo, array $inq): array {
         . (empty($inq['start_time']) ? '<p style="color:#e8d5b0;"><strong>We don\'t have a start time for you yet.</strong> Just reply to this email with the time you\'d like.</p>' : '')
         . '<ul style="color:#e8d5b0;padding-left:18px;">' . implode('', array_map(fn($t) => '<li style="margin:4px 0;">' . $h($t) . '</li>', $terms)) . '</ul>'
         . ($q ? '<p style="color:#e8d5b0;"><a style="color:#e8b84b;" href="' . $h(bcrf_quote_url($q)) . '">See your quote</a></p>' : '')
+        . bcrf_party_waiver_line($pdo, $inq)
         . '<p style="color:#e8d5b0;">Running late or need to change something? Just reply to this email.</p>'
         . '<p style="color:#e8d5b0;">' . $h(bcrf_quote_signoff()) . '</p>'
         . bcrf_email_prefs_footer($pdo, (string)$inq['email'], 'visit reminders and thank-yous', 'you booked a party with us');
     return ['Reminder: your party tomorrow at Bat Cave Road Farm', $inner];
+}
+
+/** "Sign the waiver ahead of time" with a link, when waivers are published and this email hasn't signed one ('' otherwise). */
+function bcrf_party_waiver_line(PDO $pdo, array $inq): string {
+    try {
+        if (!function_exists('bcrf_waivers_ready')) require_once __DIR__ . '/waivers.php';
+        if (!bcrf_waivers_ready($pdo) || !bcrf_waiver_current($pdo) || bcrf_waiver_valid_for($pdo, (string)$inq['email'])) return '';
+    } catch (Throwable $e) { return ''; }
+    $base = (function_exists('bcrf_farm_url') ? bcrf_farm_url() : 'https://batcaveroadfarm.com') . '/waiver.php';
+    $url = $base . '?' . http_build_query(['email' => $inq['email'], 'name' => $inq['customer_name']]);
+    return '<p style="color:#e8d5b0;">Save time at the gate: <a style="color:#e8b84b;" href="' . htmlspecialchars($url, ENT_QUOTES) . '">sign the waiver</a> for you and the kids with you. '
+         . 'Other parents can sign at <a style="color:#e8b84b;" href="' . htmlspecialchars($base, ENT_QUOTES) . '">' . htmlspecialchars(preg_replace('#^https?://#', '', $base), ENT_QUOTES) . '</a>.</p>';
 }
 
 /** [subject, inner HTML] for the thank-you with the review link. */

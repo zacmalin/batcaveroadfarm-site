@@ -9,6 +9,9 @@
 //   POST gate.php?api=checkout         {id}
 //   POST gate.php?api=arrive           {type: booking|event_inquiry, id, n, update_quote?, override?}   a group checks in against
 //                                      its capacity hold (Phase 3 slice 5, Nov 12, 2026)
+// Waivers (Phase 3, Nov 12, 2026; includes/waivers.php): when waiver_mode is warn or block, search results and groups carry
+// a waiver badge with a "Sign now" link (waiver_sign.php). In block mode admit / arrive answer 409 code 'waiver' until
+// someone signs, or a manager sends waiver_override with a reason.
 // Logic: includes/admission.php, includes/capacity_holds.php (today's groups, holds, arrivals).
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
@@ -21,24 +24,48 @@ require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/queue.php';
 require_once __DIR__ . '/../includes/admission.php';
 require_once __DIR__ . '/../includes/capacity_holds.php';
+require_once __DIR__ . '/../includes/waivers.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 $csrf  = $_SESSION['csrf_token'];
 $ready = bcrf_admission_ready($pdo);
 $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
+// The email a ticket, pass, booking or party is under (whose waiver counts for it).
+$emailOf = function (string $kind, int $id) use ($pdo): string {
+    $sql = ['ticket' => "SELECT purchaser_email FROM tickets WHERE id = ?", 'pass' => "SELECT email FROM passes WHERE id = ?",
+            'booking' => "SELECT email FROM bookings WHERE id = ?", 'event_inquiry' => "SELECT email FROM event_inquiries WHERE id = ?"][$kind] ?? null;
+    if (!$sql) return '';
+    $st = $pdo->prepare($sql); $st->execute([$id]);
+    return (string)$st->fetchColumn();
+};
 
 if ($api !== '') {
     header('Content-Type: application/json');
     header('Cache-Control: no-store');
     $out = function (int $code, array $body) { http_response_code($code); echo json_encode($body, JSON_UNESCAPED_UNICODE); exit; };
     if (!$ready) $out(503, ['ok' => false, 'message' => 'The gate is waiting for migration 0012 (Settings › Database).']);
-    $state = function () use ($pdo) {
+    $wMode = bcrf_waiver_mode($pdo);
+    $withWaivers = function (array $rows, bool $groups) use ($pdo, $wMode, $emailOf): array {
+        if ($wMode === 'off') return $rows;
+        foreach ($rows as &$r) {
+            $email = $groups ? $emailOf($r['type'], (int)$r['id']) : (string)($r['email'] ?? '');
+            $r['waiver'] = bcrf_waiver_badge($pdo, $email, (string)($r['name'] ?? ''), $wMode);
+        }
+        unset($r);
+        return $rows;
+    };
+    $waiverGate = function (string $kind, int $id, array $in) use ($pdo, $emailOf): void {
+        $email = $emailOf($kind, $id);
+        $why = bcrf_waiver_gate_check($pdo, $email, (string)($in['waiver_override'] ?? ''), bcrf_can_override_capacity());
+        if ($why !== '' && function_exists('erp_audit')) erp_audit($pdo, 'update', 'waivers', 0, 'Let in without a waiver (' . $kind . ' #' . $id . ', ' . $email . '): ' . $why);
+    };
+    $state = function () use ($pdo, $withWaivers) {
         $o = bcrf_occupancy($pdo);
         return ['on_site' => $o['on_site'], 'limit' => $o['limit'], 'free' => $o['free'], 'pct' => $o['pct'], 'level' => $o['level'],
                 'wait_minutes' => bcrf_wait_minutes($o, 1), 'visitors_today' => $o['visitors_today'], 'parties_today' => $o['parties_today'],
                 'parties' => bcrf_on_site_view($pdo), 'held' => $o['held'] ?? 0, 'held_waiting' => $o['held_waiting'] ?? 0,
-                'groups' => bcrf_holds_gate_view($pdo)];
+                'groups' => $withWaivers(bcrf_holds_gate_view($pdo), true)];
     };
     try {
         if ($api === 'state') {
@@ -47,7 +74,7 @@ if ($api !== '') {
         }
         if ($api === 'search') {
             try { bcrf_tickets_sync_bookings($pdo, 50); } catch (Throwable $e) {}
-            $out(200, ['ok' => true, 'results' => bcrf_gate_search($pdo, (string)($_GET['q'] ?? ''))]);
+            $out(200, ['ok' => true, 'results' => $withWaivers(bcrf_gate_search($pdo, (string)($_GET['q'] ?? '')), false)]);
         }
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') $out(405, ['ok' => false, 'message' => 'POST only.']);
         if (!hash_equals($csrf, (string)($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''))) $out(403, ['ok' => false, 'message' => 'Your session expired. Reload the gate screen.']);
@@ -55,10 +82,12 @@ if ($api !== '') {
         if (!is_array($in)) $out(400, ['ok' => false, 'message' => 'The request could not be read.']);
         if ($api === 'admit') {
             $n = (int)($in['n'] ?? 0); $id = (int)($in['id'] ?? 0); $ov = (string)($in['override'] ?? '');
+            $waiverGate(($in['kind'] ?? '') === 'pass' ? 'pass' : 'ticket', $id, $in);
             ($in['kind'] ?? '') === 'pass' ? bcrf_pass_admit($pdo, $id, $n, $ov) : bcrf_ticket_redeem($pdo, $id, $n, $ov);
             $out(200, ['ok' => true, 'state' => $state()]);
         }
         if ($api === 'arrive') {
+            $waiverGate((string)($in['type'] ?? '') === 'booking' ? 'booking' : 'event_inquiry', (int)($in['id'] ?? 0), $in);
             $r = bcrf_hold_arrive($pdo, (string)($in['type'] ?? ''), (int)($in['id'] ?? 0), (int)($in['n'] ?? 0), !empty($in['update_quote']), (string)($in['override'] ?? ''));
             $out(200, ['ok' => true, 'state' => $state(), 'arrived' => $r['arrived'], 'quote' => $r['quote']]);
         }
@@ -67,6 +96,8 @@ if ($api !== '') {
             $out(200, ['ok' => true, 'state' => $state()]);
         }
         $out(404, ['ok' => false, 'message' => 'Unknown request.']);
+    } catch (BcrfWaiverError $e) {
+        $out(409, ['ok' => false, 'code' => 'waiver', 'message' => $e->getMessage(), 'can_override' => bcrf_can_override_capacity()]);
     } catch (BcrfCapacityError $e) {
         $out(409, ['ok' => false, 'code' => 'capacity', 'message' => $e->getMessage(), 'can_override' => bcrf_can_override_capacity()]);
     } catch (BcrfSaleError $e) {
@@ -87,6 +118,7 @@ $boot = ['ready' => $ready, 'csrf' => $csrf];
 <meta name="robots" content="noindex">
 <title>Gate — <?= $h(bcrf_farm_name()) ?></title>
 <link rel="stylesheet" href="assets/register.css?v=9">
+<link rel="stylesheet" href="assets/waiver.css?v=1">
 </head>
 <body class="gate">
 <script type="application/json" id="gateBoot"><?= json_encode($boot, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
@@ -120,6 +152,6 @@ $boot = ['ready' => $ready, 'csrf' => $csrf];
   <ul class="onsite" id="onsite"></ul>
 </main>
 <div class="toast" id="toast" role="status" hidden></div>
-<script src="assets/gate.js?v=3"></script>
+<script src="assets/gate.js?v=4"></script>
 </body>
 </html>

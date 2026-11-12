@@ -15,7 +15,7 @@ name: Tasks test
 
 on:
   push:
-    paths: ['includes/tasks.php', 'includes/task_notify.php', 'admin/migrations/**', 'tests/tasks_test.php', 'tests/task_forms_test.php', 'includes/event_tasks.php', 'tests/event_tasks_test.php', 'includes/event_quotes.php', 'tests/event_quotes_test.php', 'includes/admission.php', 'includes/capacity_holds.php', 'includes/weather_days.php', 'tests/capacity_holds_test.php', 'includes/customer_portal.php', 'tests/customer_portal_test.php', 'includes/calendar.php', 'tests/calendar_test.php', 'includes/parties.php', 'tests/parties_test.php', 'includes/crm.php', 'tests/crm_test.php', 'includes/email_prefs.php', 'tests/email_prefs_test.php', 'includes/party_emails.php', 'tests/party_emails_test.php', 'admin/cron/send_booking_reminders.php', 'admin/cron/send_review_requests.php', '.github/workflows/tasks.yml']
+    paths: ['includes/tasks.php', 'includes/task_notify.php', 'admin/migrations/**', 'tests/tasks_test.php', 'tests/task_forms_test.php', 'includes/event_tasks.php', 'tests/event_tasks_test.php', 'includes/event_quotes.php', 'tests/event_quotes_test.php', 'includes/admission.php', 'includes/capacity_holds.php', 'includes/weather_days.php', 'tests/capacity_holds_test.php', 'includes/customer_portal.php', 'tests/customer_portal_test.php', 'includes/calendar.php', 'tests/calendar_test.php', 'includes/parties.php', 'tests/parties_test.php', 'includes/crm.php', 'tests/crm_test.php', 'includes/email_prefs.php', 'tests/email_prefs_test.php', 'includes/party_emails.php', 'tests/party_emails_test.php', 'includes/waivers.php', 'tests/waivers_test.php', 'admin/cron/send_booking_reminders.php', 'admin/cron/send_review_requests.php', '.github/workflows/tasks.yml']
   pull_request:
   workflow_dispatch:
 
@@ -104,6 +104,13 @@ jobs:
           DB_USER: root
           DB_PASS: root
         run: php tests/party_emails_test.php
+      - name: Waivers
+        env:
+          DB_HOST: 127.0.0.1
+          DB_NAME: bcrf_tasks_test
+          DB_USER: root
+          DB_PASS: root
+        run: php tests/waivers_test.php
       - name: Customers, households, organizations
         env:
           DB_HOST: 127.0.0.1

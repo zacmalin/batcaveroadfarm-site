@@ -26,6 +26,7 @@ define('BCRF_CRM_REFS', [
     ['bookings', 'customer_id'], ['event_inquiries', 'customer_id'], ['passes', 'customer_id'], ['tickets', 'customer_id'],
     ['sales', 'customer_id'], ['sale_holds', 'customer_id'], ['inventory', 'consignor_customer_id'],
     ['consignor_settlements', 'consignor_customer_id'], ['recipe_comments', 'user_id'], ['recipe_ratings', 'user_id'],
+    ['waivers', 'customer_id'],   // Phase 3 waivers (Nov 12, 2026)
 ]);
 define('BCRF_CRM_AGES', ['under2' => 'Under 2', '2-4' => '2–4', '5-8' => '5–8', '9-12' => '9–12', '13-17' => '13–17']);
 define('BCRF_CRM_ORG_KINDS', ['school' => 'School', 'scouts' => 'Scout troop', 'church' => 'Church', 'business' => 'Business', 'other' => 'Other group']);

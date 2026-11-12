@@ -3,6 +3,7 @@
 // Bookings and parties (what's left to pay, with the quote page to pay it), online tickets and annual passes (each opens
 // its QR page), register receipts, email preferences (reminders, newsletter and topics), and name and phone. Signed-out visitors go to the emailed-link
 // sign-in. Bookings, tickets and passes show only once the account's email is verified.
+// Waivers (Nov 12, 2026; includes/waivers.php): signed waivers and a link to sign, once a waiver is published.
 //   POST act=profile     first name, last name, phone
 //   POST act=newsletter  on / off (only before migration 0037)
 //   POST act=prefs       email preferences (includes/email_prefs.php); news can be turned on only with a verified email
@@ -18,6 +19,7 @@ require_once '../includes/event_quotes.php';
 require_once '../includes/tickets_online.php';
 require_once '../includes/customer_portal.php';
 require_once '../includes/email_prefs.php';
+require_once '../includes/waivers.php';
 header('Cache-Control: no-store, private');
 header('X-Robots-Tag: noindex, nofollow');
 
@@ -68,6 +70,8 @@ $flash = (string)($_SESSION['portal_flash'] ?? ''); unset($_SESSION['portal_flas
 $items = bcrf_portal_items($pdo, $c);
 $prefs = bcrf_email_prefs_ready($pdo) ? bcrf_email_prefs_get($pdo, (string)$c['email']) : null;
 $news = $prefs === null ? bcrf_portal_newsletter($pdo, (string)$c['email']) : null;
+$waiverOpen = bcrf_waivers_ready($pdo) && bcrf_waiver_current($pdo);
+$waivers = $items['verified'] ? bcrf_waiver_for_customer($pdo, (int)$c['id'], (string)$c['email']) : [];
 ob_end_clean();
 
 $pageTitle       = 'My Farm | ' . bcrf_farm_name();
@@ -121,6 +125,18 @@ $card = function (array $b) use ($h, $m) {
         <p>To keep your bookings private, they show here once you've proved this email is yours. Use the link we emailed when you signed up, or get a sign-in link now: it verifies your email too.</p>
         <p><a class="portal-link" href="/account/link.php">Email me a sign-in link</a></p>
       </section>
+    <?php endif; ?>
+
+    <?php if ($waiverOpen || $waivers): $okW = array_filter($waivers, fn($w) => !$w['voided_at'] && strtotime($w['expires_at'] . ' UTC') > time()); ?>
+    <section class="portal-card" id="waivers">
+      <h2>Waiver</h2>
+      <?php if ($okW): $w = reset($okW); ?>
+        <p>Signed by <?= $h($w['signer_name']) ?><?= $w['minors'] ? ' for ' . $h(implode(', ', array_column($w['minors'], 'name'))) : '' ?>. Good until <?= $h(date('F j, Y', strtotime($w['expires_at'] . ' UTC'))) ?>. <span class="portal-badge portal-badge-ok">On file</span></p>
+      <?php else: ?>
+        <p>Sign it before your visit and skip the paperwork at the gate.</p>
+      <?php endif; ?>
+      <?php if ($waiverOpen): ?><p><a class="portal-link" href="/waiver.php?<?= $h(http_build_query(['email' => $c['email'], 'name' => trim($c['first_name'] . ' ' . $c['last_name'])])) ?>"><?= $okW ? 'Sign again (new children or details)' : 'Sign the waiver' ?></a></p><?php endif; ?>
+    </section>
     <?php endif; ?>
 
     <section class="portal-card">

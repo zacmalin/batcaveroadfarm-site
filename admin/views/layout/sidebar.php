@@ -60,7 +60,8 @@ $_sections = [
     'customers' => ['label'=>'Customers','icon'=>'👥','items'=>[
         ['label'=>'Customers', 'icon'=>'👥','tabs'=>[['Find','/admin/customers.php','view','customers'],
                                                       ['Possible duplicates','/admin/customers.php?dupes=1','view','customers'],
-                                                      ['Organizations','/admin/organizations.php','view','customers']]],
+                                                      ['Organizations','/admin/organizations.php','view','customers'],
+                                                      ['Waivers','/admin/waivers.php','view','customers']]],   // Phase 3 waivers (Nov 12)
     ]],
     'content' => ['label'=>'Marketing & Content','icon'=>'📡','items'=>[
         ['label'=>'Blog',            'icon'=>'✍️','tabs'=>[['Blog','?view=schema&table=blog_posts','table','blog_posts']]],

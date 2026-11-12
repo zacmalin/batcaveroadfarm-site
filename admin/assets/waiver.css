@@ -1,0 +1,17 @@
+/* admin/assets/waiver.css — signing the waiver on the gate device (admin/waiver_sign.php), with assets/register.css. Nov 12, 2026 */
+.waiver-h{font-size:1.3rem;margin:.5rem 0}
+.waiver-text{background:#fff;border:1px solid var(--line);border-radius:12px;padding:.4rem 1rem;max-height:45vh;overflow:auto;line-height:1.5}
+.waiver-form{display:grid;gap:.75rem;margin:1rem 0 2rem}
+.waiver-form label{display:grid;gap:.3rem;font-weight:600}
+.waiver-form input[type=text],.waiver-form input:not([type]),.waiver-form input[type=email],.waiver-form input[type=tel],.waiver-form textarea{font:inherit;font-weight:400;padding:.6rem;border:1px solid var(--line);border-radius:10px;min-height:44px;background:#fff}
+.waiver-form .waiver-check{display:flex;gap:.6rem;align-items:flex-start;font-weight:400}
+.waiver-check input{width:24px;height:24px;flex:0 0 auto;margin:0}
+.waiver-padwrap{display:grid;gap:.4rem;font-weight:600}
+.waiver-pad{width:100%;height:auto;aspect-ratio:16/5;background:#fff;border:2px dashed var(--line);border-radius:12px;touch-action:none}
+.waiver-padwrap .btn{justify-self:start}
+.waiver-done{text-align:center;padding:1.5rem}
+.waiver-done h1{margin:.2rem 0}
+.wv{font-size:.85em;font-weight:700;border-radius:999px;padding:.1rem .6rem;justify-self:start}
+.wv.ok{color:#166534;background:#dcfce7}
+.wv.no{color:#92400e;background:#fef3c7}
+.wv.block{color:#991b1b;background:#fee2e2}

@@ -1,5 +1,7 @@
 // admin/assets/gate.js — Farm OS gate screen (Phase 1, slice 4a, Nov 6, 2026). Server logic: includes/admission.php via admin/gate.php.
 // Groups today (Phase 3 slice 5, Nov 12, 2026): confirmed bookings and parties, with Arrived (actual headcount) against their hold.
+// Waivers (Phase 3, Nov 12, 2026): a waiver badge and "Sign now" on each card when waivers are on; in block mode a check-in
+// without one is refused (code 'waiver') until someone signs or a manager lets them in with a reason.
 (function () {
   'use strict';
   var BOOT = JSON.parse(document.getElementById('gateBoot').textContent);
@@ -21,6 +23,25 @@
     return fetch('gate.php?api=' + path, opts).then(function (r) {
       return r.json().catch(function () { return { ok: false, message: 'Unexpected reply (' + r.status + ').' }; }).then(function (j) { j.status = r.status; return j; });
     });
+  }
+  // Waiver badge for a search result or group (null when waivers are off).
+  function waiverLine(w) {
+    if (!w) return null;
+    var kids = [el('span', { class: 'wv ' + (w.signed ? 'ok' : (w.block ? 'block' : 'no')), text: w.label })];
+    if (!w.signed && w.sign_url) kids.push(el('a', { class: 'btn sm', href: w.sign_url, text: 'Sign now' }));
+    return el('div', { class: 'admit' }, kids);
+  }
+  // A refused check-in for want of a waiver: how to sign, and (managers) let them in anyway. retry(reason).
+  function waiverRefused(box, j, w, retry) {
+    var reason = el('input', { type: 'text', maxlength: '200', placeholder: 'Reason (e.g. signed on paper)' });
+    box.replaceChildren.apply(box, [el('p', { class: 'err', text: j.message }),
+      w && w.sign_url ? el('a', { class: 'btn primary', href: w.sign_url, text: 'Sign on this device' }) : null,
+      j.can_override ? el('label', {}, ['Let them in without one', reason]) : null,
+      j.can_override ? el('button', { type: 'button', class: 'btn danger', text: 'Check in without a waiver', onclick: function () {
+        if (!reason.value.trim()) { reason.focus(); return; }
+        retry(reason.value.trim());
+      } }) : null].filter(Boolean));
+    box.hidden = false;
   }
   var toastT;
   function toast(m) { var t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 2200); }
@@ -59,12 +80,15 @@
     var cap = el('div', { class: 'capbox', hidden: true });
     var form = el('div', { class: 'gform', hidden: true });
     var status = g.arrived ? g.arrived + ' of ' + g.guests + ' arrived' + (g.on_site ? ' · ' + g.on_site + ' here now' : '') : 'Expected ' + g.guests;
+    var wov = null;
     var go = function (override) {
       var body = { type: g.type, id: g.id, n: +num.value, update_quote: !!(upd && upd.checked) };
       if (!(body.n > 0)) { num.focus(); return; }
       if (override) body.override = override;
+      if (wov) body.waiver_override = wov;
       api('arrive', body).then(function (j) {
         if (j.ok) { groupOpen = false; renderState(j.state); toast(body.n + ' in: ' + g.name + (j.quote ? '. ' + j.quote : '')); return; }
+        if (j.code === 'waiver') { waiverRefused(cap, j, g.waiver, function (why) { wov = why; go(override); }); return; }
         if (j.code === 'capacity') {
           var reason = el('input', { type: 'text', maxlength: '255', placeholder: 'Reason (e.g. extra parents with the party)' });
           cap.replaceChildren.apply(cap, [el('p', { class: 'err', text: j.message }),
@@ -91,6 +115,7 @@
       el('div', { class: 'gtop' }, [el('b', { text: g.name }), el('span', { class: 'chip ' + (g.type === 'booking' ? 'ticket' : 'pass'), text: g.what })]),
       el('div', { class: 'muted', text: g.when + (g.money ? ' · ' + g.money : '') }),
       el('div', { text: status }),
+      waiverLine(g.waiver),
       el('div', { class: 'admit' }, [el('button', { type: 'button', class: 'btn primary', text: g.arrived ? 'More arrived' : 'Arrived', onclick: function () {
         form.hidden = false; groupOpen = true; num.focus(); num.select();
       } })]),
@@ -131,11 +156,14 @@
       lines.push(el('div', { text: 'Covers up to ' + r.max_guests + ' guest' + (r.max_guests === 1 ? '' : 's') }));
       if (r.on_site) lines.push(el('div', { class: 'warn', text: r.on_site }));
     }
+    var wov = null;
     var admit = function (override) {
       var body = { kind: r.kind, id: r.id, n: +num.textContent };
       if (override) body.override = override;
+      if (wov) body.waiver_override = wov;
       api('admit', body).then(function (j) {
         if (j.ok) { renderState(j.state); $('results').replaceChildren(); $('q').value = ''; $('findMsg').textContent = ''; toast(body.n + ' admitted: ' + r.name); return; }
+        if (j.code === 'waiver') { waiverRefused(cap, j, r.waiver, function (why) { wov = why; admit(override); }); return; }
         if (j.code === 'capacity') {
           var reason = el('input', { type: 'text', maxlength: '255', placeholder: 'Reason (e.g. family of passholders, short visit)' });
           cap.replaceChildren.apply(cap, [el('p', { class: 'err', text: j.message }),   // nulls filtered (replaceChildren would print "null")
@@ -153,6 +181,7 @@
     return el('div', { class: 'gcard' + (r.blocker ? ' blocked' : '') }, [
       el('div', { class: 'gtop' }, [el('b', { text: r.name || '(no name)' }), el('span', { class: 'chip ' + r.kind, text: r.kind === 'ticket' ? 'Ticket' : 'Pass' })]),
     ].concat(lines).concat([
+      waiverLine(r.waiver),
       r.blocker ? el('p', { class: 'err', text: r.blocker }) : el('div', { class: 'admit' }, [
         el('button', { type: 'button', class: 'btn', text: '−', 'aria-label': 'Fewer', onclick: function () { num.textContent = String(Math.max(1, +num.textContent - 1)); } }),
         num,
