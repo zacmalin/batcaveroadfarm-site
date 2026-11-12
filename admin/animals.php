@@ -4,7 +4,8 @@
 //   GET  animals.php?id=N[&tab=care|health|weight|location|history]  one animal: overview (identity, status), care log (slice 2,
 //                                                 admin/animal_care.php), health (slice 3, saved by admin/animal_health.php),
 //                                                 weight (slice 4, saved by admin/animal_weights.php); the Care tab lists
-//                                                 what its species' care schedules have coming up (slice 5),
+//                                                 what its species' care schedules have coming up (slice 5), breeding
+//                                                 (slice 6: parents, kids, breedings; saved by admin/animal_breeding.php),
 //                                                 where it has been, status history
 //   GET  animals.php?tab=enclosures               pens, barns and pastures with counts and capacity
 //   POST act=identity | status | move | move_many | enclosure
@@ -21,6 +22,7 @@ if (is_file(__DIR__ . '/../includes/animal_care.php')) require_once __DIR__ . '/
 if (is_file(__DIR__ . '/../includes/animal_health.php')) require_once __DIR__ . '/../includes/animal_health.php';   // slice 3
 if (is_file(__DIR__ . '/../includes/animal_weights.php')) require_once __DIR__ . '/../includes/animal_weights.php';   // slice 4
 if (is_file(__DIR__ . '/../includes/animal_schedules.php')) require_once __DIR__ . '/../includes/animal_schedules.php';   // slice 5
+if (is_file(__DIR__ . '/../includes/animal_breeding.php')) require_once __DIR__ . '/../includes/animal_breeding.php';   // slice 6
 require_once __DIR__ . '/../includes/admin_shell.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -125,7 +127,8 @@ if ($id) {
     $careOn = function_exists('bcrf_care_ready') && bcrf_care_ready($pdo);
     $healthOn = function_exists('bcrf_health_ready') && bcrf_health_ready($pdo) && bcrf_health_can();
     $weightOn = function_exists('bcrf_weights_ready') && bcrf_weights_ready($pdo);
-    foreach (array_merge([['Overview', '']], $careOn ? [['Care', 'care']] : [], $healthOn ? [['Health', 'health']] : [], $weightOn ? [['Weight', 'weight']] : [], [['Location', 'location'], ['History', 'history']]) as [$t, $k]) {
+    $breedOn = function_exists('bcrf_breeding_ready') && bcrf_breeding_ready($pdo);
+    foreach (array_merge([['Overview', '']], $careOn ? [['Care', 'care']] : [], $healthOn ? [['Health', 'health']] : [], $weightOn ? [['Weight', 'weight']] : [], $breedOn ? [['Breeding', 'breeding']] : [], [['Location', 'location'], ['History', 'history']]) as [$t, $k]) {
         echo '<a href="animals.php?id=', $id, $k ? '&amp;tab=' . $k : '', '" class="px-3 py-2 rounded text-sm border ', $k === $tab ? 'border-stone-800 bg-stone-800 text-white' : 'border-stone-300 text-stone-700 bg-white hover:bg-stone-100', '">', $h($t), '</a>';
     }
     echo '</div>';
@@ -133,6 +136,7 @@ if ($id) {
     if (in_array($status, BCRF_ANIMAL_OFF_CONTACT, true)) echo bcrf_shell_notice('warning', BCRF_ANIMAL_STATUSES[$status] . ': keep visitors away. It shows on the gate screen.');
     if ($healthOn && !$gone) foreach (bcrf_health_alerts($pdo, $id) as $al) echo bcrf_shell_notice('warning', $al . '.');
     if ($weightOn && !$gone) foreach (bcrf_weight_alerts($pdo, $id) as $al) echo bcrf_shell_notice('warning', bcrf_weight_alert_text($al) . '.');
+    if ($breedOn && !$gone && ($bal = bcrf_breeding_alert($pdo, $id)) !== '') echo bcrf_shell_notice('info', $bal . '.');
     if ($gone) echo bcrf_shell_notice('info', 'This animal has left the farm (' . strtolower(BCRF_ANIMAL_STATUSES[$status]) . ' ' . $local($a['status_changed_at'], 'M j, Y') . '). Its records are kept.');
 
     if ($tab === 'care' && $careOn) {
@@ -317,6 +321,102 @@ if ($id) {
         <?php endif; ?></li>
       <?php endforeach; ?>
     </ul>
+    <?php endif; ?>
+  </div>
+<?php
+        bcrf_shell_close(); exit;
+    }
+
+    if ($tab === 'breeding' && $breedOn) {
+        $today = bcrf_breeding_today();
+        $breedings = bcrf_breeding_list($pdo, $id);
+        $kids = bcrf_animal_offspring($pdo, $id);
+        $same = array_values(array_filter(bcrf_animals_list($pdo, 'all'), fn($o) => (int)$o['id'] !== $id && ($o['class_name'] ?? '') === ($a['class_name'] ?? '')));
+        $sexOf = $pdo->query("SELECT id, sex FROM animals")->fetchAll(PDO::FETCH_KEY_PAIR);
+        $females = array_values(array_filter($same, fn($o) => ($sexOf[$o['id']] ?? '') === 'female'));
+        $males = array_values(array_filter($same, fn($o) => ($sexOf[$o['id']] ?? '') === 'male'));
+        $names = array_column(bcrf_animals_list($pdo, 'all'), 'name', 'id');
+        $bhidden = $hidden . '<input type="hidden" name="animal_id" value="' . $id . '">';
+        $hasOpen = (bool)array_filter($breedings, fn($b) => (int)$b['dam_id'] === $id && in_array($b['status'], BCRF_BREED_OPEN, true));
+        $gest = bcrf_gestation_days($a['class_name'] ?? ''); ?>
+  <div class="<?= $card ?>">
+    <h2 class="text-base font-semibold text-stone-800 mb-2">Parents</h2>
+    <p class="text-sm">Dam: <?= $a['dam_id'] ? '<a class="underline text-amber-800" href="animals.php?id=' . (int)$a['dam_id'] . '&amp;tab=breeding">' . $h($names[$a['dam_id']] ?? 'animal #' . (int)$a['dam_id']) . '</a>' : '<span class="text-stone-500">not set</span>' ?>
+      · Sire: <?= $a['sire_id'] ? '<a class="underline text-amber-800" href="animals.php?id=' . (int)$a['sire_id'] . '&amp;tab=breeding">' . $h($names[$a['sire_id']] ?? 'animal #' . (int)$a['sire_id']) . '</a>' : '<span class="text-stone-500">not set</span>' ?></p>
+    <?php if ($canEdit && ($females || $males)): ?>
+    <details class="mt-2"><summary class="cursor-pointer text-sm text-amber-800 underline">Set parents</summary>
+    <form method="POST" action="animal_breeding.php" class="mt-3"><?= $bhidden ?><input type="hidden" name="act" value="parents">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        <div><label class="<?= $label ?>" for="pd">Dam (mother)</label><select id="pd" name="dam_id" class="<?= $input ?>"><option value="0">Not known / not ours</option><?php foreach ($females as $o): ?><option value="<?= (int)$o['id'] ?>" <?= (int)$a['dam_id'] === (int)$o['id'] ? 'selected' : '' ?>><?= $h($o['name']) ?></option><?php endforeach; ?></select></div>
+        <div><label class="<?= $label ?>" for="ps">Sire (father)</label><select id="ps" name="sire_id" class="<?= $input ?>"><option value="0">Not known / not ours</option><?php foreach ($males as $o): ?><option value="<?= (int)$o['id'] ?>" <?= (int)$a['sire_id'] === (int)$o['id'] ? 'selected' : '' ?>><?= $h($o['name']) ?></option><?php endforeach; ?></select></div>
+      </div>
+      <button class="<?= $btnSec ?>">Save parents</button>
+    </form></details>
+    <?php endif; ?>
+  </div>
+  <?php if ($kids): ?>
+  <div class="<?= $card ?>">
+    <h2 class="text-base font-semibold text-stone-800 mb-2">Kids</h2>
+    <ul class="divide-y divide-stone-100">
+      <?php foreach ($kids as $k): ?><li class="py-2 text-sm"><a class="underline text-amber-800" href="animals.php?id=<?= (int)$k['id'] ?>"><?= $h($k['name']) ?></a> · <?= $h(strtolower(BCRF_ANIMAL_SEXES[$k['sex']] ?? 'sex not set')) ?> · born <?= $h(date('M j, Y', strtotime($k['date_of_birth']))) ?><?= bcrf_animal_is_leaving((string)$k['status']) ? ' · ' . $h(strtolower(BCRF_ANIMAL_STATUSES[$k['status']])) : '' ?></li><?php endforeach; ?>
+    </ul>
+  </div>
+  <?php endif; ?>
+  <div class="<?= $card ?>">
+    <h2 class="text-base font-semibold text-stone-800 mb-2">Breedings</h2>
+    <?php if (!$breedings): ?><p class="text-sm text-stone-500 mb-2">None recorded.</p><?php else: ?>
+    <ul class="divide-y divide-stone-100 mb-3">
+      <?php foreach ($breedings as $b): $bid = (int)$b['id']; $isDam = (int)$b['dam_id'] === $id; $isOpen = in_array($b['status'], BCRF_BREED_OPEN, true); ?>
+      <li class="py-2 text-sm"><strong><?= $h(BCRF_BREED_STATUSES[$b['status']]) ?></strong> · <?= $h(bcrf_breeding_line($b, !$isDam)) ?>
+        <?php if ($b['notes']): ?><span class="block text-xs text-stone-500"><?= nl2br($h($b['notes'])) ?></span><?php endif; ?>
+        <?php if ($isOpen && $isDam && $canEdit): ?>
+        <details class="mt-2"><summary class="cursor-pointer text-sm text-amber-800 underline">Record the birth</summary>
+        <form method="POST" action="animal_breeding.php" class="mt-3"><?= $bhidden ?><input type="hidden" name="act" value="birth"><input type="hidden" name="breeding_id" value="<?= $bid ?>">
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div><label class="<?= $label ?>" for="bb<?= $bid ?>">Born on</label><input id="bb<?= $bid ?>" name="born_on" type="date" required max="<?= $h($today) ?>" value="<?= $h($today) ?>" class="<?= $input ?>"></div>
+            <div><label class="<?= $label ?>" for="bl<?= $bid ?>">Born dead</label><input id="bl<?= $bid ?>" name="lost" type="number" min="0" max="20" value="0" class="<?= $input ?>"></div>
+          </div>
+          <p class="text-xs text-stone-500 mb-2">Name each kid born alive. Each one goes on the roster with its parents and birth date, in <?= $h($a['name']) ?>'s enclosure, and stays off the website until you publish it.</p>
+          <?php for ($i = 0; $i < 4; $i++): ?>
+          <div class="grid grid-cols-2 gap-3 mb-2">
+            <div><label class="sr-only" for="kn<?= $bid ?>_<?= $i ?>">Kid <?= $i + 1 ?> name</label><input id="kn<?= $bid ?>_<?= $i ?>" name="kids[<?= $i ?>][name]" maxlength="100" placeholder="Kid <?= $i + 1 ?> name" class="<?= $input ?>"></div>
+            <div><label class="sr-only" for="ks<?= $bid ?>_<?= $i ?>">Kid <?= $i + 1 ?> sex</label><select id="ks<?= $bid ?>_<?= $i ?>" name="kids[<?= $i ?>][sex]" class="<?= $input ?>"><?php foreach (BCRF_ANIMAL_SEXES as $k => $v): ?><option value="<?= $k ?>" <?= $k === 'unknown' ? 'selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?></select></div>
+          </div>
+          <?php endfor; ?>
+          <div class="mb-3 mt-3"><label class="<?= $label ?>" for="bn<?= $bid ?>">Notes</label><input id="bn<?= $bid ?>" name="notes" maxlength="1000" class="<?= $input ?>" placeholder="e.g. easy birth, all nursing"></div>
+          <button class="<?= $btnMain ?>">Record birth</button>
+        </form></details>
+        <details class="mt-1"><summary class="cursor-pointer text-sm text-amber-800 underline">Other update</summary>
+        <form method="POST" action="animal_breeding.php" class="mt-3"><?= $bhidden ?><input type="hidden" name="act" value="status"><input type="hidden" name="breeding_id" value="<?= $bid ?>">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+            <div><label class="<?= $label ?>" for="bs<?= $bid ?>">What happened</label><select id="bs<?= $bid ?>" name="status" class="<?= $input ?>">
+              <?php if ($b['status'] === 'bred'): ?><option value="confirmed">Confirmed pregnant</option><?php endif; ?>
+              <option value="open">Not pregnant</option><option value="lost">Lost the pregnancy</option></select></div>
+            <div><label class="<?= $label ?>" for="be<?= $bid ?>">Expected date (if confirmed)</label><input id="be<?= $bid ?>" name="expected_on" type="date" value="<?= $h($b['expected_on']) ?>" class="<?= $input ?>"></div>
+            <div><label class="<?= $label ?>" for="bo<?= $bid ?>">Date (not pregnant / lost)</label><input id="bo<?= $bid ?>" name="outcome_on" type="date" max="<?= $h($today) ?>" value="<?= $h($today) ?>" class="<?= $input ?>"></div>
+          </div>
+          <div class="mb-3"><label class="<?= $label ?>" for="bt<?= $bid ?>">Note</label><input id="bt<?= $bid ?>" name="notes" maxlength="1000" class="<?= $input ?>" placeholder="e.g. vet ultrasound"></div>
+          <button class="<?= $btnSec ?>">Save</button>
+        </form></details>
+        <?php endif; ?></li>
+      <?php endforeach; ?>
+    </ul>
+    <?php endif; ?>
+    <?php if ($canEdit && !$gone && ($a['sex'] ?? '') === 'female' && !$hasOpen): ?>
+    <details <?= $breedings ? '' : 'open' ?>><summary class="cursor-pointer text-sm text-amber-800 underline">Record a breeding</summary>
+    <form method="POST" action="animal_breeding.php" class="mt-3"><?= $bhidden ?><input type="hidden" name="act" value="add">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        <div><label class="<?= $label ?>" for="ns">Sire</label><select id="ns" name="sire_id" class="<?= $input ?>"><option value="0">Outside sire (type below)</option><?php foreach ($males as $o): if (bcrf_animal_is_leaving((string)$o['status'])) continue; ?><option value="<?= (int)$o['id'] ?>"><?= $h($o['name']) ?></option><?php endforeach; ?></select></div>
+        <div><label class="<?= $label ?>" for="no">Outside sire's name</label><input id="no" name="sire_outside" maxlength="120" class="<?= $input ?>" placeholder="e.g. Smith Farm's buck, Duke"></div>
+        <div><label class="<?= $label ?>" for="nb">Bred on</label><input id="nb" name="bred_on" type="date" required max="<?= $h($today) ?>" value="<?= $h($today) ?>" class="<?= $input ?>"></div>
+        <div><label class="<?= $label ?>" for="nm">How</label><select id="nm" name="method" class="<?= $input ?>"><?php foreach (BCRF_BREED_METHODS as $k => $v): ?><option value="<?= $k ?>"><?= $h($v) ?></option><?php endforeach; ?></select></div>
+        <div><label class="<?= $label ?>" for="ne">Expected birth (blank = <?= $gest ? 'about ' . $gest . ' days' : 'no date' ?>)</label><input id="ne" name="expected_on" type="date" class="<?= $input ?>"></div>
+        <div><label class="<?= $label ?>" for="nn">Notes</label><input id="nn" name="notes" maxlength="1000" class="<?= $input ?>"></div>
+      </div>
+      <button class="<?= $btnMain ?>">Record breeding</button>
+    </form></details>
+    <?php elseif ($canEdit && !$gone && ($a['sex'] ?? '') !== 'female' && !$breedings): ?>
+    <p class="text-sm text-stone-500">Breedings are recorded on the mother's page<?= ($a['sex'] ?? '') === '' || ($a['sex'] ?? '') === 'unknown' ? '. Set the sex on Overview first if this is a female' : '' ?>.</p>
     <?php endif; ?>
   </div>
 <?php
