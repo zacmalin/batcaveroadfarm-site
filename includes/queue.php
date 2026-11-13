@@ -249,6 +249,7 @@ function bcrf_runner_tasks(): array {
         'task_digest'            => ['admin/cron/task_digest.php',            ['at' => '06:30']],   // Phase 3 slice 2: morning task list
         'task_alerts'            => ['admin/cron/task_alerts.php',            ['every' => 15]],     // Phase 3 slice 2: late-task emails
         'event_tasks'            => ['admin/cron/event_tasks.php',            ['every' => 15]],     // Phase 3 slice 3: party/booking checklists
+        'reminders'              => ['admin/cron/reminders.php',              ['every' => 15]],     // Nov 13: admin bell + deposit/balance/pass reminder emails
         'backup_files'           => ['admin/cron/backup_files.php',           ['at' => '03:40', 'day' => 0, 'timeout' => 40]],
         'fetch_google_reports'   => ['admin/cron/fetch_google_reports.php',   ['at' => '06:10']],
         'fetch_social_reports'   => ['admin/cron/fetch_social_reports.php',   ['at' => '06:20']],

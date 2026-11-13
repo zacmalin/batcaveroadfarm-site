@@ -209,6 +209,17 @@ if ($_role !== 'Staff') {
     $_catalog['search'] = ['label'=>'Search','short'=>'Search','icon'=>'🔍','href'=>'/admin/search.php',
                            'active'=>basename((string)($_SERVER['SCRIPT_NAME'] ?? '')) === 'search.php','badge'=>0];
 }
+// Notification bell (Nov 13, 2026; includes/notifications.php, migration 0063). Not for the Staff role: config.php only lets
+// Staff open the time clock and tasks.php, and they get late-task emails already.
+$_bell = 0;
+if ($_role !== 'Staff') {
+try {
+    if (!function_exists('bcrf_notifications_unread')) require_once dirname(__DIR__, 3) . '/includes/notifications.php';
+    $_bell = bcrf_notifications_unread($pdo, (int)($current_user_id ?? 0), (string)$_role);
+} catch (Throwable $e) { $_bell = 0; }
+$_catalog['notifications'] = ['label'=>'Notifications','short'=>'Alerts','icon'=>'🔔','href'=>'/admin/notifications.php',
+                              'active'=>basename((string)($_SERVER['SCRIPT_NAME'] ?? '')) === 'notifications.php','badge'=>$_bell];
+}
 foreach ($_sections as $_sk => $_sec) {
     $_items = [];
     foreach ($_sec['items'] as $_it) {
@@ -281,6 +292,13 @@ $_nav_data = [
   <a href="/admin/search.php" title="Search (press /)" role="search"
      class="sb-row sb-search flex items-center gap-2 px-3 py-2 rounded border border-stone-700 text-stone-400 hover:text-white hover:bg-stone-800 transition shrink-0<?= $_catalog['search']['active'] ? ' bg-stone-700 text-white' : '' ?>">
     <span class="shrink-0">🔍</span> <span class="sb-text">Search</span> <span class="sb-text ml-auto text-[9px] font-mono text-stone-500">/</span>
+  </a>
+  <?php endif; ?>
+  <?php if (isset($_catalog['notifications'])): ?>
+  <a href="/admin/notifications.php" title="Notifications<?= $_bell ? ' (' . (int)$_bell . ' new)' : '' ?>"
+     class="sb-row sb-search flex items-center gap-2 px-3 py-2 rounded text-stone-400 hover:text-white hover:bg-stone-800 transition shrink-0<?= $_catalog['notifications']['active'] ? ' bg-stone-700 text-white' : '' ?>">
+    <span class="shrink-0">🔔</span> <span class="sb-text">Notifications</span>
+    <?php if ($_bell > 0): ?><span class="sb-badge ml-auto shrink-0 bg-amber-500 text-white text-[8px] font-black px-1 py-0.5 rounded"><?= (int)$_bell ?></span><?php endif; ?>
   </a>
   <?php endif; ?>
 
@@ -382,6 +400,11 @@ $_nav_data = [
       <?php if (isset($_catalog['search'])): $_c = $_catalog['search']; ?>
       <a href="<?= $_h($_c['href']) ?>" data-sc-id="search" class="nav-tile<?= $_c['active'] ? ' is-current' : '' ?>">
         <span class="nav-tile-icon">🔍</span><span>Search</span>
+      </a>
+      <?php endif; ?>
+      <?php if (isset($_catalog['notifications'])): ?>
+      <a href="/admin/notifications.php" data-sc-id="notifications" class="nav-tile<?= $_catalog['notifications']['active'] ? ' is-current' : '' ?>">
+        <span class="nav-tile-icon">🔔<?php if ($_bell > 0): ?><span class="nav-badge"><?= (int)$_bell ?></span><?php endif; ?></span><span>Notifications</span>
       </a>
       <?php endif; ?>
     </div>
