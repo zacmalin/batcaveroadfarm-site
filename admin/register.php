@@ -75,11 +75,11 @@ if ($api !== '') {
     }
 
     if ($api === 'catalog') {
-        $general = 0;
-        foreach (bcrf_tax_categories($pdo) as $tc) if ($tc['code'] === 'general') $general = $tc['rate_bp'];
+        $general = 0; $taxCats = bcrf_tax_categories($pdo);
+        foreach ($taxCats as $tc) if ($tc['code'] === 'general') $general = $tc['rate_bp'];
         $rows = $pdo->query("SELECT i.id, i.name, i.price, i.stock_quantity, i.sku, i.image_url, i.pricing_mode, i.unit, i.track_inventory,
                                     i.product_type, COALESCE(ic.name, i.category, 'Other') AS cat, COALESCE(ic.sort_order, 999) AS cat_sort,
-                                    tc.rate_bp
+                                    tc.rate_bp, i.tax_category_id
                              FROM inventory i
                              LEFT JOIN inventory_categories ic ON ic.id = i.category_id
                              LEFT JOIN tax_categories tc ON tc.id = i.tax_category_id
@@ -97,6 +97,7 @@ if ($api !== '') {
             'stock' => (int)$r['track_inventory'] ? ($here === null ? (float)$r['stock_quantity'] : ($here[(int)$r['id']] ?? 0.0)) : null, 'sku' => (string)$r['sku'],
             'img' => (string)$r['image_url'], 'mode' => $r['pricing_mode'], 'unit' => $r['unit'], 'type' => $r['product_type'],
             'cat' => $r['cat'], 'rate_bp' => $r['rate_bp'] === null ? $general : (int)$r['rate_bp'],   // no tax category = general (as the server does)
+            'incl' => !empty($taxCats[(int)$r['tax_category_id']]['included']),   // shelf price includes the tax (Q-09, 0061)
         ], $rows);
         $out(200, ['ok' => true, 'items' => $items, 'custom_rate_bp' => $general]);
     }
@@ -677,6 +678,6 @@ $boot = [
 
 <script src="/js/qrcode.min.js"></script>
 <script src="assets/manager-pin.js?v=<?= bcrf_asset_v('/admin/assets/manager-pin.js') ?>"></script>
-<script src="assets/register.js?v=11"></script>
+<script src="assets/register.js?v=12"></script>
 </body>
 </html>

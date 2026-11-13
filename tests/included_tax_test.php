@@ -81,5 +81,23 @@ $ok($tk && $tk['orders'] === 1 && $tk['tax'] === 133 && $tk['net'] === 1967, 're
 $ok($ps && $ps['orders'] === 1 && $ps['tax'] === 759 && $ps['net'] === 11241, 'report: one taxed pass (comp left out), $112.41 + $7.59');
 $ok(bcrf_itax_rows($pdo, '2000-01-01 00:00:00', '2000-02-01 00:00:00') === [], 'report: nothing in another month');
 
+// -- Gate register: admission priced tax-included (0061) --
+require $root . '/includes/sales.php';
+$cats = bcrf_tax_categories($pdo);
+$adm = null; $genId = null;
+foreach ($cats as $c) { if ($c['code'] === 'admission') $adm = $c; if ($c['code'] === 'general') $genId = $c['id']; }
+$ok($adm !== null && $adm['rate_bp'] === 675 && $adm['included'] === true, 'admission tax category: 6.75%, included in the price');
+$prod = [1 => ['id' => 1, 'name' => 'Adult', 'price' => '8.00', 'pricing_mode' => 'each', 'unit' => 'each', 'tax_category_id' => $adm['id'] ?? null, 'product_type' => 'retail', 'cat_label' => 'Admissions', 'track_inventory' => 0],
+         2 => ['id' => 2, 'name' => 'Mug', 'price' => '10.00', 'pricing_mode' => 'each', 'unit' => 'each', 'tax_category_id' => $genId, 'product_type' => 'retail', 'cat_label' => 'Merch', 'track_inventory' => 0]];
+$a = bcrf_sale_price([['product_id' => 1, 'qty' => 1]], $prod, $cats, 0, false, $genId);
+$ok($a['subtotal'] === 749 && $a['discount'] === 0 && $a['tax'] === 51 && $a['total'] === 800, 'one $8 admission: $7.49 + $0.51 = $8.00, ' . json_encode([$a['subtotal'], $a['discount'], $a['tax'], $a['total']]));
+$l = $a['lines'][0];
+$ok($l['gross_cents'] - $l['discount_cents'] + $l['tax_cents'] === $l['line_total_cents'] && $l['line_total_cents'] === 800, 'admission line: net + tax = $8.00 paid');
+$b = bcrf_sale_price([['product_id' => 1, 'qty' => 2], ['product_id' => 2, 'qty' => 1]], $prod, $cats, 1000, false, $genId);
+$ok($b['total'] === 2401 && $b['tax'] === 152 && $b['subtotal'] === 2499 && $b['discount'] === 250, '2 admissions + $10 mug, 10% off: $14.40 incl. tax + $9.00 + $0.61 tax = $24.01, ' . json_encode([$b['subtotal'], $b['discount'], $b['tax'], $b['total']]));
+$ok(array_sum(array_column($b['lines'], 'line_total_cents')) === $b['total'], 'lines add up to the sale total');
+$c = bcrf_sale_price([['product_id' => 1, 'qty' => 1]], $prod, $cats, 0, true, $genId);
+$ok($c['tax'] === 0 && $c['total'] === 800, 'tax-exempt sale of admission: $8.00, no tax');
+
 echo "$n checks, $fails failed\n";
 exit($fails ? 1 : 0);

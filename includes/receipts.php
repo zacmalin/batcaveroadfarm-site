@@ -174,7 +174,8 @@ function bcrf_receipt_html(PDO $pdo, array $s): string {
         if (stripos((string)$l['category_label'], 'thrift') !== false) $thrift = true;
         $each = $l['unit'] === 'each';
         $o .= $row($h($l['description']), $m($l['gross_cents']));
-        if ((float)$l['quantity'] != 1 || !$each) $o .= $row($small('&nbsp;&nbsp;' . $h($q($l['quantity'])) . ($each ? ' × ' : ' ' . $h($l['unit']) . ' × ') . $m($l['unit_price_cents'])), '');
+        $incl = bcrf_muldiv((int)round((float)$l['quantity'] * 1000), (int)$l['unit_price_cents'], 1000) > (int)$l['gross_cents'];   // tax-included price (Q-09)
+        if ((float)$l['quantity'] != 1 || !$each || $incl) $o .= $row($small('&nbsp;&nbsp;' . $h($q($l['quantity'])) . ($each ? ' × ' : ' ' . $h($l['unit']) . ' × ') . $m($l['unit_price_cents']) . ($incl ? ' incl. tax' : '')), '');
         if ($bp = (int)($l['line_discount_bp'] ?? 0)) {
             $off = bcrf_muldiv((int)$l['gross_cents'], $bp, 10000); $itemOff += $off;
             $o .= $row($small('&nbsp;&nbsp;' . $h($bp / 100) . '% off'), $m(-$off));

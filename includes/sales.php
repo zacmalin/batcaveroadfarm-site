@@ -26,6 +26,7 @@
  */
 require_once __DIR__ . '/stock.php';
 require_once __DIR__ . '/gift_cards.php';
+require_once __DIR__ . '/included_tax.php';   // tax-included prices (Q-09)
 
 if (!function_exists('bcrf_sale_complete')) {
 
@@ -73,8 +74,9 @@ function bcrf_customers_ready(PDO $pdo): bool {
 /** Active tax categories, id => row. */
 function bcrf_tax_categories(PDO $pdo): array {
     $out = [];
-    foreach ($pdo->query("SELECT id, code, name, rate_bp, notes FROM tax_categories WHERE archived_at IS NULL ORDER BY sort_order, id")->fetchAll(PDO::FETCH_ASSOC) as $r) {
+    foreach ($pdo->query("SELECT * FROM tax_categories WHERE archived_at IS NULL ORDER BY sort_order, id")->fetchAll(PDO::FETCH_ASSOC) as $r) {
         $r['id'] = (int)$r['id']; $r['rate_bp'] = (int)$r['rate_bp'];
+        $r['included'] = (int)($r['price_includes_tax'] ?? 0) === 1;   // shelf price already holds the tax (0061)
         $out[$r['id']] = $r;
     }
     return $out;
@@ -133,6 +135,7 @@ function bcrf_sale_price(array $cart, array $products, array $taxCats, int $disc
         $lines[] = $line + ['line_no' => $i + 1, 'quantity' => $qtyMilli / 1000, 'unit_price_cents' => $price, 'gross_cents' => $gross,
                             'line_discount_bp' => $lineBp, 'item_discount_cents' => bcrf_muldiv($gross, $lineBp, 10000),
                             'tax_category_id' => $taxId, 'tax_rate_bp' => $taxExempt ? 0 : (int)($taxCats[$taxId]['rate_bp'] ?? 0),
+                            'tax_included' => !$taxExempt && !empty($taxCats[$taxId]['included']),
                             'note' => $c['note'] ?? null];
     }
     $subtotal = array_sum(array_column($lines, 'gross_cents'));
@@ -159,11 +162,23 @@ function bcrf_sale_price(array $cart, array $products, array $taxCats, int $disc
     foreach ($lines as $k => &$l) {
         $l['discount_cents']   = $l['item_discount_cents'] + $alloc[$k];
         $net                   = $l['gross_cents'] - $l['discount_cents'];
-        $l['tax_cents']        = bcrf_muldiv($net, $l['tax_rate_bp'], 10000);
+        if ($l['tax_included']) {
+            // Tax-included price (Q-09): the customer pays the shelf price less discounts; the tax is inside it.
+            // Gross and discount are stored before tax, as for every other line, so net + tax = what was paid.
+            $paid                  = $net;
+            $l['tax_cents']        = bcrf_itax_part($paid, $l['tax_rate_bp']);
+            $l['gross_cents']     -= bcrf_itax_part($l['gross_cents'], $l['tax_rate_bp']);
+            $net                   = $paid - $l['tax_cents'];
+            $l['discount_cents']   = $l['gross_cents'] - $net;
+        } else {
+            $l['tax_cents']        = bcrf_muldiv($net, $l['tax_rate_bp'], 10000);
+        }
         $l['line_total_cents'] = $net + $l['tax_cents'];
         $tax += $l['tax_cents'];
     }
     unset($l);
+    $subtotal = array_sum(array_column($lines, 'gross_cents'));
+    $discount = array_sum(array_column($lines, 'discount_cents'));
     return ['lines' => $lines, 'subtotal' => $subtotal, 'discount' => $discount, 'tax' => $tax, 'total' => $subtotal - $discount + $tax];
 }
 

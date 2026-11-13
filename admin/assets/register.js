@@ -85,7 +85,8 @@
   function price() {
     var lines = S.cart.map(function (l) {
       var gross = muldiv(Math.round(l.qty * 1000), l.unit_price_cents, 1000);
-      return { gross: gross, item: muldiv(gross, lineBp(l), 10000), rate: S.exempt ? 0 : l.rate_bp };
+      var it = l.product_id && S.byId ? S.byId[l.product_id] : null;   // tax-included price (Q-09, 0061)
+      return { gross: gross, item: muldiv(gross, lineBp(l), 10000), rate: S.exempt ? 0 : l.rate_bp, incl: !S.exempt && !!(it && it.incl) };
     });
     var sub = lines.reduce(function (s, l) { return s + l.gross; }, 0);
     var itemDisc = lines.reduce(function (s, l) { return s + l.item; }, 0);
@@ -100,9 +101,15 @@
     });
     rem.sort(function (a, b) { return b[1] - a[1] || a[0] - b[0]; });
     for (var k = 0; k < rem.length && given < receipt; k++) { alloc[rem[k][0]]++; given++; }
-    var tax = 0;
-    lines.forEach(function (l, i) { tax += muldiv(l.gross - l.item - alloc[i], l.rate, 10000); });
-    return { sub: sub, item: itemDisc, receipt: receipt, disc: itemDisc + receipt, tax: tax, total: sub - itemDisc - receipt + tax, lines: lines };
+    var tax = 0, subX = 0, discX = 0;
+    lines.forEach(function (l, i) {
+      var net = l.gross - l.item - alloc[i];
+      if (l.incl) {   // the customer pays the shelf price; gross and discount shown before tax, as the server stores them
+        var t = net - muldiv(net, 10000, 10000 + l.rate), g = l.gross - (l.gross - muldiv(l.gross, 10000, 10000 + l.rate));
+        tax += t; subX += g; discX += g - (net - t);
+      } else { tax += muldiv(net, l.rate, 10000); subX += l.gross; discX += l.item + alloc[i]; }
+    });
+    return { sub: subX, item: itemDisc, receipt: receipt, disc: discX, tax: tax, total: subX - discX + tax, lines: lines };
   }
   function paid() { return S.payments.reduce(function (s, p) { return s + p.amount_cents; }, 0); }
 
@@ -738,7 +745,8 @@
       if ((l.category_label || '').toLowerCase().indexOf('thrift') >= 0) thrift = true;
       var q = parseFloat(l.quantity), each = l.unit === 'each';
       rows.push(el('tr', {}, [el('td', { text: l.description }), el('td', { class: 'r', text: money(l.gross_cents) })]));
-      if (q !== 1 || !each) rows.push(el('tr', {}, [el('td', { text: '  ' + qtyText(q) + (each ? ' × ' : ' ' + l.unit + ' × ') + money(l.unit_price_cents) }), el('td')]));
+      var incl = muldiv(Math.round(q * 1000), +l.unit_price_cents, 1000) > +l.gross_cents;   // tax-included price (Q-09)
+      if (q !== 1 || !each || incl) rows.push(el('tr', {}, [el('td', { text: '  ' + qtyText(q) + (each ? ' × ' : ' ' + l.unit + ' × ') + money(l.unit_price_cents) + (incl ? ' incl. tax' : '') }), el('td')]));
       var lb = +l.line_discount_bp || 0;
       if (lb) rows.push(el('tr', {}, [el('td', { text: '  ' + (lb / 100) + '% off' }), el('td', { class: 'r', text: money(-muldiv(+l.gross_cents, lb, 10000)) })]));
       if (l.note) rows.push(el('tr', {}, [el('td', { text: '  ' + l.note }), el('td')]));
