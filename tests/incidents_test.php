@@ -79,7 +79,7 @@ $pdo->exec("INSERT INTO customers (id, first_name, last_name, email, password, c
 $pdo->exec("INSERT INTO tickets (id, public_code, source, purchaser_name, purchaser_email, quantity, quantity_redeemed, status, expires_at, amount_cents, created_at, payment_status)
             VALUES (1, 'ABCDEFGH23', 'online', 'Emily Jenkins', 'emily@example.test', 2, 2, 'redeemed', DATE_ADD(NOW(), INTERVAL 300 DAY), 1600, NOW(), 'paid')");
 $pdo->prepare("INSERT INTO check_ins (source_type, ticket_id, party_size, guests_counted, checked_in_at, expected_out_at, business_date) VALUES ('ticket', 1, 2, 2, ?, ?, ?)")
-    ->execute([$utc($now->modify('-2 hours')), $utc($now), $today]);
+    ->execute([$utc($now->modify('-2 hours')), $utc($now), $earlier->format('Y-m-d')]); // the incident's day (just after midnight that is yesterday)
 $ciId = (int)$pdo->lastInsertId();
 
 // -- Checks --
