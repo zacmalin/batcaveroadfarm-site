@@ -19,7 +19,7 @@ $pinBack = function (string $msg, string $type = 'success'): void {
     header('Location: /admin/admin.php?view=social&tab=pinterest' . ($f !== '' ? '&f=' . $f : '') . ($t !== '' ? '&t=' . $t : '') . $anchor);
     exit;
 };
-if (!bcrf_pin_ready($pdo)) $pinBack('Run migration 0007_pinterest_drafts first (Settings › Database).', 'error');
+if (!bcrf_pinterest_ready($pdo)) $pinBack('Run migration 0007_pinterest_drafts first (Settings › Database).', 'error');
 
 $act    = (string)($_POST['pinterest_action'] ?? '');
 $id     = (int)($_POST['id'] ?? 0);

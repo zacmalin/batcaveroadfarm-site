@@ -10,7 +10,7 @@ require_once __DIR__ . '/../includes/pinterest.php';
 
 $id = (int)($_GET['id'] ?? 0);
 $file = null; $name = 'pin.jpg';
-if ($id > 0 && bcrf_pin_ready($pdo)) {
+if ($id > 0 && bcrf_pinterest_ready($pdo)) {
     $st = $pdo->prepare("SELECT content_type, content_id, title, image_path FROM social_queue_targets WHERE id = ? AND platform = 'pinterest'");
     $st->execute([$id]);
     if ($r = $st->fetch(PDO::FETCH_ASSOC)) {

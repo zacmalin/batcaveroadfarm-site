@@ -8,13 +8,13 @@
  * The cart itself is the register's own JSON; prices are always worked out again on the server when the sale is saved.
  */
 
-if (!function_exists('bcrf_holds_ready')) {
+if (!function_exists('bcrf_hold_save')) {
 
 require_once __DIR__ . '/sales.php';
 
 class BcrfRegisterError extends RuntimeException {}
 
-function bcrf_holds_ready(PDO $pdo): bool {
+function bcrf_sale_holds_ready(PDO $pdo): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     try { $ready = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'sale_holds'")->fetchColumn() === 1; }
@@ -26,7 +26,7 @@ function bcrf_holds_ready(PDO $pdo): bool {
 
 /** Park a cart. $state = the register's cart JSON (lines, discPct, exempt, customer). Returns the hold id. */
 function bcrf_hold_save(PDO $pdo, ?int $registerId, string $label, array $state, int $totalCents): int {
-    if (!bcrf_holds_ready($pdo)) throw new BcrfRegisterError('Holding carts needs migration 0014 (Settings › Database).');
+    if (!bcrf_sale_holds_ready($pdo)) throw new BcrfRegisterError('Holding carts needs migration 0014 (Settings › Database).');
     $lines = array_values(array_filter((array)($state['cart'] ?? []), 'is_array'));
     if (!$lines) throw new BcrfRegisterError('The cart is empty.');
     if (count($lines) > 200) throw new BcrfRegisterError('That cart is too big to hold.');
@@ -49,7 +49,7 @@ function bcrf_local_hold_time(string $utc): string {
 
 /** Open holds, newest first. */
 function bcrf_holds_list(PDO $pdo): array {
-    if (!bcrf_holds_ready($pdo)) return [];
+    if (!bcrf_sale_holds_ready($pdo)) return [];
     $tz = new DateTimeZone(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
     $today = (new DateTimeImmutable('now', $tz))->format('Y-m-d');
     $out = [];
@@ -66,7 +66,7 @@ function bcrf_holds_list(PDO $pdo): array {
 
 /** Take a held cart back. Only one device can recall it. Returns the cart JSON. */
 function bcrf_hold_recall(PDO $pdo, int $id): array {
-    if (!bcrf_holds_ready($pdo)) throw new BcrfRegisterError('Holding carts needs migration 0014.');
+    if (!bcrf_sale_holds_ready($pdo)) throw new BcrfRegisterError('Holding carts needs migration 0014.');
     $up = $pdo->prepare("UPDATE sale_holds SET status = 'recalled', closed_at = UTC_TIMESTAMP(), closed_by = ? WHERE id = ? AND status = 'open'");
     $up->execute([(int)($_SESSION['user_id'] ?? 0) ?: null, $id]);
     if ($up->rowCount() !== 1) throw new BcrfRegisterError('That cart was already taken back or removed (maybe on another device).');
@@ -77,7 +77,7 @@ function bcrf_hold_recall(PDO $pdo, int $id): array {
 
 /** Throw a held cart away. */
 function bcrf_hold_discard(PDO $pdo, int $id): void {
-    if (!bcrf_holds_ready($pdo)) throw new BcrfRegisterError('Holding carts needs migration 0014.');
+    if (!bcrf_sale_holds_ready($pdo)) throw new BcrfRegisterError('Holding carts needs migration 0014.');
     $up = $pdo->prepare("UPDATE sale_holds SET status = 'discarded', closed_at = UTC_TIMESTAMP(), closed_by = ? WHERE id = ? AND status = 'open'");
     $up->execute([(int)($_SESSION['user_id'] ?? 0) ?: null, $id]);
     if ($up->rowCount() !== 1) throw new BcrfRegisterError('That cart was already taken back or removed.');

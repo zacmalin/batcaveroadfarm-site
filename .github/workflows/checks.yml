@@ -55,6 +55,18 @@ jobs:
             echo "::error::Request data is interpolated into SQL — use a prepared statement with ? placeholders."; fail=1; fi
           exit $fail
 
+      - name: No function defined twice
+        run: |
+          # Two include files defining the same function name: whichever loads first wins and the other file's
+          # functions silently vanish (or PHP stops with "Cannot redeclare"). Found Nov 13, 2026: the register's held
+          # carts and the gate's capacity holds both had bcrf_holds_ready(), which crashed admission sales on the register.
+          dups=$(grep -ohE '^[[:space:]]*function [A-Za-z0-9_]+[[:space:]]*\(' includes/*.php admin/includes/*.php \
+                 | sed -E 's/^[[:space:]]*function ([A-Za-z0-9_]+).*/\1/' | sort | uniq -d | grep -vxF -f tools/function-name-exceptions.txt || true)
+          if [ -n "$dups" ]; then
+            for d in $dups; do echo "::error::$d() is defined in more than one file: $(grep -lE "^[[:space:]]*function $d[[:space:]]*\(" includes/*.php admin/includes/*.php | tr '\n' ' ')"; done
+            exit 1
+          fi
+
       - name: Set up Node
         uses: actions/setup-node@v5
         with:

@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pinterest_action'])) 
 $csrf   = (string)($_SESSION['csrf_token'] ?? '');
 $e      = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
 $canPub = in_array($current_role, ['administrator', 'moderator'], true);
-$ready  = bcrf_pin_ready($pdo);
+$ready  = bcrf_pinterest_ready($pdo);
 
 $filters = [
     'drafts'   => ['Drafts',   "t.status IN ('draft','failed')"],

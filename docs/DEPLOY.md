@@ -15,7 +15,7 @@ Never in a pack: `bcrf-secrets.php`, `vendor/`, `uploads/`, `img/` (the Deploy p
 
 ## Before you start (2 minutes)
 
-- The change is on `main` and the commit has a green tick (Code check, plus Migrations test if it touched the database). Note the short SHA.
+- The change is on `main` and the commit has green ticks (Code check and All tests, plus Migrations test if it touched the database). Note the short SHA.
 - You know the exact file list. No other deploy is half-finished.
 - Not during an open day rush, an event, or while someone is mid-checkout.
 - Database change? admin → **Backups** → run a database backup now. admin → **Database** → Run pending refuses without a backup from the last 24 hours anyway.

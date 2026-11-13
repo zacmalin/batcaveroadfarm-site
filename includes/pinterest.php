@@ -25,7 +25,7 @@ define('BCRF_PIN_BATCH_CHUNK', 10);
 define('BCRF_PIN_IMAGE_DIR', 'img/pinterest');   // from the site root
 
 /** True once migration 0007 has run. */
-function bcrf_pin_ready(PDO $pdo): bool {
+function bcrf_pinterest_ready(PDO $pdo): bool {
     static $ok = null;
     if ($ok !== null) return $ok;
     try {
@@ -187,7 +187,7 @@ function bcrf_pin_image_abs(?string $rel): ?string {
  * force (re-render even when nothing changed), reset_text (drop hand edits and use generated text).
  */
 function bcrf_pin_generate(PDO $pdo, string $type, int $id, array $o = []): array {
-    if (!bcrf_pin_ready($pdo)) return ['result' => 'failed', 'id' => 0, 'msg' => 'Run migration 0007 first (Settings › Database).'];
+    if (!bcrf_pinterest_ready($pdo)) return ['result' => 'failed', 'id' => 0, 'msg' => 'Run migration 0007 first (Settings › Database).'];
     if (!in_array($type, ['recipe', 'animal'], true)) return ['result' => 'skipped', 'id' => 0, 'msg' => 'Only recipes and animals can be pinned'];
     $r   = bcrf_pin_record($pdo, $type, $id);
     $row = bcrf_pin_target($pdo, $type, $id);

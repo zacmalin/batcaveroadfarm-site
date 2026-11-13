@@ -1,0 +1,3 @@
+# tools/function-name-exceptions.txt — function names allowed in two include files (checked by .github/workflows/checks.yml).
+# Only for identical "is the table there" helpers that are both wrapped in function_exists guards.
+bcrf_customers_ready

@@ -1,0 +1,62 @@
+# .github/workflows/all_tests.yml — every test in tests/, on every push (Nov 13, 2026).
+# Replaces the separate tasks, gift cards and Roost Rewards workflows, whose file filters let some changes
+# (for example includes/register_extras.php) skip every test. Each *_test.php empties a throwaway MySQL 8
+# database, builds it from every migration and checks one part of Farm OS. Never touches a real database.
+# migrations_test.php and phase0_cleanup_test.php run in migrations.yml ("Migrations test").
+# A red X here means something that used to work is broken: the summary lists which test and which checks.
+name: All tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: bcrf_all_test
+        ports: ['3306:3306']
+        options: --health-cmd="mysqladmin ping -proot" --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: pdo_mysql
+          coverage: none
+          tools: none
+      - name: Run every test
+        env:
+          DB_HOST: 127.0.0.1
+          DB_NAME: bcrf_all_test
+          DB_USER: root
+          DB_PASS: root
+        run: |
+          fail=0; n=0
+          echo "| Test | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          for t in tests/*_test.php; do
+            case "$t" in tests/migrations_test.php|tests/phase0_cleanup_test.php) continue;; esac
+            n=$((n+1))
+            echo "::group::$t"
+            if out=$(php "$t" 2>&1); then
+              echo "$out" | tail -1
+              echo "| $(basename "$t") | ✅ $(echo "$out" | tail -1) |" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "$out"
+              echo "::error file=$t::$(echo "$out" | grep -m3 -E 'FAIL|Fatal|failed' | tr '\n' ' ')"
+              echo "| $(basename "$t") | ❌ $(echo "$out" | grep -c FAIL) failed |" >> "$GITHUB_STEP_SUMMARY"
+              fail=1
+            fi
+            echo "::endgroup::"
+          done
+          echo "Ran $n test files"
+          exit $fail

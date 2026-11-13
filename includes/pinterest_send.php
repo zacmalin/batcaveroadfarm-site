@@ -22,7 +22,7 @@ require_once __DIR__ . '/adapter_pinterest.php';
 
 define('BCRF_PIN_SEND_MAX_TRIES', 5);
 
-function bcrf_pin_audit(PDO $pdo, string $action, int $id, string $label, array $after = []): void {
+function bcrf_pinterest_audit(PDO $pdo, string $action, int $id, string $label, array $after = []): void {
     if (!function_exists('bcrf_audit_event')) {
         $f = dirname(__DIR__) . '/admin/includes/audit.php';
         if (is_file($f)) require_once $f;
@@ -111,7 +111,7 @@ function bcrf_pin_send(PDO $pdo, int $id): array {
         } catch (PDOException $e) {   // that Pin id is already recorded elsewhere: keep the post, report it
             $set('sent', 'duplicate_id', 'Posted as Pin ' . $pinId . ', which is already recorded on another row.');
         }
-        bcrf_pin_audit($pdo, 'publish', $id, $label, ['pin_id' => $pinId, 'board_id' => $board]);
+        bcrf_pinterest_audit($pdo, 'publish', $id, $label, ['pin_id' => $pinId, 'board_id' => $board]);
         return ['result' => 'sent', 'msg' => 'Posted (Pin ' . $pinId . ')'];
     }
 
@@ -135,7 +135,7 @@ function bcrf_pin_send(PDO $pdo, int $id): array {
 /** Job pinterest.autopost: first publication of a recipe/animal → draft → approved → queued (if switched on). */
 function bcrf_pin_autopost(PDO $pdo, string $table, int $id, int $eventId = 0): string {
     $type = ['recipes' => 'recipe', 'animals' => 'animal'][$table] ?? '';
-    if ($type === '' || $id <= 0 || !bcrf_pin_ready($pdo)) return 'not applicable';
+    if ($type === '' || $id <= 0 || !bcrf_pinterest_ready($pdo)) return 'not applicable';
     if (bcrf_pin_setting($pdo, 'pinterest_autopost_' . $type) !== '1') return 'auto-posting is off for ' . $type . 's';
     if (bcrf_pin_target($pdo, $type, $id)) return 'already has a Pin draft (not a first publication)';
     if ($eventId > 0) {
@@ -147,7 +147,7 @@ function bcrf_pin_autopost(PDO $pdo, string $table, int $id, int $eventId = 0): 
     if ($g['result'] !== 'created') return 'draft: ' . $g['msg'];
     $pdo->prepare("UPDATE social_queue_targets SET status = 'approved', approved_at = UTC_TIMESTAMP(), approved_by = NULL, updated_at = UTC_TIMESTAMP() WHERE id = ? AND status = 'draft'")
         ->execute([$g['id']]);
-    bcrf_pin_audit($pdo, 'approve', (int)$g['id'], 'Pinterest auto-post: ' . $type . ' #' . $id);
+    bcrf_pinterest_audit($pdo, 'approve', (int)$g['id'], 'Pinterest auto-post: ' . $type . ' #' . $id);
     $why = bcrf_pin_queue_send($pdo, (int)$g['id']);
     if ($why !== '') {
         $pdo->prepare("UPDATE social_queue_targets SET last_error_code = 'paused', last_error = ? WHERE id = ? AND status = 'approved'")->execute([$why, $g['id']]);
