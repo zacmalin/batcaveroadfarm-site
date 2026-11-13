@@ -60,8 +60,10 @@ $_sections = [
         ]],
     ]],
     'kitchen' => ['label'=>'Kitchen','icon'=>'🍳','items'=>[
-        ['label'=>'Recipes',     'icon'=>'📖','tabs'=>[['Recipes','?view=schema&table=recipes','table','recipes']]],
-        ['label'=>'Ingredients', 'icon'=>'🌿','tabs'=>[['Ingredients','?view=schema&table=ingredients','table','ingredients']]],
+        ['label'=>'Recipes',     'icon'=>'📖','tabs'=>[['Recipes','?view=schema&table=recipes','table','recipes'],
+                                                       ['Label check','/admin/kitchen_recipes.php','table','recipes']]],                  // Farm OS Phase 4 slice 1 (Nov 12)
+        ['label'=>'Ingredients', 'icon'=>'🌿','tabs'=>[['Ingredients','?view=schema&table=ingredients','table','ingredients'],
+                                                       ['Label details','/admin/kitchen_ingredients.php','table','ingredients']]],        // Farm OS Phase 4 slice 1 (Nov 12)
         ['label'=>'Reference',   'short'=>'Ref','icon'=>'📚','tabs'=>[
             ['Cuisines',          '?view=schema&table=cuisines',          'table', 'cuisines'],
             ['Categories',        '?view=schema&table=categories',        'table', 'categories'],

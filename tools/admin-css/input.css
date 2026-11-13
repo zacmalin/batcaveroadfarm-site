@@ -28,6 +28,8 @@
 @source "../../admin/animal_public.php";
 @source "../../admin/assets/tasks.js";
 @source "../../admin/quotes.php";
+@source "../../admin/kitchen_ingredients.php";
+@source "../../admin/kitchen_recipes.php";
 @source "../../admin/weather.php";
 @source "../../admin/calendar.php";
 @source "../../admin/party.php";
