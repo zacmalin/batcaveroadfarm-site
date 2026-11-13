@@ -201,6 +201,22 @@ if ($_role === 'administrator' && isset($pdo)) {
 }
 $_badges = ['comment_moderation' => $_pcc, 'jobs' => $_jnc, 'jobs_emails' => $_jqc, 'jobs_staff' => $_jyc];
 $_badge_titles = ['jobs' => 'New applicants', 'jobs_emails' => 'Emails waiting for approval', 'jobs_staff' => 'Youth certificates still needed', 'comment_moderation' => 'Comments awaiting moderation'];
+// Badges on one tab, by its link (Nov 13, 2026). Each is counted only for people who can act on it, so nobody sees
+// a badge for work they can't do: ingredient label details need ingredient edit rights; label drafts need approvers.
+$_href_badges = []; $_href_titles = [];
+if ($_role !== 'Staff' && $_role !== 'user' && isset($pdo)) {
+    try {
+        if ($_role === 'administrator' || (function_exists('hasTableAccess') && hasTableAccess($_role, 'ingredients', 'edit'))) {
+            if (!function_exists('bcrf_kitchen_attention_count')) require_once dirname(__DIR__, 3) . '/includes/kitchen.php';
+            $_href_badges['/admin/kitchen_ingredients.php'] = bcrf_kitchen_attention_count($pdo);
+            $_href_titles['/admin/kitchen_ingredients.php'] = 'Ingredients missing label details';
+        }
+        if ($_role === 'administrator' || (function_exists('hasViewAccess') && hasViewAccess($_role, 'kitchen_labels_approve'))) {
+            $_href_badges['/admin/kitchen_labels.php'] = (int)$pdo->query("SELECT COUNT(*) FROM kitchen_labels WHERE status = 'draft'")->fetchColumn();
+            $_href_titles['/admin/kitchen_labels.php'] = 'Label drafts waiting for approval';
+        }
+    } catch (Throwable $e) { error_log('[sidebar] kitchen badges: ' . $e->getMessage()); }
+}
 
 // ── BUILD VISIBLE NAV ─────────────────────────────────────────────────────────
 $_nav = []; $_catalog = []; $_cur_section = null; $_cur_item = null;
@@ -228,7 +244,7 @@ foreach ($_sections as $_sk => $_sec) {
         foreach ($_it['tabs'] as [$_tl, $_th, $_tct, $_tcv]) {
             if (!$_can($_tct, $_tcv)) continue;
             $_tabs[] = ['label'=>$_tl, 'href'=>$_full_href($_th), 'active'=>$_active($_th),
-                        'badge'=>(int)($_badges[$_tcv] ?? 0), 'badge_title'=>$_badge_titles[$_tcv] ?? ''];
+                        'badge'=>(int)($_href_badges[$_th] ?? $_badges[$_tcv] ?? 0), 'badge_title'=>$_href_titles[$_th] ?? $_badge_titles[$_tcv] ?? ''];
         }
         if (!$_tabs) continue;
         $_is_act = in_array(true, array_column($_tabs, 'active'), true) || in_array($_tv, $_it['match'] ?? [], true);

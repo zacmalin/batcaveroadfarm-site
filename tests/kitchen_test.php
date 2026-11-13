@@ -169,6 +169,7 @@ $att = array_column(bcrf_kitchen_ingredient_list($pdo, 'attention'), null, 'sing
 $ok(isset($att['sugar']) && $att['sugar']['needs_density'], 'sugar needs a density again');
 $ok(isset($att['shrimp']) && $att['shrimp']['needs_density'], 'shrimp by the cup needs a density');
 $ok(!isset($att['butter']) && !isset($att['flour']), 'complete ingredients are not listed');
+$ok(bcrf_kitchen_attention_count($pdo) === count($att), 'sidebar badge counts the Needs attention list: ' . bcrf_kitchen_attention_count($pdo));
 $all = bcrf_kitchen_ingredient_list($pdo, 'all');
 $ok(count($all) === 9, 'all ingredients');
 $ok(count(bcrf_kitchen_ingredient_list($pdo, 'all', 'choc')) === 1, 'ingredient search');

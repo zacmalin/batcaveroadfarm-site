@@ -289,6 +289,31 @@ if ($__cal > 0 && empty($recipe['nutrition_servings'])) {
 if ($__cal > 0) {
     $__recipeSchema['nutrition'] = ["@type" => "NutritionInformation", "calories" => $__cal . " calories"];
 }
+// Full Nutrition Facts per serving (Nov 13, 2026): only when the calculator recorded its servings
+// (includes/recipe_nutrition.php), so every number is per serving. Shown under the ingredients and added to the schema.
+$__nutri = [];
+if ($__cal > 0 && !empty($recipe['nutrition_servings'])) {
+    $__g = fn($v) => rtrim(rtrim(number_format((float)$v, 1, '.', ''), '0'), '.');
+    $__nutri['Calories'] = (string)$__cal;
+    foreach ([['Protein', 'protein_g', 'g', 'proteinContent'], ['Fat', 'fat_g', 'g', 'fatContent'], ['Carbs', 'carbs_g', 'g', 'carbohydrateContent'],
+              ['Fiber', 'fiber_g', 'g', 'fiberContent'], ['Sugar', 'sugar_g', 'g', 'sugarContent'], ['Sodium', 'sodium_mg', 'mg', 'sodiumContent']] as [$__lbl, $__col, $__u, $__sk]) {
+        if (($recipe[$__col] ?? null) === null) continue;
+        $__val = $__u === 'mg' ? (string)(int)round((float)$recipe[$__col]) : $__g($recipe[$__col]);
+        $__nutri[$__lbl] = $__val . ' ' . $__u;
+        $__recipeSchema['nutrition'][$__sk] = $__val . ' ' . $__u;
+    }
+    $__recipeSchema['nutrition']['servingSize'] = '1 serving';
+}
+// Allergens from Kitchen › Ingredients (Nov 13, 2026). Shown only when every ingredient's allergens were checked,
+// so a half-checked recipe never claims to be free of something.
+$__allergenText = '';
+try {
+    if (!function_exists('bcrf_kitchen_resolve')) require_once __DIR__ . '/../includes/kitchen.php';
+    if (bcrf_kitchen_ready($pdo) && ($__kres = bcrf_kitchen_resolve($pdo, $recipe_id)) && $__kres['items'] && !$__kres['unchecked'] && !$__kres['needs_name']) {
+        $__allergenText = bcrf_label_contains_text($__kres['contains'], !empty($__kres['sulfites']));
+        if ($__allergenText === '') $__allergenText = 'None of the nine major food allergens.';
+    }
+} catch (Throwable $e) { error_log('[recipe_detail] allergens ' . $recipe_id . ': ' . $e->getMessage()); $__allergenText = ''; }
 // Individual recipe reviews (policy-safe: Recipe type only) from published, rated comments
 $__reviews = [];
 foreach ($comments as $__cm) {
@@ -470,6 +495,18 @@ $renderShare = function ($variant) use ($canonicalUrl, $recipe, $svg) {
             </li>
           <?php endforeach; ?>
         </ul>
+        <?php if ($__nutri): ?>
+        <section class="recipe-nutrition" aria-labelledby="nutri-h">
+          <h3 id="nutri-h">Nutrition <span>per serving</span></h3>
+          <dl class="nutri-grid">
+            <?php foreach ($__nutri as $__lbl => $__val): ?><div><dt><?= htmlspecialchars($__lbl) ?></dt><dd><?= htmlspecialchars($__val) ?></dd></div><?php endforeach; ?>
+          </dl>
+          <p class="nutri-note">Estimated from USDA data for the ingredients we use.</p>
+        </section>
+        <?php endif; ?>
+        <?php if ($__allergenText !== ''): ?>
+        <p class="recipe-allergens"><strong>Allergens:</strong> <?= htmlspecialchars($__allergenText) ?> <span class="nutri-note">Based on the brands we use; check your own labels.</span></p>
+        <?php endif; ?>
       </aside>
       <div class="recipe-steps">
         <h2>Preparation</h2>

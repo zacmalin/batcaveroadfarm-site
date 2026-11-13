@@ -327,3 +327,14 @@ a.recipe-chip--cuisine,a.recipe-chip--cuisine:link,a.recipe-chip--cuisine:visite
 .recipe-steps .instructions li[data-list="bullet"]{list-style-type:disc}
 .recipe-steps .instructions li.ql-indent-1{margin-left:1.5em}
 .recipe-steps .instructions li.ql-indent-2{margin-left:3em}
+/* Nutrition per serving + allergens under the ingredients (Nov 13, 2026) */
+.recipe-nutrition{margin-top:20px;padding-top:12px;border-top:2px solid var(--gold)}
+.recipe-nutrition h3{font-family:'Rye',serif;font-size:.95rem;color:var(--brown-dark);margin:0 0 10px}
+.recipe-nutrition h3 span{font-family:'Lora',serif;font-style:italic;font-size:.85rem;font-weight:400;color:var(--brown-mid)}
+.nutri-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0}
+.nutri-grid div{background:rgba(255,255,255,.45);border:1px solid rgba(62,42,30,.18);border-radius:8px;padding:6px 4px;text-align:center}
+.nutri-grid dt{font-family:'Lora',serif;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;color:var(--brown-mid)}
+.nutri-grid dd{margin:2px 0 0;font-family:'Lora',serif;font-weight:700;font-size:.98rem;color:var(--brown-dark)}
+.nutri-note{display:block;margin:8px 0 0;font-family:'Lora',serif;font-style:italic;font-size:.78rem;color:var(--brown-mid)}
+.recipe-allergens{margin:14px 0 0;font-family:'Lora',serif;font-size:.9rem;color:var(--brown-dark)}
+@media print{.nutri-grid div{background:none}}

@@ -340,6 +340,13 @@ function bcrf_kitchen_ingredient_list(PDO $pdo, string $filter = 'attention', st
     return $out;
 }
 
+/** How many ingredients used in a recipe are missing something a label needs, for the sidebar badge
+ *  on Kitchen › Ingredients › Label details (Nov 13, 2026). Same rule as the page's "Needs attention" list. */
+function bcrf_kitchen_attention_count(PDO $pdo): int {
+    if (!bcrf_kitchen_ready($pdo)) return 0;
+    return count(bcrf_kitchen_ingredient_list($pdo, 'attention'));
+}
+
 /** A positive decimal from a form, or null when blank. */
 function bcrf_kitchen_num($v, string $what, float $min, float $max): ?float {
     $v = trim(str_replace(',', '', (string)$v));
