@@ -39,7 +39,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.ph
                 <div class="card-grid">
                     <a class="card cardLink reveal" href="<?= bcrf_farm_url() ?>/petting-zoo/">
                         <div class="card-img-placeholder">
-                            <img class="boximg" src="<?= bcrf_farm_url() ?>/img/animals1.webp" alt="White peacock displaying full tail feathers surrounded by goats, a pig, donkey, and wild turkeys at the Bat Cave Road Farm petting zoo in Old Fort, NC — family-friendly farm animal experience near Asheville, Western North Carolina" width="500" height="281" decoding="async">
+                            <img class="boximg" src="<?= bcrf_farm_url() ?>/img/animals1.webp" alt="White peacock displaying full tail feathers surrounded by goats, a pig, donkey, and wild turkeys at the Bat Cave Road Farm petting zoo in Old Fort, NC — family-friendly farm animal experience near Asheville, Western North Carolina" width="500" height="281" decoding="async" loading="lazy">
                         </div>
                         <div class="card-body">
                             <h3 class="card-title">Petting Zoo</h3>

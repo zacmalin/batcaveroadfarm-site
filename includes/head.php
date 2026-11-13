@@ -51,6 +51,15 @@ require_once __DIR__ . '/ga.php';   // GA4: staff visits tagged internal, queued
         <link rel="preload" as="image" href="<?= htmlspecialchars($preloadImage) ?>" media="(min-width: 601px)" fetchpriority="high">
         <style>@media (max-width:600px){.hero-photo{--hero-img:url('<?= $__heroMobile ?>') !important}}</style>
         <?php elseif (!empty($preloadImage)): ?><link rel="preload" as="image" href="<?php echo htmlspecialchars($preloadImage); ?>" fetchpriority="high"><?php endif; ?>
+        <?php
+        // Page background on phones (Nov 13, 2026): body uses background-size:cover over the whole
+        // page, so a phone stretches it many times over anyway. A 400px copy looks the same and
+        // frees ~45 KB of the slow-4G connection for the hero photo (homepage LCP).
+        require_once __DIR__ . '/img_dims.php';
+        $__bgPhone = bcrf_img_thumb('/img/background2.webp', 400);
+        if ($__bgPhone !== '/img/background2.webp' && preg_match('#^/img/_thumbs/400/background2\.webp\?v=\d+$#', $__bgPhone)): ?>
+        <style>@media (max-width:600px){body{background-image:url('<?= bcrf_farm_url() . $__bgPhone ?>') !important}}</style>
+        <?php endif; ?>
         <title><?php echo isset($pageTitle) ? htmlspecialchars($pageTitle) : "Bat Cave Road Farm | Petting Zoo, Farmstand & Thrift Shop — Old Fort, NC"; ?></title>
         <?php require_once __DIR__ . '/fonts.php'; echo bcrf_fonts_head(!empty($preloadImage) && preg_match('#^(?:https?://[^/]+)?/img/[^/]+\.(?:webp|jpe?g|png)$#i', (string)$preloadImage) ? ['rye-latin-400-normal', 'lora-latin-400-normal', 'lora-latin-400-italic'] : ['rye-latin-400-normal', 'lora-latin-400-normal']); /* self-hosted fonts (Nov 11, 2026), was Google Fonts. Hero pages also preload Lora italic (hero subtitle) so the hero doesn't resize when it arrives (CLS, Nov 13 2026) */ ?>
 
