@@ -50,12 +50,18 @@ if (!function_exists('bcrf_img_attrs')) {
  * Otherwise returns /img/_thumbs/<maxW>/<same path>.webp?v=<mtime>, creating it
  * with GD on first request and again whenever the original is replaced.
  * (The Media Vault skips /img/_thumbs/; see admin/data/loader.php.)
+ *
+ * $quality (WebP, default 80) and $recompress (Nov 13, 2026): with $recompress
+ * an image already near $maxW is re-saved anyway (width = min(original, $maxW)),
+ * for photos PageSpeed flags as under-compressed. Copies made at another quality
+ * go in /img/_thumbs/<maxW>q<quality>/. If the copy isn't smaller, $src is returned.
  */
 if (!function_exists('bcrf_img_thumb')) {
-    function bcrf_img_thumb(?string $src, int $maxW = 640): string
+    function bcrf_img_thumb(?string $src, int $maxW = 640, int $quality = 80, bool $recompress = false): string
     {
         $src = trim((string)$src);
         if ($src === '' || $maxW < 32) return $src;
+        $quality = max(40, min(95, $quality));
         try {
             $path = $src; $prefix = '';
             if (preg_match('#^((?:https?:)?//([^/]+))(/.*)?$#i', $path, $m)) {
@@ -74,9 +80,9 @@ if (!function_exists('bcrf_img_thumb')) {
 
             $info = @getimagesize($file);
             if (!$info || empty($info[0]) || empty($info[1])) return $src;
-            if ($info[0] <= (int)ceil($maxW * 1.15)) return $src;                   // already small enough
+            if (!$recompress && $info[0] <= (int)ceil($maxW * 1.15)) return $src;                   // already small enough
 
-            $thumbRel = '/img/_thumbs/' . $maxW . preg_replace('#\.[A-Za-z0-9]+$#', '', substr($rel, 4)) . '.webp';
+            $thumbRel = '/img/_thumbs/' . $maxW . ($quality !== 80 ? 'q' . $quality : '') . preg_replace('#\.[A-Za-z0-9]+$#', '', substr($rel, 4)) . '.webp';
             $thumbAbs = $root . $thumbRel;
 
             if (!is_file($thumbAbs) || filemtime($thumbAbs) < filemtime($file)) {
@@ -89,7 +95,7 @@ if (!function_exists('bcrf_img_thumb')) {
                     default        => false,
                 };
                 if (!$im) return $src;
-                $w = $maxW;
+                $w = min($maxW, (int)$info[0]);
                 $h = max(1, (int)round($info[1] * $w / $info[0]));
                 $canvas = imagecreatetruecolor($w, $h);
                 imagealphablending($canvas, false);
@@ -98,10 +104,11 @@ if (!function_exists('bcrf_img_thumb')) {
                 $dir = dirname($thumbAbs);
                 if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) return $src;
                 $tmp = $thumbAbs . '.' . getmypid() . '.tmp';                       // write then rename: no half-written files served
-                if (!@imagewebp($canvas, $tmp, 80) || !@rename($tmp, $thumbAbs)) { @unlink($tmp); return $src; }
+                if (!@imagewebp($canvas, $tmp, $quality) || !@rename($tmp, $thumbAbs)) { @unlink($tmp); return $src; }
                 @touch($thumbAbs, max(time(), (int)filemtime($file)));                 // never older than its original
                 clearstatcache(true, $thumbAbs);
             }
+            if ($recompress && filesize($thumbAbs) >= filesize($file)) return $src;   // no gain: keep the original
             $url = implode('/', array_map('rawurlencode', explode('/', $thumbRel)));
             return $prefix . $url . '?v=' . filemtime($thumbAbs);
         } catch (Throwable $e) {

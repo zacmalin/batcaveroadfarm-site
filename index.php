@@ -39,7 +39,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.ph
                 <div class="card-grid">
                     <a class="card cardLink reveal" href="<?= bcrf_farm_url() ?>/petting-zoo/">
                         <div class="card-img-placeholder">
-                            <img class="boximg" src="<?= bcrf_farm_url() ?>/img/animals1.webp" alt="White peacock displaying full tail feathers surrounded by goats, a pig, donkey, and wild turkeys at the Bat Cave Road Farm petting zoo in Old Fort, NC — family-friendly farm animal experience near Asheville, Western North Carolina" width="500" height="281" decoding="async" loading="lazy">
+                            <img class="boximg" src="<?= htmlspecialchars(bcrf_img_thumb(bcrf_farm_url() . '/img/animals1.webp', 500, 75, true)) ?>" alt="White peacock displaying full tail feathers surrounded by goats, a pig, donkey, and wild turkeys at the Bat Cave Road Farm petting zoo in Old Fort, NC — family-friendly farm animal experience near Asheville, Western North Carolina" width="500" height="281" decoding="async" loading="lazy">
                         </div>
                         <div class="card-body">
                             <h3 class="card-title">Petting Zoo</h3>
@@ -49,7 +49,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.ph
                     </a>
                     <a class="card cardLink reveal" href="<?= bcrf_farm_url() ?>/farm-stand/">
                         <div class="card-img-placeholder">
-                            <img class="boximg" src="<?= bcrf_farm_url() ?>/img/farmstand1.webp" alt="Bat Cave Road Farmstand in Old Fort, NC — fresh seasonal vegetables, sourdough bread, farm eggs, local honey, homemade jams, and cut flower bouquets with the Blue Ridge Mountains in the background" width="500" height="273" decoding="async" loading="lazy">
+                            <img class="boximg" src="<?= htmlspecialchars(bcrf_img_thumb(bcrf_farm_url() . '/img/farmstand1.webp', 500, 75, true)) ?>" alt="Bat Cave Road Farmstand in Old Fort, NC — fresh seasonal vegetables, sourdough bread, farm eggs, local honey, homemade jams, and cut flower bouquets with the Blue Ridge Mountains in the background" width="500" height="273" decoding="async" loading="lazy">
                         </div>
                         <div class="card-body">
                             <h3 class="card-title">Farmstand</h3>
@@ -59,7 +59,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.ph
                     </a>
                     <a class="card cardLink reveal" href="<?= bcrf_farm_url() ?>/thrift-shop/">
                         <div class="card-img-placeholder">
-                            <img class="boximg" src="<?= bcrf_farm_url() ?>/img/thrift1.webp" alt="Inside the Bat Cave Road Farm thrift shop in Old Fort, NC — vintage clothing racks, depression glass, cast iron cookware, vinyl records, graphic tees, and antique housewares on hardwood floors with a rustic checkout counter" width="500" height="375" decoding="async" loading="lazy">
+                            <img class="boximg" src="<?= htmlspecialchars(bcrf_img_thumb(bcrf_farm_url() . '/img/thrift1.webp', 500, 75, true)) ?>" alt="Inside the Bat Cave Road Farm thrift shop in Old Fort, NC — vintage clothing racks, depression glass, cast iron cookware, vinyl records, graphic tees, and antique housewares on hardwood floors with a rustic checkout counter" width="500" height="375" decoding="async" loading="lazy">
                         </div>
                         <div class="card-body">
                             <h3 class="card-title">Thrift Shop</h3>

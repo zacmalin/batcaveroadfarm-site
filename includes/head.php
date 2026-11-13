@@ -43,7 +43,7 @@ require_once __DIR__ . '/ga.php';   // GA4: staff visits tagged internal, queued
         $__heroMobile = '';
         if (!empty($preloadImage) && preg_match('#^(?:https?://[^/]+)?/img/[^/]+\.(?:webp|jpe?g|png)$#i', (string)$preloadImage)) {
             require_once __DIR__ . '/img_dims.php';
-            $__t = bcrf_img_thumb((string)$preloadImage, 828);
+            $__t = bcrf_img_thumb((string)$preloadImage, 828, 75);   // q75 (was 80): PageSpeed flagged ~12 KB of compression savings (Nov 13, 2026)
             if ($__t !== $preloadImage && preg_match('#^[A-Za-z0-9:/._%?=\-]+$#', $__t)) $__heroMobile = $__t;
         }
         if ($__heroMobile !== ''): ?>
@@ -59,6 +59,12 @@ require_once __DIR__ . '/ga.php';   // GA4: staff visits tagged internal, queued
         $__bgPhone = bcrf_img_thumb('/img/background2.webp', 400);
         if ($__bgPhone !== '/img/background2.webp' && preg_match('#^/img/_thumbs/400/background2\.webp\?v=\d+$#', $__bgPhone)): ?>
         <style>@media (max-width:600px){body{background-image:url('<?= bcrf_farm_url() . $__bgPhone ?>') !important}}</style>
+        <?php endif; ?>
+        <?php
+        // Header/nav wood texture re-saved at WebP quality 75, same 800px size (PageSpeed: ~22 KB savings, Nov 13, 2026).
+        $__bgTex = bcrf_img_thumb('/img/background.webp', 800, 75, true);
+        if ($__bgTex !== '/img/background.webp' && preg_match('#^/img/_thumbs/800q75/background\.webp\?v=\d+$#', $__bgTex)): ?>
+        <style>header,nav{background-image:url('<?= bcrf_farm_url() . $__bgTex ?>') !important}</style>
         <?php endif; ?>
         <title><?php echo isset($pageTitle) ? htmlspecialchars($pageTitle) : "Bat Cave Road Farm | Petting Zoo, Farmstand & Thrift Shop — Old Fort, NC"; ?></title>
         <?php require_once __DIR__ . '/fonts.php'; echo bcrf_fonts_head(!empty($preloadImage) && preg_match('#^(?:https?://[^/]+)?/img/[^/]+\.(?:webp|jpe?g|png)$#i', (string)$preloadImage) ? ['rye-latin-400-normal', 'lora-latin-400-normal', 'lora-latin-400-italic'] : ['rye-latin-400-normal', 'lora-latin-400-normal']); /* self-hosted fonts (Nov 11, 2026), was Google Fonts. Hero pages also preload Lora italic (hero subtitle) so the hero doesn't resize when it arrives (CLS, Nov 13 2026) */ ?>
