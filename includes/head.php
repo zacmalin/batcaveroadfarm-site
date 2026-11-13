@@ -52,7 +52,7 @@ require_once __DIR__ . '/ga.php';   // GA4: staff visits tagged internal, queued
         <style>@media (max-width:600px){.hero-photo{--hero-img:url('<?= $__heroMobile ?>') !important}}</style>
         <?php elseif (!empty($preloadImage)): ?><link rel="preload" as="image" href="<?php echo htmlspecialchars($preloadImage); ?>" fetchpriority="high"><?php endif; ?>
         <title><?php echo isset($pageTitle) ? htmlspecialchars($pageTitle) : "Bat Cave Road Farm | Petting Zoo, Farmstand & Thrift Shop — Old Fort, NC"; ?></title>
-        <?php require_once __DIR__ . '/fonts.php'; echo bcrf_fonts_head(); /* self-hosted fonts (Nov 11, 2026), was Google Fonts */ ?>
+        <?php require_once __DIR__ . '/fonts.php'; echo bcrf_fonts_head(!empty($preloadImage) && preg_match('#^(?:https?://[^/]+)?/img/[^/]+\.(?:webp|jpe?g|png)$#i', (string)$preloadImage) ? ['rye-latin-400-normal', 'lora-latin-400-normal', 'lora-latin-400-italic'] : ['rye-latin-400-normal', 'lora-latin-400-normal']); /* self-hosted fonts (Nov 11, 2026), was Google Fonts. Hero pages also preload Lora italic (hero subtitle) so the hero doesn't resize when it arrives (CLS, Nov 13 2026) */ ?>
 
         <link rel="stylesheet" href="<?= bcrf_farm_url() ?>/css/min.style.css?v=<?= bcrf_asset_v('/css/min.style.css') ?>">
         <link rel="stylesheet" href="<?= bcrf_farm_url() ?>/css/min.print.css?v=<?= bcrf_asset_v('/css/min.print.css') ?>" media="print">
