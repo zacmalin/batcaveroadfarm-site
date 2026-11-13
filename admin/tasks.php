@@ -1,7 +1,7 @@
 <?php
 // admin/tasks.php — Tasks and chores (Farm OS Phase 3 slice 1, Nov 11, 2026; includes/tasks.php, migration 0029)
 //   GET  tasks.php                 My Tasks: late, today, next 7 days, no date, done today; quick add
-//   GET  tasks.php?id=N            one task: checklist, start / done / skip / cancel / reopen
+//   GET  tasks.php?id=N            one task: checklist, start / stop / done / skip / cancel / reopen
 //   GET  tasks.php?new=1[&tpl=N]   new task (optionally from a saved checklist);  ?edit=N  change a task
 //   GET  tasks.php?tab=all         everyone's tasks (managers)
 //   GET  tasks.php?tab=chores      chores: list, ?rec=N | ?rec=new to change one (managers)
@@ -112,7 +112,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 $GLOBALS['bcrf_task_followups_made'] = [];
                 $t = bcrf_task_set($pdo, $id, $a, (string)($_POST['note'] ?? ''), !empty($_POST['force']), (array)($_POST['ans'] ?? []));
                 $fu = count($GLOBALS['bcrf_task_followups_made'] ?? []);
-                $_SESSION['task_flash'] = ['ok', (['start' => 'Started.', 'done' => 'Done. Nice work.', 'skip' => 'Skipped for today.', 'cancel' => 'Task cancelled.', 'reopen' => 'Task reopened.'][$a] ?? 'Saved.')
+                $_SESSION['task_flash'] = ['ok', (['start' => 'Started.', 'stop' => 'Stopped. It is back in To do.', 'done' => 'Done. Nice work.', 'skip' => 'Skipped for today.', 'cancel' => 'Task cancelled.', 'reopen' => 'Task reopened.'][$a] ?? 'Saved.')
                                                  . ($fu ? ' ' . $fu . ' follow-up task' . ($fu === 1 ? '' : 's') . ' added.' : '')];
                 if (in_array($a, ['done', 'skip'], true) && !empty($_POST['next'])) $back = 'tasks.php';
                 break;
@@ -431,8 +431,9 @@ if (isset($_GET['id'])) {
         <button type="submit" name="to" value="done" class="<?= $btnGo ?>" id="tDone">✓ Done</button>
       <?php endif; ?>
       <?php if ($t['status'] === 'open'): ?><button type="submit" name="to" value="start" id="tStart" class="<?= $btnSec ?>">Start</button><?php endif; ?>
+      <?php if ($t['status'] === 'in_progress'): ?><button type="submit" name="to" value="stop" class="<?= $btnSec ?>">Stop working (back to To do)</button><?php endif; ?>
       <?php if ($t['recurrence_id']): ?><button type="submit" name="to" value="skip" class="<?= $btnSec ?>">Skip today (say why)</button><?php endif; ?>
-      <?php if (bcrf_tasks_can_edit($t)): ?><button type="submit" name="to" value="cancel" class="inline-flex items-center justify-center min-h-11 px-4 rounded-lg text-sm border border-red-300 bg-white text-red-700 hover:bg-red-50 font-semibold" data-confirm="Cancel this task?">Cancel task</button><?php endif; ?>
+      <?php if (bcrf_tasks_can_edit($t)): ?><button type="submit" name="to" value="cancel" class="inline-flex items-center justify-center min-h-11 px-4 rounded-lg text-sm border border-red-300 bg-white text-red-700 hover:bg-red-50 font-semibold" data-confirm="Cancel this task for good? It leaves the to-do list. To just stop working on it, use Stop working instead.">Cancel task for good</button><?php endif; ?>
     </div>
   </form>
   <?php endif; ?>

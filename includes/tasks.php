@@ -498,7 +498,8 @@ function bcrf_task_check(PDO $pdo, int $id, int $idx, bool $done): array {
 }
 
 /**
- * Move a task: start | done | skip | cancel | reopen. $note goes on done/skip/cancel.
+ * Move a task: start | stop | done | skip | cancel | reopen. $note goes on done/skip/cancel.
+ * Stop puts a started task back to To do (ticked items stay); cancel closes the task for good.
  * Done with checklist items left needs $force (the screen asks first). Skip is for chore days.
  */
 function bcrf_task_set(PDO $pdo, int $id, string $act, string $note = '', bool $force = false, ?array $answers = null): array {
@@ -514,6 +515,10 @@ function bcrf_task_set(PDO $pdo, int $id, string $act, string $note = '', bool $
             case 'start':
                 if ($closed) throw new BcrfTaskError('Reopen the task first.');
                 $sql = "status = 'in_progress'"; $args = [];
+                break;
+            case 'stop':
+                if ($t['status'] !== 'in_progress') throw new BcrfTaskError($closed ? 'That task is already closed.' : 'That task is not started.');
+                $sql = "status = 'open'"; $args = [];
                 break;
             case 'done':
                 if ($closed) throw new BcrfTaskError('That task is already ' . strtolower(BCRF_TASK_STATUSES[$t['status']]) . '.');

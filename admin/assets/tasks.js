@@ -1,5 +1,5 @@
 // admin/assets/tasks.js — Tasks screen helpers (Farm OS Phase 3, Nov 11, 2026; admin/tasks.php)
-// Tick checklist items without reloading; show only the chore fields that apply; confirm before cancelling.
+// Tick checklist items without reloading; show only the chore fields that apply; confirm before cancelling; Start turns into Stop once an item is ticked.
 // Everything still works without this file (plain form posts).
 (function () {
   'use strict';
@@ -29,7 +29,8 @@
           var c = document.getElementById('tCount'); if (c) c.textContent = j.checked + ' of ' + j.total;
           var s = document.getElementById('tStatus');
           if (s) { s.textContent = j.status_label; if (j.status === 'in_progress') s.className = 'text-xs font-semibold px-2 py-1 rounded bg-sky-100 text-sky-800'; }
-          var st = document.getElementById('tStart'); if (st && j.status !== 'open') st.hidden = true;
+          var st = document.getElementById('tStart');   // ticking an item starts the task: Start becomes Stop
+          if (st && j.status === 'in_progress') { st.value = 'stop'; st.textContent = 'Stop working (back to To do)'; st.removeAttribute('id'); }
           var d = document.getElementById('tDone');
           if (d) {
             var left = j.total - j.checked;
