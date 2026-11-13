@@ -28,30 +28,13 @@
 //
 // Used by admin/print_label.php, admin/handlers/get_label_data.php and
 // admin/handlers/label_ingredients_save.php.
-// Farm OS Phase 0 moves the column add below into a numbered migration.
+// The columns this uses come from migrations (0057, Nov 13, 2026).
 
 if (!function_exists('bcrf_label_ing_schema')) {
 
-/** Make sure product_ingredients has sort_order. Cheap: checked once per request. */
+/** product_ingredients.sort_order and ingredients.allergens / sub_ingredients come from migrations 0001 / 0057;
+ *  kept as a no-op for callers (Nov 13, 2026). */
 function bcrf_label_ing_schema(PDO $pdo): void {
-    static $done = false;
-    if ($done) return;
-    $done = true;
-    try {
-        $has = $pdo->query("SHOW COLUMNS FROM product_ingredients LIKE 'sort_order'")->fetch();
-        if (!$has) $pdo->exec("ALTER TABLE product_ingredients ADD COLUMN sort_order INT NOT NULL DEFAULT 0");
-    } catch (Throwable $e) {
-        error_log('[label_ingredients] schema: ' . $e->getMessage());
-    }
-    try {
-        $cols = $pdo->query("SHOW COLUMNS FROM ingredients")->fetchAll(PDO::FETCH_COLUMN);
-        if (!in_array('allergens', $cols, true))
-            $pdo->exec("ALTER TABLE ingredients ADD COLUMN allergens VARCHAR(255) NULL DEFAULT NULL COMMENT 'Major allergens for labels; NULL = not checked, empty = none'");
-        if (!in_array('sub_ingredients', $cols, true))
-            $pdo->exec("ALTER TABLE ingredients ADD COLUMN sub_ingredients TEXT NULL COMMENT 'Ingredient list printed on the bought product, for labels'");
-    } catch (Throwable $e) {
-        error_log('[label_ingredients] schema ingredients: ' . $e->getMessage());
-    }
 }
 
 /**

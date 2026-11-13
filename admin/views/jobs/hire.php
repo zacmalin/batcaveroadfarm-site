@@ -37,9 +37,9 @@ $lbl   = 'block text-xs text-stone-600';
   <!-- Who: new or existing account -->
   <div class="rounded-lg p-3 mb-4 text-sm border <?= $user ? 'bg-sky-50 border-sky-200 text-sky-900' : 'bg-stone-50 border-stone-200 text-stone-700' ?>">
     <?php if ($user): ?>
-      <strong>They already have an account</strong> (<?= $h($user['email']) ?>, <?= $h($user['role']) ?><?= $user['account_status'] === 'disabled' ? ', login off' : '' ?>).
+      <strong>They already have an account</strong> (<?= $h($user['email']) ?>, <?= $h($ROLES[$user['role']] ?? $user['role']) ?><?= $user['account_status'] === 'disabled' ? ', login off' : '' ?>).
       Hiring updates that account instead of making a new one<?= $user['account_status'] === 'disabled' ? ' and turns the login back on' : '' ?>.
-      <?php if ($user['role'] === 'administrator'): ?> They stay an administrator.<?php endif; ?>
+      <?php if ($user['role'] === 'administrator'): ?> They stay an Owner.<?php endif; ?>
       <?php if ($open): ?><br><span class="text-amber-800">Already working here as <?= $h($open[0]['staff_position']) ?> since <?= $h(date('M j, Y', strtotime($open[0]['start_date']))) ?>. This adds a second job; the first one stays.</span><?php endif; ?>
     <?php else: ?>
       <strong>A new staff account will be made</strong> for <?= $h($a['email']) ?>. They set their own password from the welcome email.

@@ -82,19 +82,8 @@ function bcrf_ga_capture_ids(): array {
     return ['cid' => $cid, 'sid' => $sid];
 }
 
-/** Columns that hold GA IDs and the "purchase sent" marker. Added on first use (Phase 0 moves this to a migration). */
+/** GA columns on bookings, passes and tickets come from migrations 0013 and 0057; kept as a no-op for callers (Nov 13, 2026). */
 function bcrf_ga_schema(PDO $pdo, string $table): void {
-    static $done = [];
-    if (isset($done[$table]) || !in_array($table, ['bookings', 'passes', 'tickets'], true)) return;
-    $done[$table] = true;
-    try {
-        $cols = $pdo->query("SHOW COLUMNS FROM `$table`")->fetchAll(PDO::FETCH_COLUMN);
-        if (!in_array('ga_client_id', $cols, true))    $pdo->exec("ALTER TABLE `$table` ADD COLUMN ga_client_id VARCHAR(40) NULL DEFAULT NULL");
-        if (!in_array('ga_session_id', $cols, true))   $pdo->exec("ALTER TABLE `$table` ADD COLUMN ga_session_id VARCHAR(20) NULL DEFAULT NULL");
-        if (!in_array('ga_purchase_sent', $cols, true)) $pdo->exec("ALTER TABLE `$table` ADD COLUMN ga_purchase_sent DATETIME NULL DEFAULT NULL");
-    } catch (Throwable $e) {
-        error_log('[ga] schema ' . $table . ': ' . $e->getMessage());
-    }
 }
 
 /** Store the visitor's GA IDs on a booking or pass at checkout. Never fails the checkout. */

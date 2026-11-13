@@ -31,11 +31,11 @@ if (!function_exists('jobs_hire_save')) {
     function jobs_staff_roles(): array
     {
         return [
-            'Staff'         => 'Staff (Time Clock only)',
+            'Staff'         => 'Staff (Time Clock and Tasks)',
             'Shopkeep'      => 'Shopkeep',
-            'Media'         => 'Media',
-            'moderator'     => 'Moderator',
-            'administrator' => 'Administrator (full access)',
+            'Media'         => 'Content',
+            'moderator'     => 'Manager',
+            'administrator' => 'Owner (full access)',
         ];
     }
 

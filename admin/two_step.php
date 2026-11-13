@@ -13,6 +13,7 @@ require_once __DIR__ . '/../includes/rate_limit.php';   // bcrf_rl_*()
 require_once __DIR__ . '/../includes/staff_auth.php';
 require_once __DIR__ . '/includes/audit.php';           // erp_audit_security(), bcrf_audit_event()
 if (!function_exists('bcrf_farm_name')) require_once __DIR__ . '/../includes/farm.php';
+require_once __DIR__ . '/../includes/roles.php';         // role display names (Nov 13, 2026)
 
 const BCRF_MFA_TRIES = 5;      // wrong codes per account …
 const BCRF_MFA_WIN   = 900;    // … in 15 minutes
@@ -282,7 +283,7 @@ ob_end_flush();
     </form>
     <?php foreach ($team as $t): $on = !empty($t['totp_enabled_at']); ?>
         <div class="flex items-center justify-between gap-2 py-2 border-b border-stone-100 text-sm">
-            <div><?= $h(trim($t['first_name'] . ' ' . $t['last_name'])) ?> <span class="text-xs text-stone-500"><?= $h($t['role']) ?><?= ($t['account_status'] ?? '') === 'disabled' ? ' · off' : '' ?></span><br>
+            <div><?= $h(trim($t['first_name'] . ' ' . $t['last_name'])) ?> <span class="text-xs text-stone-500"><?= $h(bcrf_role_label($t['role'])) ?><?= ($t['account_status'] ?? '') === 'disabled' ? ' · off' : '' ?></span><br>
                 <span class="text-xs <?= $on ? 'text-green-800' : ($t['role'] === 'administrator' ? 'text-amber-800' : 'text-stone-500') ?>"><?= $on ? 'Two-step on' : 'Not set up' ?></span></div>
             <?php if ($on && (int)$t['id'] !== (int)$me['id']): ?>
                 <form method="POST" onsubmit="return confirm('Reset two-step sign-in for <?= $h(addslashes(trim($t['first_name'] . ' ' . $t['last_name']))) ?>? Use this when they lose their phone.')">

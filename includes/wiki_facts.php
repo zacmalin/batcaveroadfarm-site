@@ -42,11 +42,7 @@ function bcrf_wiki_http(string $url): ?array {
 
 function bcrf_wiki_cache_get(PDO $pdo, string $key): ?array {
     try {
-        $pdo->exec("CREATE TABLE IF NOT EXISTS wiki_cache (
-            cache_key  VARCHAR(190) NOT NULL PRIMARY KEY,
-            data       MEDIUMTEXT   NULL,
-            fetched_at INT          NOT NULL
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        // wiki_cache comes from migration 0001 (no table creation on page loads since Nov 13, 2026)
         $st = $pdo->prepare("SELECT data, fetched_at FROM wiki_cache WHERE cache_key = ?");
         $st->execute([$key]);
         $r = $st->fetch(PDO::FETCH_ASSOC);

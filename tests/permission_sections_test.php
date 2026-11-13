@@ -43,6 +43,11 @@ $ok($tbl('moderator', 'animals') === '11' && $tbl('moderator', 'breeds') === '10
 $ok($tbl('moderator', 'not_on_page_table') === '11', 'table not on the page left alone');
 $ok((string)$view('Shopkeep', 'incidents') === '1', 'other roles left alone');
 try { bcrf_permission_save($pdo, 'administrator', [], []); $ok(false, 'administrator refused'); } catch (RuntimeException $e) { $ok(true, ''); }
+try { bcrf_permission_save($pdo, 'user', [], []); $ok(false, 'removed public user role refused'); } catch (RuntimeException $e) { $ok(true, ''); }
+$ok(bcrf_permission_roles() === ['moderator', 'Shopkeep', 'Media'], 'page roles: Manager, Shopkeep, Content');
+require_once $root . '/includes/roles.php';
+$ok(bcrf_role_label('administrator') === 'Owner' && bcrf_role_label('moderator') === 'Manager' && bcrf_role_label('Media') === 'Content'
+    && bcrf_role_label('Staff') === 'Staff' && bcrf_role_label('odd') === 'odd', 'role display names');
 
 echo "$n checks, $fails failed\n";
 exit($fails ? 1 : 0);

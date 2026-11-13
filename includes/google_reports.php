@@ -176,14 +176,8 @@ function bcrf_greports_fetch_ga(): array {
     ];
 }
 
+/** google_report_cache comes from migration 0001; kept as a no-op for callers (Nov 13, 2026). */
 function bcrf_greports_schema(PDO $pdo): void {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS google_report_cache (
-        report_key VARCHAR(20) NOT NULL PRIMARY KEY,
-        data       LONGTEXT NULL,
-        fetched_at DATETIME NULL,       -- UTC
-        last_error VARCHAR(500) NULL,
-        error_at   DATETIME NULL        -- UTC
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 }
 
 /** Fetch both reports and cache them. Returns ['gsc' => 'ok'|error, 'ga' => 'ok'|error]. */

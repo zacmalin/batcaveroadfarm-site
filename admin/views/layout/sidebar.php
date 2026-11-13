@@ -151,6 +151,7 @@ $_defaults_by_role = [
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 $_role = $current_role ?? 'user';
+require_once dirname(__DIR__, 3) . '/includes/roles.php';   // role display names (Nov 13, 2026)
 $_tv   = $target_view  ?? '';
 $_tt   = $target_table ?? '';
 $_h    = fn($s): string => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
@@ -311,7 +312,7 @@ $_nav_data = [
   </nav>
 
   <div class="px-4 py-3 border-t border-stone-700 shrink-0 space-y-2">
-    <div class="sb-text text-[9px] font-mono text-stone-500 uppercase tracking-wider"><?= $_h($_role) ?></div>
+    <div class="sb-text text-[9px] font-mono text-stone-500 uppercase tracking-wider"><?= $_h(bcrf_role_label($_role)) ?></div>
     <a href="/admin/logout.php" title="Sign Out"
        class="sb-row flex items-center gap-2 px-2 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider font-mono text-stone-400 hover:bg-red-900 hover:text-red-200 transition">
       <span class="shrink-0">🚪</span> <span class="sb-text">Sign Out</span>
@@ -344,7 +345,7 @@ $_nav_data = [
     <div class="flex items-center justify-between gap-2 mb-2">
       <div>
         <div class="font-serif font-black text-sm text-white">Bat Cave Road Farm</div>
-        <div class="text-[9px] font-mono text-stone-500 uppercase tracking-widest"><?= $_h($_role) ?></div>
+        <div class="text-[9px] font-mono text-stone-500 uppercase tracking-widest"><?= $_h(bcrf_role_label($_role)) ?></div>
       </div>
       <div class="flex items-center gap-2">
         <button type="button" id="navResetBtn" class="hidden px-3 py-2 rounded-lg text-[11px] font-bold text-stone-300 bg-stone-800">Reset</button>

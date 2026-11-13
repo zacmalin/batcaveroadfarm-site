@@ -9,35 +9,9 @@ require_once __DIR__ . '/img_dims.php';
  */
 
 if (!function_exists('bcrf_events_ensure_schema')) {
+    /** The events table comes from migration 0001; kept as a no-op for callers (Nov 13, 2026). */
     function bcrf_events_ensure_schema(PDO $pdo): void
     {
-        static $done = false;
-        if ($done) return;
-        $done = true;
-        try {
-            $pdo->exec("CREATE TABLE IF NOT EXISTS events (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                title VARCHAR(160) NOT NULL,
-                slug VARCHAR(190) NOT NULL,
-                description TEXT NULL,
-                image_url VARCHAR(255) NULL,
-                start_datetime DATETIME NOT NULL,
-                end_datetime DATETIME NULL,
-                all_day TINYINT(1) NOT NULL DEFAULT 0,
-                recurrence ENUM('none','range','weekly','annual') NOT NULL DEFAULT 'none',
-                recur_days VARCHAR(20) NULL,
-                recur_until DATE NULL,
-                recurrence_note VARCHAR(160) NULL,
-                is_free TINYINT(1) NOT NULL DEFAULT 1,
-                price DECIMAL(10,2) NULL,
-                location_note VARCHAR(160) NULL,
-                status ENUM('draft','published') NOT NULL DEFAULT 'published',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-        } catch (Throwable $e) {
-            error_log('[bcrf_events_ensure_schema] ' . $e->getMessage());
-        }
     }
 }
 

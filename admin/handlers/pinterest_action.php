@@ -90,7 +90,7 @@ switch ($act) {
         $pinBack($r['msg'], in_array($r['result'], ['created', 'updated', 'unchanged'], true) ? 'success' : 'error');
     }
     case 'approve': {
-        if (!$canPub) $pinBack('Only administrators and moderators can approve Pins.', 'error');
+        if (!$canPub) $pinBack('Only Owners and Managers can approve Pins.', 'error');
         $why = bcrf_pin_ineligible($row['content_type'], bcrf_pin_record($pdo, $row['content_type'], (int)$row['content_id']));
         if ($why !== '') $pinBack("Can't approve: {$why}.", 'error');
         $img = bcrf_pin_image_abs($row['image_path']);
@@ -109,13 +109,13 @@ switch ($act) {
         $pinBack('Approved and queued. It posts within a few minutes.');
     }
     case 'send': {
-        if (!$canPub) $pinBack('Only administrators and moderators can send Pins.', 'error');
+        if (!$canPub) $pinBack('Only Owners and Managers can send Pins.', 'error');
         $why = bcrf_pin_queue_send($pdo, $id);
         if ($why === '') $audit('update', $id, $label . ' (sent to queue)');
         $pinBack($why === '' ? 'Queued. It posts within a few minutes.' : $why, $why === '' ? 'success' : 'error');
     }
     case 'send_all': {
-        if (!$canPub) $pinBack('Only administrators and moderators can send Pins.', 'error');
+        if (!$canPub) $pinBack('Only Owners and Managers can send Pins.', 'error');
         $ids = $pdo->query("SELECT id FROM social_queue_targets WHERE platform = 'pinterest' AND status = 'approved' ORDER BY approved_at, id")->fetchAll(PDO::FETCH_COLUMN);
         $n = 0; $why = '';
         foreach ($ids as $tid) { $w = bcrf_pin_queue_send($pdo, (int)$tid); if ($w === '') $n++; else $why = $w; }
@@ -123,7 +123,7 @@ switch ($act) {
         $pinBack($n ? "Queued {$n} Pin" . ($n === 1 ? '' : 's') . '. They post a few at a time over the next minutes.' . ($why ? ' Some were held: ' . $why : '') : ($why ?: 'Nothing approved to send.'), $n ? 'success' : 'error');
     }
     case 'retry': {
-        if (!$canPub) $pinBack('Only administrators and moderators can retry Pins.', 'error');
+        if (!$canPub) $pinBack('Only Owners and Managers can retry Pins.', 'error');
         $stuck = $row['status'] === 'sending' && strtotime($row['updated_at'] . ' UTC') < time() - 900;
         if ($row['status'] !== 'failed' && !$stuck) $pinBack('Only failed (or stuck) Pins can be retried.', 'error');
         if (($stuck || $row['last_error_code'] === 'ambiguous') && empty($_POST['checked'])) {
@@ -135,7 +135,7 @@ switch ($act) {
         $pinBack($why === '' ? 'Queued again.' : $why, $why === '' ? 'success' : 'error');
     }
     case 'set_board': {
-        if (!$canPub) $pinBack('Only administrators and moderators can choose boards.', 'error');
+        if (!$canPub) $pinBack('Only Owners and Managers can choose boards.', 'error');
         if (!in_array($row['status'], ['draft', 'approved', 'failed'], true)) $pinBack('The board can only change before the Pin is sent.', 'error');
         $b = trim((string)($_POST['board_id'] ?? ''));
         if ($b !== '' && !isset(bcrf_pinapi_boards($pdo)[$b])) $pinBack('That board is not on the connected account. Sync boards in Settings › Pinterest.', 'error');
@@ -144,7 +144,7 @@ switch ($act) {
         $pinBack($b === '' ? 'Using the default board for this type.' : 'Board saved for this Pin.');
     }
     case 'unapprove': {
-        if (!$canPub) $pinBack('Only administrators and moderators can do that.', 'error');
+        if (!$canPub) $pinBack('Only Owners and Managers can do that.', 'error');
         $st = $pdo->prepare("UPDATE social_queue_targets SET status = 'draft', approved_at = NULL, approved_by = NULL, updated_at = UTC_TIMESTAMP() WHERE id = ? AND status IN ('approved', 'scheduled')");
         $st->execute([$id]);
         if ($st->rowCount()) $audit('update', $id, $label . ' (back to draft)');
@@ -159,7 +159,7 @@ switch ($act) {
         $pinBack($st->rowCount() ? ($act === 'skip' ? 'Skipped. Batches will leave it alone.' : 'Back in drafts.') : 'Nothing changed.');
     }
     case 'mark_pinned': {
-        if (!$canPub) $pinBack('Only administrators and moderators can record a posted Pin.', 'error');
+        if (!$canPub) $pinBack('Only Owners and Managers can record a posted Pin.', 'error');
         $url = trim((string)($_POST['pin_url'] ?? ''));
         if (!preg_match('#^https://([a-z]{2,3}\.)?(www\.)?pinterest\.[a-z.]{2,6}/pin/([0-9]{5,25})/?#i', $url, $m)) {
             $pinBack('Paste the Pin link, like https://www.pinterest.com/pin/1234567890/', 'error');

@@ -19,8 +19,7 @@ $best_by   = trim($_GET['best_by'] ?? '');
 
 if (!$item_id) { http_response_code(400); exit('Invalid item ID.'); }
 
-// ── ENSURE SKU COLUMN EXISTS (print_label.php is standalone) ─────────────────
-try { $pdo->exec("ALTER TABLE inventory ADD COLUMN sku VARCHAR(50) NULL DEFAULT NULL"); } catch (Throwable $ignored) {}
+// inventory.sku comes from migrations 0001 / 0057 (no column add on page loads since Nov 13, 2026)
 
 // ── FETCH ITEM ────────────────────────────────────────────────────────────────
 try {

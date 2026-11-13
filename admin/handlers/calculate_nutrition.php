@@ -51,11 +51,7 @@ if (!$rec) njson(false, 'Recipe not found.');
 $servings = (int)($rec['servings'] ?? 0);
 if ($servings < 1) $servings = (int)($rec['recipe_yield'] ?? 0);
 $servings = max(1, $servings);
-// nutrition_servings records the divisor, so the recipe page knows these values are per serving (Nov 2026)
-try {
-    if (!$pdo->query("SHOW COLUMNS FROM recipes LIKE 'nutrition_servings'")->fetch())
-        $pdo->exec("ALTER TABLE recipes ADD COLUMN nutrition_servings INT NULL DEFAULT NULL COMMENT 'Servings the stored nutrition was divided by'");
-} catch (Throwable $e) { error_log('[Nutrition] nutrition_servings column: ' . $e->getMessage()); }
+// nutrition_servings records the divisor, so the recipe page knows these values are per serving (column from migrations 0001 / 0057)
 
 // ── FETCH INGREDIENTS WITH NUTRITION DATA ────────────────────────────────────
 try {

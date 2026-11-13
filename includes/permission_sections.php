@@ -43,7 +43,7 @@ function bcrf_permission_sections(): array {
             ['table', 'unit_conversions',  '🔄', 'Unit Conversions'],
             ['view',  'kitchen_labels_approve', '✅', 'Approve kitchen labels (Owners always can)'],
         ]],
-        'media' => ['label' => 'Media', 'icon' => '📡', 'items' => [
+        'media' => ['label' => 'Marketing & Content', 'icon' => '📡', 'items' => [
             ['table', 'blog_posts',         '✍️', 'Blog'],
             ['table', 'blog_categories',    '🏷️', 'Blog Categories'],
             ['view',  'newsletter',         '📧', 'Newsletter'],
@@ -66,8 +66,13 @@ function bcrf_permission_sections(): array {
 
 /** Save one role's ticks. $views / $tables are the posted view_permissions_block and perm_node arrays.
  *  Only items on the page change; everything else the role has is left alone. Returns [pages, view tables, edit tables]. */
+/** Roles the Permissions page can change (Owners always have full access; the public 'user' role was removed in 0025). */
+function bcrf_permission_roles(): array {
+    return ['moderator', 'Shopkeep', 'Media'];
+}
+
 function bcrf_permission_save(PDO $pdo, string $role, array $views, array $tables): array {
-    if (!in_array($role, ['Shopkeep', 'Media', 'moderator', 'user'], true)) throw new RuntimeException('Pick a role to change.');
+    if (!in_array($role, bcrf_permission_roles(), true)) throw new RuntimeException('Pick a role to change.');
     $vp = $pdo->prepare("INSERT INTO view_permissions (role, view_name, can_access) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE can_access = VALUES(can_access)");
     $rp = $pdo->prepare("INSERT INTO role_permissions (role, table_name, can_view, can_edit) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE can_view = VALUES(can_view), can_edit = VALUES(can_edit)");
     $n = [0, 0, 0];

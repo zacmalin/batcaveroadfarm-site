@@ -7,6 +7,7 @@ if ($current_role !== 'administrator') {
 // ── SECTIONED PERMISSION MAP ──────────────────────────────────────────────────
 // Sections and items live in includes/permission_sections.php (shared with the save handler, Nov 12, 2026).
 require_once dirname(__DIR__, 2) . '/includes/permission_sections.php';
+require_once dirname(__DIR__, 2) . '/includes/roles.php';   // display names (Nov 13, 2026)
 $permission_sections = bcrf_permission_sections();
 
 $inspect_role   = $_GET['inspect_role'] ?? '';
@@ -50,10 +51,10 @@ if (!empty($inspect_role)) {
                 onchange="window.location.href='/admin/admin.php?view=permissions&inspect_role='+encodeURIComponent(this.value)"
                 class="w-full max-w-xs p-2.5 border rounded bg-stone-50 font-bold outline-none text-xs text-stone-800 cursor-pointer">
                 <option value="">-- Choose Role --</option>
-                <?php foreach (['Shopkeep','Media','moderator','user'] as $r): ?>
+                <?php foreach (bcrf_permission_roles() as $r): /* Owners always have full access; the old public 'user' role is gone (0025) */ ?>
                     <option value="<?= htmlspecialchars($r, ENT_QUOTES) ?>"
                         <?= $inspect_role === $r ? 'selected' : '' ?>>
-                        <?= htmlspecialchars($r) ?>
+                        <?= htmlspecialchars(bcrf_role_label($r)) ?>
                     </option>
                 <?php endforeach; ?>
             </select>

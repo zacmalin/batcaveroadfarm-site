@@ -65,5 +65,17 @@ $missing = array_diff_key($firstUse, $have);
 if (!$missing) $ok(count($firstUse) . ' tables that code can still create on first use all come from a migration');
 else foreach ($missing as $t => $where) $bad("table `$t` is only created at first use (" . implode(', ', array_unique($where)) . '): add it to a migration');
 
+// -- 4. No page changes the database structure on load (Phase 0 cleanup, 0057, Nov 13, 2026) --
+// Allowed: the migration runner, the old Jobs installer (not reachable; kept for history) and includes/mcp/oauth.php
+// (upload-only; its tables come from 0001, so CREATE TABLE IF NOT EXISTS there never changes anything).
+$ddlOk = ['includes/migrations.php', 'includes/jobs/schema.php', 'includes/mcp/oauth.php'];
+$ddl = [];
+foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS)) as $f) {
+    $p = str_replace('\\', '/', substr((string)$f, strlen($root) + 1));
+    if (!str_ends_with($p, '.php') || preg_match('#^(vendor|node_modules|tests|tools|admin/migrations)/#', $p) || in_array($p, $ddlOk, true)) continue;
+    if (preg_match('/(exec|query|prepare)\(\s*["\']\s*(ALTER|CREATE)\s+TABLE\b/i', (string)file_get_contents((string)$f))) $ddl[] = $p;
+}
+!$ddl ? $ok('no page or include changes the database structure at run time') : $bad('runtime ALTER/CREATE TABLE in: ' . implode(', ', $ddl) . ' (move it to a migration)');
+
 echo $fail ? "\n$fail check(s) failed.\n" : "\nAll checks passed.\n";
 exit($fail ? 1 : 0);

@@ -157,16 +157,8 @@ if ($target_table === 'recipes' && !empty($columns_schema)) {
     // in_house (Recipe Bible, migration 0052) has its own box beside the Save Draft / Publish buttons.
     $columns_schema = array_values(array_filter($columns_schema, fn($c) => !in_array($c['Field'], ['status', 'social_shared_at', 'in_house'], true)));
 }
-// Breeds: optional "Wikipedia title" used by the animal pages' "About the breed" box
-// (includes/wiki_facts.php). Added on first visit; leave blank to let the site search for it.
-if ($target_table === 'breeds' && isset($pdo)) {
-    try {
-        if (!$pdo->query("SHOW COLUMNS FROM breeds LIKE 'wiki_title'")->fetch()) {
-            $pdo->exec("ALTER TABLE breeds ADD COLUMN wiki_title VARCHAR(200) NULL");
-            $columns_schema[] = ['Field' => 'wiki_title', 'Type' => 'varchar(200)', 'Null' => 'YES', 'Key' => '', 'Default' => null, 'Extra' => ''];
-        }
-    } catch (Throwable $e) { error_log('[ERP] breeds.wiki_title: ' . $e->getMessage()); }
-}
+// Breeds: optional "Wikipedia title" used by the animal pages' "About the breed" box (includes/wiki_facts.php);
+// leave blank to let the site search for it. The column comes from migrations 0001 / 0057 (Nov 13, 2026).
 // Animals: social_shared_at is the internal "announced on Facebook/Instagram" marker
 if ($target_table === 'animals' && !empty($columns_schema)) {
     $columns_schema = array_values(array_filter($columns_schema, fn($c) => $c['Field'] !== 'social_shared_at'));
