@@ -87,7 +87,10 @@ $hp = $holds[0]['type'] === 'event_inquiry' ? $holds[0] : $holds[1];
 $ok($hb['id'] === 10 && $hb['guests'] === 25 && $hb['what'] === 'School Field Trip', 'booking hold: 25 guests');
 $ok($hp['id'] === 2 && $hp['guests'] === 14 && $hp['what'] === 'Birthday party', 'party hold: 6 adults + 8 children = 14');
 $ok($hb['active'] && $hp['active'], 'both hold capacity now');
-$ok($hp['timed'] && strtotime($hp['end_utc'] . ' UTC') - strtotime($hp['start_utc'] . ' UTC') === 120 * 60, 'party window = start + 2 hours');
+// A party that starts late in the evening is cut off at 11:59 PM (the hold never runs into tomorrow), so near midnight
+// the expected window is shorter than 2 hours.
+$partyEnd = min(strtotime($startP) + 120 * 60, strtotime($today . ' 23:59:00'));
+$ok($hp['timed'] && strtotime($hp['end_utc'] . ' UTC') - strtotime($hp['start_utc'] . ' UTC') === $partyEnd - strtotime($startP), 'party window = start + 2 hours (cut off at 11:59 PM)');
 $ok(strtotime($hp['start_utc'] . ' UTC') - strtotime($hp['from_utc'] . ' UTC') === 30 * 60, 'hold starts 30 minutes early');
 $pdo->exec("UPDATE event_inquiries SET status = 'confirmed' WHERE id = 3");
 $ht = bcrf_holds_for_date($pdo, $tomorrow);
