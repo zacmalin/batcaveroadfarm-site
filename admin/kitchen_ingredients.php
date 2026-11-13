@@ -12,6 +12,7 @@ require_once __DIR__ . '/includes/permission_checks.php';
 require_permission([['table', 'ingredients']]);
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/kitchen.php';
+require_once __DIR__ . '/../includes/kitchen_batches.php';   // stock product link (slice 3, migration 0053)
 require_once __DIR__ . '/../includes/admin_shell.php';
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -39,6 +40,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $in['allergen'] = (array)($_POST['allergen'] ?? []);
         $in['allergen_detail'] = (array)($_POST['allergen_detail'] ?? []);
         $changes = bcrf_kitchen_ingredient_save($pdo, $id, $in, $uid);
+        if (array_key_exists('stock_product', $_POST) && bcrf_kitchen_batches_ready($pdo)
+            && bcrf_kitchen_ingredient_stock_set($pdo, $id, (int)$_POST['stock_product'] ?: null)) $changes[] = 'stock product';
         $ing = bcrf_kitchen_ingredient($pdo, $id);
         if ($changes && function_exists('erp_audit')) erp_audit($pdo, 'update', 'ingredients', $id, 'Label details for ' . $ing['singular_name'] . ': ' . implode(', ', $changes));
         $_SESSION['ki_flash'] = ['ok', $changes ? 'Saved ' . $ing['singular_name'] . '.' : 'Saved. Nothing changed.'];
@@ -115,18 +118,28 @@ if ($id) {
     </fieldset>
     <fieldset class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4"<?= $canEdit ? '' : ' disabled' ?>>
       <legend class="text-base font-semibold text-stone-800 mb-1">On the label</legend>
-      <div class="sm:col-span-2"><label class="<?= $label ?>" for="kl">Name on labels (optional)</label><input id="kl" name="label_name" maxlength="150" value="<?= $h($v['label_name']) ?>" class="<?= $input ?>" placeholder="<?= $h($ing['singular_name']) ?>">
+      <div class="sm:col-span-2"><label class="<?= $label ?>" for="kl">Name on labels (optional)</label><input id="kl" name="label_name" maxlength="150" value="<?= $h($v['label_name'] ?? '') ?>" class="<?= $input ?>" placeholder="<?= $h($ing['singular_name']) ?>">
         <p class="text-xs text-stone-500 mt-1">The common name the label should use, if it differs from the recipe, e.g. "enriched wheat flour" or "unsalted butter".</p></div>
-      <div class="sm:col-span-2"><label class="<?= $label ?>" for="ks">Its own ingredients (bought products)</label><textarea id="ks" name="sub_ingredients" rows="3" maxlength="2000" class="<?= $input ?>" placeholder="e.g. sugar, chocolate, cocoa butter, milkfat, soy lecithin, vanilla"><?= $h($v['sub_ingredients']) ?></textarea>
+      <div class="sm:col-span-2"><label class="<?= $label ?>" for="ks">Its own ingredients (bought products)</label><textarea id="ks" name="sub_ingredients" rows="3" maxlength="2000" class="<?= $input ?>" placeholder="e.g. sugar, chocolate, cocoa butter, milkfat, soy lecithin, vanilla"><?= $h($v['sub_ingredients'] ?? '') ?></textarea>
         <p class="text-xs text-stone-500 mt-1">Copy the ingredient list from the package exactly. It prints in parentheses after the name. Leave blank for single foods like eggs or salt.</p></div>
     </fieldset>
     <fieldset class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4"<?= $canEdit ? '' : ' disabled' ?>>
       <legend class="text-base font-semibold text-stone-800 mb-1">Weight</legend>
-      <div><label class="<?= $label ?>" for="kd">Grams per mL<?= $use['needs_density'] ? ' <span class="text-amber-800">(needed)</span>' : '' ?></label><input id="kd" name="density_g_per_ml" inputmode="decimal" value="<?= $h($v['density_g_per_ml']) ?>" class="<?= $input ?>" placeholder="e.g. 0.53 for flour">
+      <div><label class="<?= $label ?>" for="kd">Grams per mL<?= $use['needs_density'] ? ' <span class="text-amber-800">(needed)</span>' : '' ?></label><input id="kd" name="density_g_per_ml" inputmode="decimal" value="<?= $h($v['density_g_per_ml'] ?? '') ?>" class="<?= $input ?>" placeholder="e.g. 0.53 for flour">
         <p class="text-xs text-stone-500 mt-1">Turns cups and spoons into weight. Weigh 1 cup in grams and divide by 237. Water is 1, flour about 0.53, sugar 0.85, honey 1.42.</p></div>
-      <div><label class="<?= $label ?>" for="ke">Weight of one, in grams<?= $use['needs_each'] ? ' <span class="text-amber-800">(needed)</span>' : '' ?></label><input id="ke" name="weight_per_unit_g" inputmode="decimal" value="<?= $h($v['weight_per_unit_g']) ?>" class="<?= $input ?>" placeholder="e.g. 50 for one egg">
+      <div><label class="<?= $label ?>" for="ke">Weight of one, in grams<?= $use['needs_each'] ? ' <span class="text-amber-800">(needed)</span>' : '' ?></label><input id="ke" name="weight_per_unit_g" inputmode="decimal" value="<?= $h($v['weight_per_unit_g'] ?? '') ?>" class="<?= $input ?>" placeholder="e.g. 50 for one egg">
         <p class="text-xs text-stone-500 mt-1">For lines counted rather than measured: eggs, cloves, sticks, whole onions.</p></div>
     </fieldset>
+    <?php if (bcrf_kitchen_batches_ready($pdo)):
+        $stockSel = $form ? (int)($form['stock_product'] ?? 0) : (int)($ing['inventory_id'] ?? 0); ?>
+    <fieldset class="mb-4"<?= $canEdit ? '' : ' disabled' ?>>
+      <legend class="text-base font-semibold text-stone-800 mb-1">Stock</legend>
+      <label class="<?= $label ?>" for="kp">Stock product it comes out of (optional)</label>
+      <select id="kp" name="stock_product" class="<?= $input ?>"><option value="0">None</option>
+        <?php foreach (bcrf_kitchen_stock_products($pdo) as $sp): ?><option value="<?= (int)$sp['id'] ?>"<?= $stockSel === (int)$sp['id'] ? ' selected' : '' ?>><?= $h($sp['name']) ?><?= (float)$sp['size_value'] > 0 ? ' (' . $h(rtrim(rtrim((string)$sp['size_value'], '0'), '.') . ' ' . $sp['size_unit']) . ')' : '' ?></option><?php endforeach; ?></select>
+      <p class="text-xs text-stone-500 mt-1">When a kitchen batch is recorded with "take ingredients out of stock", the grams used come off this product. It needs a weight size in Products (e.g. 4 lb).</p>
+    </fieldset>
+    <?php endif; ?>
     <?php if ($canEdit): ?><button class="<?= $btnMain ?>">Save</button><?php endif; ?>
   </form>
 

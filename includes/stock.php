@@ -40,6 +40,7 @@ function bcrf_stock_reason_label(string $r): string {
     $m = array_map(fn($x) => $x[0], bcrf_stock_manual_reasons()) + [
         'sale' => 'Sold', 'void' => 'Sale voided', 'refund_restock' => 'Refund, back in stock', 'count' => 'Count',
         'opening' => 'Opening balance', 'transfer_out' => 'Moved out', 'transfer_in' => 'Moved in', 'sync' => 'Changed outside Stock',
+        'produced' => 'Made in the kitchen', 'batch_use' => 'Used in a kitchen batch', 'batch_void' => 'Kitchen batch voided',   // Phase 4 slice 3
     ];
     return $m[$r] ?? $r;
 }
