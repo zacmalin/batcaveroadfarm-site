@@ -36,6 +36,7 @@
 @source "../../admin/kitchen_labels.php";
 @source "../../admin/kitchen_label_print.php";
 @source "../../admin/kitchen_costing.php";
+@source "../../admin/kitchen_trace.php";
 @source "../../admin/weather.php";
 @source "../../admin/calendar.php";
 @source "../../admin/party.php";

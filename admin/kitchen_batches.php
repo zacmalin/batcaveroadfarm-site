@@ -108,6 +108,7 @@ if ($id) {
     <a class="<?= $btnMain ?>" href="kitchen_label_print.php?batch=<?= $id ?>">🖨️ Print labels</a>
   </div>
   <?php endif; ?>
+  <?php if (is_file(__DIR__ . '/kitchen_trace.php')): ?><p class="text-sm mb-4"><a class="underline text-amber-800" href="kitchen_trace.php?batch=<?= $id ?>">🔎 Trace this lot: who bought it and what's left</a></p><?php endif; ?>
   <div class="<?= $card ?>">
     <h2 class="text-base font-semibold text-stone-800 mb-2">Ingredients used</h2>
     <ul class="divide-y divide-stone-100 text-sm">
