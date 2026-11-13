@@ -10,6 +10,7 @@ $pdo = new PDO('mysql:host=' . (getenv('DB_HOST') ?: '127.0.0.1') . ';dbname=' .
                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC, PDO::ATTR_EMULATE_PREPARES => false]);
 $root = dirname(__DIR__);
 ini_set('log_errors', '0');
+set_exception_handler(function (Throwable $e) { fwrite(STDERR, 'Uncaught: ' . $e->getMessage() . ' at line ' . $e->getLine() . "\n"); exit(1); });
 
 $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
 foreach ($pdo->query("SELECT table_name AS t, table_type AS k FROM information_schema.tables WHERE table_schema = DATABASE()")->fetchAll() as $r) {
@@ -35,9 +36,9 @@ $ok(bcrf_itax_rate($pdo) === 675, 'general rate is 6.75% after the migrations');
 // -- An online ticket order: 2 adults ($8) + 1 child ($5) + 1 under-3 (free) = $21 --
 $gen = (int)$one("SELECT id FROM tax_categories WHERE code = 'general'");
 $pdo->exec("INSERT INTO inventory (id, category, name, price, stock_quantity, product_type, track_inventory, tax_category_id, is_active) VALUES
-            (901, 'Admissions', 'Adult Admission', 8.00, 0, 'retail', 0, $gen, 1),
-            (902, 'Admissions', 'Childs Admission', 5.00, 0, 'retail', 0, NULL, 1),
-            (903, 'Admissions', 'Under 3 Admission', 0.00, 0, 'retail', 0, $gen, 1)");
+            (901, 'Zoo', 'Adult Admission', 8.00, 0, 'retail', 0, $gen, 1),
+            (902, 'Zoo', 'Childs Admission', 5.00, 0, 'retail', 0, NULL, 1),
+            (903, 'Zoo', 'Under 3 Admission', 0.00, 0, 'retail', 0, $gen, 1)");
 $order = json_encode([['product_id' => 901, 'name' => 'Adult', 'qty' => 2, 'unit_cents' => 800],
                       ['product_id' => 902, 'name' => 'Child', 'qty' => 1, 'unit_cents' => 500],
                       ['product_id' => 903, 'name' => 'Under 3', 'qty' => 1, 'unit_cents' => 0]]);
