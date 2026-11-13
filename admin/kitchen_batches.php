@@ -12,7 +12,7 @@ check_admin();
 require_once __DIR__ . '/includes/permission_checks.php';
 require_permission([['table', 'recipes']]);
 require_once __DIR__ . '/includes/audit.php';
-require_once __DIR__ . '/../includes/kitchen_batches.php';
+require_once __DIR__ . '/../includes/kitchen_print.php';   // includes kitchen_batches.php; Print labels button (slice 5)
 require_once __DIR__ . '/../includes/admin_shell.php';
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -101,6 +101,12 @@ if ($id) {
       <?php if ($b['notes']): ?><dt class="text-stone-500">Notes</dt><dd><?= $h($b['notes']) ?></dd><?php endif; ?>
     </dl>
   </div>
+  <?php if (!$b['voided_at'] && function_exists('bcrf_kitchen_print_ready') && bcrf_kitchen_print_ready($pdo)): $runs = bcrf_kitchen_prints_for($pdo, $id); ?>
+  <div class="<?= $card ?> flex flex-wrap items-center justify-between gap-2">
+    <p class="text-sm text-stone-600"><?= $runs ? array_sum(array_column($runs, 'copies')) . ' labels printed for this lot.' : 'No labels printed for this lot yet.' ?></p>
+    <a class="<?= $btnMain ?>" href="kitchen_label_print.php?batch=<?= $id ?>">🖨️ Print labels</a>
+  </div>
+  <?php endif; ?>
   <div class="<?= $card ?>">
     <h2 class="text-base font-semibold text-stone-800 mb-2">Ingredients used</h2>
     <ul class="divide-y divide-stone-100 text-sm">

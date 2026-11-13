@@ -5,7 +5,7 @@
 //   POST act=draft | approve | reject | statement
 // Permission: table 'recipes' (view to look, edit to draft). Approving, sending back and the statement setting need the
 // "Approve kitchen labels" permission (kitchen_labels_approve; Owners always have it).
-// Printing (sheet size, type size, lot and best-by filled in) is slice 5.
+// Printing (sheet size, type size, lot and best-by filled in): admin/kitchen_label_print.php (slice 5).
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
 check_admin();
@@ -47,7 +47,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 ? bcrf_kitchen_label_approve($pdo, $lid, $uid, (string)($_POST['note'] ?? ''))
                 : bcrf_kitchen_label_reject($pdo, $lid, $uid, (string)($_POST['note'] ?? ''));
             if (function_exists('erp_audit')) erp_audit($pdo, 'update', 'kitchen_labels', $lid, 'Label for ' . $l['inventory_name'] . ($act === 'approve' ? ' approved' : ' sent back: ' . $l['decision_note']));
-            $_SESSION['kl_flash'] = ['ok', $act === 'approve' ? 'Label approved. This product can now be batched (and printed, once printing is built).' : 'Sent back with your note.'];
+            $_SESSION['kl_flash'] = ['ok', $act === 'approve' ? 'Label approved. This product can now be batched, and its batches\' labels printed.' : 'Sent back with your note.'];
         } elseif ($act === 'statement') {
             if (!$canApprove) throw new BcrfKitchenError('Only Owners (or roles given "Approve kitchen labels") can change the required statement.');
             if (bcrf_kitchen_label_statement_save($pdo, (string)($_POST['statement'] ?? ''))) {
@@ -87,7 +87,7 @@ $chips = [
 $chip = fn(string $s) => '<span class="inline-block px-2 py-0.5 rounded text-xs ' . ($chips[$s][1] ?? '') . '">' . htmlspecialchars($chips[$s][0] ?? $s) . '</span>';
 $when = fn($utc) => $utc ? date('M j, Y g:i A', strtotime($utc . ' UTC')) : '';
 
-// The label as text on a 3″ square, for review (printing with real type sizes is slice 5).
+// The label as text on a 3″ square, for review (the printed layout is on Kitchen › Batches › a lot › Print labels).
 $preview = function (array $l) use ($h): string {
     $o = '<div class="border-2 border-stone-800 rounded-md bg-white p-3 w-full max-w-[18rem] aspect-square overflow-hidden text-[11px] leading-snug text-stone-900">';
     $o .= '<div class="text-base font-bold leading-tight">' . $h($l['product_name']) . '</div>';
@@ -123,6 +123,7 @@ if ($pid) {
       <h2 class="text-base font-semibold text-stone-800 mb-1">Approved label <?= $chip('approved') ?></h2>
       <p class="text-xs text-stone-500 mb-2">Recipe version <?= (int)$a['version_no'] ?> · approved <?= $h($when($a['decided_at'])) ?><?= trim((string)$a['decided_by_name']) !== '' ? ' by ' . $h($a['decided_by_name']) : '' ?><?= $a['decision_note'] ? ' · ' . $h($a['decision_note']) : '' ?></p>
       <?= $preview($a) ?>
+      <p class="text-xs text-stone-500 mt-2">🖨️ To print it, open a lot in <a class="underline text-amber-800" href="kitchen_batches.php?q=<?= urlencode((string)$p['name']) ?>">Kitchen › Batches</a> and choose Print labels.</p>
     </div>
     <?php endif; ?>
 
@@ -209,6 +210,7 @@ bcrf_shell_open('Kitchen labels', ['toast' => $toast, 'width' => 'max-w-4xl']);
     <?php endforeach; ?>
   </ul>
   <?php endif; ?>
+  <p class="text-sm text-stone-600 mb-4">🖨️ Labels print from a batch: Kitchen › Batches › a lot › Print labels. Label sheets and type sizes: <a class="underline text-amber-800" href="kitchen_label_print.php">Label printing</a>.</p>
   <div class="<?= $card ?>">
     <h2 class="text-base font-semibold text-stone-800 mb-1">Required statement</h2>
     <p class="text-xs text-stone-500 mb-2">Printed on every label, under "Made by". Use the exact wording NCDA&amp;CS requires for home processors once they confirm it. Changing it means every label needs approving again.</p>

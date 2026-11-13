@@ -39,6 +39,14 @@ try {
 }
 if (!$item) { http_response_code(404); exit('Item not found.'); }
 
+// Kitchen-made products print from a batch instead (Farm OS Phase 4 slice 5, Nov 13, 2026): the approved label, the lot code
+// and best-by date, sized to the label stock (admin/kitchen_label_print.php). This page stays for everything else.
+try {
+    $kp = $pdo->prepare("SELECT 1 FROM kitchen_products WHERE inventory_id = ? AND recipe_id IS NOT NULL");
+    $kp->execute([$item_id]);
+    if ($kp->fetchColumn() && is_file(__DIR__ . '/kitchen_label_print.php')) { header('Location: kitchen_labels.php?product=' . (int)$item_id); exit; }
+} catch (Throwable $ignored) {}   // before migration 0051 there's no kitchen_products table
+
 // ── AUTO-GENERATE SKU if item was saved before barcode system existed ─────────
 if (empty($item['sku'])) {
     try {
