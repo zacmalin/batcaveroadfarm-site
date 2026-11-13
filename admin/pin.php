@@ -50,13 +50,21 @@ if ($device && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $msg = 'Tap your name first.'; $bad = true;
     } else {
         $r = bcrf_pin_check($pdo, $sel, (string)($_POST['pin'] ?? ''));
-        if ($r['ok']) {
+        if ($r['ok'] && !bcrf_pin_can_open((string)$r['user']['role'], $to)) {
+            if (!function_exists('bcrf_role_label')) require_once __DIR__ . '/../includes/roles.php';
+            $what = $to === 'gate' ? 'the gate' : 'the register';
+            $msg = 'Your PIN is right, but the ' . bcrf_role_label((string)$r['user']['role']) . ' role can\'t open ' . $what
+                 . ' yet. An Owner ticks ' . ($to === 'gate' ? 'P.O.S. Register or Annual Passes' : 'P.O.S. Register')
+                 . ' for that role in Settings › Users & Roles › Permissions.';
+            $bad = true;
+        } elseif ($r['ok']) {
             bcrf_pin_session_start($r['user'], $device);
             bcrf_pin_audit($pdo, 'pin_sign_in', $r['user'], 'Signed in by PIN on ' . $device['name']);
             header('Location: /admin/' . ($to === 'gate' ? 'gate.php' : 'register.php'));
             exit;
+        } else {
+            $msg = $r['message']; $bad = true;
         }
-        $msg = $r['message']; $bad = true;
     }
 }
 $farm = function_exists('bcrf_farm_name') ? bcrf_farm_name() : 'Farm OS';

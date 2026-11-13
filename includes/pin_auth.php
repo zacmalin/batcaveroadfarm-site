@@ -12,7 +12,7 @@
  *       admin page by check_admin() through bcrf_staff_mfa_gate() in includes/staff_auth.php);
  *     - locks after 5 minutes without anyone using the screen (server side by time since the last request the person made,
  *       and on the screen by admin/assets/pin-lock.js), or when someone taps Lock;
- *     - never has Owner powers: an Owner who signs in by PIN acts as a Manager.
+ *     - keeps the person's own role, but only on the PIN pages (an Owner stays an Owner there; until Nov 13 it was capped to Manager).
  *   It stands in for two-step sign-in, because the device itself had to be set up by an Owner who passed it.
  *
  * PINs
@@ -187,11 +187,13 @@ function bcrf_pin_session(): ?array {
     return is_array($p) ? $p : null;
 }
 
-/** Sign someone in by PIN on a set-up device. An Owner acts as a Manager here. */
+/** Sign someone in by PIN on a set-up device. They keep their own role; the PIN gate limits the pages. */
 function bcrf_pin_session_start(array $u, array $device): void {
     session_regenerate_id(true);
     unset($_SESSION['mfa_pending'], $_SESSION['mfa_setup_secret']);
-    $role = (string)$u['role'] === 'administrator' ? 'moderator' : (string)$u['role'];
+    // An Owner keeps the Owner role: the PIN gate already limits the session to the PIN pages, and the
+    // Permissions Matrix may not give Managers the register (fixed Nov 13, 2026 after "Access denied").
+    $role = (string)$u['role'];
     $_SESSION['user_id']    = (int)$u['id'];
     $_SESSION['user_role']  = $role;
     $_SESSION['user_name']  = (string)($u['first_name'] ?? '');
@@ -199,6 +201,14 @@ function bcrf_pin_session_start(array $u, array $device): void {
     $_SESSION['mfa_ok']     = true;   // the device was set up by an Owner who passed two-step sign-in
     $_SESSION['pin']        = ['device' => (int)$device['id'], 'device_name' => (string)$device['name'], 'last' => time(),
                                'started' => time(), 'real_role' => (string)$u['role']];
+}
+
+/** Can this role open the register or the gate? Same rules as require_permission() on those pages. */
+function bcrf_pin_can_open(string $role, string $to): bool {
+    if ($role === 'administrator') return true;
+    if (!function_exists('hasViewAccess')) require_once __DIR__ . '/../admin/includes/permission_checks.php';
+    if (hasViewAccess($role, 'pos')) return true;
+    return $to === 'gate' && hasViewAccess($role, 'passes');
 }
 
 /** End the session (Lock, time out, or the device was revoked). Keeps the PHP session for the next sign-in. */
@@ -250,7 +260,10 @@ function bcrf_pin_gate(): void {
     $dir    = basename(dirname((string)($_SERVER['SCRIPT_NAME'] ?? '')));
     if ($dir !== 'admin' || !in_array($script, bcrf_pin_pages(), true)) {
         if (bcrf_pin_wants_json()) bcrf_pin_bounce('With PIN sign-in this device can use the register, gate and waivers only.', 403);
-        if (!headers_sent()) header('Location: /admin/pin.php?m=' . rawurlencode('With PIN sign-in this device can use the register, gate and waivers only. For anything else, sign in with your password.'));
+        // Opening any other admin page (the console, or login.php, which forwards there) ends the PIN session and goes
+        // to the password sign-in, so an Owner can always get back to the full console (Nov 13, 2026).
+        bcrf_pin_session_end();
+        if (!headers_sent()) header('Location: /admin/login.php');
         exit;
     }
     if (!bcrf_pin_background_request()) $_SESSION['pin']['last'] = time();

@@ -106,7 +106,8 @@ $ok($threw, 'a device needs a name');
 // -- PIN session --
 $owner = $pdo->query("SELECT id, first_name, last_name, role FROM users WHERE id = 1")->fetch();
 @bcrf_pin_session_start($owner, ['id' => $id, 'name' => 'Gate tablet']);
-$ok($_SESSION['user_role'] === 'moderator' && $_SESSION['pin']['real_role'] === 'administrator', 'an Owner signed in by PIN acts as a Manager');
+$ok($_SESSION['user_role'] === 'administrator' && $_SESSION['pin']['real_role'] === 'administrator', 'an Owner signed in by PIN stays an Owner (the PIN pages still confine it)');
+$ok(bcrf_pin_can_open('administrator', 'register') && bcrf_pin_can_open('administrator', 'gate'), 'an Owner can always open the register and gate');
 $ok(!empty($_SESSION['mfa_ok']) && (int)$_SESSION['pin']['device'] === $id, 'PIN session records the device');
 bcrf_pin_session_end();
 $ok(!isset($_SESSION['user_id']) && !isset($_SESSION['pin']) && !isset($_SESSION['user_role']), 'Lock ends the session');
