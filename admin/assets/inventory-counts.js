@@ -179,7 +179,9 @@
             return r.name + (sub ? ' (' + sub + ')' : '');
         });
         found.sort((a, b) => (keys.indexOf(a.key.split(':')[0]) - keys.indexOf(b.key.split(':')[0])) || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
-        return { ingredients: parts.join(', '), contains: found.map(f => f.label).join(', '), unchecked, needs };
+        // Sulfites (not one of the nine) print as their own sentence after the Contains line.
+        const sulfites = rows.some(r => /(^|,)\s*sulfites\s*(,|$)/i.test(String(r.allergens || '')));
+        return { ingredients: parts.join(', '), contains: found.map(f => f.label).join(', '), unchecked, needs, sulfites };
     }
 
     function ingSummary(ing) {
@@ -317,7 +319,7 @@
         // Preview (ingredient statement with sub-ingredients + Contains line)
         const stmt = labelStatement(labelIngs);
         $('labelPreviewIngredients').textContent = labelIngs.length ? stmt.ingredients : (labelItemData ? labelItemData.name : '—');
-        $('labelPreviewContains').textContent = stmt.contains ? 'Contains: ' + stmt.contains : '';
+        $('labelPreviewContains').textContent = (stmt.contains ? 'Contains: ' + stmt.contains + (stmt.sulfites ? '. ' : '') : '') + (stmt.sulfites ? 'Contains sulfites.' : '');
         const al = $('labelAllergenWarn');
         const msgs = [];
         if (stmt.unchecked.length) msgs.push('Allergens not checked yet for: ' + stmt.unchecked.join(', ') + '. Tap Details on each one.');

@@ -148,6 +148,7 @@ function bcrf_kitchen_allergens_merge(array $a, array $b): array {
  *   'total_g'   => total weight of the lines that resolved,
  *   'statement' => "flour (wheat flour, niacin), sugar, butter (cream, salt)",
  *   'contains'  => "Milk, Wheat, Pecans" ('' when none),
+ *   'sulfites'  => true when any ingredient (or sub-recipe ingredient) is marked sulfites,
  *   'unchecked' => ingredient names with allergens never checked (including inside sub-recipes),
  *   'needs_name'=> ingredients marked tree nuts/fish/shellfish without saying which,
  *   'problems'  => count of lines without a weight,
@@ -257,6 +258,7 @@ function bcrf_kitchen_resolve(PDO $pdo, int $recipeId, array $seen = []): ?array
         'total_g'   => round($total, 2),
         'statement' => $label['ingredients'],
         'contains'  => $label['contains'],
+        'sulfites'  => $label['sulfites'],
         'unchecked' => $unchecked,
         'needs_name'=> $needs,
         'problems'  => $problems,
@@ -322,7 +324,9 @@ function bcrf_kitchen_ingredient_list(PDO $pdo, string $filter = 'attention', st
         $u = $use[$id] ?? ['recipes' => [], 'needs_density' => false, 'needs_each' => false];
         $parsed = bcrf_allergens_parse($r['allergens']);
         $needsName = false;
-        foreach ($parsed as $k => $d) if (bcrf_allergen_list()[$k][1] && $d === '') $needsName = true;
+        foreach (bcrf_allergens_only($parsed) as $k => $d) if (bcrf_allergen_list()[$k][1] && $d === '') $needsName = true;
+        $r['sulfites'] = array_key_exists('sulfites', $parsed);
+        $r['sulfite_hint'] = $r['sulfites'] ? '' : bcrf_sulfite_hint((string)$r['singular_name'], (string)($r['label_name'] ?? ''), (string)($r['sub_ingredients'] ?? ''));
         $r['used_in'] = $u['recipes'];
         $r['needs_density'] = $u['needs_density'];
         $r['needs_each'] = $u['needs_each'];
@@ -352,6 +356,7 @@ function bcrf_kitchen_num($v, string $what, float $min, float $max): ?float {
  *      allergen[] (keys from bcrf_allergen_list()), allergen_detail[key] (which nut/fish/shellfish),
  *      no_allergens = '1' when none of the nine (needed when nothing is ticked, so a blank form never counts as checked),
  *      allergens_unknown = '1' to leave allergens not checked.
+ *      sulfites = '1' when it has sulfites at 10 ppm or more (not one of the nine; left out = keep what it has).
  * Returns the fields that changed (for the audit line).
  */
 function bcrf_kitchen_ingredient_save(PDO $pdo, int $id, array $in, ?int $uid): array {
@@ -383,6 +388,8 @@ function bcrf_kitchen_ingredient_save(PDO $pdo, int $id, array $in, ?int $uid): 
         }
         if (!$ticked && empty($in['no_allergens'])) throw new BcrfKitchenError('Tick the allergens it contains, or tick "None of the nine" so the label knows it was checked.');
         if ($ticked && !empty($in['no_allergens'])) throw new BcrfKitchenError('You ticked allergens and "None of the nine". Pick one.');
+        $sulfites = array_key_exists('sulfites', $in) ? !empty($in['sulfites']) : bcrf_allergens_has_sulfites($cur['allergens']);
+        if ($sulfites) $ticked['sulfites'] = '';
         $allergens = bcrf_allergens_encode($ticked);
         $checkedNow = true;
     } else {
@@ -406,12 +413,14 @@ function bcrf_kitchen_ingredient_save(PDO $pdo, int $id, array $in, ?int $uid): 
 /** Readable allergens for a list cell: "Milk, Tree nuts (pecans)", "None", or "Not checked". */
 function bcrf_kitchen_allergen_text(?string $raw): string {
     if ($raw === null) return 'Not checked';
-    $p = bcrf_allergens_parse($raw);
-    if (!$p) return 'None';
+    $all = bcrf_allergens_parse($raw);
+    $p = bcrf_allergens_only($all);
+    $sulf = array_key_exists('sulfites', $all) ? 'Sulfites' : '';
+    if (!$p) return $sulf !== '' ? 'None of the nine · ' . $sulf : 'None';
     $list = bcrf_allergen_list();
     $o = [];
     foreach ($p as $k => $d) $o[] = $list[$k][0] . ($d !== '' ? ' (' . $d . ')' : ($list[$k][1] ? ' (which?)' : ''));
-    return implode(', ', $o);
+    return implode(', ', $o) . ($sulf !== '' ? ' · ' . $sulf : '');
 }
 
 /** "1 1/2" style quantity for display. */

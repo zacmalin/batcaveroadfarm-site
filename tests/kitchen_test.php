@@ -176,6 +176,28 @@ $pdo->exec("INSERT INTO ingredients (singular_name, plural_name) VALUES ('saffro
 $ok(count(bcrf_kitchen_ingredient_list($pdo, 'unchecked')) === 1, 'unused unchecked ingredient listed under Not checked');
 $ok(!isset(array_column(bcrf_kitchen_ingredient_list($pdo, 'attention'), null, 'singular_name')['saffron']), 'but not under Needs attention (not in a recipe)');
 
+// -- Sulfites (Nov 13, 2026): their own flag, not one of the nine; "Contains sulfites." next to the Contains line --
+$ok(bcrf_allergens_parse('milk,sulfites') === ['milk' => '', 'sulfites' => ''] && bcrf_allergens_only(['milk' => '', 'sulfites' => '']) === ['milk' => ''], 'sulfites parsed, kept apart from the nine');
+$ok(bcrf_allergens_encode(['sulfites' => '', 'tree_nuts' => 'pecans']) === 'tree_nuts:pecans,sulfites', 'sulfites encoded after the nine');
+$throws(fn() => bcrf_kitchen_ingredient_save($pdo, $ing['paprika'], ['sulfites' => '1'], 7), 'sulfites alone still needs the nine checked', 'None of the nine');
+bcrf_kitchen_ingredient_save($pdo, $ing['paprika'], ['no_allergens' => '1', 'sulfites' => '1'], 7);
+$ok($one("SELECT allergens FROM ingredients WHERE id = ?", [$ing['paprika']]) === 'sulfites', 'none of the nine + sulfites stored');
+bcrf_kitchen_ingredient_save($pdo, $ing['paprika'], ['no_allergens' => '1', 'label_name' => 'smoked paprika'], 7);
+$ok($one("SELECT allergens FROM ingredients WHERE id = ?", [$ing['paprika']]) === 'sulfites', 'saving without the sulfites field keeps it');
+$res = bcrf_kitchen_resolve($pdo, 3);
+$ok($res['sulfites'] === true && stripos($res['contains'], 'sulfite') === false, 'sulfites carried up from a sub-recipe, not in Contains: ' . $res['contains']);
+$ok(bcrf_kitchen_resolve($pdo, 1)['sulfites'] === false, 'recipe without sulfites');
+$ok(bcrf_label_contains_text('Milk, Wheat', true) === 'Contains: Milk, Wheat. Contains sulfites.' && bcrf_label_contains_text('', true) === 'Contains sulfites.'
+    && bcrf_label_contains_text('Milk', false) === 'Contains: Milk.' && bcrf_label_contains_text('', false) === '', 'label allergen line');
+$ok(bcrf_kitchen_allergen_text('sulfites') === 'None of the nine · Sulfites' && bcrf_kitchen_allergen_text('milk,sulfites') === 'Milk · Sulfites', 'sulfites in list text');
+$ok(array_column(bcrf_kitchen_ingredient_list($pdo, 'all'), null, 'singular_name')['paprika']['sulfites'] === true, 'ingredient list knows sulfites');
+bcrf_kitchen_ingredient_save($pdo, $ing['paprika'], ['no_allergens' => '1', 'sulfites' => '0'], 7);
+$ok($one("SELECT allergens FROM ingredients WHERE id = ?", [$ing['paprika']]) === '', 'sulfites unticked');
+$ok(bcrf_sulfite_hint('red wine vinegar') === 'wine' && bcrf_sulfite_hint('raisin') === 'dried fruit' && bcrf_sulfite_hint('lemon juice') === 'bottled lemon or lime juice'
+    && bcrf_sulfite_hint('molasses') === 'molasses' && bcrf_sulfite_hint('apricot', 'dried apricots') === 'dried fruit', 'common sources suggested');
+$ok(bcrf_sulfite_hint('golden raisins', '', 'raisins, sulfur dioxide') === 'sulfur dioxide' && bcrf_sulfite_hint('lime', '', 'lime juice, sodium metabisulfite') === 'sodium metabisulfite', 'a sulfiting agent on the package wins');
+$ok(bcrf_sulfite_hint('flour') === '' && bcrf_sulfite_hint('sugar') === '' && bcrf_sulfite_hint('egg') === '', 'no hint for ordinary ingredients');
+
 // -- Display helpers --
 $ok(bcrf_kitchen_allergen_text(null) === 'Not checked' && bcrf_kitchen_allergen_text('') === 'None' && bcrf_kitchen_allergen_text('milk,tree_nuts:pecans') === 'Milk, Tree nuts (pecans)', 'allergen text');
 $ok(bcrf_kitchen_qty(1.5) === '1 1/2' && bcrf_kitchen_qty(0.25) === '1/4' && bcrf_kitchen_qty(2) === '2' && bcrf_kitchen_qty(1.2) === '1.2', 'quantities');

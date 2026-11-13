@@ -86,6 +86,11 @@ $ok(!$lay2['fits'] && str_contains($lay2['problems'][0], 'too long') && str_cont
 $ok(min(array_map(fn($o) => $o[4], array_filter($lay2['ops'], fn($o) => $o[0] === 't' && $o[3] !== 'JAM8'))) >= 6, 'overflowing text not shrunk');
 $bad = $cfg; $bad['body_pt'] = 4.0;
 $ok(!bcrf_kitchen_label_layout($lab, 'L', '', '', $bad, false)['fits'], 'body below minimum flagged even if set by hand');
+$sul = bcrf_kitchen_label_layout($lab + ['sulfites' => true], 'L', '', '', $cfg, false);
+$ok(in_array('Contains sulfites.', array_map(fn($o) => $o[3], array_filter($sul['ops'], fn($o) => $o[0] === 't')), true) && $sul['fits'], 'sulfites print on their own when there are no allergens');
+$sul2 = bcrf_kitchen_label_layout(['contains_line' => 'Milk', 'sulfites' => true] + $lab, 'L', '', '', $cfg, false);
+$ok(str_contains(implode(' ', array_map(fn($o) => $o[3], array_filter($sul2['ops'], fn($o) => $o[0] === 't'))), 'Contains: Milk. Contains sulfites.'), 'sulfites right after the Contains line');
+$ok(min(array_map(fn($o) => $o[4], array_filter($sul2['ops'], fn($o) => $o[0] === 't' && str_contains($o[3], 'sulfites')))) >= 4.5, 'sulfites line at least 4.5 pt');
 $nolot = bcrf_kitchen_label_layout($lab, '', '', '', $cfg, false);
 $ok($nolot['fits'] && !array_filter($nolot['ops'], fn($o) => in_array($o[0], ['bar', 'img'], true)), 'no barcode or logo when not given');
 

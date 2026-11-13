@@ -93,7 +93,8 @@ $preview = function (array $l) use ($h): string {
     $o .= '<div class="text-base font-bold leading-tight">' . $h($l['product_name']) . '</div>';
     if ($l['net_qty'] !== '') $o .= '<div class="font-semibold mb-1">' . $h($l['net_qty']) . '</div>';
     $o .= '<div><strong>Ingredients:</strong> ' . $h($l['statement']) . '.</div>';
-    if ($l['contains_line'] !== '') $o .= '<div><strong>Contains: ' . $h($l['contains_line']) . '.</strong></div>';
+    $ct = bcrf_label_contains_text((string)$l['contains_line'], !empty($l['sulfites']));   // "Contains: Milk. Contains sulfites."
+    if ($ct !== '') $o .= '<div><strong>' . $h($ct) . '</strong></div>';
     if ($l['made_by'] !== '') $o .= '<div class="mt-1">' . $h($l['made_by']) . '</div>';
     if (trim((string)($l['extra'] ?? '')) !== '') $o .= '<div class="mt-1">' . nl2br($h($l['extra'])) . '</div>';
     $o .= '<div class="mt-1 text-stone-500">Lot: ____________ Best by: ____________</div></div>';
@@ -151,7 +152,7 @@ if ($pid) {
 
     <?php if (!$b['blockers'] && $canEdit): $f = $b['fields'];
         $nameDefault = $form['product_name'] ?? ($s['draft']['product_name'] ?? ($s['approved']['product_name'] ?? (string)($p['recipe_title'] ?: $p['name'])));
-        $now = ['product_name' => $nameDefault, 'statement' => $f['statement'], 'contains_line' => $f['contains_line'], 'net_qty' => $f['net_qty'], 'made_by' => $f['made_by'], 'extra' => $f['extra']]; ?>
+        $now = ['product_name' => $nameDefault, 'statement' => $f['statement'], 'contains_line' => $f['contains_line'], 'sulfites' => $f['sulfites'], 'net_qty' => $f['net_qty'], 'made_by' => $f['made_by'], 'extra' => $f['extra']]; ?>
     <div class="<?= $card ?>">
       <h2 class="text-base font-semibold text-stone-800 mb-1"><?= $s['draft'] ? 'Change the draft' : ($s['approved'] ? 'Rename it (makes a new draft)' : 'Draft a label') ?></h2>
       <p class="text-xs text-stone-500 mb-2">From recipe version <?= (int)$f['version_no'] ?>. Everything except the name comes from the recipe, the product's size, Site Info and the required statement.</p>

@@ -84,6 +84,7 @@ if ($id && $vid && $versionsReady) {
   <div class="<?= $card ?>">
     <p class="text-sm mb-2"><strong>Ingredients:</strong> <?= $h($v['statement']) ?>.</p>
     <p class="text-sm"><strong>Contains:</strong> <?= $v['contains_line'] !== '' ? $h($v['contains_line']) . '.' : 'none of the nine major allergens' ?></p>
+    <?php if (bcrf_kitchen_snapshot_sulfites($s)): ?><p class="text-sm font-semibold mt-1"><?= $h(bcrf_label_sulfites_text()) ?></p><?php endif; ?>
   </div>
   <div class="<?= $card ?>">
     <h2 class="text-base font-semibold text-stone-800 mb-2">Lines</h2>
@@ -165,6 +166,7 @@ if ($id) {
     <p class="text-xs text-stone-500 mb-3">Built from the recipe as it is now. Heaviest ingredient first; bought products show their own ingredients in parentheses.<?= $res['problems'] ? ' The order isn\'t final until every line has a weight.' : '' ?></p>
     <p class="text-sm mb-2"><strong>Ingredients:</strong> <?= $res['statement'] !== '' ? $h($res['statement']) : '<span class="text-stone-500">none yet</span>' ?>.</p>
     <p class="text-sm"><strong>Contains:</strong> <?= $res['contains'] !== '' ? $h($res['contains']) . '.' : ($res['unchecked'] ? '<span class="text-amber-800">can\'t say until every allergen is checked</span>' : 'none of the nine major allergens') ?></p>
+    <?php if ($res['sulfites']): ?><p class="text-sm font-semibold mt-1"><?= $h(bcrf_label_sulfites_text()) ?> <span class="font-normal text-xs text-stone-500">(printed next to the Contains line; not one of the nine)</span></p><?php endif; ?>
     <?php if ($res['unchecked']): ?>
     <p class="text-xs mt-3">Allergens not checked:
       <?php foreach ($res['unchecked'] as $nm): ?><span class="<?= $chipBad ?>"><?= isset($byName[$nm]) ? $ingLink($byName[$nm], $id, $h($nm)) : $h($nm) ?></span><?php endforeach; ?></p>

@@ -49,7 +49,7 @@ function bcrf_kitchen_label_made_by(): string {
 /**
  * What the label for a product says right now, from its recipe's current saved version.
  * Returns ['product', 'state' (version state), 'blockers' (can't draft), 'issues' (can draft, can't approve), 'fields'].
- * fields: version_id, version_no, statement, contains_line, net_qty, made_by, extra.
+ * fields: version_id, version_no, statement, contains_line, sulfites (from the version's snapshot), net_qty, made_by, extra.
  */
 function bcrf_kitchen_label_build(PDO $pdo, int $inventoryId): array {
     $p = bcrf_kitchen_product($pdo, $inventoryId);
@@ -67,7 +67,7 @@ function bcrf_kitchen_label_build(PDO $pdo, int $inventoryId): array {
     if (!$blockers) {
         $v = $vs['latest'];
         $fields = ['version_id' => (int)$v['id'], 'version_no' => (int)$v['version_no'], 'statement' => (string)$v['statement'],
-                   'contains_line' => (string)$v['contains_line'], 'net_qty' => (string)$p['net_qty'],
+                   'contains_line' => (string)$v['contains_line'], 'sulfites' => bcrf_kitchen_snapshot_sulfites((array)$v['snapshot']), 'net_qty' => (string)$p['net_qty'],
                    'made_by' => bcrf_kitchen_label_made_by(), 'extra' => bcrf_kitchen_label_statement_setting($pdo)];
         if ($fields['net_qty'] === '') $issues[] = 'No net quantity: set the product\'s size (e.g. 8 oz) in Storefront › Products.';
         if ($fields['made_by'] === '') $issues[] = 'No farm name and address: fill in Site Info.';
@@ -83,7 +83,7 @@ function bcrf_kitchen_label_hard_issues(array $issues): array {
 
 /** One label row with names. */
 function bcrf_kitchen_label(PDO $pdo, int $id): ?array {
-    $st = $pdo->prepare("SELECT l.*, v.version_no, i.name AS inventory_name,
+    $st = $pdo->prepare("SELECT l.*, v.version_no, v.snapshot AS version_snapshot, i.name AS inventory_name,
                                 TRIM(CONCAT(COALESCE(c.first_name, ''), ' ', COALESCE(c.last_name, ''))) AS created_by_name,
                                 TRIM(CONCAT(COALESCE(d.first_name, ''), ' ', COALESCE(d.last_name, ''))) AS decided_by_name
                          FROM kitchen_labels l
@@ -93,7 +93,12 @@ function bcrf_kitchen_label(PDO $pdo, int $id): ?array {
                          LEFT JOIN users d ON d.id = l.decided_by
                          WHERE l.id = ?");
     $st->execute([$id]);
-    return $st->fetch(PDO::FETCH_ASSOC) ?: null;
+    $l = $st->fetch(PDO::FETCH_ASSOC);
+    if (!$l) return null;
+    // Sulfites come from the recipe version the label was made from (a version never changes, so neither does this).
+    $l['sulfites'] = bcrf_kitchen_snapshot_sulfites(json_decode((string)($l['version_snapshot'] ?? ''), true) ?: []);
+    unset($l['version_snapshot']);
+    return $l;
 }
 
 /** Every label for a product, newest first. */

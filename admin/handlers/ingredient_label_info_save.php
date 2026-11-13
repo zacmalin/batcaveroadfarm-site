@@ -55,6 +55,8 @@ try {
     $o->execute([$ing_id]);
     $old = $o->fetch(PDO::FETCH_ASSOC);
     if (!$old) ili_exit(false, 'Ingredient not found.', 404);
+    // Sulfites are set on Kitchen › Ingredients, not in this window: keep them (Nov 13, 2026).
+    if (bcrf_allergens_has_sulfites($old['allergens'])) $allergens = bcrf_allergens_encode($picked + ['sulfites' => '']);
 
     $pdo->prepare("UPDATE ingredients SET allergens = ?, sub_ingredients = ? WHERE id = ?")
         ->execute([$allergens, $sub !== '' ? $sub : null, $ing_id]);

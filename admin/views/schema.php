@@ -1138,6 +1138,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                                     <?php else: ?>
                                         none of the nine major allergens
                                     <?php endif; ?>
+                                    <?php if (!empty($__kres['sulfites'])): ?><strong class="ml-1"><?= htmlspecialchars(bcrf_label_sulfites_text()) ?></strong><?php endif; ?>
                                 </p>
                                 <p class="mb-1"><strong>Batch weight:</strong> <?= htmlspecialchars(bcrf_kitchen_grams((float)$__kres['total_g'])) ?><?= $__kres['problems'] ? ' <span class="text-amber-800">(' . (int)$__kres['problems'] . ' line' . ($__kres['problems'] === 1 ? '' : 's') . ' without a weight, not counted)</span>' : '' ?></p>
                                 <?php if ($__kres['statement'] !== ''): ?><p class="mb-2"><strong>Ingredients (label order, heaviest first):</strong> <?= htmlspecialchars($__kres['statement']) ?></p><?php endif; ?>

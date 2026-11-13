@@ -80,6 +80,7 @@ $ing_str   = !empty($ingredients)
     ? htmlspecialchars($stmt_parts['ingredients'], ENT_QUOTES)
     : $name_esc;
 $contains_esc = htmlspecialchars($stmt_parts['contains'], ENT_QUOTES);
+$sulfites_esc = !empty($stmt_parts['sulfites']) ? htmlspecialchars(bcrf_label_sulfites_text(), ENT_QUOTES) : '';   // next to Contains, not inside it
 // Problems shown above the sheet (not printed)
 $label_warnings = [];
 if ($stmt_parts['unchecked'])  $label_warnings[] = 'Allergens not checked yet for: ' . implode(', ', $stmt_parts['unchecked']) . '. The Contains line may be incomplete.';
@@ -290,8 +291,8 @@ for ($p = 0; $p < $total_pages; $p++) {
                     <div class="l-ing">
                         <strong>Ingredients:</strong><?= $ing_str ?>
                     </div>
-                    <?php if ($contains_esc): ?>
-                    <div class="l-contains">Contains: <?= $contains_esc ?></div>
+                    <?php if ($contains_esc || $sulfites_esc): ?>
+                    <div class="l-contains"><?= $contains_esc ? 'Contains: ' . $contains_esc . ($sulfites_esc ? '. ' : '') : '' ?><?= $sulfites_esc ?></div>
                     <?php endif; ?>
                     <?php if ($made_esc): ?>
                     <div class="l-madeby"><?= $made_esc ?></div>

@@ -117,7 +117,7 @@ function bcrf_kitchen_print_logo(): ?string {
 }
 
 /**
- * Lay out one label. $l: product_name, statement, contains_line, net_qty, made_by, extra. $lot, $bestBy (display text,
+ * Lay out one label. $l: product_name, statement, contains_line, sulfites (bool, optional), net_qty, made_by, extra. $lot, $bestBy (display text,
  * '' to leave off), $sku (barcode, '' for none). Returns ['w', 'h' (points), 'ops' (drawing steps, label-relative),
  * 'fits', 'problems', 'room', 'used'].
  * ops: ['t', x, y, text, size, bold] · ['r', x, y, w, h] (filled black) · ['bar', data, x, y, w, h] · ['img', x, y, w, h]
@@ -174,7 +174,8 @@ function bcrf_kitchen_label_layout(array $l, string $lot, string $bestBy, string
     $y = $top + $body * 0.85; $used = 0.0; $paras = [];
     $ing = 'Ingredients: ';
     $paras[] = ['lead' => $ing, 'text' => rtrim((string)$l['statement'], '.') . '.', 'bold' => false];
-    if ((string)$l['contains_line'] !== '') $paras[] = ['lead' => '', 'text' => 'Contains: ' . rtrim((string)$l['contains_line'], '.') . '.', 'bold' => true];
+    $containsText = bcrf_label_contains_text((string)$l['contains_line'], !empty($l['sulfites']));   // "Contains: Milk. Contains sulfites."
+    if ($containsText !== '') $paras[] = ['lead' => '', 'text' => $containsText, 'bold' => true];
     if ((string)$l['made_by'] !== '') $paras[] = ['lead' => '', 'text' => (string)$l['made_by'], 'bold' => false];
     foreach (preg_split('/\n+/', trim((string)($l['extra'] ?? ''))) as $x) if (trim($x) !== '') $paras[] = ['lead' => '', 'text' => trim($x), 'bold' => false];
     foreach ($paras as $k => $p) {

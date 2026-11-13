@@ -214,4 +214,4 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
     </div>
 </div>
 
-<script src="/admin/assets/inventory-counts.js?v=20261105a"></script>
+<script src="/admin/assets/inventory-counts.js?v=20261113s"></script>

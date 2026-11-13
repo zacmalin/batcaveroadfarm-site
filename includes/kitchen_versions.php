@@ -48,6 +48,13 @@ function bcrf_kitchen_snapshot(array $res): array {
     ];
 }
 
+/** True when a saved snapshot's ingredients declare sulfites (read from the stored allergen strings, so versions
+ *  saved before sulfites existed read correctly and nothing needs a migration). */
+function bcrf_kitchen_snapshot_sulfites(array $snapshot): bool {
+    foreach ($snapshot['items'] ?? [] as $i) if (bcrf_allergens_has_sulfites($i['allergens'] ?? null)) return true;
+    return false;
+}
+
 /** Every version of a recipe, newest first, with who saved it. */
 function bcrf_kitchen_versions(PDO $pdo, int $recipeId): array {
     $st = $pdo->prepare("SELECT v.id, v.recipe_id, v.version_no, v.fingerprint, v.statement, v.contains_line, v.total_g, v.note, v.created_at, v.created_by,
@@ -120,6 +127,8 @@ function bcrf_kitchen_version_diff(array $old, array $new, string $oldContains, 
     $renamed = array_values(array_diff(array_keys($ni), array_keys($oi)));
     if ($renamed && $out === []) $out[] = 'Name on the label changed: ' . implode(', ', $renamed);
     if ($oldContains !== $newContains) $out[] = 'Contains: ' . ($oldContains !== '' ? $oldContains : 'none') . ' → ' . ($newContains !== '' ? $newContains : 'none');
+    $os = bcrf_kitchen_snapshot_sulfites($old); $ns = bcrf_kitchen_snapshot_sulfites($new);
+    if ($os !== $ns) $out[] = $ns ? 'Now contains sulfites' : 'No longer contains sulfites';
     if (!$out) $out[] = 'Weights changed (an ingredient\'s grams per mL or weight of one)';
     return array_values(array_unique($out));
 }

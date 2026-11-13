@@ -86,6 +86,10 @@ if ($id) {
     $details = $form ? (array)($form['allergen_detail'] ?? []) : $parsed;
     $none = $form ? !empty($form['no_allergens']) : ($ing['allergens'] === '');
     $unknown = $form ? !empty($form['allergens_unknown']) : false;
+    // "None of the nine" means none of the nine; sulfites are stored alongside but don't count (Nov 13, 2026).
+    if (!$form) { $none = $ing['allergens'] !== null && !bcrf_allergens_only($parsed); }
+    $sulfOn = $form ? !empty($form['sulfites']) : array_key_exists('sulfites', $parsed);
+    $sulfHint = bcrf_sulfite_hint((string)$ing['singular_name'], (string)($ing['label_name'] ?? ''), (string)($ing['sub_ingredients'] ?? ''));
     // Every recipe line using it, with its weight, so the effect of a change shows here.
     $lines = [];
     foreach (array_keys($use['recipes']) as $rid) {
@@ -115,6 +119,13 @@ if ($id) {
       </div>
       <label class="flex items-center gap-2 text-sm mb-1"><input type="checkbox" name="no_allergens" value="1"<?= $none ? ' checked' : '' ?>> None of the nine (checked)</label>
       <label class="flex items-center gap-2 text-sm text-stone-600"><input type="checkbox" name="allergens_unknown" value="1"<?= $unknown ? ' checked' : '' ?>> Not checked yet (blocks labels for every recipe using it)</label>
+    </fieldset>
+    <fieldset class="mb-4"<?= $canEdit ? '' : ' disabled' ?>>
+      <legend class="text-base font-semibold text-stone-800 mb-1">Sulfites</legend>
+      <p class="text-xs text-stone-500 mb-2">Not one of the nine, but labels must declare sulfites at 10 ppm or more. Tick it when the package lists a sulfite (sodium bisulfite, potassium metabisulfite, sulfur dioxide). Common sources: dried fruit, wine, wine vinegar, bottled lemon juice, molasses. The label then says "Contains sulfites." next to the Contains line.</p>
+      <input type="hidden" name="sulfites" value="0">
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="sulfites" value="1"<?= $sulfOn ? ' checked' : '' ?>> Contains sulfites (10 ppm or more)</label>
+      <?php if ($sulfHint !== '' && !$sulfOn): ?><p class="text-xs text-amber-800 mt-2">⚠ This looks like <?= $h($sulfHint) ?>, which often has sulfites. Check the package and tick the box if it lists one.</p><?php endif; ?>
     </fieldset>
     <fieldset class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4"<?= $canEdit ? '' : ' disabled' ?>>
       <legend class="text-base font-semibold text-stone-800 mb-1">On the label</legend>
@@ -192,6 +203,7 @@ if ($error) echo bcrf_shell_notice('err', $error);
           <?php if ($r['needs_name']): ?><span class="<?= $chipBad ?>">Say which nut, fish or shellfish</span><?php endif; ?>
           <?php if ($r['needs_density']): ?><span class="<?= $chipBad ?>">Needs grams per mL</span><?php endif; ?>
           <?php if ($r['needs_each']): ?><span class="<?= $chipBad ?>">Needs weight of one</span><?php endif; ?>
+          <?php if ($r['sulfite_hint'] !== '' && $r['allergens'] !== null): ?><span class="inline-block px-2 py-0.5 rounded text-xs bg-amber-50 text-amber-900 border border-amber-200">May have sulfites (<?= $h($r['sulfite_hint']) ?>)? Check the package</span><?php endif; ?>
           <?php if (!$r['needs_allergens'] && !$r['needs_name'] && !$r['needs_density'] && !$r['needs_each']): ?><span class="<?= $chipOk ?>">Label ready</span><?php endif; ?>
         </span>
       </li>
