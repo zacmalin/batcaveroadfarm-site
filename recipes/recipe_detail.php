@@ -83,6 +83,7 @@ $ing_stmt = $pdo->prepare("
     LEFT JOIN recipes lr           ON ri.linked_recipe_id = lr.id
     LEFT JOIN measurement_units mu ON ri.unit_id          = mu.id
     WHERE ri.recipe_id = ?
+    ORDER BY ri.id
 ");
 $ing_stmt->execute([$recipe_id]);
 $recipe_ingredients = $ing_stmt->fetchAll(PDO::FETCH_ASSOC);

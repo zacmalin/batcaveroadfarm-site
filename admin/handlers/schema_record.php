@@ -306,6 +306,11 @@ try {
         $pdo->prepare("UPDATE {$target_table} SET status = ? WHERE id = ?")->execute([$status, $record_id]);
     }
 
+    // ── RECIPES: Recipe Bible (in-house) flag, separate from website status (migration 0052) ──
+    if ($target_table === 'recipes' && isset($_POST['in_house_present']) && isset($col_meta['in_house'])) {
+        $pdo->prepare("UPDATE recipes SET in_house = ? WHERE id = ?")->execute([!empty($_POST['in_house']) ? 1 : 0, $record_id]);
+    }
+
     // ── ANIMALS: Save Draft / Publish = hidden from / shown on the petting zoo pages ──
     if ($target_table === 'animals' && isset($_POST['post_status'])) {
         $pdo->prepare("UPDATE animals SET is_active = ? WHERE id = ?")->execute([$_POST['post_status'] === 'published' ? 1 : 0, $record_id]);

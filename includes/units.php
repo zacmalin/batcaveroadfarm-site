@@ -43,17 +43,19 @@ if (!function_exists('formatRecipeQty')) {
      */
     function formatRecipeQty(float $qty): string {
         if (!is_finite($qty)) return '';
+        // Pairs, not float array keys: PHP truncates float keys to 0, which turned every whole number into "N ¾".
         $fractions = [
-            0.125 => "\u{215B}", // ⅛
-            0.25  => "\u{00BC}", // ¼
-            0.333 => "\u{2153}", // ⅓
-            0.5   => "\u{00BD}", // ½
-            0.667 => "\u{2154}", // ⅔
-            0.75  => "\u{00BE}", // ¾
+            [0.125, "\u{215B}"], // ⅛
+            [0.25,  "\u{00BC}"], // ¼
+            [0.333, "\u{2153}"], // ⅓
+            [0.5,   "\u{00BD}"], // ½
+            [0.667, "\u{2154}"], // ⅔
+            [0.75,  "\u{00BE}"], // ¾
         ];
         $whole = (int)floor($qty);
         $rem   = $qty - $whole;
-        foreach ($fractions as $decimal => $symbol) {
+        if (($rem < 0.02 && $whole > 0) || $rem > 0.98) return (string)(int)round($qty);
+        foreach ($fractions as [$decimal, $symbol]) {
             if (abs($rem - $decimal) < 0.02) {
                 return ($whole > 0 ? $whole . ' ' : '') . $symbol;
             }

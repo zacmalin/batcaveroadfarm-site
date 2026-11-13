@@ -60,6 +60,7 @@ $_sections = [
         ]],
     ]],
     'kitchen' => ['label'=>'Kitchen','icon'=>'🍳','items'=>[
+        ['label'=>'Recipe Bible','icon'=>'📕','tabs'=>[['Recipe Bible','/admin/kitchen_bible.php','table','recipes']]],               // house recipes, view only (Nov 13)
         ['label'=>'Recipes',     'icon'=>'📖','tabs'=>[['Recipes','?view=schema&table=recipes','table','recipes'],
                                                        ['Label check','/admin/kitchen_recipes.php','table','recipes']]],                  // Farm OS Phase 4 slice 1 (Nov 12)
         ['label'=>'Ingredients', 'icon'=>'🌿','tabs'=>[['Ingredients','?view=schema&table=ingredients','table','ingredients'],

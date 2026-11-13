@@ -154,7 +154,8 @@ if ($target_table === 'blog_posts' && !empty($columns_schema)) {
 // Reorder columns for inventory — category first, key operational fields above description
 // Recipes: status + social_shared_at are internal markers (buttons/auto), not form fields
 if ($target_table === 'recipes' && !empty($columns_schema)) {
-    $columns_schema = array_values(array_filter($columns_schema, fn($c) => !in_array($c['Field'], ['status', 'social_shared_at'], true)));
+    // in_house (Recipe Bible, migration 0052) has its own box beside the Save Draft / Publish buttons.
+    $columns_schema = array_values(array_filter($columns_schema, fn($c) => !in_array($c['Field'], ['status', 'social_shared_at', 'in_house'], true)));
 }
 // Breeds: optional "Wikipedia title" used by the animal pages' "About the breed" box
 // (includes/wiki_facts.php). Added on first visit; leave blank to let the site search for it.
@@ -254,7 +255,7 @@ if ($edit_data) {
 
         try {
             // Fix 7: select only columns we need, not SELECT *
-            $stmt = $pdo->prepare("SELECT ingredient_id, linked_recipe_id, quantity, unit_id, COALESCE(notes, '') AS notes, COALESCE(ingredient_group, '') AS ingredient_group FROM recipe_ingredients WHERE recipe_id = ?");
+            $stmt = $pdo->prepare("SELECT ingredient_id, linked_recipe_id, quantity, unit_id, COALESCE(notes, '') AS notes, COALESCE(ingredient_group, '') AS ingredient_group FROM recipe_ingredients WHERE recipe_id = ? ORDER BY id");  // entry order = the order you need them
             $stmt->execute([(int)$edit_data['id']]);
             $ri_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Throwable $e) { error_log('[ERP] Recipe ingredients fetch failed: ' . $e->getMessage()); }
@@ -349,6 +350,9 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                         <?php endif; ?>
                         <?php if ($post_status === 'published' || $post_status === 'draft'): ?>
                             <span class="ml-1"><?= ui_chip($post_status) ?></span>
+                        <?php endif; ?>
+                        <?php if ($target_table === 'recipes' && !empty($rec['in_house'])): ?>
+                            <span class="ml-1 text-[10px] font-semibold text-amber-800" title="In the house Recipe Bible">📖 Bible</span>
                         <?php endif; ?>
                     </a>
                     <?php
@@ -1049,7 +1053,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                             <?php foreach ($ri_data as $idx => $ri_row): ?>
                             <div class="dynamic-ingredient-row text-xs space-y-1.5 pb-2 border-b border-stone-200 last:border-0">
                                 <div class="flex items-center space-x-2">
-                                    <span class="text-[10px] font-black text-stone-400 w-5 shrink-0 text-right"><?= $idx + 1 ?>.</span>
+                                    <span class="ri-num text-[10px] font-black text-stone-400 w-5 shrink-0 text-right"><?= $idx + 1 ?>.</span>
                                     <?php $ri_pick = $ri_resolve($ri_row); ?>
                                     <div class="ri-combo relative flex-1">
                                         <input type="hidden" name="recipe_ingredients_block[<?= $idx ?>][ref]" value="<?= htmlspecialchars($ri_pick['ref'], ENT_QUOTES) ?>">
@@ -1069,7 +1073,11 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
-                                    <button type="button" onclick="this.closest('.dynamic-ingredient-row').remove()"
+                                    <button type="button" onclick="moveIngredientRow(this, -1)" title="Move up" aria-label="Move up"
+                                        class="text-stone-500 font-bold px-1 hover:text-stone-900 shrink-0">↑</button>
+                                    <button type="button" onclick="moveIngredientRow(this, 1)" title="Move down" aria-label="Move down"
+                                        class="text-stone-500 font-bold px-1 hover:text-stone-900 shrink-0">↓</button>
+                                    <button type="button" onclick="this.closest('.dynamic-ingredient-row').remove(); renumberIngredientRows()"
                                         class="text-red-600 font-bold px-1 hover:text-red-900 shrink-0">✕</button>
                                 </div>
                                 <div class="flex items-center space-x-2 pl-7">
@@ -1643,10 +1651,29 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                         ? (!empty($edit_data['is_active']) ? 'published' : 'draft')
                         : ($edit_data['status'] ?? 'draft');
                     $status_label   = $current_status === 'published' ? '🟢 Published' : '🟡 Draft';
+                    // Recipe Bible (migration 0052): in-house copy, separate from the website.
+                    $__bible_ready = $target_table === 'recipes' && $edit_data !== null && array_key_exists('in_house', (array)$edit_data);
+                    if ($target_table === 'recipes' && !$__bible_ready) {
+                        try { $__bible_ready = (bool)$pdo->query("SHOW COLUMNS FROM recipes LIKE 'in_house'")->fetch(); } catch (Throwable $e) { $__bible_ready = false; }
+                    }
+                    if ($target_table === 'recipes') {
+                        $status_label = ($current_status === 'published' ? '🟢 On the website' : '🟡 Not on the website')
+                                      . (!empty($edit_data['in_house']) ? ' · 📖 In the Recipe Bible' : '');
+                    }
                     ?>
                     <span class="text-xxs font-mono text-stone-400 font-bold uppercase tracking-wider">
                         Current: <?= $status_label ?>
                     </span>
+                    <?php if ($__bible_ready): ?>
+                    <div class="w-full rounded border border-amber-200 bg-amber-50 p-2 text-xs text-stone-700">
+                        <input type="hidden" name="in_house_present" value="1">
+                        <label class="flex items-center gap-2 font-semibold text-amber-900 cursor-pointer select-none">
+                            <input type="checkbox" name="in_house" value="1" class="rounded" <?= !empty($edit_data['in_house']) ? 'checked' : '' ?>>
+                            📖 Keep in the house Recipe Bible (staff only)
+                        </label>
+                        <p class="text-[11px] text-stone-500 mt-1">The Recipe Bible and the website are separate. <strong>Publish</strong> puts the recipe on the website; <strong>Save Draft</strong> keeps it off the website. For a house-only recipe, tick this box and use Save Draft.</p>
+                    </div>
+                    <?php endif; ?>
                     <div class="flex flex-wrap gap-2 justify-end">
                         <?php if ($target_table === 'animals' && !empty($edit_data['id'])): ?>
                         <a href="/petting-zoo/animals/<?= (int)$edit_data['id'] ?>/<?= htmlspecialchars(createSlug((string)($edit_data['name'] ?? 'animal')), ENT_QUOTES) ?>/?preview=1"
@@ -1890,6 +1917,26 @@ function makeRiCombo(idx, ref, label){
 }
 (function(){ const go=()=>document.querySelectorAll('.ri-combo').forEach(initRiCombo); if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',go); else go(); })();
 
+    // Ingredient lines save in the order shown here (the order you need them when cooking).
+    function renumberIngredientRows() {
+        const container = document.getElementById('ingredientsDynamicWrapper');
+        if (!container) return;
+        container.querySelectorAll('.dynamic-ingredient-row').forEach((r, i) => {
+            const num = r.querySelector('.ri-num');
+            if (num) num.textContent = (i + 1) + '.';
+        });
+    }
+    function moveIngredientRow(btn, dir) {
+        const row = btn.closest('.dynamic-ingredient-row');
+        if (!row) return;
+        const other = dir < 0 ? row.previousElementSibling : row.nextElementSibling;
+        if (!other || !other.classList.contains('dynamic-ingredient-row')) return;
+        if (dir < 0) row.parentNode.insertBefore(row, other);
+        else row.parentNode.insertBefore(other, row);
+        renumberIngredientRows();
+        btn.focus();
+    }
+
     function addNewIngredientRow() {
         const container = document.getElementById('ingredientsDynamicWrapper');
         if (!container) return;
@@ -1905,7 +1952,7 @@ function makeRiCombo(idx, ref, label){
         topLine.className = 'flex items-center space-x-2';
 
         const numLabel = document.createElement('span');
-        numLabel.className   = 'text-[10px] font-black text-stone-400 w-5 shrink-0 text-right';
+        numLabel.className   = 'ri-num text-[10px] font-black text-stone-400 w-5 shrink-0 text-right';
         numLabel.textContent = rowNum + '.';
 
         const ingSelect = makeRiCombo(n, '', '');
@@ -1927,9 +1974,17 @@ function makeRiCombo(idx, ref, label){
         removeBtn.type        = 'button';
         removeBtn.textContent = '✕';
         removeBtn.className   = 'text-red-600 font-bold px-1 hover:text-red-900 shrink-0';
-        removeBtn.onclick     = () => row.remove();
+        removeBtn.onclick     = () => { row.remove(); renumberIngredientRows(); };
 
-        topLine.append(numLabel, ingSelect, qtyInput, unitSelect, removeBtn);
+        const mkMove = (dir, txt, label) => {
+            const b = document.createElement('button');
+            b.type = 'button'; b.textContent = txt; b.title = label; b.setAttribute('aria-label', label);
+            b.className = 'text-stone-500 font-bold px-1 hover:text-stone-900 shrink-0';
+            b.onclick = () => moveIngredientRow(b, dir);
+            return b;
+        };
+
+        topLine.append(numLabel, ingSelect, qtyInput, unitSelect, mkMove(-1, '↑', 'Move up'), mkMove(1, '↓', 'Move down'), removeBtn);
 
         // Notes line — group heading + preparation note
         const notesLine = document.createElement('div');
