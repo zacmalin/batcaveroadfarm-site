@@ -35,7 +35,7 @@ $sent = [];
 $send = function ($to, $subject, $html) use (&$sent) { $sent[] = [$to, $subject, $html]; return true; };
 
 $ok(bcrf_reminders_ready($pdo) && bcrf_notifications_ready($pdo), 'migration 0063 ran (twice)');
-$ok(BCRF_REMINDER_EMAILS_LIVE === false, 'reminder emails are held until the wording is OK\'d');
+$ok(BCRF_REMINDER_EMAILS_LIVE === true, 'reminder emails are on (wording OK\'d Nov 13)');
 
 // Fixed "now": Wed Mar 10, 2027, 10:00 AM farm time
 $tz = new DateTimeZone('America/New_York');
@@ -101,7 +101,7 @@ $ok(str_contains($prev[2]['html'], 'Family Annual Pass') && str_contains($prev[2
 $ok(str_contains($prev[2]['subject'], 'pass ends'), 'pass email subject');
 
 // Held: nothing sent, nothing claimed
-$r = bcrf_reminders_run($pdo, $now, $send);
+$r = bcrf_reminders_run($pdo, $now, $send, false);
 $ok($r === ['due' => 3, 'sent' => 0, 'held' => 3] && $sent === [], 'not live: 3 due, all held, nothing sent');
 $ok((int)$one("SELECT COUNT(*) FROM event_quotes WHERE deposit_reminded_at IS NOT NULL OR balance_reminded_at IS NOT NULL") === 0 && (int)$one("SELECT COUNT(*) FROM passes WHERE renewal_reminded_at IS NOT NULL") === 0, 'not live: nothing claimed, so they go once switched on');
 

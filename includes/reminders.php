@@ -9,11 +9,11 @@
 // All three are about the customer's own booking or pass (transactional), so they don't need an opt-in; each still carries the
 // preferences link. Each row is claimed before sending (…_reminded_at, UTC), so overlapping runs can't send twice and a bad
 // address isn't retried. Managers see each send on the bell (includes/notifications.php).
-// BCRF_REMINDER_EMAILS_LIVE stays false until the owner has read and OK'd the wording: until then nothing is claimed or sent,
-// and bcrf_reminder_preview() shows what would go out. Run by admin/cron/reminders.php between 9 AM and 6 PM farm time.
+// BCRF_REMINDER_EMAILS_LIVE: the owner OK'd the wording Nov 13, 2026, so it is on. Set it to false to hold every reminder
+// (nothing is claimed or sent); bcrf_reminder_preview() shows what would go out. Run by admin/cron/reminders.php between 9 AM and 6 PM farm time.
 if (!function_exists('bcrf_reminders_ready')) {
 
-if (!defined('BCRF_REMINDER_EMAILS_LIVE')) define('BCRF_REMINDER_EMAILS_LIVE', false);
+if (!defined('BCRF_REMINDER_EMAILS_LIVE')) define('BCRF_REMINDER_EMAILS_LIVE', true);
 
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';
 if (!function_exists('bcrf_quote_subject')) require_once __DIR__ . '/event_quotes.php';
