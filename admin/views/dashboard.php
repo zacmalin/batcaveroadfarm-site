@@ -319,6 +319,39 @@ try {
     }
 } catch (Throwable $e) { /* kitchen costing not installed */ }
 
+// Animals off visitor contact, and vaccinations due within 14 days or late (Nov 13, 2026; includes/animals.php,
+// includes/animal_health.php). Off-contact: anyone who can see the roster. Vaccinations: the 'animal_health' view.
+try {
+    if (is_file(dirname(__DIR__, 2) . '/includes/animal_health.php')) {
+        require_once dirname(__DIR__, 2) . '/includes/animal_health.php';
+        if (bcrf_animals_ready($pdo) && $canT('animals')) {
+            $offA = bcrf_animals_off_contact($pdo);
+            if ($offA) {
+                $offQ = count(array_filter($offA, fn($a) => $a['status'] === 'quarantined'));
+                $add(['id' => 'animals_off', 'priority' => 'today', 'icon' => '🚧',
+                      'title' => count($offA) . ' animal' . (count($offA) === 1 ? '' : 's') . ' off visitor contact' . ($offQ ? ' (' . $offQ . ' quarantined)' : ''),
+                      'items' => array_map(fn($a) => $a['name'] . ' · ' . ($a['status'] === 'quarantined' ? 'Quarantined' : 'Resting') . ($a['enclosure_name'] ? ' · ' . $a['enclosure_name'] : ''), array_slice($offA, 0, 4)),
+                      'detail' => (count($offA) > 4 ? '…and ' . (count($offA) - 4) . ' more. ' : '') . 'Keep visitors away until they are back to Active.',
+                      'count' => count($offA) * 10 + $offQ,
+                      'actions' => [['Open roster', '/admin/animals.php?f=off', true]]]);
+            }
+        }
+        if (bcrf_health_ready($pdo) && $canV('animal_health')) {
+            $hd = bcrf_health_due($pdo);
+            $vd = $hd['vaccinations'];
+            if ($vd) {
+                $late = count(array_filter($vd, fn($v) => $v['next_due'] < $hd['today']));
+                $add(['id' => 'vacc_due', 'priority' => $late ? 'urgent' : 'today', 'icon' => '💉',
+                      'title' => count($vd) . ' vaccination' . (count($vd) === 1 ? '' : 's') . ' due in the next 14 days' . ($late ? ' (' . $late . ' late)' : ''),
+                      'items' => array_map(fn($v) => $v['animal_name'] . ' · ' . $v['vaccine'] . ' · ' . ($v['next_due'] < $hd['today'] ? 'late since ' : 'due ') . date('D M j', strtotime($v['next_due'])), array_slice($vd, 0, 4)),
+                      'detail' => (count($vd) > 4 ? '…and ' . (count($vd) - 4) . ' more. ' : '') . 'Record each one on the animal\'s Health tab when given.',
+                      'count' => count($vd) * 10 + $late,
+                      'actions' => [['Open Health', '/admin/animal_health.php', true]]]);
+            }
+        }
+    }
+} catch (Throwable $e) { /* animals not installed */ }
+
 $prioOrder = ['urgent' => 0, 'today' => 1, 'fyi' => 2];
 usort($alerts, fn($a, $b) => $prioOrder[$a['priority']] <=> $prioOrder[$b['priority']]);
 $prioCount = array_count_values(array_column($alerts, 'priority'));
@@ -356,11 +389,20 @@ try {
     $st->execute([$today . ' 00:00:00', $today . ' 23:59:59']);
     $todayEvents = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
 } catch (Throwable $e) {}
+// Gate occupancy (02 › Today; Nov 13, 2026; includes/admission.php) — anyone who can use the gate.
+$occ = null;
+if ($canV('pos') || $canV('passes')) {
+    try {
+        require_once dirname(__DIR__, 2) . '/includes/admission.php';
+        if (bcrf_admission_ready($pdo)) $occ = bcrf_occupancy($pdo);
+    } catch (Throwable $e) { $occ = null; }
+}
 $todayGuests = array_sum(array_map(fn($b) => $b['status'] === 'confirmed' ? (int)$b['party_size'] : 0, $todayBookings));
 
 // ═══ QUICK ACTIONS ═══════════════════════════════════════════════════════════
 $quick = [];
 if ($canV('pos'))              $quick[] = ['💳', 'New sale',         '/admin/register.php'];
+if ($canV('pos') || $canV('passes')) $quick[] = ['🎟️', 'Check in guest', '/admin/gate.php'];
 if ($canV('inventory_update')) $quick[] = ['📦', 'Count inventory',  "$A?view=inventory_update"];
 if ($canV('bookings'))         $quick[] = ['📋', "Today's bookings", "$A?view=bookings&day=$today"];
 if ($canV('timecard'))         $quick[] = ['⏰', 'Clock in / out',   "$A?view=timecard"];
@@ -476,6 +518,13 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
         <h2 id="todayHead" class="text-sm font-black uppercase tracking-widest text-stone-500 mb-2">Today</h2>
         <?php if ($hoursToday !== ''): ?>
           <div class="text-xs text-stone-700 mb-3"><span class="font-bold">Hours:</span> <?= $h($hoursToday) ?></div>
+        <?php endif; ?>
+
+        <?php if ($occ): $oc = $occ['level'] === 'full' ? 'bg-red-100 text-red-700' : ($occ['level'] === 'busy' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'); ?>
+        <a href="/admin/gate.php" class="mb-3 flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs <?= $oc ?>">
+          <span><span class="font-black text-base"><?= (int)$occ['on_site'] ?></span> of <?= (int)$occ['limit'] ?> on site<?= $occ['level'] === 'full' ? ' · full' : '' ?></span>
+          <span><?= (int)$occ['visitors_today'] ?> visitor<?= (int)$occ['visitors_today'] === 1 ? '' : 's' ?> today · Gate ›</span>
+        </a>
         <?php endif; ?>
 
         <?php if ($canV('bookings')): ?>

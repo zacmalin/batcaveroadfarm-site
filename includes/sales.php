@@ -336,6 +336,13 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
                 if (!isset($products[$id])) throw new BcrfSaleError('An item in the cart no longer exists. Refresh the register.');
                 if (!(int)$products[$id]['is_active']) throw new BcrfSaleError('"' . $products[$id]['name'] . '" is no longer active. Remove it or turn it back on.');
             }
+            // Kitchen products need an approved label before they can be sold (Phase 4 exit; includes/kitchen_labels.php).
+            if (is_file(__DIR__ . '/kitchen_labels.php')) {
+                require_once __DIR__ . '/kitchen_labels.php';
+                if ($nl = bcrf_kitchen_unlabeled($pdo, $ids)) {
+                    throw new BcrfSaleError('"' . reset($nl) . '" has no approved label yet, so it can\'t be sold. Approve its label in Kitchen › Labels, or remove it from the sale.');
+                }
+            }
         }
 
         // Item discounts need migration 0014; a customer must exist (slice 7).

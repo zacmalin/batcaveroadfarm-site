@@ -204,4 +204,22 @@ function bcrf_kitchen_label_overview(PDO $pdo): array {
     return $out;
 }
 
+/**
+ * Register check (Nov 13, 2026; Phase 4 exit "every kitchen product sold has an approved label"): of these inventory ids,
+ * the kitchen-linked ones without a valid approved label. Returns [id => name]. Empty when migration 0054 hasn't run.
+ */
+function bcrf_kitchen_unlabeled(PDO $pdo, array $inventoryIds): array {
+    $ids = array_values(array_unique(array_filter(array_map('intval', $inventoryIds))));
+    if (!$ids || !bcrf_kitchen_labels_ready($pdo)) return [];
+    $st = $pdo->prepare("SELECT inventory_id FROM kitchen_products WHERE inventory_id IN (" . implode(',', array_fill(0, count($ids), '?')) . ")");
+    $st->execute($ids);
+    $out = [];
+    foreach ($st->fetchAll(PDO::FETCH_COLUMN) as $pid) {
+        try { $s = bcrf_kitchen_label_state($pdo, (int)$pid); }
+        catch (Throwable $e) { $out[(int)$pid] = 'product #' . (int)$pid; continue; }
+        if (!$s['approved']) $out[(int)$pid] = (string)$s['build']['product']['name'];
+    }
+    return $out;
+}
+
 }

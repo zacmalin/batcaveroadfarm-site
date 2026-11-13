@@ -80,11 +80,13 @@ $throws(fn() => bcrf_kitchen_label_reject($pdo, (int)$d['id'], 7, ' '), 'reject 
 $r = bcrf_kitchen_label_reject($pdo, (int)$d['id'], 7, 'Call it jam');
 $ok($r['status'] === 'rejected' && $r['decision_note'] === 'Call it jam', 'rejected with note');
 $throws(fn() => bcrf_kitchen_label_approve($pdo, (int)$d['id'], 7), 'rejected can\'t be approved', 'Only a draft');
+$ok(array_keys(bcrf_kitchen_unlabeled($pdo, [21, 999999])) === [21], 'register: draft-only kitchen product is blocked, non-kitchen id ignored');
 $d3 = bcrf_kitchen_label_draft($pdo, 21, 'Strawberry Jam', 7);
 $ok((int)$d3['id'] !== (int)$d['id'], 'new draft after a rejection');
 $a = bcrf_kitchen_label_approve($pdo, (int)$d3['id'], 7, 'looks right');
 $ok($a['status'] === 'approved' && (int)$a['decided_by'] === 7 && $a['decision_note'] === 'looks right', 'approved');
 $ok((int)bcrf_kitchen_label_state($pdo, 21)['approved']['id'] === (int)$a['id'], 'state: approved label');
+$ok(bcrf_kitchen_unlabeled($pdo, [21]) === [], 'register: approved label lets it sell');
 $throws(fn() => bcrf_kitchen_label_draft($pdo, 21, 'Strawberry Jam', 7), 'same text as approved', 'already says');
 $ov = array_column(bcrf_kitchen_label_overview($pdo), null, 'id');
 $ok($ov[21]['status'] === 'approved' && $ov[22]['status'] === 'draft', 'overview statuses');
