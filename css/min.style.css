@@ -401,3 +401,9 @@ nav.open .hamburger-label .hl-close{display:inline}
 .nt-icon{display:inline-block;margin-left:.2em;font-size:.8em;line-height:1;text-decoration:none}
 /* hero buttons sit on a dark photo: light border so the button edge reaches 3:1 (WCAG 1.4.11, Nov 11 2026) */
 .hero .cta-btn{border-color:var(--cream,#f5ead6)}
+/* Homepage LCP (Nov 13 2026): below-the-fold blocks skip layout until scrolled near, so their photos and the Caveat chalk font stop competing with the hero photo on slow phones */
+.card-grid>.card{content-visibility:auto;overflow-clip-margin:60px;contain-intrinsic-size:auto 480px}
+.home-feature-cols,.info-grid{content-visibility:auto;overflow-clip-margin:60px;contain-intrinsic-size:auto 700px}
+.ctaDiv,body>footer{content-visibility:auto;overflow-clip-margin:60px;contain-intrinsic-size:auto 900px}
+/* wheat emoji: fixed line box so web fonts loading later don't move it (CLS) */
+.hero-deco{line-height:1;font-style:normal;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}

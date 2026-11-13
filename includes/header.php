@@ -52,8 +52,16 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // 
                     require_once __DIR__ . '/webp.php';
                     $__logoWebp = bcrf_webp_src('/img/logo.png');
                     if ($__logoWebp): ?>
+<?php
+                    // Homepage LCP (Nov 13 2026): the logo shows 80-110px tall (about 150px wide), so most screens get a 300px copy (~10 KB, was 38 KB).
+                    require_once __DIR__ . '/img_dims.php';
+                    $__logoFull  = bcrf_farm_url() . $__logoWebp . '?v=' . bcrf_asset_v((string)$__logoWebp);
+                    $__logoSmall = bcrf_img_thumb((string)$__logoWebp, 300);
+                    $__logoSet   = ($__logoSmall !== $__logoWebp && preg_match('#^/img/_thumbs/300/[A-Za-z0-9._%/\-]+\?v=\d+$#', $__logoSmall))
+                        ? bcrf_farm_url() . $__logoSmall . ' 300w, ' . $__logoFull . ' 400w'
+                        : $__logoFull; ?>
                     <picture style="display:contents">
-                        <source srcset="<?= bcrf_farm_url() ?><?= htmlspecialchars($__logoWebp, ENT_QUOTES) ?>?v=<?= bcrf_asset_v((string)$__logoWebp) ?>" type="image/webp">
+                        <source srcset="<?= htmlspecialchars($__logoSet, ENT_QUOTES) ?>"<?= strpos($__logoSet, ' 300w') !== false ? ' sizes="(max-width: 700px) 107px, 148px"' : '' ?> type="image/webp">
                         <img src="<?= bcrf_farm_url() ?>/img/logo.png" alt="Bat Cave Road Farm — home" width="400" height="299" decoding="async">
                     </picture>
 <?php else: ?>

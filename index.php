@@ -122,7 +122,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.ph
                     if ($favRecipe && (!$latestRecipe || $favRecipe['id'] != $latestRecipe['id'])) { $rows[] = ['Farm Favorite', $favRecipe]; }
                     foreach ($rows as $row):
                         $label = $row[0]; $r = $row[1];
-                        $ri = bcrf_img_thumb($homeNorm($homeRecImg($r)), 640);   // phone-sized copy: originals can be 2400px (PageSpeed, Nov 11 2026)
+                        $ri = bcrf_img_thumb($homeNorm($homeRecImg($r)), 400);   // shown 132px wide: 400px copy covers 2-3x screens (was 640; homepage LCP, Nov 13 2026)
                         $rUrl = '/recipes/' . rawurlencode($r['slug']) . '/';
                         $mins = (int)($r['prep_time'] ?? 0) + (int)($r['cook_time'] ?? 0);
                     ?>
