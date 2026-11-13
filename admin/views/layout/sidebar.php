@@ -68,6 +68,7 @@ $_sections = [
         ['label'=>'Products',    'icon'=>'🫙','tabs'=>[['Products','/admin/kitchen_products.php','table','recipes']]],                   // Farm OS Phase 4 slice 2 (Nov 12)
         ['label'=>'Labels',      'icon'=>'🏷️','tabs'=>[['Labels','/admin/kitchen_labels.php','table','recipes'],['Printing','/admin/kitchen_label_print.php','table','recipes']]], // Farm OS Phase 4 slices 4-5 (Nov 13)
         ['label'=>'Batches',     'icon'=>'🧺','tabs'=>[['Batches','/admin/kitchen_batches.php','table','recipes']]],                   // Farm OS Phase 4 slice 3 (Nov 13)
+        ['label'=>'Costing',     'icon'=>'💲','tabs'=>[['Costing','/admin/kitchen_costing.php','table','recipes']]],                   // Farm OS Phase 4 slice 6 (Nov 13)
         ['label'=>'Reference',   'short'=>'Ref','icon'=>'📚','tabs'=>[
             ['Cuisines',          '?view=schema&table=cuisines',          'table', 'cuisines'],
             ['Categories',        '?view=schema&table=categories',        'table', 'categories'],

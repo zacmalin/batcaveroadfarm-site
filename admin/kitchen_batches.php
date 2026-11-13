@@ -96,6 +96,7 @@ if ($id) {
       <dt class="text-stone-500">Best by</dt><dd class="font-semibold"><?= $h($day($b['best_by'])) ?></dd>
       <dt class="text-stone-500">Batches</dt><dd><?= $h(bcrf_kitchen_q($b['batches'])) ?></dd>
       <dt class="text-stone-500">Units made</dt><dd><?= $h(bcrf_kitchen_q($b['units_made'])) ?></dd>
+      <?php if (array_key_exists('cost_cents', $b)): ?><dt class="text-stone-500">Cost</dt><dd><?= $b['cost_cents'] !== null ? $h(bcrf_kitchen_money((float)$b['cost_cents'])) . ' (' . $h(bcrf_kitchen_money((float)$b['unit_cost_cents'])) . ' each) when recorded' : '<span class="text-stone-500">Not known (a cost was missing when it was recorded)</span>' ?></dd><?php endif; ?>
       <dt class="text-stone-500">Recipe</dt><dd><a class="underline text-amber-800" href="kitchen_recipes.php?id=<?= (int)$b['recipe_id'] ?>&amp;version=<?= (int)$b['recipe_version_id'] ?>"><?= $h($b['recipe_title']) ?>, version <?= (int)$b['version_no'] ?></a></dd>
       <dt class="text-stone-500">Finished goods</dt><dd><?= (int)$b['stock_added'] ? 'Added to stock at ' . $h($b['location_name']) : 'Not added to stock (the product doesn\'t count stock)' ?></dd>
       <?php if ($b['notes']): ?><dt class="text-stone-500">Notes</dt><dd><?= $h($b['notes']) ?></dd><?php endif; ?>

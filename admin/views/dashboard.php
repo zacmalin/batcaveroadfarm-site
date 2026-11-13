@@ -301,6 +301,24 @@ try {
     }
 } catch (Throwable $e) { /* incidents not installed */ }
 
+// Kitchen products below the margin alert (Farm OS Phase 4 slice 6, Nov 13, 2026; includes/kitchen_costing.php). Costs from
+// stock follow receiving, so a price rise on an ingredient or jar shows here. Anyone who can see recipes.
+try {
+    if ($canT('recipes') && is_file(dirname(__DIR__, 2) . '/includes/kitchen_costing.php')) {
+        require_once dirname(__DIR__, 2) . '/includes/kitchen_costing.php';
+        if (bcrf_kitchen_ready($pdo) && bcrf_kitchen_versions_ready($pdo) && bcrf_kitchen_costing_ready($pdo)) {
+            $lowM = array_values(array_filter(bcrf_kitchen_cost_overview($pdo), fn($c) => $c['status'] === 'low'));
+            if ($lowM) {
+                $add(['id' => 'kitchen_margin', 'priority' => 'fyi', 'icon' => '💲',
+                      'title' => count($lowM) . ' kitchen product' . (count($lowM) === 1 ? '' : 's') . ' below the ' . rtrim(rtrim(number_format(bcrf_kitchen_margin_alert($pdo), 1), '0'), '.') . '% margin alert',
+                      'items' => array_map(fn($c) => $c['product']['name'] . ' · ' . number_format($c['margin'], 1) . '% (costs ' . bcrf_kitchen_money($c['unit_cost']) . ', sells ' . bcrf_kitchen_money((float)$c['price']) . ')', array_slice($lowM, 0, 4)),
+                      'detail' => 'Check the costs, or raise the price.', 'count' => count($lowM),
+                      'actions' => [['Open costing', count($lowM) === 1 ? '/admin/kitchen_costing.php?product=' . (int)$lowM[0]['product']['id'] : '/admin/kitchen_costing.php', true]]]);
+            }
+        }
+    }
+} catch (Throwable $e) { /* kitchen costing not installed */ }
+
 $prioOrder = ['urgent' => 0, 'today' => 1, 'fyi' => 2];
 usort($alerts, fn($a, $b) => $prioOrder[$a['priority']] <=> $prioOrder[$b['priority']]);
 $prioCount = array_count_values(array_column($alerts, 'priority'));

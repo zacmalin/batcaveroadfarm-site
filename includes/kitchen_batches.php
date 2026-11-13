@@ -10,12 +10,14 @@
 //   A recipe that changed since its last saved version can't be batched: save a new version first (so labels match).
 //   Voiding a batch reverses its stock changes; the batch and its lot code stay on record.
 //   Once migration 0054 has run (slice 4), a product also needs an approved label (Kitchen › Labels); the batch keeps its id.
+//   Once migration 0056 has run (slice 6), the batch keeps what it cost (null if any cost was missing).
 // Used by admin/kitchen_batches.php, admin/kitchen_ingredients.php and tests/kitchen_batches_test.php.
 if (!function_exists('bcrf_kitchen_batches_ready')) {
 
 require_once __DIR__ . '/kitchen_versions.php';
 require_once __DIR__ . '/stock.php';
 require_once __DIR__ . '/kitchen_labels.php';
+require_once __DIR__ . '/kitchen_costing.php';
 
 /** Migration 0053 has run. */
 function bcrf_kitchen_batches_ready(PDO $pdo): bool {
@@ -159,6 +161,7 @@ function bcrf_kitchen_batch_record(PDO $pdo, int $inventoryId, array $in, ?int $
     $take = !empty($in['take_ingredients']);
     $notes = trim(mb_substr(preg_replace('/[ \t]+/', ' ', (string)($in['notes'] ?? '')), 0, 500));
     $version = $plan['state']['latest'];
+    $cost = bcrf_kitchen_batch_cost($pdo, $inventoryId, $batches, (float)$units);   // [total, per unit] cents, or null
 
     // Products whose stock changes, locked in id order (one lock order for everything that moves stock).
     $takeQty = [];
@@ -183,6 +186,7 @@ function bcrf_kitchen_batch_record(PDO $pdo, int $inventoryId, array $in, ?int $
                        $locId, $addStock ? 1 : 0, $take && $takeQty ? 1 : 0, $notes !== '' ? $notes : null, $uid]);
         $bid = (int)$pdo->lastInsertId();
         if ($plan['label']) $pdo->prepare("UPDATE kitchen_batches SET label_id = ? WHERE id = ?")->execute([(int)$plan['label']['id'], $bid]);
+        if ($cost) $pdo->prepare("UPDATE kitchen_batches SET cost_cents = ?, unit_cost_cents = ? WHERE id = ?")->execute([$cost[0], $cost[1], $bid]);
         $note = 'Lot ' . $lot;
         if ($addStock) bcrf_stock_move($pdo, $inventoryId, $locId, (float)$units, 'produced', 'kitchen_batch', $bid, $note, $uid, 'strict', $locked[$inventoryId]);
         $takenAt = [];
