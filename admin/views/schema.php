@@ -1099,6 +1099,53 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                             class="mt-2 text-xxs font-bold uppercase tracking-wider bg-stone-800 text-white px-2.5 py-1.5 rounded hover:bg-stone-950 transition">
                             Add Ingredient +
                         </button>
+                        <?php
+                        // Label summary (Farm OS Phase 4, Nov 13, 2026): weights in grams, allergens and the Contains line for this
+                        // recipe as last saved, so it's visible without switching to Recipes › Label check. includes/kitchen.php.
+                        if (!empty($edit_data['id'])):
+                            $__kf = dirname(__DIR__, 2) . '/includes/kitchen.php';
+                            if (is_file($__kf)) require_once $__kf;
+                            $__kready = function_exists('bcrf_kitchen_ready') && bcrf_kitchen_ready($pdo);
+                            $__kres = null;
+                            if ($__kready) { try { $__kres = bcrf_kitchen_resolve($pdo, (int)$edit_data['id']); } catch (Throwable $e) { error_log('[schema] label summary: ' . $e->getMessage()); } }
+                            $__kid = (int)$edit_data['id'];
+                        ?>
+                        <div class="mt-4 rounded border border-stone-200 bg-white p-3 text-xs text-stone-700">
+                            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                                <span class="font-bold text-stone-800">🏷️ Label summary <span class="font-normal text-stone-400">(as last saved)</span></span>
+                                <?php if ($__kready): ?><a class="underline text-amber-800 font-semibold" href="/admin/kitchen_recipes.php?id=<?= $__kid ?>">Full label check →</a><?php endif; ?>
+                            </div>
+                            <?php if (!$__kready): ?>
+                                <p class="text-amber-800">Run migration 0050 in Settings › Database to see weights and allergens here.</p>
+                            <?php elseif (!$__kres || !$__kres['lines']): ?>
+                                <p class="text-stone-500">Save the recipe with its ingredient lines to see weights and allergens.</p>
+                            <?php else: ?>
+                                <p class="mb-1"><strong>Contains:</strong>
+                                    <?php if ($__kres['unchecked']): ?>
+                                        <span class="text-amber-800">not known yet. Allergens aren't checked for <?= htmlspecialchars(implode(', ', $__kres['unchecked'])) ?>.</span>
+                                    <?php elseif ($__kres['contains'] !== ''): ?>
+                                        <?= htmlspecialchars($__kres['contains']) ?>
+                                    <?php else: ?>
+                                        none of the nine major allergens
+                                    <?php endif; ?>
+                                </p>
+                                <p class="mb-1"><strong>Batch weight:</strong> <?= htmlspecialchars(bcrf_kitchen_grams((float)$__kres['total_g'])) ?><?= $__kres['problems'] ? ' <span class="text-amber-800">(' . (int)$__kres['problems'] . ' line' . ($__kres['problems'] === 1 ? '' : 's') . ' without a weight, not counted)</span>' : '' ?></p>
+                                <?php if ($__kres['statement'] !== ''): ?><p class="mb-2"><strong>Ingredients (label order, heaviest first):</strong> <?= htmlspecialchars($__kres['statement']) ?></p><?php endif; ?>
+                                <ol class="divide-y divide-stone-100 border-t border-stone-100">
+                                    <?php foreach ($__kres['lines'] as $__i => $__ln): ?>
+                                    <li class="py-1 flex flex-wrap justify-between gap-2">
+                                        <span><?= $__i + 1 ?>. <?= htmlspecialchars($__ln['name']) ?></span>
+                                        <?php if ($__ln['problem'] !== ''): ?>
+                                            <span class="text-amber-800"><?php if (!empty($__ln['ingredient_id'])): ?><a class="underline" href="/admin/kitchen_ingredients.php?id=<?= (int)$__ln['ingredient_id'] ?>&amp;back=recipe:<?= $__kid ?>"><?= htmlspecialchars($__ln['problem_text']) ?></a><?php else: ?><?= htmlspecialchars($__ln['problem_text']) ?><?php endif; ?></span>
+                                        <?php else: ?>
+                                            <span class="font-semibold"><?= htmlspecialchars(bcrf_kitchen_grams((float)$__ln['grams'])) ?></span>
+                                        <?php endif; ?>
+                                    </li>
+                                    <?php endforeach; ?>
+                                </ol>
+                            <?php endif; ?>
+                        </div>
+                        <?php endif; ?>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4" id="schemaFieldGrid">
 
