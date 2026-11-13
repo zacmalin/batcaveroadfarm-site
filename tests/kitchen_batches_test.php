@@ -69,6 +69,11 @@ $throws(fn() => bcrf_kitchen_batch_record($pdo, 21, ['batches' => 1, 'made_on' =
 bcrf_kitchen_product_save($pdo, 21, ['recipe_id' => 1, 'units_per_batch' => 12, 'shelf_life_days' => 365], 7);
 $throws(fn() => bcrf_kitchen_batch_record($pdo, 21, ['batches' => 1, 'made_on' => date('Y-m-d')], 7), 'no version yet', 'version');
 $v1 = bcrf_kitchen_save_version($pdo, 1, 7);
+// Slice 4: a batch needs an approved label
+$pdo->exec("INSERT INTO site_settings (setting_key, setting_value) VALUES ('business_name', 'Test Farm'), ('address_street', '1 Road'), ('address_city', 'Old Fort'), ('address_state', 'NC'), ('address_zip', '28762')
+            ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
+$throws(fn() => bcrf_kitchen_batch_record($pdo, 21, ['batches' => 1, 'made_on' => date('Y-m-d')], 7), 'no approved label yet', 'approved label');
+$lab = bcrf_kitchen_label_approve($pdo, (int)bcrf_kitchen_label_draft($pdo, 21, 'Strawberry Jam', 7)['id'], 7);
 $plan = bcrf_kitchen_batch_plan($pdo, 21, 2);
 $ok(!$plan['blockers'] && $plan['units_default'] == 24, 'plan: 2 batches make 24');
 $ok(in_array(true, array_map(fn($w) => str_contains($w, 'NCDA'), $plan['warnings']), true), 'plan warns: NCDA type not confirmed');
@@ -85,6 +90,7 @@ $today = date('Y-m-d');
 $b = bcrf_kitchen_batch_record($pdo, 21, ['batches' => 2, 'made_on' => $today, 'location_id' => $loc['farmstand'], 'take_ingredients' => 1, 'notes' => ' first  run '], 7);
 $ok($b['lot_code'] === date('ymd') . '-JAM8-1', 'lot code yymmdd-SKU-1: ' . $b['lot_code']);
 $ok((float)$b['units_made'] == 24 && $b['best_by'] === date('Y-m-d', strtotime('+365 days')) && (int)$b['recipe_version_id'] === (int)$v1['version']['id'], 'units, best-by, version');
+$ok((int)$b['label_id'] === (int)$lab['id'], 'batch keeps the approved label');
 $ok($b['notes'] === 'first run' && (int)$b['stock_added'] === 1 && (int)$b['ingredients_taken'] === 1, 'notes cleaned; stock added; ingredients taken');
 $ok((float)$one("SELECT quantity FROM inventory_levels WHERE product_id = 21 AND location_id = ?", [$loc['farmstand']]) == 24, '24 jars at the Farmstand');
 $sugarTaken = (float)$one("SELECT qty_taken FROM kitchen_batch_ingredients WHERE batch_id = ? AND inventory_id = 31", [$b['id']]);

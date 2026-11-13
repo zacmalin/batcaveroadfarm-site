@@ -41,6 +41,7 @@ function bcrf_permission_sections(): array {
             ['table', 'categories',        '🏷️', 'Categories'],
             ['table', 'measurement_units', '⚖️', 'Measurement Units'],
             ['table', 'unit_conversions',  '🔄', 'Unit Conversions'],
+            ['view',  'kitchen_labels_approve', '✅', 'Approve kitchen labels (Owners always can)'],
         ]],
         'media' => ['label' => 'Media', 'icon' => '📡', 'items' => [
             ['table', 'blog_posts',         '✍️', 'Blog'],

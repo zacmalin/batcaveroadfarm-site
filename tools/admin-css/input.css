@@ -33,6 +33,7 @@
 @source "../../admin/kitchen_products.php";
 @source "../../admin/kitchen_bible.php";
 @source "../../admin/kitchen_batches.php";
+@source "../../admin/kitchen_labels.php";
 @source "../../admin/weather.php";
 @source "../../admin/calendar.php";
 @source "../../admin/party.php";

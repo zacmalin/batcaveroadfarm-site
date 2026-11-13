@@ -9,11 +9,13 @@
 //   wherever it is kept). Every ingredient's grams are kept with the batch either way, for tracing.
 //   A recipe that changed since its last saved version can't be batched: save a new version first (so labels match).
 //   Voiding a batch reverses its stock changes; the batch and its lot code stay on record.
+//   Once migration 0054 has run (slice 4), a product also needs an approved label (Kitchen › Labels); the batch keeps its id.
 // Used by admin/kitchen_batches.php, admin/kitchen_ingredients.php and tests/kitchen_batches_test.php.
 if (!function_exists('bcrf_kitchen_batches_ready')) {
 
 require_once __DIR__ . '/kitchen_versions.php';
 require_once __DIR__ . '/stock.php';
+require_once __DIR__ . '/kitchen_labels.php';
 
 /** Migration 0053 has run. */
 function bcrf_kitchen_batches_ready(PDO $pdo): bool {
@@ -80,6 +82,11 @@ function bcrf_kitchen_batch_plan(PDO $pdo, int $inventoryId, float $batches = 1.
         elseif (!$vs['latest']) $blockers[] = 'Save the recipe as a version first (Recipes › Label check), so the label matches what was made.';
         elseif (!$vs['current']) $blockers[] = 'The recipe changed since version ' . (int)$vs['latest']['version_no'] . '. Save a new version first (Recipes › Label check), so the label matches what was made.';
     }
+    $label = null;
+    if (!$blockers && bcrf_kitchen_labels_ready($pdo)) {
+        $label = bcrf_kitchen_label_state($pdo, $inventoryId)['approved'];
+        if (!$label) $blockers[] = 'This product has no approved label for the recipe as it is now. Draft one and have an Owner approve it in Kitchen › Labels.';
+    }
     if (!$blockers) {
         if (!(int)$p['approved_type']) $warnings[] = 'NCDA&CS hasn\'t been confirmed for this product type yet (Kitchen › Products).';
         if ($p['shelf_life_days'] === null) $warnings[] = 'No shelf life on this product, so the batch gets no best-by date.';
@@ -113,7 +120,7 @@ function bcrf_kitchen_batch_plan(PDO $pdo, int $inventoryId, float $batches = 1.
             $lines[] = $row;
         }
     }
-    return ['product' => $p, 'state' => $vs, 'blockers' => $blockers, 'warnings' => $warnings, 'lines' => $lines,
+    return ['product' => $p, 'state' => $vs, 'label' => $label, 'blockers' => $blockers, 'warnings' => $warnings, 'lines' => $lines,
             'units_default' => $p['units_per_batch'] !== null ? round((float)$p['units_per_batch'] * $batches, 2) : null];
 }
 
@@ -175,6 +182,7 @@ function bcrf_kitchen_batch_record(PDO $pdo, int $inventoryId, array $in, ?int $
             ->execute([$lot, $inventoryId, (int)$p['recipe_id'], (int)$version['id'], $batches, $units, $madeOn, $bestBy,
                        $locId, $addStock ? 1 : 0, $take && $takeQty ? 1 : 0, $notes !== '' ? $notes : null, $uid]);
         $bid = (int)$pdo->lastInsertId();
+        if ($plan['label']) $pdo->prepare("UPDATE kitchen_batches SET label_id = ? WHERE id = ?")->execute([(int)$plan['label']['id'], $bid]);
         $note = 'Lot ' . $lot;
         if ($addStock) bcrf_stock_move($pdo, $inventoryId, $locId, (float)$units, 'produced', 'kitchen_batch', $bid, $note, $uid, 'strict', $locked[$inventoryId]);
         $takenAt = [];
