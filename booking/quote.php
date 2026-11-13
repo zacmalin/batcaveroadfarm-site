@@ -63,7 +63,7 @@ $local = fn($utc) => (new DateTimeImmutable($utc, new DateTimeZone('UTC')))->set
       <tr><td><?= $h($l['label']) ?><?php if ((int)$l['qty'] > 1): ?> <span class="quote-muted">(<?= (int)$l['qty'] ?> × <?= $h($m($l['unit_cents'])) ?>)</span><?php endif; ?></td>
           <td class="quote-amt"><?= $h($m((int)$l['qty'] * (int)$l['unit_cents'])) ?></td></tr>
       <?php endforeach; ?>
-      <tr class="quote-total"><td>Total</td><td class="quote-amt"><?= $h($m($q['total_cents'])) ?></td></tr>
+      <tr class="quote-total"><td>Total <span class="quote-muted">(includes NC sales tax)</span></td><td class="quote-amt"><?= $h($m($q['total_cents'])) ?></td></tr>
       <?php foreach ($pays as $p): ?>
       <tr class="quote-paid"><td><?= $p['kind'] === 'refund' ? 'Refunded' : 'Paid' ?> <?= $h($local($p['created_at'])) ?></td><td class="quote-amt"><?= $h($m(-$p['amount_cents'])) ?></td></tr>
       <?php endforeach; ?>

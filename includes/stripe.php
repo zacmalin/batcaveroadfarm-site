@@ -59,7 +59,7 @@ function stripe_create_checkout_session(array $booking, array $type): array {
         'line_items[0][price_data][unit_amount]'           => $amtCents,
         'line_items[0][price_data][product_data][name]'    => $itemName,
         'line_items[0][price_data][product_data][description]' =>
-            (!empty($booking['date_flexible']) ? "Good any day we're open" : booking_fmt_date($booking['booking_date']) . ' at ' . booking_fmt_time($booking['start_time'])),
+            (!empty($booking['date_flexible']) ? "Good any day we're open" : booking_fmt_date($booking['booking_date']) . ' at ' . booking_fmt_time($booking['start_time'])) . ' · Price includes NC sales tax',
         'line_items[0][quantity]'                          => 1,
         'customer_email'                                   => $booking['email'],
         'success_url'                                      => $base . '/booking/success.php?token=' . $tok,

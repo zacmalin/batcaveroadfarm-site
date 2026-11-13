@@ -19,6 +19,7 @@
 if (!function_exists('bcrf_quotes_ready')) {
 
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';
+require_once __DIR__ . '/included_tax.php';   // tax inside booking and party payments (Q-09, 0062)
 
 class BcrfQuoteError extends RuntimeException {}
 
@@ -248,6 +249,7 @@ function bcrf_quote_create(PDO $pdo, string $type, int $id, ?int $uid): array {
                            VALUES (?, 'booking', ?, 'payment', 'stripe', ?, NULL, ?, 'Paid online with the booking request', NULL, COALESCE(?, UTC_TIMESTAMP()))")
                 ->execute([$q['id'], $id, (int)round((float)$s['raw']['amount_total'] * 100), ($s['raw']['payment_reference'] ?? '') ?: null,
                            bcrf_quote_local_to_utc($s['raw']['paid_at'] ?? null)]);
+            bcrf_itax_record_event_payment($pdo, (int)$pdo->lastInsertId());
         } catch (PDOException $e) { if ((int)($e->errorInfo[1] ?? 0) !== 1062) throw $e; }
     }
     bcrf_quote_audit($pdo, 'create', $q, $s, 'quote started at ' . bcrf_quote_money($q['total_cents']));
@@ -334,6 +336,7 @@ function bcrf_quote_record_payment(PDO $pdo, int $quoteId, string $method, int $
             ->execute([$q['id'], $q['subject_type'], $q['subject_id'], $method, $cents, $reference !== '' ? $reference : null, $saleId, $note !== '' ? $note : null, $uid]);
         $pid = (int)$pdo->lastInsertId();
         $pdo->commit();
+        bcrf_itax_record_event_payment($pdo, $pid);   // never throws
     } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
     if (function_exists('bcrf_event')) bcrf_event('event_payment.recorded', 'event_payments', $pid, ['quote_id' => $q['id'], 'amount_cents' => $cents, 'method' => $method]);
     bcrf_quote_audit($pdo, 'update', $q, null, 'payment ' . bcrf_quote_money($cents) . ' (' . BCRF_QUOTE_METHODS[$method] . ($reference !== '' ? ' ' . $reference : '') . ')');
@@ -391,6 +394,7 @@ function bcrf_quote_refund(PDO $pdo, int $paymentId, int $cents, string $reason,
             ->execute([$p['quote_id'], $p['subject_type'], $p['subject_id'], $p['method'], -$cents, $p['reference'], $refundId, $paymentId, $reason, $uid]);
         $rid = (int)$pdo->lastInsertId();
         $pdo->commit();
+        bcrf_itax_record_event_payment($pdo, $rid);   // never throws
     } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
     $q = bcrf_quote_by_id($pdo, (int)$p['quote_id']);
     if (function_exists('bcrf_event')) bcrf_event('event_payment.refunded', 'event_payments', $rid, ['quote_id' => $q['id'], 'amount_cents' => $cents]);
@@ -437,7 +441,7 @@ function bcrf_quote_checkout(PDO $pdo, array $q, string $what): string {
         'line_items[0][price_data][currency]' => 'usd',
         'line_items[0][price_data][unit_amount]' => $amt,
         'line_items[0][price_data][product_data][name]' => $name,
-        'line_items[0][price_data][product_data][description]' => $s['name'] . ' · ' . bcrf_quote_when($s),
+        'line_items[0][price_data][product_data][description]' => $s['name'] . ' · ' . bcrf_quote_when($s) . ' · Price includes NC sales tax',
         'line_items[0][quantity]' => 1,
         'metadata[quote_id]' => (string)$q['id'],
         'payment_intent_data[metadata][quote_id]' => (string)$q['id'],
@@ -465,6 +469,7 @@ function bcrf_quote_stripe_paid(PDO $pdo, int $quoteId, string $sessionId, int $
         throw $e;
     }
     $pid = (int)$pdo->lastInsertId();
+    bcrf_itax_record_event_payment($pdo, $pid);   // never throws
     if (function_exists('bcrf_event')) bcrf_event('event_payment.recorded', 'event_payments', $pid, ['quote_id' => $q['id'], 'amount_cents' => $amountCents, 'method' => 'stripe']);
     $subj = bcrf_quote_subject($pdo, $q['subject_type'], $q['subject_id']);
     bcrf_quote_audit($pdo, 'update', $q, $subj, 'paid online ' . bcrf_quote_money($amountCents), 'Stripe (automatic)');

@@ -81,6 +81,19 @@ $ok($tk && $tk['orders'] === 1 && $tk['tax'] === 133 && $tk['net'] === 1967, 're
 $ok($ps && $ps['orders'] === 1 && $ps['tax'] === 759 && $ps['net'] === 11241, 'report: one taxed pass (comp left out), $112.41 + $7.59');
 $ok(bcrf_itax_rows($pdo, '2000-01-01 00:00:00', '2000-02-01 00:00:00') === [], 'report: nothing in another month');
 
+// -- Bookings and parties: ledger payments (0062) --
+$ep = $pdo->prepare("INSERT INTO event_payments (quote_id, subject_type, subject_id, kind, method, amount_cents, created_at) VALUES (1, 'party', 1, ?, ?, ?, UTC_TIMESTAMP())");
+$ep->execute(['payment', 'cash', 15000]);    $e1 = (int)$pdo->lastInsertId();   // 15 guests × $10
+$ep->execute(['payment', 'register', 2000]); $e2 = (int)$pdo->lastInsertId();
+$ep->execute(['refund', 'cash', -1000]);     $e3 = (int)$pdo->lastInsertId();
+foreach ([$e1, $e2, $e3] as $id) bcrf_itax_record_event_payment($pdo, $id);
+$ok((int)$one("SELECT tax_cents FROM event_payments WHERE id = $e1") === bcrf_itax_part(15000, 675) && bcrf_itax_part(15000, 675) === 948, '$150 party paid in cash: $9.48 tax inside');
+$ok($one("SELECT tax_cents FROM event_payments WHERE id = $e2") === null, 'payment rung on the register: left to the register sale');
+$ok((int)$one("SELECT tax_cents FROM event_payments WHERE id = $e3") === -63, '$10 refund: -$0.63 tax');
+$rows = bcrf_itax_rows($pdo, gmdate('Y-m-d H:i:s', time() - 3600), gmdate('Y-m-d H:i:s', time() + 3600));
+$bk = array_column($rows, null, 'label')['Bookings & parties (tax included)'] ?? null;
+$ok($bk && $bk['tax'] === 885 && $bk['gross'] === 14000 && $bk['net'] === 13115, 'report: bookings & parties $140 taken, $8.85 tax, ' . json_encode($bk));
+
 // -- Gate register: admission priced tax-included (0061) --
 require $root . '/includes/sales.php';
 $cats = bcrf_tax_categories($pdo);
