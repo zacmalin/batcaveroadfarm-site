@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') ujson(false, 'POST required.');
 if (!hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'] ?? ''))
     ujson(false, 'Security token expired.');
 
-$action = trim($_POST['action'] ?? 'search'); // 'search', 'detail', 'pick' or 'save'
+$action = trim($_POST['action'] ?? 'search'); // 'search', 'detail', 'pick', 'apply' or 'save'
 
 // ── ACTION: SAVE confirmed nutrition data to ingredients table ────────────────
 if ($action === 'save') {
@@ -133,6 +133,60 @@ if ($action === 'detail' || $action === 'pick') {
         ujson(true, 'Saved ' . ($row['singular_name'] ?? 'ingredient') . ' from USDA.', ['food' => $out, 'density' => $density, 'weight' => $weight]);
     } catch (Throwable $e) {
         error_log('[Nutrition] Pick save failed: ' . $e->getMessage());
+        ujson(false, 'Could not save the ingredient. Try again.');
+    }
+}
+
+// ── ACTION: APPLY — bulk USDA check (admin/kitchen_usda_check.php, Nov 13, 2026) ──
+// Overwrites the parts the person ticked (nutrition, density, weight) from the USDA food, refetched here so
+// the numbers come from USDA, not the browser. Then recalculates every recipe that uses the ingredient.
+if ($action === 'apply') {
+    $ing_id = filter_input(INPUT_POST, 'ingredient_id', FILTER_VALIDATE_INT);
+    $fdc    = filter_input(INPUT_POST, 'fdc_id', FILTER_VALIDATE_INT);
+    $parts  = array_intersect(explode(',', (string)($_POST['parts'] ?? '')), ['nutrition', 'density', 'weight']);
+    if (!$ing_id || !$fdc) ujson(false, 'Invalid ingredient or USDA match.');
+    if (!$parts) ujson(false, 'Nothing ticked to update.');
+    $r = bcrf_usda_food((int)$fdc);
+    if (!$r['ok']) ujson(false, "USDA didn't answer (HTTP {$r['status']}). Try again in a minute.");
+    $food = $r['food'];
+    $nut  = bcrf_usda_nutrients($food);
+    $por  = bcrf_usda_portions($food);
+    try {
+        $cur = $pdo->prepare("SELECT * FROM ingredients WHERE id = ?");
+        $cur->execute([$ing_id]);
+        $row = $cur->fetch(PDO::FETCH_ASSOC);
+        if (!$row) ujson(false, 'Ingredient not found.');
+        $set = ['usda_fdc_id = ?']; $vals = [(int)$fdc]; $done = [];
+        if (in_array('nutrition', $parts, true)) {
+            foreach ($nut as $col => $v) { $set[] = "`$col` = ?"; $vals[] = $v; }
+            $done[] = 'nutrition';
+        }
+        if (in_array('density', $parts, true) && $por['density']) {
+            $set[] = 'density_g_per_ml = ?'; $vals[] = $por['density'];
+            $done[] = 'density ' . ($row['density_g_per_ml'] === null ? 'none' : (float)$row['density_g_per_ml']) . ' → ' . $por['density'];
+        }
+        if (in_array('weight', $parts, true) && $por['weight']) {
+            $set[] = 'weight_per_unit_g = ?'; $vals[] = $por['weight'];
+            $done[] = 'weight of one ' . ($row['weight_per_unit_g'] === null ? 'none' : (float)$row['weight_per_unit_g']) . ' → ' . $por['weight'];
+        }
+        $vals[] = $ing_id;
+        $pdo->prepare('UPDATE ingredients SET ' . implode(', ', $set) . ' WHERE id = ?')->execute($vals);
+        erp_audit($pdo, 'update', 'ingredients', (int)$ing_id,
+            'USDA check for ' . (erp_audit_label($row) ?: "#{$ing_id}") . ': ' . ($food['description'] ?? '') . ' (FDC ' . (int)$fdc . '): ' . implode('; ', $done));
+        // Recipes that use it get fresh Nutrition Facts.
+        $recalc = 0;
+        if (is_file(__DIR__ . '/../../includes/recipe_nutrition.php')) {
+            require_once __DIR__ . '/../../includes/recipe_nutrition.php';
+            $rs = $pdo->prepare('SELECT DISTINCT recipe_id FROM recipe_ingredients WHERE ingredient_id = ?');
+            $rs->execute([$ing_id]);
+            foreach ($rs->fetchAll(PDO::FETCH_COLUMN) as $rid) {
+                try { if (bcrf_recipe_nutrition($pdo, (int)$rid, true)['ok'] ?? false) $recalc++; }
+                catch (Throwable $e) { error_log('[Nutrition] recalc ' . $rid . ': ' . $e->getMessage()); }
+            }
+        }
+        ujson(true, 'Updated ' . ($row['singular_name'] ?? 'ingredient') . '.', ['recipes' => $recalc]);
+    } catch (Throwable $e) {
+        error_log('[Nutrition] Apply failed: ' . $e->getMessage());
         ujson(false, 'Could not save the ingredient. Try again.');
     }
 }

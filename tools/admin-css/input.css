@@ -37,6 +37,9 @@
 @source "../../admin/kitchen_label_print.php";
 @source "../../admin/kitchen_costing.php";
 @source "../../admin/kitchen_trace.php";
+@source "../../admin/kitchen_usda_check.php";
+@source "../../admin/assets/kitchen-usda-check.js";
+@source "../../admin/assets/usda-picker.js";
 @source "../../admin/weather.php";
 @source "../../admin/calendar.php";
 @source "../../admin/party.php";
