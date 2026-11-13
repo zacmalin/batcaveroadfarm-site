@@ -1,0 +1,39 @@
+/* admin/assets/search.css — Farm OS global search page (admin/search.php, Nov 13, 2026) */
+.srch { font-size: 14px; }
+.srch-form { margin-bottom: 16px; }
+.srch-label { display: block; font-weight: 800; font-size: 20px; color: #292524; margin-bottom: 8px; }
+.srch-row { display: flex; gap: 8px; }
+.srch-box {
+  flex: 1; min-width: 0; font-size: 16px; /* 16px stops phones zooming in */
+  padding: 12px 14px; border: 2px solid #d6d3d1; border-radius: 10px; background: #fff; color: #1c1917;
+  user-select: text; -webkit-user-select: text;
+}
+.srch-box:focus { outline: none; border-color: #b45309; box-shadow: 0 0 0 3px rgba(180, 83, 9, .15); }
+.srch-go { padding: 0 18px; border-radius: 10px; background: #1c1917; color: #fff; font-weight: 700; font-size: 14px; }
+.srch-go:hover { background: #44403c; }
+.srch-hint { margin-top: 6px; font-size: 12px; color: #78716c; }
+.srch-recent { margin-bottom: 16px; }
+.srch-chip {
+  display: inline-block; margin: 0 6px 6px 0; padding: 6px 12px; border-radius: 999px;
+  background: #fff; border: 1px solid #d6d3d1; color: #44403c; font-size: 13px;
+}
+.srch-chip:hover { border-color: #b45309; color: #92400e; }
+.srch-jump {
+  display: block; margin-bottom: 16px; padding: 14px 16px; border-radius: 10px;
+  background: #fef3c7; border: 1px solid #f59e0b; color: #78350f; font-weight: 800; text-decoration: none;
+}
+.srch-jump:hover, .srch-jump:focus { background: #fde68a; }
+.srch-empty { padding: 16px; color: #57534e; background: #fff; border: 1px solid #e7e5e4; border-radius: 10px; }
+.srch-group { margin-bottom: 16px; }
+.srch-gh { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; color: #78716c; margin: 0 0 6px; }
+.srch-list { list-style: none; margin: 0; padding: 0; background: #fff; border: 1px solid #e7e5e4; border-radius: 10px; overflow: hidden; }
+.srch-list li + li { border-top: 1px solid #f5f5f4; }
+.srch-item { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; color: #1c1917; text-decoration: none; min-height: 44px; justify-content: center; }
+.srch-item:hover, .srch-item:focus { background: #fafaf9; outline: none; box-shadow: inset 3px 0 0 #b45309; }
+.srch-t { font-weight: 700; overflow-wrap: anywhere; }
+.srch-s { font-size: 12px; color: #78716c; overflow-wrap: anywhere; }
+.srch-more { display: inline-block; margin-top: 6px; font-size: 12px; font-weight: 700; color: #92400e; }
+@media (max-width: 767px) {
+  .srch-label { font-size: 18px; }
+  .srch-go { display: none; } /* phones search with the keyboard's Search key */
+}

@@ -203,6 +203,9 @@ $_badge_titles = ['jobs' => 'New applicants', 'jobs_emails' => 'Emails waiting f
 $_nav = []; $_catalog = []; $_cur_section = null; $_cur_item = null;
 if ($_role !== 'Staff') {
     $_catalog['dashboard'] = ['label'=>'Dashboard','short'=>'Home','icon'=>'🏠','href'=>'/admin/admin.php?view=dashboard','active'=>$_tv === 'dashboard','badge'=>0];
+    // Global search (02 › Search, Nov 13, 2026): can be pinned to the phone bottom bar like any other item.
+    $_catalog['search'] = ['label'=>'Search','short'=>'Search','icon'=>'🔍','href'=>'/admin/search.php',
+                           'active'=>basename((string)($_SERVER['SCRIPT_NAME'] ?? '')) === 'search.php','badge'=>0];
 }
 foreach ($_sections as $_sk => $_sec) {
     $_items = [];
@@ -271,6 +274,13 @@ $_nav_data = [
     <span class="sb-text text-[9px] font-mono uppercase tracking-widest">Collapse</span>
     <span id="sbCollapseIcon" class="text-sm leading-none">«</span>
   </button>
+
+  <?php if (isset($_catalog['search'])): ?>
+  <a href="/admin/search.php" title="Search (press /)" role="search"
+     class="sb-row sb-search flex items-center gap-2 px-3 py-2 rounded border border-stone-700 text-stone-400 hover:text-white hover:bg-stone-800 transition shrink-0<?= $_catalog['search']['active'] ? ' bg-stone-700 text-white' : '' ?>">
+    <span class="shrink-0">🔍</span> <span class="sb-text">Search</span> <span class="sb-text ml-auto text-[9px] font-mono text-stone-500">/</span>
+  </a>
+  <?php endif; ?>
 
   <nav class="flex-1 px-2 py-3 text-xs" aria-label="Main">
 
@@ -355,11 +365,23 @@ $_nav_data = [
     </div>
     <p id="navEditHint" class="hidden mb-3 text-[11px] text-amber-300"></p>
 
+    <?php if (isset($_catalog['search'])): ?>
+    <form method="get" action="/admin/search.php" role="search" class="nav-search mb-4">
+      <input type="search" name="q" placeholder="🔍 Search everything" aria-label="Search everything" enterkeyhint="search" autocomplete="off" class="nav-search-box">
+      <input type="hidden" name="go" value="1">
+    </form>
+    <?php endif; ?>
+
     <?php if (isset($_catalog['dashboard'])): $_c = $_catalog['dashboard']; ?>
     <div class="grid grid-cols-3 gap-2 mb-4">
       <a href="<?= $_h($_c['href']) ?>" data-sc-id="dashboard" class="nav-tile<?= $_c['active'] ? ' is-current' : '' ?>">
         <span class="nav-tile-icon">🏠</span><span>Dashboard</span>
       </a>
+      <?php if (isset($_catalog['search'])): $_c = $_catalog['search']; ?>
+      <a href="<?= $_h($_c['href']) ?>" data-sc-id="search" class="nav-tile<?= $_c['active'] ? ' is-current' : '' ?>">
+        <span class="nav-tile-icon">🔍</span><span>Search</span>
+      </a>
+      <?php endif; ?>
     </div>
     <?php endif; ?>
 
@@ -396,4 +418,4 @@ $_nav_data = [
 <?php endif; ?>
 
 <script type="application/json" id="navData"><?= json_encode($_nav_data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
-<script src="/admin/assets/admin-nav.js?v=20261105a"></script>
+<script src="/admin/assets/admin-nav.js?v=20261113a"></script>

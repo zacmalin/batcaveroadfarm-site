@@ -76,3 +76,9 @@ html.nav-sheet-open, html.nav-sheet-open body{overflow:hidden}
     body > main input:not([type=checkbox]):not([type=radio]):not([type=range]), body > main select, body > main textarea{font-size:16px !important}
     .nav-tab{padding:.7rem .9rem;font-size:13px}
 }
+/* Global search (Nov 13, 2026): sidebar row and the search box at the top of the phone More sheet */
+.sb-search{margin:8px 8px 0}
+.sb-collapsed .sb-search{justify-content:center}
+.nav-search-box{width:100%;font-size:16px;padding:12px 14px;border-radius:12px;border:1px solid #57534e;background:#292524;color:#fff;user-select:text;-webkit-user-select:text}
+.nav-search-box::placeholder{color:#a8a29e}
+.nav-search-box:focus{outline:none;border-color:#f59e0b}

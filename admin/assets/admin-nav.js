@@ -196,6 +196,18 @@
         if (e.key === 'Escape' && sheet && !sheet.classList.contains('hidden')) closeSheet();
     });
 
+    // ── "/" opens search (02 › Search, Nov 13 2026), unless typing in a field ──
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return;
+        var t = e.target, tag = t && t.tagName ? t.tagName.toLowerCase() : '';
+        if (tag === 'input' || tag === 'textarea' || tag === 'select' || (t && t.isContentEditable)) return;
+        if (!D.catalog || !D.catalog.search) return;
+        var box = document.getElementById('srchBox');
+        e.preventDefault();
+        if (box) { box.focus(); box.select(); return; }
+        window.location.href = '/admin/search.php';
+    });
+
     // ── Page tabs: move to the top of <main> ────────────────────────────────
     function mountTabs() {
         var tabs = document.getElementById('navTabs');
