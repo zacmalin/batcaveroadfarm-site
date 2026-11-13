@@ -52,18 +52,33 @@
       if (d) { S.cart = d.cart || []; S.discPct = d.discPct || 0; S.exempt = !!d.exempt; S.payments = d.payments || []; S.key = d.key || null; S.lastSale = d.last || null; S.customer = d.customer || null; }
     } catch (e) {}
   }
-  function api(path, opts) {
+  var bg = false;   // true while a timer (not a person) is calling: PIN sessions don't count it as use (Nov 13)
+  function apiRaw(path, opts) {
     var ctl = window.AbortController ? new AbortController() : null;
     var t = ctl ? setTimeout(function () { ctl.abort(); }, 20000) : null;
     opts = opts || {};
     if (ctl) opts.signal = ctl.signal;
     opts.credentials = 'same-origin';
+    if (bg) { var hh = {}; Object.keys(opts.headers || {}).forEach(function (k) { hh[k] = opts.headers[k]; }); hh['X-Bcrf-Background'] = '1'; opts.headers = hh; }
     return fetch('register.php?api=' + path, opts).then(function (r) {
       if (t) clearTimeout(t);
       return r.json().catch(function () { return { ok: false, message: 'Unexpected reply from the server (' + r.status + ').' }; })
-        .then(function (j) { j.status = r.status; return j; });
+        .then(function (j) { j.status = r.status; if (j.pin_locked) location.href = j.lock_url || '/admin/pin.php'; return j; });
     }, function (e) { if (t) clearTimeout(t); throw e; });
   }
+  // Manager approval by PIN (assets/manager-pin.js): a refusal only a manager can lift asks for their PIN and resends.
+  function api(path, opts) {
+    return apiRaw(path, opts).then(function (j) {
+      if (!j.need_manager || !opts || !opts.body || !window.bcrfManagerRetry) return j;
+      var body; try { body = JSON.parse(opts.body); } catch (e) { return j; }
+      return window.bcrfManagerRetry(j, body, function (b) {
+        var o = {}; Object.keys(opts).forEach(function (k) { if (k !== 'signal') o[k] = opts[k]; });
+        o.body = JSON.stringify(b);
+        return apiRaw(path, o);
+      });
+    });
+  }
+  function background(fn) { return function () { bg = true; try { fn(); } finally { bg = false; } }; }
 
   // ── pricing: same rules as bcrf_sale_price() ─────────────────────────────
   function lineBp(l) { return Math.max(0, Math.min(10000, Math.round((l.disc_pct || 0) * 100))); }
@@ -934,7 +949,7 @@
   function openSale(id) {
     api('sale&id=' + id).then(function (j) {
       if (!j.ok) return flash(j.message);
-      S.cur = j.sale; S.refundRule = { threshold: j.refund_threshold_cents, canApprove: j.can_approve };
+      S.cur = j.sale; S.refundRule = { threshold: j.refund_threshold_cents, canApprove: j.can_approve, pin: !!j.pin_approval };
       renderSale();
       if ($('dlgSales').open) $('dlgSales').close();
       if (!$('dlgSale').open) $('dlgSale').showModal();
@@ -1054,7 +1069,7 @@
       ]);
     }));
     $('rfApproval').hidden = !q.needs_approval;
-    $('rfApproval').textContent = q.needs_approval ? (q.can_approve ? 'Over ' + money(q.threshold_cents) + ': you are approving this refund.' : 'Over ' + money(q.threshold_cents) + ': an Owner or Manager has to do this refund.') : '';
+    $('rfApproval').textContent = q.needs_approval ? (q.can_approve ? 'Over ' + money(q.threshold_cents) + ': you are approving this refund.' : 'Over ' + money(q.threshold_cents) + (S.refundRule && S.refundRule.pin ? ': a manager will be asked for their PIN.' : ': an Owner or Manager has to do this refund.')) : '';
     $('rfMoney').hidden = false;
     $('rfOk').textContent = 'Refund ' + money(q.total);
   }
@@ -1074,11 +1089,11 @@
   if (!BOOT.lineDisc) S.cart.forEach(function (l) { l.disc_pct = 0; });
   renderCart();
   loadHolds();
-  setInterval(loadHolds, 60000);
+  setInterval(background(loadHolds), 60000);
   loadCatalog();
   loadToday();
   loadDrawer();
-  setInterval(loadToday, 60000);
+  setInterval(background(loadToday), 60000);
   if (S.payments.length && S.cart.length) setTimeout(function () { if (BOOT.ready) openPay(); }, 300);   // an unsaved sale was waiting: pick it back up
   window.addEventListener('beforeunload', function (e) { if (S.saving) { e.preventDefault(); e.returnValue = ''; } });
 })();

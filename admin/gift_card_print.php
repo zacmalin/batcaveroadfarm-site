@@ -8,6 +8,8 @@
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
 check_admin();
+require_once __DIR__ . '/../includes/pin_auth.php';   // a PIN session may open this page (Nov 13, 2026)
+bcrf_pin_page_check();
 require_once __DIR__ . '/includes/permission_checks.php';
 if (($_SESSION['user_role'] ?? '') === 'Media') { http_response_code(403); exit('Media accounts cannot print gift cards.'); }
 require_permission([['view', 'pos']]);
@@ -44,6 +46,7 @@ $phone = function_exists('site_phone_display') ? site_phone_display() : '';
 <link rel="stylesheet" href="assets/giftcard.css?v=1">
 <script src="/js/qrcode.min.js" defer></script>
 <script src="assets/giftcard.js?v=1" defer></script>
+<?= bcrf_pin_head_tags() ?>
 </head>
 <body>
 <header class="noprint">

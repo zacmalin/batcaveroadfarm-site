@@ -16,6 +16,8 @@
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
 check_admin();
+require_once __DIR__ . '/../includes/pin_auth.php';   // PIN sign-in on shared devices, manager approval by PIN (Nov 13, 2026)
+bcrf_pin_page_check();
 require_once __DIR__ . '/includes/permission_checks.php';
 if (($_SESSION['user_role'] ?? '') === 'Media') { http_response_code(403); exit('Media accounts cannot use the gate.'); }
 $api = (string)($_GET['api'] ?? '');
@@ -44,8 +46,17 @@ $emailOf = function (string $kind, int $id) use ($pdo): string {
 if ($api !== '') {
     header('Content-Type: application/json');
     header('Cache-Control: no-store');
-    $out = function (int $code, array $body) { http_response_code($code); echo json_encode($body, JSON_UNESCAPED_UNICODE); exit; };
+    $out = function (int $code, array $body) use ($pdo, $api) {
+        // Manager approval by PIN (includes/pin_auth.php), as on the register
+        if (empty($body['ok'])) $body += bcrf_pin_need_fields($pdo);
+        elseif (bcrf_pin_approver()) bcrf_pin_audit_approval($pdo, 'gate ' . $api);
+        http_response_code($code); echo json_encode($body, JSON_UNESCAPED_UNICODE); exit;
+    };
     if (!$ready) $out(503, ['ok' => false, 'message' => 'The gate is waiting for migration 0012 (Settings › Database).']);
+    if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && hash_equals($csrf, (string)($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''))) {
+        $appr = bcrf_pin_take_approver($pdo);
+        if (is_string($appr)) { bcrf_mgr_needed(); $out(403, ['ok' => false, 'code' => 'manager_pin', 'message' => $appr]); }
+    }
     $wMode = bcrf_waiver_mode($pdo);
     $withWaivers = function (array $rows, bool $groups) use ($pdo, $wMode, $emailOf): array {
         if ($wMode === 'off') return $rows;
@@ -98,9 +109,9 @@ if ($api !== '') {
         }
         $out(404, ['ok' => false, 'message' => 'Unknown request.']);
     } catch (BcrfWaiverError $e) {
-        $out(409, ['ok' => false, 'code' => 'waiver', 'message' => $e->getMessage(), 'can_override' => bcrf_can_override_capacity()]);
+        $out(409, ['ok' => false, 'code' => 'waiver', 'message' => $e->getMessage(), 'can_override' => bcrf_can_override_capacity() || bcrf_pin_approval_on($pdo)]);
     } catch (BcrfCapacityError $e) {
-        $out(409, ['ok' => false, 'code' => 'capacity', 'message' => $e->getMessage(), 'can_override' => bcrf_can_override_capacity()]);
+        $out(409, ['ok' => false, 'code' => 'capacity', 'message' => $e->getMessage(), 'can_override' => bcrf_can_override_capacity() || bcrf_pin_approval_on($pdo)]);
     } catch (BcrfSaleError $e) {
         $out(422, ['ok' => false, 'message' => $e->getMessage()]);
     } catch (Throwable $e) {
@@ -120,11 +131,13 @@ $boot = ['ready' => $ready, 'csrf' => $csrf];
 <title>Gate — <?= $h(bcrf_farm_name()) ?></title>
 <link rel="stylesheet" href="assets/register.css?v=9">
 <link rel="stylesheet" href="assets/waiver.css?v=1">
+<link rel="stylesheet" href="assets/pin.css?v=<?= bcrf_asset_v('/admin/assets/pin.css') ?>">
+<?= bcrf_pin_head_tags() ?>
 </head>
 <body class="gate">
 <script type="application/json" id="gateBoot"><?= json_encode($boot, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
 <header class="top">
-  <a class="back drawerbtn" href="/admin/admin.php"><span aria-hidden="true">←</span>&nbsp;Console</a>
+  <?= bcrf_pin_back_link() ?>
   <a class="drawerbtn" href="register.php">Register</a>
 </header>
 <main class="gatewrap">
@@ -154,6 +167,7 @@ $boot = ['ready' => $ready, 'csrf' => $csrf];
   <ul class="onsite" id="onsite"></ul>
 </main>
 <div class="toast" id="toast" role="status" hidden></div>
-<script src="assets/gate.js?v=4"></script>
+<script src="assets/manager-pin.js?v=<?= bcrf_asset_v('/admin/assets/manager-pin.js') ?>"></script>
+<script src="assets/gate.js?v=5"></script>
 </body>
 </html>

@@ -132,7 +132,7 @@ function bcrf_tenders_save(PDO $pdo, array $on, array $order): array {
 /** Owner or Manager, or "POS Discount Override" ticked in the Permissions Matrix. */
 function bcrf_can_override_discount(): bool {
     $role = (string)($_SESSION['user_role'] ?? '');
-    if (in_array($role, ['administrator', 'moderator'], true)) return true;
+    if (in_array($role, ['administrator', 'moderator'], true) || !empty($GLOBALS['bcrf_pin_approver'])) return true;   // or a manager's PIN (includes/pin_auth.php)
     return $role !== '' && function_exists('hasViewAccess') && hasViewAccess($role, 'pos_discount_override');
 }
 
@@ -146,6 +146,7 @@ function bcrf_discount_problem(PDO $pdo, int $saleBp, array $lineBps): ?string {
     foreach (array_merge([$saleBp], $lineBps) as $bp) {
         $bp = (int)$bp;
         if ($bp !== 0 && !in_array($bp, $ok, true)) {
+            $GLOBALS['bcrf_mgr_needed'] = true;
             return 'A ' . rtrim(rtrim(number_format($bp / 100, 2, '.', ''), '0'), '.') . '% discount needs an Owner or Manager. Use one of the % buttons ('
                  . implode(', ', array_map(fn($p) => $p . '%', bcrf_pos_settings($pdo)['presets'])) . ') or ask them.';
         }

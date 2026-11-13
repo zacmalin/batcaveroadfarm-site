@@ -32,6 +32,8 @@
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
 check_admin();
+require_once __DIR__ . '/../includes/pin_auth.php';   // PIN sign-in on shared devices, manager approval by PIN (Nov 13, 2026)
+bcrf_pin_page_check();
 require_once __DIR__ . '/includes/permission_checks.php';
 if (($_SESSION['user_role'] ?? '') === 'Media') { http_response_code(403); exit('Media accounts cannot use the register.'); }
 $api = (string)($_GET['api'] ?? '');
@@ -59,8 +61,18 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
 if ($api !== '') {
     header('Content-Type: application/json');
     header('Cache-Control: no-store');
-    $out = function (int $code, array $body) { http_response_code($code); echo json_encode($body, JSON_UNESCAPED_UNICODE); exit; };
+    $out = function (int $code, array $body) use ($pdo, $api) {
+        // Manager approval by PIN (includes/pin_auth.php): a refusal that a manager could lift asks for their PIN;
+        // a request a manager approved is written to the audit log.
+        if (empty($body['ok'])) $body += bcrf_pin_need_fields($pdo);
+        elseif (bcrf_pin_approver()) bcrf_pin_audit_approval($pdo, 'register ' . $api);
+        http_response_code($code); echo json_encode($body, JSON_UNESCAPED_UNICODE); exit;
+    };
     if (!$ready) $out(503, ['ok' => false, 'message' => 'The register is waiting for migration 0009 (Settings › Database).']);
+    if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && hash_equals($csrf, (string)($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''))) {
+        $appr = bcrf_pin_take_approver($pdo);
+        if (is_string($appr)) { bcrf_mgr_needed(); $out(403, ['ok' => false, 'code' => 'manager_pin', 'message' => $appr]); }
+    }
 
     if ($api === 'catalog') {
         $general = 0;
@@ -106,7 +118,7 @@ if ($api !== '') {
             $r = bcrf_sale_complete($pdo, $in);
             $out(200, ['ok' => true, 'replayed' => $r['replayed'], 'sale' => $r['sale']]);
         } catch (BcrfCapacityError $e) {
-            $out(409, ['ok' => false, 'code' => 'capacity', 'message' => $e->getMessage(), 'can_override' => bcrf_can_override_capacity()]);
+            $out(409, ['ok' => false, 'code' => 'capacity', 'message' => $e->getMessage(), 'can_override' => bcrf_can_override_capacity() || bcrf_pin_approval_on($pdo)]);
         } catch (BcrfSaleError $e) {
             $out(422, ['ok' => false, 'message' => $e->getMessage()]);
         } catch (Throwable $e) {
@@ -129,7 +141,7 @@ if ($api !== '') {
             }
             $out(200, ['ok' => true, 'registers' => (object)$regs, 'session' => $cur ? bcrf_drawer_summary($pdo, (int)$cur['id']) : null,
                        'last_closed_id' => $last, 'denominations' => (object)bcrf_denominations(), 'movement_types' => bcrf_movement_types(),
-                       'threshold_cents' => bcrf_variance_threshold($pdo), 'can_approve' => bcrf_can_approve_variance()]);
+                       'threshold_cents' => bcrf_variance_threshold($pdo), 'can_approve' => bcrf_can_approve_variance(), 'pin_approval' => bcrf_pin_approval_on($pdo)]);
         }
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') $out(405, ['ok' => false, 'message' => 'POST only.']);
         if (!hash_equals($csrf, (string)($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''))) $out(403, ['ok' => false, 'message' => 'Your session expired. Reload the register.']);
@@ -159,7 +171,7 @@ if ($api !== '') {
         if ($api === 'sales') $out(200, ['ok' => true, 'sales' => bcrf_sales_list($pdo, (int)($_GET['register_id'] ?? 0), trim((string)($_GET['q'] ?? '')))]);
         if ($api === 'sale') {
             $d = bcrf_sale_detail($pdo, (int)($_GET['id'] ?? 0));
-            $d ? $out(200, ['ok' => true, 'sale' => $d, 'refund_threshold_cents' => bcrf_refund_threshold($pdo), 'can_approve' => bcrf_is_approver()])
+            $d ? $out(200, ['ok' => true, 'sale' => $d, 'refund_threshold_cents' => bcrf_refund_threshold($pdo), 'can_approve' => bcrf_is_approver(), 'pin_approval' => bcrf_pin_approval_on($pdo)])
                : $out(404, ['ok' => false, 'message' => 'Sale not found.']);
         }
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') $out(405, ['ok' => false, 'message' => 'POST only.']);
@@ -352,7 +364,7 @@ $boot = [
     'staff'   => $me,
     'farm'    => ['name' => bcrf_farm_name(), 'address' => site_address(), 'phone' => site_phone_display(),
                   'domain' => bcrf_farm_domain(), 'policy' => ($posSet = bcrf_pos_settings($pdo))['policy']],
-    'pos'     => ['handles' => $posSet['handles'], 'presets' => $posSet['presets'], 'canOverride' => bcrf_can_override_discount()],   // slice 9
+    'pos'     => ['handles' => $posSet['handles'], 'presets' => $posSet['presets'], 'canOverride' => bcrf_can_override_discount() || bcrf_pin_approval_on($pdo)],   // slice 9
     'tenders' => bcrf_tenders(),                                   // labels for every type (past sales, refunds)
     'payTenders' => array_keys(bcrf_tenders_active($pdo)),         // buttons for new sales, in order (Settings › Payments & Register)
     'isAdmin' => $isAdmin,
@@ -374,13 +386,15 @@ $boot = [
 <meta name="robots" content="noindex">
 <title>Register — <?= $h(bcrf_farm_name()) ?></title>
 <link rel="stylesheet" href="assets/register.css?v=8">
+<link rel="stylesheet" href="assets/pin.css?v=<?= bcrf_asset_v('/admin/assets/pin.css') ?>">
+<?= bcrf_pin_head_tags() ?>
 </head>
 <body>
 <script type="application/json" id="regBoot"><?= json_encode($boot, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
 
 <div id="app" class="app">
   <header class="top">
-    <a class="back drawerbtn" href="/admin/admin.php"><span aria-hidden="true">←</span>&nbsp;Console</a>
+    <?= bcrf_pin_back_link() ?>
     <div class="today" id="today" aria-live="polite">Today: …</div>
     <?php if ($refundsReady && bcrf_admission_ready($pdo)): ?><a class="drawerbtn" href="gate.php">Gate</a><?php endif; ?>
     <button type="button" class="drawerbtn" id="btnSales" hidden>Sales</button>
@@ -662,6 +676,7 @@ $boot = [
 <section id="receipt" class="receipt" aria-hidden="true"></section>
 
 <script src="/js/qrcode.min.js"></script>
-<script src="assets/register.js?v=10"></script>
+<script src="assets/manager-pin.js?v=<?= bcrf_asset_v('/admin/assets/manager-pin.js') ?>"></script>
+<script src="assets/register.js?v=11"></script>
 </body>
 </html>

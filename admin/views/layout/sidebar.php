@@ -129,6 +129,7 @@ $_sections = [
             ['Customers',   '?view=schema&table=customers', 'table', 'customers'],   // public site accounts
             ['Permissions', '?view=permissions',            'view',  'permissions'],
             ['Two-step',    '/admin/two_step.php',          'view',  'two_step'],
+            ['PIN sign-in', '/admin/pin_settings.php',      'pinrole', ''],      // PINs + shared devices (Nov 13, 2026)
         ]],
         ['label'=>'Integrations',     'icon'=>'🤖','tabs'=>[['AI Connections','/admin/mcp_connections.php','view','mcp_connections'],     // administrators only
                                                               ['Google Business Profile','/admin/gbp_connect.php','view','mcp_connections'],   // Nov 11, 2026: were reachable
@@ -159,6 +160,7 @@ $_slug = fn(string $s): string => trim(preg_replace('/[^a-z0-9]+/', '-', strtolo
 
 $_can = function(string $type, string $val) use ($_role): bool {
     if ($type === 'always') return true;
+    if ($type === 'pinrole') return in_array($_role, ['administrator', 'moderator', 'Shopkeep'], true);   // includes/pin_auth.php bcrf_pin_roles()
     if ($_role === 'administrator') return true;
     if ($_role === 'Staff') return $type === 'view' && ($val === 'timecard' || ($val === 'tasks' && function_exists('hasViewAccess') && hasViewAccess('Staff', 'tasks')));   // Jobs pack P1: Time Clock; Phase 3: Tasks
     if ($type === 'view')  return function_exists('hasViewAccess')  ? hasViewAccess($_role, $val)  : true;

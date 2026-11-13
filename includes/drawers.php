@@ -50,7 +50,7 @@ function bcrf_movement_types(): array { return ['paid_in' => 'Paid in', 'paid_ou
 
 /** Can this user approve a variance over the threshold? Owner (administrator) or Manager (moderator), C-14. */
 function bcrf_can_approve_variance(): bool {
-    return in_array((string)($_SESSION['user_role'] ?? ''), ['administrator', 'moderator'], true);
+    return in_array((string)($_SESSION['user_role'] ?? ''), ['administrator', 'moderator'], true) || !empty($GLOBALS['bcrf_pin_approver']);   // or a manager's PIN
 }
 
 function bcrf_variance_threshold(PDO $pdo): int {
@@ -285,13 +285,14 @@ function bcrf_drawer_close(PDO $pdo, int $sessionId, array $rawCounts, string $n
             throw new BcrfSaleError(sprintf('The count is %s by $%s. Add a note saying why.', $variance < 0 ? 'short' : 'over', number_format(abs($variance) / 100, 2)));
         }
         if ($over && !bcrf_can_approve_variance()) {
+            $GLOBALS['bcrf_mgr_needed'] = true;
             throw new BcrfSaleError(sprintf('The count is %s by $%s, more than $%s. An Owner or Manager has to close this drawer.',
                 $variance < 0 ? 'short' : 'over', number_format(abs($variance) / 100, 2), number_format($threshold / 100, 2)));
         }
         $pdo->prepare("UPDATE drawer_sessions SET status = 'closed', closed_at = UTC_TIMESTAMP(3), closed_by = ?, counted_cash_cents = ?,
                               closing_count_json = ?, expected_cash_cents = ?, variance_cents = ?, variance_approved_by = ?, close_note = ?
                        WHERE id = ?")
-            ->execute([$uid, $counted, json_encode((object)$counts), $expected, $variance, $over ? $uid : null, $note ?: null, $sessionId]);
+            ->execute([$uid, $counted, json_encode((object)$counts), $expected, $variance, $over ? ((int)($GLOBALS['bcrf_pin_approver']['id'] ?? 0) ?: $uid) : null, $note ?: null, $sessionId]);
         if (function_exists('bcrf_event')) bcrf_event('drawer.closed', 'drawer_sessions', $sessionId,
             ['expected_cents' => $expected, 'counted_cents' => $counted, 'variance_cents' => $variance]);
         $pdo->commit();

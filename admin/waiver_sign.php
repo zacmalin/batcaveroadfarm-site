@@ -8,6 +8,8 @@
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
 check_admin();
+require_once __DIR__ . '/../includes/pin_auth.php';   // a PIN session may open this page (Nov 13, 2026)
+bcrf_pin_page_check();
 require_once __DIR__ . '/includes/permission_checks.php';
 if (($_SESSION['user_role'] ?? '') === 'Media') { http_response_code(403); exit('Media accounts cannot use the gate.'); }
 require_permission([['view', 'pos'], ['view', 'passes']]);
@@ -53,6 +55,7 @@ if ($t && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 <title>Sign the waiver — <?= $h(bcrf_farm_name()) ?></title>
 <link rel="stylesheet" href="assets/register.css?v=9">
 <link rel="stylesheet" href="assets/waiver.css?v=1">
+<?= bcrf_pin_head_tags() ?>
 </head>
 <body class="gate">
 <header class="top">

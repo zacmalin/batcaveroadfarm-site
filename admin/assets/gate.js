@@ -17,11 +17,24 @@
     (kids || []).forEach(function (c) { if (c !== null && c !== undefined) n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
     return n;
   }
-  function api(path, body) {
-    var opts = { credentials: 'same-origin' };
+  var bg = false;   // true while the 30-second refresh is calling: PIN sessions don't count it as use (Nov 13)
+  function apiRaw(path, body) {
+    var opts = { credentials: 'same-origin', headers: {} };
     if (body) { opts.method = 'POST'; opts.headers = { 'Content-Type': 'application/json', 'X-CSRF-Token': BOOT.csrf }; opts.body = JSON.stringify(body); }
+    if (bg) opts.headers['X-Bcrf-Background'] = '1';
     return fetch('gate.php?api=' + path, opts).then(function (r) {
-      return r.json().catch(function () { return { ok: false, message: 'Unexpected reply (' + r.status + ').' }; }).then(function (j) { j.status = r.status; return j; });
+      return r.json().catch(function () { return { ok: false, message: 'Unexpected reply (' + r.status + ').' }; }).then(function (j) {
+        j.status = r.status;
+        if (j.pin_locked) location.href = j.lock_url || '/admin/pin.php';
+        return j;
+      });
+    });
+  }
+  // Manager approval by PIN (assets/manager-pin.js): a refusal only a manager can lift asks for their PIN and resends.
+  function api(path, body) {
+    return apiRaw(path, body).then(function (j) {
+      if (!j.need_manager || !body || !window.bcrfManagerRetry) return j;
+      return window.bcrfManagerRetry(j, body, function (b) { return apiRaw(path, b); });
     });
   }
   // Waiver badge for a search result or group (null when waivers are off).
@@ -219,5 +232,5 @@
   });
 
   loadState();
-  setInterval(loadState, 30000);
+  setInterval(function () { bg = true; try { loadState(); } finally { bg = false; } }, 30000);
 })();

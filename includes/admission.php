@@ -51,7 +51,8 @@ function bcrf_adm_setting(PDO $pdo, string $key, int $default): int {
     return $cache[$key];
 }
 
-function bcrf_can_override_capacity(): bool { return in_array((string)($_SESSION['user_role'] ?? ''), ['administrator', 'moderator'], true); }
+/** Owner or Manager, or a manager approved this request by PIN (includes/pin_auth.php). */
+function bcrf_can_override_capacity(): bool { return in_array((string)($_SESSION['user_role'] ?? ''), ['administrator', 'moderator'], true) || !empty($GLOBALS['bcrf_pin_approver']); }
 
 // ── Ticket codes ────────────────────────────────────────────────────────────
 function bcrf_ticket_code(): string {
@@ -146,8 +147,8 @@ function bcrf_capacity_check(PDO $pdo, int $guests, ?string $override, ?array $h
          . ($hold ? sprintf(' They are %d more than the %d booked.', $need, $hold['guests']) : '')
          . ($wait > 0 ? sprintf(' About %d minute%s until there is room.', $wait, $wait === 1 ? '' : 's') : '');
     if ($override === '') throw new BcrfCapacityError($msg, $occ + ['wait_minutes' => $wait, 'party' => $guests]);
-    if (!bcrf_can_override_capacity()) throw new BcrfCapacityError($msg . ' Only an Owner or Manager can let them in anyway.', $occ + ['wait_minutes' => $wait, 'party' => $guests]);
-    return [mb_substr($override, 0, 255), (int)($_SESSION['user_id'] ?? 0) ?: null];
+    if (!bcrf_can_override_capacity()) { $GLOBALS['bcrf_mgr_needed'] = true; throw new BcrfCapacityError($msg . ' Only an Owner or Manager can let them in anyway.', $occ + ['wait_minutes' => $wait, 'party' => $guests]); }
+    return [mb_substr($override, 0, 255), (int)($GLOBALS['bcrf_pin_approver']['id'] ?? 0) ?: ((int)($_SESSION['user_id'] ?? 0) ?: null)];
 }
 
 /** Insert one check-in. $c: source_type, party_size, guests_counted, ticket_id?, pass_id?, sale_id?, pass_visit_id?, override?, override_by?, note?,

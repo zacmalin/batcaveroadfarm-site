@@ -1,0 +1,57 @@
+/* admin/assets/pin.css — PIN sign-in on shared devices and manager approval by PIN (Farm OS spec 03, Nov 13, 2026).
+   Used by admin/pin.php, admin/pin_settings.php, and the register and gate (manager PIN prompt, idle-lock warning). */
+
+/* -- manager PIN prompt (assets/manager-pin.js) -- */
+dialog.mpin{border:0;border-radius:16px;padding:1rem;width:min(420px,calc(100vw - 1rem));box-shadow:0 10px 40px rgba(0,0,0,.3);color:#1c1917}
+dialog.mpin::backdrop{background:rgba(28,25,23,.55)}
+.mpin h3{margin:0 0 .5rem;font-size:1.1rem}
+.mpin-why{margin:0 0 .75rem;color:#57534e;font-size:.95em}
+.mpin-err{margin:.5rem 0 0;color:#b91c1c;font-weight:600}
+.mpin-names{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem}
+.mpin-name{font:inherit;font-weight:700;min-height:48px;padding:.5rem 1rem;border-radius:10px;border:2px solid #e7e5e4;background:#fff;color:#1c1917;cursor:pointer}
+.mpin-name[aria-pressed="true"]{border-color:#166534;background:#ecfdf5;color:#166534}
+.mpin-label{display:flex;flex-direction:column;gap:.25rem;font-weight:600}
+.mpin-pin{font:inherit;font-size:1.5rem;letter-spacing:.3em;text-align:center;padding:.5rem;border:2px solid #d6d3d1;border-radius:10px;min-height:52px;width:100%;box-sizing:border-box}
+.mpin-pin:focus{outline:none;border-color:#b45309}
+.mpin-act{display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem}
+
+/* -- idle-lock warning (assets/pin-lock.js) -- */
+.pinlock-warn{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9999;font:inherit;font-weight:800;padding:.9rem 1.2rem;border-radius:12px;border:0;background:#b45309;color:#fff;box-shadow:0 6px 24px rgba(0,0,0,.3);cursor:pointer;max-width:calc(100vw - 32px)}
+
+/* -- PIN sign-in screen (admin/pin.php) -- */
+.pinpage{max-width:640px;margin:0 auto;padding:1rem}
+.pinpage h1{font-size:1.5rem;margin:.5rem 0 1rem}
+.pin-msg{padding:.75rem 1rem;border-radius:10px;margin:0 0 1rem;background:#fef3c7;border:1px solid #f59e0b;color:#78350f;font-weight:600}
+.pin-msg.bad{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+.pin-people{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.6rem;margin:0 0 1rem;padding:0;border:0}
+.pin-people legend{font-weight:800;margin-bottom:.5rem;padding:0}
+.pin-person{position:relative;display:block}
+.pin-person input{position:absolute;opacity:0;width:1px;height:1px}
+.pin-person span{display:flex;align-items:center;justify-content:center;min-height:72px;padding:.5rem;border-radius:12px;border:2px solid #e7e5e4;background:#fff;font-weight:800;font-size:1.1rem;text-align:center;cursor:pointer}
+.pin-person input:checked + span{border-color:#166534;background:#ecfdf5;color:#166534}
+.pin-person input:focus-visible + span{outline:3px solid #b45309;outline-offset:2px}
+.pin-entry{display:flex;flex-direction:column;gap:.35rem;font-weight:700;margin-bottom:1rem}
+.pin-go{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.pin-foot{margin-top:1.5rem;font-size:.9em;color:#78716c}
+
+/* -- settings page (admin/pin_settings.php, inside the admin shell) -- */
+.pins{font-size:14px;color:#1c1917}
+.pins-card{background:#fff;border:1px solid #e7e5e4;border-radius:12px;padding:16px;margin-bottom:16px}
+.pins-card h2{font-size:16px;font-weight:800;margin:0 0 6px}
+.pins-card p{margin:0 0 10px;color:#57534e}
+.pins-row{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+.pins-row label{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:13px}
+.pins-in{font-size:16px;padding:9px 12px;border:1px solid #d6d3d1;border-radius:8px;min-width:0;width:12em;max-width:100%;background:#fff;color:#1c1917}
+.pins-btn{display:inline-block;font-weight:700;font-size:14px;padding:9px 14px;border-radius:8px;border:1px solid #1c1917;background:#1c1917;color:#fff;cursor:pointer;min-height:40px}
+.pins-btn.light{background:#fff;color:#1c1917;border-color:#d6d3d1}
+.pins-btn.danger{background:#fff;color:#b91c1c;border-color:#fecaca}
+.pins-flash{padding:10px 14px;border-radius:8px;margin-bottom:16px;font-weight:600;background:#ecfdf5;border:1px solid #86efac;color:#166534}
+.pins-flash.bad{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+.pins-list{list-style:none;margin:0;padding:0}
+.pins-list li{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid #f5f5f4}
+.pins-list li:first-child{border-top:0}
+.pins-sub{font-size:12px;color:#78716c}
+.pins-tag{display:inline-block;font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;background:#ecfdf5;color:#166534;margin-left:6px}
+.pins-tag.off{background:#f5f5f4;color:#78716c}
+.pins-tag.bad{background:#fef2f2;color:#b91c1c}
+.pins-inline{display:inline}

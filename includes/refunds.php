@@ -53,7 +53,8 @@ function bcrf_refund_threshold(PDO $pdo): int {
     } catch (Throwable $e) { return 0; }
 }
 
-function bcrf_is_approver(): bool { return in_array((string)($_SESSION['user_role'] ?? ''), ['administrator', 'moderator'], true); }
+/** Owner or Manager, or a manager approved this request by PIN (includes/pin_auth.php). */
+function bcrf_is_approver(): bool { return in_array((string)($_SESSION['user_role'] ?? ''), ['administrator', 'moderator'], true) || !empty($GLOBALS['bcrf_pin_approver']); }
 
 /** Sale id from a receipt number like R-2026-000012 (also accepts just "12" for this year). */
 function bcrf_sale_id_by_number(PDO $pdo, string $q): ?int {
@@ -265,13 +266,13 @@ function bcrf_refund_complete(PDO $pdo, array $in): array {
         $approved = null;
         foreach ($q['lines'] as $ql) {
             if (($lines[$ql['sale_line_id']]['product_type'] ?? '') === 'admission') {
-                if (!bcrf_is_approver()) throw new BcrfSaleError('"' . $ql['description'] . '" was used at the gate. An Owner or Manager has to refund admission.');
-                $approved = $uid;
+                if (!bcrf_is_approver()) { $GLOBALS['bcrf_mgr_needed'] = true; throw new BcrfSaleError('"' . $ql['description'] . '" was used at the gate. An Owner or Manager has to refund admission.'); }
+                $approved = (int)($GLOBALS['bcrf_pin_approver']['id'] ?? 0) ?: $uid;
             }
         }
         if ($th > 0 && $q['total'] > $th) {
-            if (!bcrf_is_approver()) throw new BcrfSaleError(sprintf('Refunds over $%s need an Owner or Manager.', number_format($th / 100, 2)));
-            $approved = $uid;
+            if (!bcrf_is_approver()) { $GLOBALS['bcrf_mgr_needed'] = true; throw new BcrfSaleError(sprintf('Refunds over $%s need an Owner or Manager.', number_format($th / 100, 2))); }
+            $approved = (int)($GLOBALS['bcrf_pin_approver']['id'] ?? 0) ?: $uid;
         }
         $drawerId = null;
         if ($regId && function_exists('bcrf_drawer_current')) {

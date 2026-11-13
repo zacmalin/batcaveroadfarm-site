@@ -231,6 +231,7 @@ function bcrf_waiver_gate_check(PDO $pdo, ?string $email, string $override, bool
     if (bcrf_waiver_mode($pdo) !== 'block' || bcrf_waiver_valid_for($pdo, $email)) return '';
     $override = mb_substr(trim(strip_tags($override)), 0, 200);
     if ($override !== '' && $canOverride) return $override;
+    if ($override !== '') $GLOBALS['bcrf_mgr_needed'] = true;   // a manager's PIN would let them in (includes/pin_auth.php)
     throw new BcrfWaiverError('No waiver on file. Have the adult sign on this device first.');
 }
 

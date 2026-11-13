@@ -242,10 +242,17 @@ function bcrf_staff_safe_dest(string $d, string $fallback = '/admin/admin.php'):
 
 /**
  * Called by check_admin() (config.php) once the role is a staff role. A session that hasn't passed two-step
- * sign-in but needs it is moved to pending and sent to the code page.
+ * sign-in but needs it is moved to pending and sent to the code page. A PIN session on a shared device follows
+ * bcrf_pin_gate() instead (register, gate and waivers only; locks after 5 minutes without use).
  */
 function bcrf_staff_mfa_gate(): void {
     global $pdo;
+    // PIN sign-in on a shared device (includes/pin_auth.php, Nov 13, 2026): its own rules instead of two-step
+    if (!empty($_SESSION['pin'])) {
+        require_once __DIR__ . '/pin_auth.php';
+        bcrf_pin_gate();
+        return;
+    }
     if (!empty($_SESSION['mfa_ok']) || !($pdo instanceof PDO)) return;
     $uid = (int)($_SESSION['user_id'] ?? 0);
     try {
