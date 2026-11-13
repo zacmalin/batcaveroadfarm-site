@@ -367,6 +367,15 @@ try {
     // Audit trail (after commit, so only successful saves are logged)
     erp_audit($pdo, $id ? 'update' : 'create', (string)$target_table, (int)$record_id, erp_audit_label($fields));
 
+    // Recipe Save recalculates Nutrition Facts from the ingredients' USDA data (Nov 13, 2026), so there's
+    // no separate Calculate step. After commit; a failure here never blocks the save. includes/recipe_nutrition.php
+    if ($target_table === 'recipes' && $record_id) {
+        try {
+            require_once dirname(__DIR__, 2) . '/includes/recipe_nutrition.php';
+            bcrf_recipe_nutrition($pdo, (int)$record_id, true);
+        } catch (Throwable $e) { error_log('[ERP] recipe nutrition on save: ' . $e->getMessage()); }
+    }
+
     // Domain event for content saved as published (Farm OS Phase 0; the runner clears the CDN cache)
     if (in_array($target_table, ['blog_posts', 'recipes', 'animals'], true) && ($_POST['post_status'] ?? '') === 'published') {
         require_once dirname(__DIR__, 2) . '/includes/queue.php';

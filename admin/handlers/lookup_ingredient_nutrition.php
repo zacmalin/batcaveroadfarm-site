@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') ujson(false, 'POST required.');
 if (!hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'] ?? ''))
     ujson(false, 'Security token expired.');
 
-$action = trim($_POST['action'] ?? 'search'); // 'search' or 'save'
+$action = trim($_POST['action'] ?? 'search'); // 'search', 'detail', 'pick' or 'save'
 
 // ── ACTION: SAVE confirmed nutrition data to ingredients table ────────────────
 if ($action === 'save') {
@@ -76,54 +76,89 @@ if ($action === 'save') {
     }
 }
 
+// ── USDA adapter (Farm OS Phase 0): includes/adapter_usda.php ────────────────
+require_once __DIR__ . '/../../includes/adapter_usda.php';
+
+// ── ACTION: DETAIL — one food's nutrients + portion weights (density, weight of one) ──
+// Nov 13, 2026: picking a match fills everything in one go; nothing is saved here.
+if ($action === 'detail' || $action === 'pick') {
+    $fdc = filter_input(INPUT_POST, 'fdc_id', FILTER_VALIDATE_INT);
+    if (!$fdc) ujson(false, 'Pick a USDA match first.');
+    $r = bcrf_usda_food((int)$fdc);
+    if (!$r['ok']) {
+        error_log('[Nutrition] USDA food ' . $fdc . ' failed: ' . $r['status'] . ' ' . $r['error']);
+        ujson(false, "USDA didn't answer (HTTP {$r['status']}). Try again in a minute.");
+    }
+    $food = $r['food'];
+    $nut  = bcrf_usda_nutrients($food);
+    $por  = bcrf_usda_portions($food);
+    $out  = [
+        'fdc_id'       => (int)$fdc,
+        'description'  => (string)($food['description'] ?? ''),
+        'data_type'    => (string)($food['dataType'] ?? ''),
+        'nutrients'    => $nut,
+        'density'      => $por['density'],
+        'density_from' => $por['density_from'],
+        'weight'       => $por['weight'],
+        'weight_from'  => $por['weight_from'],
+        'portions'     => $por['portions'],
+    ];
+    if ($action === 'detail') ujson(true, 'Loaded.', ['food' => $out]);
+
+    // ACTION: PICK — save that match straight onto an ingredient (recipe Nutrition Facts flow).
+    // Nutrition is replaced; density and weight of one are only filled when the ingredient has none,
+    // so a number you typed in yourself is never overwritten.
+    $ing_id = filter_input(INPUT_POST, 'ingredient_id', FILTER_VALIDATE_INT);
+    if (!$ing_id) ujson(false, 'Invalid ingredient ID.');
+    try {
+        $cur = $pdo->prepare("SELECT * FROM ingredients WHERE id = ?");
+        $cur->execute([$ing_id]);
+        $row = $cur->fetch(PDO::FETCH_ASSOC);
+        if (!$row) ujson(false, 'Ingredient not found.');
+        $density = ($row['density_g_per_ml'] !== null && (float)$row['density_g_per_ml'] > 0) ? (float)$row['density_g_per_ml'] : $por['density'];
+        $weight  = ($row['weight_per_unit_g'] !== null && (float)$row['weight_per_unit_g'] > 0) ? (float)$row['weight_per_unit_g'] : $por['weight'];
+        $pdo->prepare("
+            UPDATE ingredients SET
+                calories_per_100g = ?, protein_per_100g = ?, fat_per_100g = ?, carbs_per_100g = ?,
+                fiber_per_100g = ?, sugar_per_100g = ?, sodium_per_100g = ?,
+                density_g_per_ml = ?, weight_per_unit_g = ?, usda_fdc_id = ?
+            WHERE id = ?
+        ")->execute([
+            $nut['calories_per_100g'], $nut['protein_per_100g'], $nut['fat_per_100g'], $nut['carbs_per_100g'],
+            $nut['fiber_per_100g'], $nut['sugar_per_100g'], $nut['sodium_per_100g'],
+            $density, $weight, (int)$fdc, $ing_id,
+        ]);
+        erp_audit($pdo, 'update', 'ingredients', (int)$ing_id,
+            'USDA match for ' . (erp_audit_label($row) ?: "#{$ing_id}") . ': ' . $out['description'] . ' (FDC ' . (int)$fdc . ')');
+        ujson(true, 'Saved ' . ($row['singular_name'] ?? 'ingredient') . ' from USDA.', ['food' => $out, 'density' => $density, 'weight' => $weight]);
+    } catch (Throwable $e) {
+        error_log('[Nutrition] Pick save failed: ' . $e->getMessage());
+        ujson(false, 'Could not save the ingredient. Try again.');
+    }
+}
+
 // ── ACTION: SEARCH USDA ───────────────────────────────────────────────────────
 $query = trim($_POST['query'] ?? '');
 if (!$query) ujson(false, 'Search query is required.');
 if (strlen($query) > 100) ujson(false, 'Query too long.');
 
-// USDA FoodData Central search, through the USDA adapter (Farm OS Phase 0): includes/adapter_usda.php
-require_once __DIR__ . '/../../includes/adapter_usda.php';
-$usda = bcrf_usda_search($query);
+$usda = bcrf_usda_search($query, 8);
 if (!$usda['ok']) {
     error_log('[Nutrition] USDA request failed. Status: ' . $usda['status'] . ' ' . $usda['error']);
     ujson(false, "USDA API error (HTTP {$usda['status']}). Check USDA_API_KEY in bcrf-secrets.php.");
 }
-$raw = $usda['raw'];
-
-$data = json_decode($raw, true);
-if (!$data || empty($data['foods'])) {
-    ujson(false, "No USDA results found for \"{$query}\". Try a simpler name (e.g. \"flour\" instead of \"all-purpose flour\").");
+if (empty($usda['foods'])) {
+    ujson(false, "No USDA matches for \"{$query}\". Try a simpler name (e.g. \"flour\" instead of \"all-purpose flour\").", ['results' => []]);
 }
 
-// ── NUTRIENT IDs WE CARE ABOUT ────────────────────────────────────────────────
-$nutrient_map = [
-    1008 => 'calories_per_100g',  // Energy (kcal)
-    1003 => 'protein_per_100g',   // Protein (g)
-    1004 => 'fat_per_100g',       // Total Fat (g)
-    1005 => 'carbs_per_100g',     // Carbohydrate by diff (g)
-    1079 => 'fiber_per_100g',     // Dietary Fiber (g)
-    2000 => 'sugar_per_100g',     // Sugars total (g)
-    1093 => 'sodium_per_100g',    // Sodium (mg)
-];
-
-// ── FORMAT RESULTS ────────────────────────────────────────────────────────────
 $results = [];
-foreach (array_slice($data['foods'], 0, 5) as $food) {
-    $nutrients = array_fill_keys(array_values($nutrient_map), null);
-
-    foreach ($food['foodNutrients'] ?? [] as $n) {
-        $nid = (int)($n['nutrientId'] ?? 0);
-        if (isset($nutrient_map[$nid])) {
-            $nutrients[$nutrient_map[$nid]] = round((float)$n['value'], 2);
-        }
-    }
-
+foreach ($usda['foods'] as $food) {
     $results[] = [
         'fdc_id'      => $food['fdcId'],
         'description' => $food['description'],
         'data_type'   => $food['dataType'] ?? '',
         'brand'       => $food['brandOwner'] ?? null,
-        'nutrients'   => $nutrients,
+        'nutrients'   => bcrf_usda_nutrients($food),
     ];
 }
 

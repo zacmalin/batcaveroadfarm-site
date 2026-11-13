@@ -542,29 +542,31 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
 
                 <?php elseif ($name === '_ingredient_nutrition_panel'): ?>
                     <?php
-                    $ing_id        = (int)($edit_data['id'] ?? 0);
-                    $has_ing_nutr  = !empty($edit_data['calories_per_100g']);
-                    $ing_name_for_usda = htmlspecialchars($edit_data['singular_name'] ?? '', ENT_QUOTES);
+                    // One-step USDA lookup (Nov 13, 2026): type the name, matches show as you type, tap one and it fills
+                    // nutrition, density and weight of one from USDA's portion weights. One Save Record. Works on new ingredients.
+                    $ing_id  = (int)($edit_data['id'] ?? 0);
+                    $ing_key = $ing_id ?: 'new';
+                    $ing_fdc = (int)($edit_data['usda_fdc_id'] ?? 0);
                     ?>
                     </div><!-- /schemaFieldGrid -->
-                    <div class="mt-5 w-full border rounded-lg overflow-hidden">
+                    <div class="mt-5 w-full border rounded-lg overflow-hidden" id="usdaPanel" data-ing="<?= htmlspecialchars((string)$ing_key, ENT_QUOTES) ?>">
 
                         <!-- Header -->
-                        <div class="flex items-center justify-between px-4 py-2.5 bg-stone-100 border-b">
+                        <div class="flex items-center justify-between gap-2 px-4 py-2.5 bg-stone-100 border-b">
                             <span class="font-black text-xs uppercase tracking-wider text-stone-700 font-mono">🔬 Nutrition Data (per 100g)</span>
-                            <?php if ($ing_id): ?>
-                            <button type="button"
-                                id="usdaLookupBtn_<?= $ing_id ?>"
-                                class="flex items-center gap-1.5 bg-blue-700 hover:bg-blue-900 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded transition font-mono">
-                                🔍 Lookup via USDA
-                            </button>
-                            <?php endif; ?>
+                            <span id="usdaLinked" class="text-[10px] font-mono <?= $ing_fdc ? 'text-emerald-700' : 'text-stone-400' ?>"><?= $ing_fdc ? 'USDA #' . $ing_fdc : 'Not matched to USDA yet' ?></span>
                         </div>
+                        <input type="hidden" name="fields[usda_fdc_id]" id="usdaFdcId" value="<?= $ing_fdc ?: '' ?>">
 
-                        <!-- USDA results panel (hidden until lookup) -->
-                        <div id="usdaResultsPanel_<?= $ing_id ?>" class="hidden border-b bg-blue-50 p-3">
-                            <p class="text-[10px] font-bold uppercase tracking-wider text-blue-800 mb-2">Select best match:</p>
-                            <div id="usdaResultsList_<?= $ing_id ?>" class="space-y-1"></div>
+                        <!-- USDA search -->
+                        <div class="border-b bg-blue-50 p-3">
+                            <label for="usdaQuery" class="block text-[10px] font-bold uppercase tracking-wider text-blue-800 mb-1">Find on USDA</label>
+                            <input type="search" id="usdaQuery" autocomplete="off" enterkeyhint="search"
+                                value="<?= htmlspecialchars($edit_data['singular_name'] ?? '', ENT_QUOTES) ?>"
+                                placeholder="Type an ingredient, e.g. flour"
+                                class="w-full p-2 border bg-white rounded text-sm outline-none">
+                            <p class="text-[10px] text-blue-900/70 mt-1">Matches show as you type. Tap one to fill everything below, then Save Record. You can still change any number.</p>
+                            <div id="usdaResults" class="hidden mt-2 space-y-1"></div>
                         </div>
 
                         <!-- Nutrition fields -->
@@ -585,7 +587,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                                     <?= $nf['label'] ?> <span class="font-normal">(<?= $nf['unit'] ?>)</span>
                                 </label>
                                 <input type="number" step="0.01" min="0"
-                                    id="ing_<?= $nf['key'] ?>_<?= $ing_id ?>"
+                                    id="ing_<?= $nf['key'] ?>"
                                     name="fields[<?= $nf['key'] ?>]"
                                     value="<?= htmlspecialchars($edit_data[$nf['key']] ?? '', ENT_QUOTES) ?>"
                                     placeholder="—"
@@ -595,167 +597,111 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                         </div>
 
                         <!-- Density + count weight -->
-                        <div class="px-4 pb-4 grid grid-cols-2 gap-3 border-t pt-3">
+                        <div class="px-4 pb-4 grid grid-cols-1 sm:grid-cols-2 gap-3 border-t pt-3">
                             <div>
                                 <label class="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-0.5">
-                                    Density <span class="font-normal">(g/mL — for volume units)</span>
+                                    Density <span class="font-normal">(g/mL — for cups, spoons)</span>
                                 </label>
                                 <input type="number" step="0.0001" min="0"
-                                    id="ing_density_<?= $ing_id ?>"
+                                    id="ing_density"
                                     name="fields[density_g_per_ml]"
                                     value="<?= htmlspecialchars($edit_data['density_g_per_ml'] ?? '', ENT_QUOTES) ?>"
                                     placeholder="e.g. water=1.0, flour=0.53, honey=1.42"
                                     class="w-full p-1.5 border bg-stone-50 rounded font-mono text-xs outline-none">
+                                <p id="ing_density_from" class="text-[10px] text-stone-500 mt-0.5"></p>
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-0.5">
-                                    Weight/unit <span class="font-normal">(g — for count units)</span>
+                                    Weight of one <span class="font-normal">(g — for "2 eggs")</span>
                                 </label>
                                 <input type="number" step="0.1" min="0"
-                                    id="ing_weight_<?= $ing_id ?>"
+                                    id="ing_weight"
                                     name="fields[weight_per_unit_g]"
                                     value="<?= htmlspecialchars($edit_data['weight_per_unit_g'] ?? '', ENT_QUOTES) ?>"
                                     placeholder="e.g. egg=50, garlic clove=5"
                                     class="w-full p-1.5 border bg-stone-50 rounded font-mono text-xs outline-none">
+                                <p id="ing_weight_from" class="text-[10px] text-stone-500 mt-0.5"></p>
                             </div>
                         </div>
 
-                        <!-- Save confirmation message -->
-                        <div id="usdaSaveMsg_<?= $ing_id ?>" class="hidden mx-4 mb-3 p-2 rounded text-xs font-mono"></div>
+                        <!-- Other USDA portions: tap to use one instead -->
+                        <div id="usdaPortions" class="hidden px-4 pb-3">
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1">Other USDA measures (tap to use)</p>
+                            <div id="usdaPortionChips" class="flex flex-wrap gap-1"></div>
+                        </div>
+
+                        <!-- Status message -->
+                        <div id="usdaSaveMsg" class="hidden mx-4 mb-3 p-2 rounded text-xs font-mono"></div>
                     </div>
 
-                    <?php if ($ing_id): ?>
+                    <script src="/admin/assets/usda-picker.js?v=<?= bcrf_asset_v('/admin/assets/usda-picker.js') ?>"></script>
                     <script>
-                    /* Self-contained USDA lookup — no dependency on main script block */
-                    (function() {
-                        var ING_ID   = <?= $ing_id ?>;
-                        var CSRF     = <?= json_encode($_SESSION['csrf_token'] ?? '') ?>;
+                    (function () {
+                        if (!window.BcrfUsda) return;
+                        var U = window.BcrfUsda, CSRF = <?= json_encode($_SESSION['csrf_token'] ?? '') ?>;
+                        var $ = function (id) { return document.getElementById(id); };
+                        var q = $('usdaQuery'), list = $('usdaResults'), msg = $('usdaSaveMsg');
+                        var nameIn = document.querySelector('input[name="fields[singular_name]"]');
+                        var touched = false;   // once the USDA box is typed in, the name field stops steering it
 
-                        var btn     = document.getElementById('usdaLookupBtn_' + ING_ID);
-                        var panel   = document.getElementById('usdaResultsPanel_' + ING_ID);
-                        var list    = document.getElementById('usdaResultsList_' + ING_ID);
-                        var saveMsg = document.getElementById('usdaSaveMsg_' + ING_ID);
-
-                        console.log('[USDA] Self-contained script loaded, btn:', btn);
-
-                        if (!btn) {
-                            console.error('[USDA] Button not found: usdaLookupBtn_' + ING_ID);
-                            return;
+                        function say(color, text) {
+                            msg.textContent = text;
+                            msg.className = 'mx-4 mb-3 p-2 rounded text-xs font-mono bg-' + color + '-50 text-' + color + '-800 border border-' + color + '-200';
                         }
 
-                        btn.addEventListener('click', function() {
-                            console.log('[USDA] Button clicked');
+                        var live = U.liveSearch({ input: q, list: list, csrf: CSRF, onChoose: choose });
+                        q.addEventListener('input', function () { touched = true; });
 
-                            var nameInput = document.querySelector('input[name="fields[singular_name]"]');
-                            var ingName   = nameInput ? nameInput.value.trim() : '';
-
-                            if (!ingName) {
-                                showMsg('amber', '⚠️ Enter a singular name first.');
-                                return;
-                            }
-
-                            btn.disabled    = true;
-                            btn.textContent = '⏳ Searching…';
-                            hideMsg();
-
-                            var body = new URLSearchParams({
-                                csrf_token: CSRF,
-                                action:     'search',
-                                query:      ingName
-                            });
-
-                            fetch('/admin/handlers/lookup_ingredient_nutrition.php', {
-                                method:  'POST',
-                                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                                body:    body.toString()
-                            })
-                            .then(function(r) { return r.json(); })
-                            .then(function(data) {
-                                if (!data.success) {
-                                    showMsg('red', '⚠️ ' + data.message);
-                                    return;
-                                }
-                                renderResults(data.results);
-                                if (panel) panel.classList.remove('hidden');
-                            })
-                            .catch(function(err) {
-                                console.error('[USDA] fetch error:', err);
-                                showMsg('red', '⚠️ Network error — ' + err.message);
-                            })
-                            .finally(function() {
-                                btn.disabled    = false;
-                                btn.innerHTML   = '🔍 Lookup via USDA';
-                            });
-                        });
-
-                        function renderResults(results) {
-                            if (!list) return;
-                            list.innerHTML = '';
-                            results.forEach(function(food) {
-                                var row  = document.createElement('div');
-                                row.className = 'flex items-start justify-between gap-2 bg-white border rounded p-2 text-[10px]';
-
-                                var cals = food.nutrients && food.nutrients.calories_per_100g !== null
-                                    ? food.nutrients.calories_per_100g + ' kcal/100g' : '';
-
-                                var info = document.createElement('div');
-                                info.innerHTML = '<span class="font-bold text-stone-800">'
-                                    + escHtml(food.description) + '</span>'
-                                    + '<span class="ml-1 text-stone-400">' + escHtml(food.data_type) + '</span>'
-                                    + (cals ? '<span class="ml-2 font-mono text-emerald-700">' + cals + '</span>' : '');
-
-                                var useBtn = document.createElement('button');
-                                useBtn.type        = 'button';
-                                useBtn.textContent = 'Use this';
-                                useBtn.className   = 'shrink-0 bg-blue-700 text-white px-2 py-0.5 rounded font-bold hover:bg-blue-900';
-                                useBtn.addEventListener('click', (function(f) {
-                                    return function() { applyResult(f); };
-                                })(food));
-
-                                row.append(info, useBtn);
-                                list.appendChild(row);
+                        // Typing the name searches USDA too, until the ingredient is matched or the USDA box is used.
+                        if (nameIn) {
+                            var t = null;
+                            nameIn.addEventListener('input', function () {
+                                if (touched || $('usdaFdcId').value) return;
+                                q.value = nameIn.value;
+                                clearTimeout(t);
+                                t = setTimeout(function () { live.search(nameIn.value); }, 500);
                             });
                         }
 
-                        function applyResult(food) {
-                            var n = food.nutrients || {};
-                            var map = {
-                                'calories_per_100g': n.calories_per_100g,
-                                'protein_per_100g':  n.protein_per_100g,
-                                'fat_per_100g':      n.fat_per_100g,
-                                'carbs_per_100g':    n.carbs_per_100g,
-                                'fiber_per_100g':    n.fiber_per_100g,
-                                'sugar_per_100g':    n.sugar_per_100g,
-                                'sodium_per_100g':   n.sodium_per_100g
-                            };
-                            Object.keys(map).forEach(function(key) {
-                                var el = document.getElementById('ing_' + key + '_' + ING_ID);
-                                if (el && map[key] !== null && map[key] !== undefined) el.value = map[key];
+                        function setNum(id, v) { if (v !== null && v !== undefined && v !== '') $(id).value = v; }
+
+                        function choose(hit) {
+                            say('blue', '⏳ Loading “' + hit.description + '” from USDA…');
+                            U.detail(CSRF, hit.fdc_id).then(function (d) {
+                                if (!d.success) { say('red', '⚠️ ' + d.message); return; }
+                                var f = d.food, n = f.nutrients || {};
+                                ['calories_per_100g','protein_per_100g','fat_per_100g','carbs_per_100g','fiber_per_100g','sugar_per_100g','sodium_per_100g']
+                                    .forEach(function (k) { $('ing_' + k).value = (n[k] === null || n[k] === undefined) ? '' : n[k]; });
+                                $('usdaFdcId').value = f.fdc_id;
+                                $('usdaLinked').textContent = 'USDA #' + f.fdc_id + ' (save to keep)';
+                                $('usdaLinked').className = 'text-[10px] font-mono text-amber-700';
+                                var notes = [];
+                                if (f.density) { setNum('ing_density', f.density); $('ing_density_from').textContent = 'USDA: ' + f.density_from; }
+                                else { $('ing_density_from').textContent = 'USDA has no cup or spoon weight for this one.'; }
+                                if (f.weight) { setNum('ing_weight', f.weight); $('ing_weight_from').textContent = 'USDA: ' + f.weight_from; }
+                                else { $('ing_weight_from').textContent = ''; }
+                                chips(f.portions || []);
+                                say('emerald', '✅ Filled from “' + f.description + '”. Tap Save Record to keep it.');
+                            }).catch(function () { say('red', '⚠️ Network error. Try again.'); });
+                        }
+
+                        function chips(portions) {
+                            var box = $('usdaPortionChips'); box.innerHTML = '';
+                            var used = 0;
+                            portions.forEach(function (p) {
+                                if (p.kind === 'weight') return;
+                                var b = U.el('button', 'text-[10px] border rounded-full px-2 py-0.5 bg-white hover:bg-stone-100', p.label + ' = ' + p.grams + ' g');
+                                b.type = 'button';
+                                b.addEventListener('click', function () {
+                                    if (p.kind === 'volume') { $('ing_density').value = p.density; $('ing_density_from').textContent = 'USDA: ' + p.label + ' = ' + p.grams + ' g'; }
+                                    else { $('ing_weight').value = p.each; $('ing_weight_from').textContent = 'USDA: ' + p.label + ' = ' + p.grams + ' g'; }
+                                });
+                                box.appendChild(b); used++;
                             });
-                            var fdcEl = document.querySelector('input[name="fields[usda_fdc_id]"]');
-                            if (fdcEl) fdcEl.value = food.fdc_id || '';
-
-                            if (panel) panel.classList.add('hidden');
-                            showMsg('emerald', '✅ Filled from: "' + food.description + '" — click Save to store.');
-                        }
-
-                        function showMsg(color, text) {
-                            if (!saveMsg) return;
-                            saveMsg.textContent = text;
-                            saveMsg.className   = 'mx-4 mb-3 p-2 rounded text-xs font-mono '
-                                + 'bg-' + color + '-50 text-' + color + '-800 border border-' + color + '-200';
-                            saveMsg.classList.remove('hidden');
-                        }
-                        function hideMsg() {
-                            if (saveMsg) saveMsg.className = 'hidden';
-                        }
-                        function escHtml(s) {
-                            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                            $('usdaPortions').classList.toggle('hidden', used < 2);
                         }
                     })();
                     </script>
-                    <?php endif; ?>
-
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4" id="schemaFieldGrid">
 
                 <?php elseif ($name === '_recipe_pairings_panel'): ?>
@@ -851,6 +797,15 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                     $nutr_source   = $edit_data['nutrition_source']     ?? null;
                     $nutr_updated  = $edit_data['nutrition_updated_at'] ?? null;
                     $rec_id_for_nutr = (int)($edit_data['id'] ?? 0);
+                    // Which ingredients the chart can't count yet (no save; includes/recipe_nutrition.php, Nov 13, 2026)
+                    $nutr_missing = [];
+                    $nutr_can_fix = function_exists('hasTableAccess') ? hasTableAccess((string)($_SESSION['user_role'] ?? ''), 'ingredients', 'edit') : true;
+                    if ($rec_id_for_nutr) {
+                        try {
+                            require_once dirname(__DIR__, 2) . '/includes/recipe_nutrition.php';
+                            $nutr_missing = bcrf_recipe_nutrition($pdo, $rec_id_for_nutr, false)['missing'] ?? [];
+                        } catch (Throwable $e) { $nutr_missing = []; }
+                    }
                     ?>
                     </div><!-- /schemaFieldGrid -->
                     <div class="mt-6 w-full border rounded-lg overflow-hidden" id="nutritionPanel">
@@ -874,7 +829,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                                 <span id="calcNutrBtnLabel"><?= $has_nutrition ? 'Recalculate' : 'Calculate' ?></span>
                             </button>
                             <?php else: ?>
-                            <span class="text-[10px] text-stone-400 font-mono italic">Save the recipe first to enable calculation</span>
+                            <span class="text-[10px] text-stone-400 font-mono italic">Works out when you save the recipe</span>
                             <?php endif; ?>
                         </div>
 
@@ -882,7 +837,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                         <div class="p-4">
                             <?php if (!$has_nutrition): ?>
                             <p class="text-stone-400 text-xs italic text-center py-4" id="nutritionEmptyMsg">
-                                No nutrition data yet. Add ingredients and click Calculate.
+                                No nutrition data yet. Add ingredients and Save; it works out by itself.
                             </p>
                             <?php endif; ?>
 
@@ -934,21 +889,30 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
 
                                 <!-- Disclaimer -->
                                 <p class="text-[9px] text-stone-400 mt-3 leading-relaxed">
-                                    Nutritional values calculated via Edamam and are estimates only. Actual values may vary based on preparation, ingredient brands, and portion sizes.
+                                    Nutritional values calculated from USDA FoodData Central and are estimates only. Actual values may vary based on preparation, ingredient brands, and portion sizes.
                                 </p>
                             </div>
 
                             <!-- Error/status message -->
                             <div id="nutritionMsg" class="hidden mt-2 p-2 rounded text-xs font-mono"></div>
+
+                            <!-- Ingredients that still need USDA data: fix them right here (Nov 13, 2026) -->
+                            <div id="nutrMissing" class="<?= $nutr_missing ? '' : 'hidden' ?> mt-3 border border-amber-300 bg-amber-50 rounded p-3">
+                                <p class="text-[11px] font-bold text-amber-900 mb-2">Not counted yet. Tap “Find on USDA”, pick a match, and the chart updates by itself.</p>
+                                <div id="nutrMissingList" class="space-y-2"></div>
+                            </div>
                         </div>
                     </div>
 
                     <?php if ($rec_id_for_nutr): ?>
+                    <script src="/admin/assets/usda-picker.js?v=<?= bcrf_asset_v('/admin/assets/usda-picker.js') ?>"></script>
                     <script>
-                    /* Self-contained nutrition calculator — no dependency on main script block */
+                    /* Recipe Nutrition Facts: Save recalculates by itself; missing ingredients get an inline USDA picker. */
                     (function() {
-                        var REC_ID = <?= $rec_id_for_nutr ?>;
-                        var CSRF   = <?= json_encode($_SESSION['csrf_token'] ?? '') ?>;
+                        var REC_ID  = <?= $rec_id_for_nutr ?>;
+                        var CSRF    = <?= json_encode($_SESSION['csrf_token'] ?? '') ?>;
+                        var MISSING = <?= json_encode($nutr_missing, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) ?>;
+                        var CAN_EDIT_ING = <?= json_encode($nutr_can_fix) ?>;
 
                         var btn   = document.getElementById('calcNutrBtn');
                         var icon  = document.getElementById('calcNutrBtnIcon');
@@ -956,72 +920,126 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                         var msg   = document.getElementById('nutritionMsg');
                         var grid  = document.getElementById('nutritionDataGrid');
                         var empty = document.getElementById('nutritionEmptyMsg');
-
+                        var box   = document.getElementById('nutrMissing');
+                        var mlist = document.getElementById('nutrMissingList');
                         if (!btn) return;
 
-                        btn.addEventListener('click', function() {
-                            btn.disabled     = true;
+                        function say(ok, text) {
+                            if (!msg) return;
+                            msg.textContent = (ok ? '✅ ' : '⚠️ ') + text;
+                            msg.className = 'mt-2 p-2 rounded text-xs font-mono ' + (ok
+                                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                                : 'bg-red-50 text-red-700 border border-red-200');
+                        }
+
+                        var NEED = {
+                            nutrition: 'no nutrition data',
+                            density:   'needs a cup/spoon weight',
+                            weight:    'needs the weight of one',
+                            unit:      "unit can't be turned into grams"
+                        };
+
+                        function renderMissing(items) {
+                            mlist.innerHTML = '';
+                            box.classList.toggle('hidden', !items || !items.length);
+                            (items || []).forEach(function (m) {
+                                var row = document.createElement('div');
+                                row.className = 'bg-white border rounded p-2';
+                                var top = document.createElement('div');
+                                top.className = 'flex items-center justify-between gap-2';
+                                var nm = document.createElement('div');
+                                nm.className = 'text-xs';
+                                nm.innerHTML = '<span class="font-bold text-stone-800"></span> <span class="text-stone-500"></span>';
+                                nm.children[0].textContent = m.name;
+                                nm.children[1].textContent = '(' + (NEED[m.need] || m.need) + (m.unit && m.need !== 'nutrition' ? ', ' + m.unit : '') + ')';
+                                top.appendChild(nm);
+                                var acts = document.createElement('div');
+                                acts.className = 'flex gap-1 shrink-0';
+                                var fb = null;
+                                if (CAN_EDIT_ING && m.need !== 'unit') {
+                                    fb = window.BcrfUsda.el('button', 'bg-blue-700 hover:bg-blue-900 text-white text-[10px] font-bold px-2 py-1 rounded', '🔍 Find on USDA');
+                                    fb.type = 'button';
+                                    acts.appendChild(fb);
+                                }
+                                var open = document.createElement('a');
+                                open.className = 'text-[10px] font-bold px-2 py-1 rounded border text-stone-700 hover:bg-stone-100';
+                                open.href = '/admin/admin.php?view=schema&table=ingredients&edit_id=' + m.ingredient_id;
+                                open.target = '_blank';
+                                open.textContent = 'Open';
+                                acts.appendChild(open);
+                                top.appendChild(acts);
+                                row.appendChild(top);
+
+                                if (fb) {
+                                    var pane = document.createElement('div');
+                                    pane.className = 'hidden mt-2';
+                                    var inp = document.createElement('input');
+                                    inp.type = 'search'; inp.autocomplete = 'off'; inp.value = m.name;
+                                    inp.className = 'w-full p-1.5 border bg-white rounded text-xs outline-none';
+                                    var res = document.createElement('div');
+                                    res.className = 'hidden mt-1 space-y-1';
+                                    pane.append(inp, res);
+                                    row.appendChild(pane);
+                                    var live = window.BcrfUsda.liveSearch({ input: inp, list: res, csrf: CSRF, onChoose: function (hit) {
+                                        pane.innerHTML = '';
+                                        pane.appendChild(window.BcrfUsda.el('p', 'text-[11px] text-stone-500', '⏳ Saving ' + m.name + ' from “' + hit.description + '”…'));
+                                        window.BcrfUsda.pick(CSRF, m.ingredient_id, hit.fdc_id).then(function (d) {
+                                            if (!d.success) { pane.innerHTML = ''; pane.appendChild(window.BcrfUsda.el('p', 'text-[11px] text-red-700', '⚠️ ' + d.message)); return; }
+                                            calc();
+                                        }).catch(function () { say(false, 'Network error. Try again.'); });
+                                    }});
+                                    fb.addEventListener('click', function () {
+                                        pane.classList.toggle('hidden');
+                                        if (!pane.classList.contains('hidden')) { live.search(inp.value); inp.focus(); }
+                                    });
+                                }
+                                mlist.appendChild(row);
+                            });
+                        }
+
+                        function show(d) {
+                            var setEl = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
+                            setEl('nutrCalories', d.calories);
+                            setEl('nutrProtein',  d.protein  + 'g');
+                            setEl('nutrFat',      d.fat      + 'g');
+                            setEl('nutrCarbs',    d.carbs    + 'g');
+                            setEl('nutrFiber',    d.fiber    + 'g');
+                            setEl('nutrSugar',    d.sugar    + 'g');
+                            setEl('nutrSodium',   d.sodium   + 'mg');
+                            // Keep the form's calories in step so Save Record doesn't put back an old number
+                            var calField = document.querySelector('input[name="fields[calories]"]');
+                            if (calField) calField.value = d.calories;
+                            if (grid)  grid.classList.remove('hidden');
+                            if (empty) empty.classList.add('hidden');
+                        }
+
+                        function calc() {
+                            btn.disabled = true;
                             icon.textContent = '⏳';
                             label.textContent = 'Calculating…';
-                            if (msg) msg.className = 'hidden';
-
                             fetch('/admin/handlers/calculate_nutrition.php', {
                                 method:  'POST',
                                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                                 body:    new URLSearchParams({csrf_token: CSRF, recipe_id: REC_ID}).toString()
                             })
                             .then(function(r) { return r.json(); })
-                            .then(function(data) {
-                                if (data.success) {
-                                    var d = data;
-                                    var setEl = function(id, val) {
-                                        var el = document.getElementById(id);
-                                        if (el) el.textContent = val;
-                                    };
-                                    setEl('nutrCalories', d.calories);
-                                    setEl('nutrProtein',  d.protein  + 'g');
-                                    setEl('nutrFat',      d.fat      + 'g');
-                                    setEl('nutrCarbs',    d.carbs    + 'g');
-                                    setEl('nutrFiber',    d.fiber    + 'g');
-                                    setEl('nutrSugar',    d.sugar    + 'g');
-                                    setEl('nutrSodium',   d.sodium   + 'mg');
-
-                                    // Sync calories into the form field so Save Record preserves it
-                                    var calField = document.querySelector('input[name="fields[calories]"], input[name="fields[calories]"]');
-                                    if (calField) calField.value = d.calories;
-
-                                    if (grid)  grid.classList.remove('hidden');
-                                    if (empty) empty.classList.add('hidden');
-
-                                    if (msg) {
-                                        msg.textContent = '✅ ' + data.message;
-                                        msg.className   = 'mt-2 p-2 rounded text-xs font-mono bg-emerald-50 text-emerald-800 border border-emerald-200';
-                                    }
-                                    icon.textContent  = '✅';
-                                    label.textContent = 'Recalculate';
-                                } else {
-                                    if (msg) {
-                                        msg.textContent = '⚠️ ' + data.message;
-                                        msg.className   = 'mt-2 p-2 rounded text-xs font-mono bg-red-50 text-red-700 border border-red-200';
-                                    }
-                                    icon.textContent  = '⚡';
-                                    label.textContent = 'Try Again';
-                                }
-                                if (msg) msg.classList.remove('hidden');
+                            .then(function(d) {
+                                if (d.success) show(d);
+                                say(!!d.success, d.message);
+                                renderMissing(d.missing || []);
+                                icon.textContent  = d.success ? '✅' : '⚡';
+                                label.textContent = 'Recalculate';
                             })
                             .catch(function(err) {
-                                if (msg) {
-                                    msg.textContent = '⚠️ Network error — ' + err.message;
-                                    msg.className   = 'mt-2 p-2 rounded text-xs font-mono bg-red-50 text-red-700 border border-red-200';
-                                    msg.classList.remove('hidden');
-                                }
+                                say(false, 'Network error — ' + err.message);
                                 icon.textContent  = '⚡';
                                 label.textContent = 'Try Again';
                             })
-                            .finally(function() {
-                                btn.disabled = false;
-                            });
-                        });
+                            .finally(function() { btn.disabled = false; });
+                        }
+
+                        btn.addEventListener('click', calc);
+                        renderMissing(MISSING);
                     })();
                     </script>
                     <?php endif; ?>
