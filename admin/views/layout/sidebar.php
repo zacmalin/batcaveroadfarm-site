@@ -64,6 +64,7 @@ $_sections = [
                                                        ['Label check','/admin/kitchen_recipes.php','table','recipes']]],                  // Farm OS Phase 4 slice 1 (Nov 12)
         ['label'=>'Ingredients', 'icon'=>'🌿','tabs'=>[['Ingredients','?view=schema&table=ingredients','table','ingredients'],
                                                        ['Label details','/admin/kitchen_ingredients.php','table','ingredients']]],        // Farm OS Phase 4 slice 1 (Nov 12)
+        ['label'=>'Products',    'icon'=>'🫙','tabs'=>[['Products','/admin/kitchen_products.php','table','recipes']]],                   // Farm OS Phase 4 slice 2 (Nov 12)
         ['label'=>'Reference',   'short'=>'Ref','icon'=>'📚','tabs'=>[
             ['Cuisines',          '?view=schema&table=cuisines',          'table', 'cuisines'],
             ['Categories',        '?view=schema&table=categories',        'table', 'categories'],
