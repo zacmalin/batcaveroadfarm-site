@@ -78,7 +78,7 @@ $csrf   = $_SESSION['csrf_token'] ?? ($_SESSION['csrf_token'] = bin2hex(random_b
             <div class="pass-label"><?= htmlspecialchars($pt['label']) ?></div>
             <div class="pass-tagline"><?= htmlspecialchars($pt['tagline'] ?? '') ?></div>
             <div class="pass-price">$<?= number_format((float)$pt['price'], 0) ?></div>
-            <div class="pass-price-note">per year · up to <?= (int)$pt['max_guests'] ?> guest<?= $pt['max_guests'] > 1 ? 's' : '' ?> per visit</div>
+            <div class="pass-price-note">per year · up to <?= (int)$pt['max_guests'] ?> guest<?= $pt['max_guests'] > 1 ? 's' : '' ?> per visit · tax included</div>
 
             <ul class="pass-perks">
                 <?php foreach ($perks as $perk): ?>

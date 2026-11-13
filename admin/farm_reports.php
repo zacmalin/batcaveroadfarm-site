@@ -15,6 +15,7 @@ require_permission([['view', 'sales_analytics']]);
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/queue.php';
 require_once __DIR__ . '/../includes/reports.php';
+require_once __DIR__ . '/../includes/included_tax.php';   // tax inside online ticket and pass prices (Q-09)
 require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -54,6 +55,8 @@ if ($csv !== '') {
         [$a, $b] = [$month . '-01', date('Y-m-t', strtotime($month . '-01'))];
         $rows = array_map(fn($x) => [$month, $x['label'], number_format($x['rate_bp'] / 100, 2, '.', ''), $mc($x['gross']), $mc($x['discounts']), $mc($x['refunds']), $mc($x['net']), $mc($x['tax'])],
                           bcrf_rpt_breakdown($pdo, $a, $b, 'tax'));
+        foreach (bcrf_itax_rows($pdo, ...bcrf_rpt_utc_range($a, $b)) as $x)   // pre-tax part as sales, as for the register
+            $rows[] = [$month, $x['label'], $x['rate_bp'] === null ? '' : number_format($x['rate_bp'] / 100, 2, '.', ''), $mc($x['net']), $mc(0), $mc(0), $mc($x['net']), $mc($x['tax'])];
         bcrf_rpt_send_csv($pdo, "sales-tax-$month.csv", ['month', 'tax_category', 'current_rate_pct', 'gross_sales', 'discounts', 'refunds', 'net_sales', 'tax'], $rows, "Monthly tax $month");
     }
     if ($r === 'month') {
@@ -199,7 +202,7 @@ if ($r === 'daily') {
     if (bcrf_rpt_online_ready($pdo)) {
         echo '<h2>Online tickets (Stripe)</h2><table class="rt">',
              $row('Orders paid', (int)$d['online_ticket_orders']), $row('Guests', (int)$d['online_ticket_guests']),
-             $row('Sales', $m($d['online_ticket_sales']), 'b'), '</table><p class="muted">Paid to Stripe, not in the drawer. No sales tax is charged on online tickets.</p>';
+             $row('Sales', $m($d['online_ticket_sales']), 'b'), '</table><p class="muted">Paid to Stripe, not in the drawer. Prices include NC sales tax (from Nov 13, 2026); it is on the Monthly &amp; tax report.</p>';
     }
     if ($admission) {
         echo '<h2>Visitors</h2><table class="rt">', $row('Visits', (int)$d['visits']), $row('Guests', (int)$d['visitors']),
@@ -221,13 +224,16 @@ if ($r === 'month') {
          $dateForm('month', $month, 'month'), '<button type="button" class="btn sm" id="btnPrint">Print</button></div>';
 
     $taxes = bcrf_rpt_breakdown($pdo, $a, $b, 'tax');
+    $itax = bcrf_itax_rows($pdo, ...bcrf_rpt_utc_range($a, $b));   // online tickets and passes, tax inside the price
     echo '<h2>Tax by tax category (for filing)</h2>';
-    if (!$taxes) echo '<p class="muted">No sales this month.</p>';
+    if (!$taxes && !$itax) echo '<p class="muted">No sales this month.</p>';
     else {
+        $pct = fn($bp) => $bp !== null ? $h(rtrim(rtrim(number_format($bp / 100, 2), '0'), '.')) . '%' : '';
         echo '<table class="rt"><tr class="th"><td>Tax category</td><td class="r">Net sales</td><td class="r">Tax</td></tr>';
-        foreach ($taxes as $c) echo '<tr><td>', $h($c['label']), ' <small class="muted">', $c['rate_bp'] !== null ? $h(rtrim(rtrim(number_format($c['rate_bp'] / 100, 2), '0'), '.')) . '% now' : '', '</small></td><td class="r">', $m($c['net']), '</td><td class="r">', $m($c['tax']), '</td></tr>';
-        echo '<tr class="b"><td>Total</td><td class="r">', $m(array_sum(array_column($taxes, 'net'))), '</td><td class="r">', $m(array_sum(array_column($taxes, 'tax'))), '</td></tr></table>';
-        echo '<p class="muted">Register sales only, after discounts and refunds. Online tickets (', $m($tot['online_ticket_sales']), ' this month) have no tax charged. Rates shown are today\'s; each sale kept the rate it was sold at.</p>';
+        foreach ($taxes as $c) echo '<tr><td>', $h($c['label']), ' <small class="muted">', $c['rate_bp'] !== null ? $pct($c['rate_bp']) . ' now' : '', '</small></td><td class="r">', $m($c['net']), '</td><td class="r">', $m($c['tax']), '</td></tr>';
+        foreach ($itax as $c) echo '<tr><td>', $h($c['label']), ' <small class="muted">', $pct($c['rate_bp']), ' · ', $c['orders'], ' paid</small></td><td class="r">', $m($c['net']), '</td><td class="r">', $m($c['tax']), '</td></tr>';
+        echo '<tr class="b"><td>Total</td><td class="r">', $m(array_sum(array_column($taxes, 'net')) + array_sum(array_column($itax, 'net'))), '</td><td class="r">', $m(array_sum(array_column($taxes, 'tax')) + array_sum(array_column($itax, 'tax'))), '</td></tr></table>';
+        echo '<p class="muted">Register sales after discounts and refunds, plus online tickets and annual passes paid this month (their prices include the tax; net is the price less the tax). Tickets and passes paid before Nov 13, 2026 had no tax recorded and are not listed. Rates shown are today\'s for the register; each sale kept the rate it was sold at.</p>';
     }
     echo '<p class="noprint rbar">', $csvLink(['r' => 'month', 'month' => $month, 'csv' => 'tax'], 'Tax CSV'), $csvLink(['r' => 'month', 'month' => $month, 'csv' => 1], 'Sales by day CSV'), '</p>';
 

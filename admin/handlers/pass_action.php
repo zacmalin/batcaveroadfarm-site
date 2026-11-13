@@ -92,6 +92,8 @@ if ($action === 'issue') {
             (int)($pt['duration_months'] ?? 12), $prov, $paid > 0 ? $paid : (float)$pt['price'],
         ]);
         $newPassId = (int)$pdo->lastInsertId();
+        require_once __DIR__ . '/../../includes/included_tax.php';
+        bcrf_itax_record_pass($pdo, $newPassId);   // tax inside the price, comp = none (Q-09); never throws
         erp_audit($pdo, 'create', 'passes', $newPassId, $name . ' - ' . ($pt['label'] ?? 'pass') . ' issued (' . $prov . ')');
     } catch (Throwable $e) {
         error_log('[BCRF pass_action issue] ' . $e->getMessage());

@@ -65,6 +65,8 @@ function bcrf_pass_confirm_payment(PDO $pdo, int $passId, string $sessionId): st
             $q = $pdo->prepare("UPDATE passes SET payment_status='paid', payment_provider='stripe', payment_reference=? WHERE id=? AND status='pending_payment'");
             $q->execute([$sessionId, $passId]);
             $pdo->commit();
+            require_once __DIR__ . '/included_tax.php';
+            bcrf_itax_record_pass($pdo, $passId);   // tax inside the price (Q-09); never throws
             error_log('[BCRF founding pass] LATE PAID reservation requires manual reconciliation, pass #'.$passId);
             return 'late';
         }
@@ -74,6 +76,8 @@ function bcrf_pass_confirm_payment(PDO $pdo, int $passId, string $sessionId): st
             payment_provider='stripe', payment_reference=? WHERE id=? AND status='pending_payment'");
         $q->execute([max(1,(int)$pass['duration_months']), $sessionId, $passId]);
         $pdo->commit();
+        require_once __DIR__ . '/included_tax.php';
+        bcrf_itax_record_pass($pdo, $passId);   // tax inside the price (Q-09); never throws
         return 'active';
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();

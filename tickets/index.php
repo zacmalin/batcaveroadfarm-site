@@ -121,7 +121,7 @@ $errMsg = $errMap[$errKey] ?? '';
 
             <div class="tickets-subtotal">
                 <span>Total: <strong id="tickets-total">$0.00</strong></span>
-                <span class="tickets-people-count">· <span id="tickets-people">0</span> guests</span>
+                <span class="tickets-people-count">· <span id="tickets-people">0</span> guests · prices include NC sales tax</span>
             </div>
 
             <div id="group-warning" class="tickets-group-warning" style="display:none">

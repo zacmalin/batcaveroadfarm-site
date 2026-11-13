@@ -9,6 +9,7 @@
  *                                               called by the Stripe webhook and the ticket page; idempotent; the first
  *                                               call issues the ticket, emails it, audits it and sends the GA purchase
  *   bcrf_online_ticket_by_code($pdo, $code)
+ * Prices include NC sales tax (Q-09, Nov 13, 2026): a paid order records the tax part (includes/included_tax.php).
  *   bcrf_online_ticket_url($code)               the buyer's ticket page; also what the QR code holds, so the gate's
  *                                               scanner (includes/admission.php, ?c=CODE) finds it
  * One QR ticket per order with a quantity (07 › Admission). Good any open day, expires ticket_expiry_months after
@@ -120,6 +121,7 @@ function bcrf_online_ticket_checkout(PDO $pdo, array $t): string {
         $p["line_items[$i][price_data][unit_amount]"] = (int)$o['unit_cents'];
         $p["line_items[$i][price_data][product_data][name]"] = (string)$o['name'];
         $p["line_items[$i][price_data][product_data][description]"] = $t['visit_date'] ? 'Planned for ' . date('l, F j', strtotime($t['visit_date'])) . ' (good any day we\'re open)' : 'Good any day we\'re open';
+        $p["line_items[$i][price_data][product_data][description]"] .= ' · Price includes NC sales tax';
         $p["line_items[$i][quantity]"] = (int)$o['qty'];
         $sum += (int)$o['unit_cents'] * (int)$o['qty'];
         $i++;
@@ -138,6 +140,8 @@ function bcrf_online_ticket_mark_paid(PDO $pdo, int $id, string $sessionId, ?int
                          WHERE id = ? AND payment_status = 'pending'");
     $up->execute([$sessionId, $id]);
     if ($up->rowCount() === 0) return false;
+    require_once __DIR__ . '/included_tax.php';
+    bcrf_itax_record_ticket($pdo, $id);   // sales tax inside the price (Q-09, migration 0060); never throws
     $st = $pdo->prepare("SELECT * FROM tickets WHERE id = ?");
     $st->execute([$id]);
     $t = $st->fetch(PDO::FETCH_ASSOC);

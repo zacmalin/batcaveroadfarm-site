@@ -67,7 +67,7 @@ try {
         'line_items[0][price_data][unit_amount]'        => (int)round((float)$pt['price'] * 100),
         'line_items[0][price_data][product_data][name]' => $pt['label'] . ' — Bat Cave Road Farm',
         'line_items[0][price_data][product_data][description]' =>
-            'Annual pass · up to ' . (int)$pt['max_guests'] . ' guest' . ($pt['max_guests'] > 1 ? 's' : '') . ' per visit · ' . (int)($pt['duration_months'] ?? 12) . ' months',
+            'Annual pass · up to ' . (int)$pt['max_guests'] . ' guest' . ($pt['max_guests'] > 1 ? 's' : '') . ' per visit · ' . (int)($pt['duration_months'] ?? 12) . ' months · Price includes NC sales tax',
         'line_items[0][quantity]'                       => 1,
         'customer_email'                                => $email,
         'success_url'                                   => $base . '/passes/success.php?token=' . $tok,
