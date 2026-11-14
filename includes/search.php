@@ -1,10 +1,16 @@
 <?php
 // includes/search.php — Farm OS global search (02 › Search; Nov 13, 2026).
-// One search over the records a staff member can open, grouped by type. A type the user can't open is never searched,
-// so its records never come back (02: "Never returns records the user cannot open"). Ticket codes, receipt and refund
-// numbers, gift card codes, pass links and lot codes jump straight to the record.
-//   bcrf_search($pdo, 'hazel', $can)   →  ['jump' => null | [label, url], 'groups' => [[key, label, icon, rows, more], ...]]
-//   $can(['view', 'customers']) / $can(['table', 'inventory', 'edit']) / $can(['admin'])  →  bool
+// One search over the pages and records a staff member can open, grouped by type. A type the user can't open is never
+// searched, so its records never come back (02: "Never returns records the user cannot open"). Ticket codes, receipt and
+// refund numbers, gift card codes, pass links and lot codes jump straight to the record.
+// Nov 14, 2026 (universal search): pages and settings come first ("weather" → Weather day, "database" → Database), taken
+// from the menu map in includes/admin_nav.php, so new menu pages are searchable with no extra step. Added tasks, applicants,
+// subscribers, comments, animal health and care notes, ingredients, social posts and newsletters, and staff notes on
+// customers, bookings and parties. Every searchable type is listed on purpose below; tables are never searched blindly.
+//   bcrf_search($pdo, 'hazel', $can, $me)   →  ['jump' => null | [label, url], 'groups' => [[key, label, icon, rows, more], ...]]
+//   $can(['view', 'customers']) / $can(['table', 'inventory', 'edit']) / $can(['admin']) / $can(['always'])
+//       / $can(['pinrole']) / $can(['and', [check, check]])  →  bool
+//   $me = ['id' => user id, 'role' => role]  (who is searching; only used to limit Tasks for non-managers)
 // Page: admin/search.php. Nothing searched is stored on the server (02: no server-side search history).
 
 if (!function_exists('bcrf_search')) {
@@ -33,12 +39,30 @@ function bcrf_search_kinds(): array {
         'vendors'    => ['Vendors',          '🚚', [['table', 'inventory', 'edit']]],
         'pos'        => ['Purchase orders',  '📦', [['table', 'inventory', 'edit']]],
         'staff'      => ['Staff',            '🧑‍🌾', [['admin']]],
+        // Nov 14, 2026
+        'tasks'      => ['Tasks',            '✅', [['view', 'tasks']]],
+        'applicants' => ['Applicants',       '📥', [['view', 'jobs']]],
+        'health'     => ['Animal health',    '🩺', [['and', [['table', 'animals'], ['view', 'animal_health']]]]],
+        'care'       => ['Care notes',       '🥕', [['table', 'animals']]],
+        'ingredients'=> ['Ingredients',      '🌿', [['table', 'ingredients']]],
+        'social'     => ['Social posts',     '📣', [['view', 'social']]],
+        'newsletter' => ['Newsletters',      '📧', [['view', 'newsletter']]],
+        'subscribers'=> ['Subscribers',      '💌', [['table', 'mailing_list']]],
+        'comments'   => ['Comments',         '💬', [['view', 'comment_moderation']]],
     ];
 }
 
-/** True when any one of the checks passes. */
+/** True when any one of the checks passes. ['and', [c1, c2]] passes only when every check inside it does. */
 function bcrf_search_allowed(array $anyOf, callable $can): bool {
-    foreach ($anyOf as $c) if ($can($c)) return true;
+    foreach ($anyOf as $c) {
+        if (($c[0] ?? '') === 'and') {
+            $all = true;
+            foreach ((array)($c[1] ?? []) as $sub) if (!bcrf_search_allowed([$sub], $can)) { $all = false; break; }
+            if ($all && !empty($c[1])) return true;
+            continue;
+        }
+        if ($can($c)) return true;
+    }
     return false;
 }
 
@@ -48,6 +72,9 @@ function bcrf_search_can_for(string $role): callable {
         if ($role === 'administrator') return true;
         if ($role === '' || $role === 'user') return false;
         $type = $c[0] ?? '';
+        if ($type === 'always') return true;
+        if ($type === 'pinrole') return in_array($role, function_exists('bcrf_pin_roles') ? bcrf_pin_roles() : ['administrator', 'moderator', 'Shopkeep'], true);
+        if ($type === 'and') return bcrf_search_allowed([$c], fn(array $x) => bcrf_search_can_for($role)($x));
         if ($type === 'view')  return function_exists('hasViewAccess') && hasViewAccess($role, (string)$c[1]);
         if ($type === 'table') return function_exists('hasTableAccess') && hasTableAccess($role, (string)$c[1], (string)($c[2] ?? 'view'));
         return false;   // 'admin'
@@ -73,6 +100,65 @@ function bcrf_search_rows(PDO $pdo, string $sql, array $args): array {
 }
 
 function bcrf_search_money(int $c): string { return '$' . number_format($c / 100, 2); }
+
+/** About 70 characters of $text around the first match of $q, on one line ('' when it isn't there). */
+function bcrf_search_snip(?string $text, string $q, int $width = 70): string {
+    $t = trim(preg_replace('/\s+/u', ' ', strip_tags((string)$text)));
+    if ($t === '' || $q === '') return '';
+    $at = mb_stripos($t, $q);
+    if ($at === false) return '';
+    $from = max(0, $at - (int)(($width - mb_strlen($q)) / 2));
+    $out = mb_substr($t, $from, $width);
+    return ($from > 0 ? '…' : '') . $out . ($from + $width < mb_strlen($t) ? '…' : '');
+}
+
+/** True when $q is in any of the strings (case-insensitive). */
+function bcrf_search_in(string $q, ...$texts): bool {
+    foreach ($texts as $x) if ($x !== null && $x !== '' && mb_stripos((string)$x, $q) !== false) return true;
+    return false;
+}
+
+/**
+ * Pages and settings the user can open whose name, place in the menu, or extra words match the search.
+ * Rows: ['title', 'sub', 'url'], best match first. Every word typed must match the start of a word.
+ */
+function bcrf_search_pages(string $q, callable $can): array {
+    if (!function_exists('bcrf_admin_nav_sections')) require_once __DIR__ . '/admin_nav.php';
+    $ql = mb_strtolower(trim(preg_replace('/\s+/u', ' ', $q)));
+    $words = $ql === '' ? [] : explode(' ', $ql);
+    if (!$words) return [];
+    $kw = bcrf_admin_nav_keywords();
+    $cands = [];
+    foreach (bcrf_admin_nav_sections() as $sec) {
+        foreach ($sec['items'] as $it) {
+            foreach ($it['tabs'] as [$tl, $th, $tt, $tv]) {
+                $check = $tt === 'always' ? ['always'] : ($tt === 'pinrole' ? ['pinrole'] : [$tt, $tv]);
+                $cands[] = [$tl, $sec['label'] . ($tl !== $it['label'] ? ' › ' . $it['label'] : ''), $th, [$check], $it['label'] . ' ' . $sec['label']];
+            }
+        }
+    }
+    foreach (bcrf_admin_nav_extra_pages() as [$l, $h, $checks, $where]) $cands[] = [$l, $where, $h, $checks, ''];
+
+    $starts = fn(string $hay, string $w): bool => (bool)preg_match('/(?:^|[^\p{L}\p{N}])' . preg_quote($w, '/') . '/u', $hay);
+    $hits = []; $seen = [];
+    foreach ($cands as $i => [$title, $sub, $href, $checks, $ctx]) {
+        $url = str_starts_with($href, '/') ? $href : '/admin/admin.php' . $href;
+        if (isset($seen[$url])) continue;
+        $t = mb_strtolower($title);
+        $all = $t . ' ' . mb_strtolower($ctx) . ' ' . mb_strtolower($kw[$href] ?? '');
+        foreach ($words as $w) if (!$starts($all, $w)) continue 2;
+        if (!bcrf_search_allowed($checks, $can)) continue;
+        $inTitle = true;
+        foreach ($words as $w) if (!$starts($t, $w)) { $inTitle = false; break; }
+        $inCtx = true;
+        foreach ($words as $w) if (!$starts($t . ' ' . mb_strtolower($ctx), $w)) { $inCtx = false; break; }
+        $score = $t === $ql ? 100 : (str_starts_with($t, $ql) ? 80 : ($inTitle ? 60 : ($inCtx ? 40 : 20)));
+        $seen[$url] = true;
+        $hits[] = [$score, $i, [$title, $sub, $url]];
+    }
+    usort($hits, fn($a, $b) => [$b[0], $a[1]] <=> [$a[0], $b[1]]);
+    return array_map(fn($h) => $h[2], $hits);
+}
 
 /**
  * A code that names exactly one record: ['label' => ..., 'url' => ...], or null.
@@ -130,11 +216,21 @@ function bcrf_search_jump(PDO $pdo, string $q, callable $can): ?array {
 }
 
 /** Search every kind the user can open. */
-function bcrf_search(PDO $pdo, string $q, callable $can): array {
+function bcrf_search(PDO $pdo, string $q, callable $can, array $me = []): array {
     $q = trim(mb_substr($q, 0, 100));
     $out = ['q' => $q, 'jump' => null, 'groups' => []];
     if (mb_strlen($q) < 2) return $out;
     $out['jump'] = bcrf_search_jump($pdo, $q, $can);
+    $meId   = (int)($me['id'] ?? ($_SESSION['user_id'] ?? 0));
+    $meRole = (string)($me['role'] ?? ($_SESSION['user_role'] ?? ''));
+
+    // Pages and settings first
+    $pages = bcrf_search_pages($q, $can);
+    if ($pages) $out['groups'][] = [
+        'key' => 'pages', 'label' => 'Pages & settings', 'icon' => '🧭',
+        'rows' => array_map(fn($r) => ['title' => (string)$r[0], 'sub' => (string)$r[1], 'url' => (string)$r[2]], array_slice($pages, 0, BCRF_SEARCH_PER_GROUP + 1)),
+        'more' => null,
+    ];
 
     $like = bcrf_search_like($q);
     $dig  = bcrf_search_digits($q);
@@ -151,10 +247,13 @@ function bcrf_search(PDO $pdo, string $q, callable $can): array {
         switch ($key) {
             case 'customers':
                 $ph = $dig !== '' ? ' OR ' . bcrf_search_phone_sql('phone_number') . ' LIKE ?' : '';
-                foreach (bcrf_search_rows($pdo, "SELECT id, first_name, last_name, email FROM customers
-                        WHERE merged_into_id IS NULL AND (CONCAT_WS(' ', first_name, last_name) LIKE ? OR email LIKE ?$ph)
-                        ORDER BY last_name, first_name LIMIT $n", array_merge([$like, $like], $dig !== '' ? [$dl] : [])) as $r)
-                    $rows[] = [$nm($r) ?: $r['email'], $r['email'], '/admin/customers.php?id=' . (int)$r['id']];
+                foreach (bcrf_search_rows($pdo, "SELECT id, first_name, last_name, email, staff_notes FROM customers
+                        WHERE merged_into_id IS NULL AND (CONCAT_WS(' ', first_name, last_name) LIKE ? OR email LIKE ? OR staff_notes LIKE ?$ph)
+                        ORDER BY (CONCAT_WS(' ', first_name, last_name) LIKE ? OR email LIKE ?) DESC, last_name, first_name LIMIT $n",
+                        array_merge([$like, $like, $like], $dig !== '' ? [$dl] : [], [$like, $like])) as $r) {
+                    $byNote = !bcrf_search_in($q, $nm($r), $r['email']) && $dig === '';
+                    $rows[] = [$nm($r) ?: $r['email'], $byNote ? 'Note: ' . bcrf_search_snip($r['staff_notes'], $q) : $r['email'], '/admin/customers.php?id=' . (int)$r['id']];
+                }
                 $more = '/admin/customers.php?q=' . $enc;
                 break;
             case 'orgs':
@@ -184,19 +283,23 @@ function bcrf_search(PDO $pdo, string $q, callable $can): array {
                 break;
             case 'bookings':
                 $ph = $dig !== '' ? ' OR ' . bcrf_search_phone_sql('phone') . ' LIKE ?' : '';
-                foreach (bcrf_search_rows($pdo, "SELECT customer_name, booking_date, party_size, status FROM bookings
-                        WHERE customer_name LIKE ? OR email LIKE ?$ph ORDER BY booking_date DESC LIMIT $n",
-                        array_merge([$like, $like], $dig !== '' ? [$dl] : [])) as $r)
-                    $rows[] = [$r['customer_name'], $date($r['booking_date']) . ' · ' . (int)$r['party_size'] . ' people · ' . $r['status'],
+                foreach (bcrf_search_rows($pdo, "SELECT customer_name, email, booking_date, party_size, status, notes, admin_note FROM bookings
+                        WHERE customer_name LIKE ? OR email LIKE ? OR notes LIKE ? OR admin_note LIKE ?$ph ORDER BY booking_date DESC LIMIT $n",
+                        array_merge([$like, $like, $like, $like], $dig !== '' ? [$dl] : [])) as $r) {
+                    $note = (!bcrf_search_in($q, $r['customer_name'], $r['email']) && $dig === '') ? (bcrf_search_snip($r['admin_note'], $q) ?: bcrf_search_snip($r['notes'], $q)) : '';
+                    $rows[] = [$r['customer_name'], $date($r['booking_date']) . ' · ' . (int)$r['party_size'] . ' people · ' . $r['status'] . ($note !== '' ? ' · Note: ' . $note : ''),
                                '/admin/admin.php?view=bookings&day=' . rawurlencode((string)$r['booking_date'])];
+                }
                 break;
             case 'parties':
                 $ph = $dig !== '' ? ' OR ' . bcrf_search_phone_sql('phone') . ' LIKE ?' : '';
-                foreach (bcrf_search_rows($pdo, "SELECT id, customer_name, event_type, preferred_date, status FROM event_inquiries
-                        WHERE customer_name LIKE ? OR email LIKE ?$ph ORDER BY preferred_date DESC LIMIT $n",
-                        array_merge([$like, $like], $dig !== '' ? [$dl] : [])) as $r)
-                    $rows[] = [$r['customer_name'], $join(ucfirst(str_replace('_', ' ', (string)$r['event_type'])), $date($r['preferred_date']), $r['status']),
+                foreach (bcrf_search_rows($pdo, "SELECT id, customer_name, email, event_type, preferred_date, status, special_requests, admin_notes FROM event_inquiries
+                        WHERE customer_name LIKE ? OR email LIKE ? OR special_requests LIKE ? OR admin_notes LIKE ?$ph ORDER BY preferred_date DESC LIMIT $n",
+                        array_merge([$like, $like, $like, $like], $dig !== '' ? [$dl] : [])) as $r) {
+                    $note = (!bcrf_search_in($q, $r['customer_name'], $r['email']) && $dig === '') ? (bcrf_search_snip($r['admin_notes'], $q) ?: bcrf_search_snip($r['special_requests'], $q)) : '';
+                    $rows[] = [$r['customer_name'], $join(ucfirst(str_replace('_', ' ', (string)$r['event_type'])), $date($r['preferred_date']), $r['status'], $note !== '' ? 'Note: ' . $note : ''),
                                '/admin/party.php?id=' . (int)$r['id']];
+                }
                 break;
             case 'sales':
                 // By customer name or email (receipt numbers jump)
@@ -285,6 +388,79 @@ function bcrf_search(PDO $pdo, string $q, callable $can): array {
                         WHERE role IN ('administrator','moderator','Shopkeep','Media','Staff') AND (CONCAT_WS(' ', first_name, last_name) LIKE ? OR email LIKE ?)
                         ORDER BY first_name, last_name LIMIT $n", [$like, $like]) as $r)
                     $rows[] = [$nm($r) ?: $r['email'], bcrf_role_label($r['role']) . ' · ' . $r['email'], '/admin/admin.php?view=jobs_staff&user=' . (int)$r['id']];
+                break;
+            case 'tasks':
+                // Managers see every task; everyone else only what Tasks shows them (includes/tasks.php bcrf_tasks_can_see)
+                $mine = ''; $mineArgs = [];
+                if (!$can(['view', 'tasks_manage'])) {
+                    $mine = ' AND (t.assignee_user_id = ? OR t.created_by = ? OR (t.assignee_user_id IS NULL AND (t.assignee_role IS NULL OR t.assignee_role = ?)))';
+                    $mineArgs = [$meId, $meId, $meRole];
+                }
+                foreach (bcrf_search_rows($pdo, "SELECT t.id, t.title, t.description, t.completion_note, t.status, t.due_date FROM tasks t
+                        WHERE (t.title LIKE ? OR t.description LIKE ? OR t.completion_note LIKE ?)$mine
+                        ORDER BY (t.status IN ('open','in_progress')) DESC, t.due_date IS NULL, t.due_date DESC, t.id DESC LIMIT $n",
+                        array_merge([$like, $like, $like], $mineArgs)) as $r) {
+                    $note = bcrf_search_in($q, $r['title']) ? '' : (bcrf_search_snip($r['description'], $q) ?: bcrf_search_snip($r['completion_note'], $q));
+                    $rows[] = [$r['title'], $join(ucfirst(str_replace('_', ' ', (string)$r['status'])), $r['due_date'] ? 'due ' . $date($r['due_date']) : '', $note),
+                               '/admin/tasks.php?id=' . (int)$r['id']];
+                }
+                break;
+            case 'applicants':
+                $ph = $dig !== '' ? ' OR ' . bcrf_search_phone_sql('a.phone') . ' LIKE ?' : '';
+                foreach (bcrf_search_rows($pdo, "SELECT a.id, a.first_name, a.last_name, a.email, a.status, a.submitted_at, a.cover_note, j.title AS job FROM applications a
+                        LEFT JOIN jobs j ON j.id = a.job_id
+                        WHERE a.anonymized_at IS NULL AND a.is_spam = 0 AND (CONCAT_WS(' ', a.first_name, a.last_name) LIKE ? OR a.email LIKE ? OR a.cover_note LIKE ?
+                              OR a.id IN (SELECT application_id FROM application_notes WHERE body LIKE ?)$ph)
+                        ORDER BY a.id DESC LIMIT $n", array_merge([$like, $like, $like, $like], $dig !== '' ? [$dl] : [])) as $r)
+                    $rows[] = [$nm($r) ?: $r['email'], $join($r['job'] ?? '', ucfirst((string)$r['status']), $date($r['submitted_at'])),
+                               '/admin/admin.php?view=jobs&app=' . (int)$r['id']];
+                break;
+            case 'health':
+                foreach (bcrf_search_rows($pdo, "SELECT m.animal_id, m.title, m.kind, m.record_date, m.vet_name, m.diagnosis, m.treatment, a.name FROM animal_medical_records m
+                        JOIN animals a ON a.id = m.animal_id
+                        WHERE m.title LIKE ? OR m.vet_name LIKE ? OR m.diagnosis LIKE ? OR m.treatment LIKE ?
+                        ORDER BY m.record_date DESC, m.id DESC LIMIT $n", [$like, $like, $like, $like]) as $r) {
+                    $note = bcrf_search_in($q, $r['title']) ? '' : (bcrf_search_snip($r['diagnosis'], $q) ?: bcrf_search_snip($r['treatment'], $q) ?: ($r['vet_name'] ? 'Vet ' . $r['vet_name'] : ''));
+                    $rows[] = [$r['name'] . ' · ' . $r['title'], $join(ucfirst((string)$r['kind']), $date($r['record_date']), $note),
+                               '/admin/animals.php?id=' . (int)$r['animal_id'] . '&tab=health'];
+                }
+                break;
+            case 'care':
+                foreach (bcrf_search_rows($pdo, "SELECT l.id, l.note, l.logged_at, ct.name AS type,
+                            (SELECT GROUP_CONCAT(a.name ORDER BY a.name SEPARATOR ', ') FROM animal_care_log_animals la JOIN animals a ON a.id = la.animal_id WHERE la.log_id = l.id) AS animals,
+                            (SELECT MIN(la.animal_id) FROM animal_care_log_animals la WHERE la.log_id = l.id) AS animal_id
+                        FROM animal_care_logs l LEFT JOIN animal_care_types ct ON ct.id = l.care_type_id
+                        WHERE l.voided_at IS NULL AND l.note LIKE ? ORDER BY l.logged_at DESC LIMIT $n", [$like]) as $r)
+                    $rows[] = [$join($r['type'] ?? 'Care', mb_strimwidth((string)($r['animals'] ?? ''), 0, 40, '…')), $join($date($r['logged_at']), bcrf_search_snip($r['note'], $q)),
+                               $r['animal_id'] ? '/admin/animals.php?id=' . (int)$r['animal_id'] . '&tab=care' : '/admin/animal_care.php?tab=log'];
+                break;
+            case 'ingredients':
+                foreach (bcrf_search_rows($pdo, "SELECT id, singular_name, allergens FROM ingredients WHERE singular_name LIKE ? OR plural_name LIKE ? ORDER BY singular_name LIMIT $n", [$like, $like]) as $r)
+                    $rows[] = [$r['singular_name'], $r['allergens'] ? 'Allergens: ' . $r['allergens'] : '', '/admin/kitchen_ingredients.php?id=' . (int)$r['id']];
+                $more = '/admin/kitchen_ingredients.php?q=' . $enc;
+                break;
+            case 'social':
+                foreach (bcrf_search_rows($pdo, "SELECT id, fb_caption, ig_caption, gbp_caption, status, created_at FROM social_queue
+                        WHERE fb_caption LIKE ? OR ig_caption LIKE ? OR gbp_caption LIKE ? ORDER BY id DESC LIMIT $n", [$like, $like, $like]) as $r) {
+                    $cap = bcrf_search_snip($r['fb_caption'], $q) ?: bcrf_search_snip($r['ig_caption'], $q) ?: bcrf_search_snip($r['gbp_caption'], $q);
+                    $rows[] = [$cap, $join(ucfirst((string)$r['status']), $date($r['created_at'])), '/admin/admin.php?view=social'];
+                }
+                break;
+            case 'newsletter':
+                foreach (bcrf_search_rows($pdo, "SELECT id, subject, body, created_at, emails_sent FROM newsletter_campaigns
+                        WHERE subject LIKE ? OR body LIKE ? ORDER BY id DESC LIMIT $n", [$like, $like]) as $r)
+                    $rows[] = [$r['subject'], $join($date($r['created_at']), (int)$r['emails_sent'] . ' sent', bcrf_search_in($q, $r['subject']) ? '' : bcrf_search_snip($r['body'], $q)),
+                               '/admin/admin.php?view=newsletter'];
+                break;
+            case 'subscribers':
+                foreach (bcrf_search_rows($pdo, "SELECT id, email, is_subscribed FROM mailing_list WHERE email LIKE ? ORDER BY email LIMIT $n", [$like]) as $r)
+                    $rows[] = [$r['email'], (int)$r['is_subscribed'] ? 'Subscribed' : 'Unsubscribed', '/admin/admin.php?view=schema&table=mailing_list&edit_id=' . (int)$r['id']];
+                break;
+            case 'comments':
+                foreach (bcrf_search_rows($pdo, "SELECT c.id, c.comment_text, c.status, c.created_at, r.title FROM recipe_comments c LEFT JOIN recipes r ON r.id = c.recipe_id
+                        WHERE c.comment_text LIKE ? ORDER BY c.id DESC LIMIT $n", [$like]) as $r)
+                    $rows[] = [bcrf_search_snip($r['comment_text'], $q), $join($r['title'] ?? '', ucfirst((string)$r['status']), $date($r['created_at'])),
+                               '/admin/admin.php?view=comment_moderation'];
                 break;
         }
         if (!$rows) continue;

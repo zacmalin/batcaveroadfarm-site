@@ -1,4 +1,4 @@
-// admin/assets/search.js — live results for admin/search.php (Farm OS global search, Nov 13, 2026).
+// admin/assets/search.js — live results for admin/search.php (Farm OS global search, Nov 13, 2026; pages + more records Nov 14).
 // Results come from search.php?api=1&q=…, already limited to what this person can open.
 // Recent searches live in sessionStorage only (this tab, this visit): nothing is kept on the server (02).
 (function () {
@@ -53,7 +53,7 @@
       out.appendChild(a);
     }
     if (!j.groups.length && !j.jump) {
-      out.appendChild(el('p', 'srch-empty', 'Nothing found for “' + q + '” in the records you can open.'));
+      out.appendChild(el('p', 'srch-empty', 'Nothing found for “' + q + '” in the pages and records you can open.'));
       return;
     }
     j.groups.forEach(function (g) {
