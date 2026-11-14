@@ -151,5 +151,32 @@ $pdo->exec("UPDATE notifications SET created_at = UTC_TIMESTAMP() - INTERVAL 61 
 bcrf_notify_sweep($pdo);
 $ok((int)$one("SELECT COUNT(*) FROM notifications WHERE dedupe_key = 'x:1'") === 0, 'notices older than 60 days are tidied away');
 
+// -- Quote with no reply (Nov 14, 2026): parties 40-43, quotes sent 4 days ago unless said --
+$pdo->exec("INSERT INTO event_inquiries (id, event_type, preferred_date, adult_count, child_count, customer_name, email, phone, status, created_at) VALUES
+  (40, 'birthday', '2027-04-03', 4, 10, 'Quiet Quinn', 'q@x.test', '828-555-0140', 'quoted', NOW() - INTERVAL 9 DAY),
+  (41, 'birthday', '2027-04-04', 4, 10, 'Fresh Fran', 'f@x.test', '', 'quoted', NOW() - INTERVAL 9 DAY),
+  (42, 'birthday', '2027-04-05', 4, 10, 'Yes Yolanda', 'y@x.test', '', 'confirmed', NOW() - INTERVAL 9 DAY),
+  (43, 'birthday', '2027-04-06', 4, 10, 'Paid Pat', 'p@x.test', '', 'quoted', NOW() - INTERVAL 9 DAY)");
+$pq = $pdo->prepare("INSERT INTO event_quotes (id, subject_type, subject_id, token, lines_json, total_cents, sent_at, sent_count, created_at)
+                     VALUES (?, 'event_inquiry', ?, ?, '[]', 14000, UTC_TIMESTAMP() - INTERVAL ? DAY, 1, UTC_TIMESTAMP())");
+foreach ([[140, 40, 4], [141, 41, 1], [142, 42, 4], [143, 43, 4]] as [$qid, $sid, $ago]) $pq->execute([$qid, $sid, 'tq' . $qid, $ago]);
+$pdo->exec("INSERT INTO event_payments (quote_id, subject_type, subject_id, method, amount_cents, created_at) VALUES (143, 'event_inquiry', 43, 'cash', 2000, UTC_TIMESTAMP() - INTERVAL 5 DAY)");
+$tasksBefore = (int)$one("SELECT COUNT(*) FROM tasks");
+bcrf_notify_sweep($pdo);
+$nr = $pdo->query("SELECT dedupe_key, title, body, link FROM notifications WHERE kind = 'quote_no_reply'")->fetchAll();
+$ok(count($nr) === 1 && $nr[0]['dedupe_key'] === 'quote_no_reply:140:1', 'only Quinn\'s 4-day-old unanswered quote is nudged (not 1 day old, confirmed or part paid) — got ' . json_encode(array_column($nr, 'dedupe_key')));
+$ok(str_contains($nr[0]['title'], 'Quiet Quinn') && str_contains((string)$nr[0]['body'], '$140.00') && $nr[0]['link'] === '/admin/quotes.php?for=event_inquiry%3A40', 'nudge says who, how much and opens the quote');
+$t = $pdo->query("SELECT * FROM tasks ORDER BY id DESC LIMIT 1")->fetch();
+$ok((int)$one("SELECT COUNT(*) FROM tasks") === $tasksBefore + 1 && $t['related_type'] === 'event_inquiry' && (string)$t['related_id'] === '40'
+    && $t['assignee_role'] === 'moderator' && $t['status'] === 'open' && $t['due_date'] !== null && str_contains((string)$t['description'], '828-555-0140'), 'a Follow up task for Managers, linked to the party, with their phone');
+bcrf_notify_sweep($pdo);
+$ok((int)$one("SELECT COUNT(*) FROM tasks") === $tasksBefore + 1 && (int)$one("SELECT COUNT(*) FROM notifications WHERE kind = 'quote_no_reply'") === 1, 'next sweep: no second nudge or task');
+$pdo->exec("UPDATE event_quotes SET sent_count = 2, sent_at = UTC_TIMESTAMP() - INTERVAL 4 DAY WHERE id = 140");
+bcrf_notify_sweep($pdo);
+$ok((int)$one("SELECT COUNT(*) FROM notifications WHERE dedupe_key = 'quote_no_reply:140:2'") === 1, 're-sent quote that still gets no reply is nudged again');
+$pdo->exec("UPDATE event_quotes SET sent_count = 3, sent_at = UTC_TIMESTAMP() - INTERVAL 40 DAY WHERE id = 140");
+bcrf_notify_sweep($pdo);
+$ok((int)$one("SELECT COUNT(*) FROM notifications WHERE dedupe_key = 'quote_no_reply:140:3'") === 0, 'quotes over 30 days old are left alone');
+
 echo $fails ? "$fails of $n checks failed\n" : "All $n checks passed\n";
 exit($fails ? 1 : 0);

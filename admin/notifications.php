@@ -38,7 +38,7 @@ if (isset($_GET['done'])) $toast = ['success', (int)$_GET['done'] === 0 ? 'Nothi
 $ready = bcrf_notifications_ready($pdo);
 $rows = $ready ? bcrf_notifications_list($pdo, $uid, $role) : [];
 $unread = count(array_filter($rows, fn($r) => !$r['is_read']));
-$icons = ['party_request' => '🎈', 'booking_request' => '🚌', 'online_payment' => '💳', 'deposit_overdue' => '⏰',
+$icons = ['party_request' => '🎈', 'booking_request' => '🚌', 'online_payment' => '💳', 'deposit_overdue' => '⏰', 'quote_no_reply' => '📞',
           'reminder_sent' => '✉️', 'task_late' => '✅'];
 $when = function (string $utc): string {
     $t = (new DateTimeImmutable($utc, new DateTimeZone('UTC')))->setTimezone(new DateTimeZone(date_default_timezone_get()));

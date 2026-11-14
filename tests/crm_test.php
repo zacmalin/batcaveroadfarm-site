@@ -44,6 +44,13 @@ $pdo->exec("UPDATE view_permissions SET can_access = 0 WHERE role = 'moderator' 
 (require $root . '/admin/migrations/0036_customer_links.php')($pdo);
 $ok((int)$one("SELECT can_access FROM view_permissions WHERE role = 'moderator' AND view_name = 'customers'") === 0, 'repeat run keeps a permission choice');
 
+// -- Every customer link is moved by a merge, or skipped on purpose (Nov 14, 2026: incident reports were missed) --
+$covered = array_merge(array_map(fn($r) => $r[0] . '.' . $r[1], BCRF_CRM_REFS), BCRF_CRM_REFS_SKIP);
+$links = array_column($pdo->query("SELECT CONCAT(table_name, '.', column_name) AS k FROM information_schema.columns
+                                   WHERE table_schema = DATABASE() AND column_name LIKE '%customer\\_id'")->fetchAll(), 'k');
+$missed = array_values(array_diff($links, $covered));
+$ok(!$missed, 'merge covers every customer link — add these to BCRF_CRM_REFS (or BCRF_CRM_REFS_SKIP): ' . implode(', ', $missed));
+
 // -- Helpers --
 $ok(bcrf_crm_phone_key('(828) 555-0101') === '8285550101' && bcrf_crm_phone_key('+1 828 555 0101') === '8285550101' && bcrf_crm_phone_key('555-01') === '', 'phone key');
 $ok(bcrf_crm_split_name('  Emily   Jenkins Smith ') === ['Emily', 'Jenkins Smith'] && bcrf_crm_split_name('') === ['Guest', ''], 'name split');
@@ -153,7 +160,10 @@ $tk = (int)$pdo->lastInsertId();
 $pdo->exec("UPDATE bookings SET customer_id = 200 WHERE id = 11");
 $h2 = bcrf_crm_household_create($pdo, 200, 'Teacher family', 1);
 bcrf_crm_org_contact_add($pdo, $org, 'jane.t@home.test', '', 'billing');   // already a contact through the other record
+$pdo->exec("INSERT INTO incident_people (incident_id, name, email, customer_id, created_at) VALUES (1, 'Jane', 'jane.t@home.test', 200, UTC_TIMESTAMP())");
+$ip = (int)$pdo->lastInsertId();
 $mid = bcrf_crm_merge($pdo, $teacher, 200, 1);
+$ok((int)$one("SELECT customer_id FROM incident_people WHERE id = ?", [$ip]) === $teacher, 'incident report moved to the kept record');
 $ok((int)$one("SELECT customer_id FROM tickets WHERE id = ?", [$tk]) === $teacher && (int)$one("SELECT customer_id FROM bookings WHERE id = 11") === $teacher, 'tickets and bookings moved to the kept record');
 $gone = bcrf_crm_get($pdo, 200);
 $ok((int)$gone['merged_into_id'] === $teacher && $gone['account_status'] === 'disabled' && $gone['household_id'] === null, 'removed record switched off and points at the kept one');
@@ -169,6 +179,7 @@ $ok((int)$one("SELECT COUNT(*) FROM customer_merges") === 1, 'merge recorded');
 // -- Undo --
 bcrf_crm_merge_undo($pdo, $mid, 1);
 $ok((int)$one("SELECT customer_id FROM tickets WHERE id = ?", [$tk]) === 200 && (int)$one("SELECT customer_id FROM bookings WHERE id = 11") === 200, 'undo moves the rows back');
+$ok((int)$one("SELECT customer_id FROM incident_people WHERE id = ?", [$ip]) === 200, 'undo moves the incident report back');
 $ok((int)$one("SELECT customer_id FROM bookings WHERE id = 10") === $teacher, 'undo leaves the kept record\'s own rows');
 $back = bcrf_crm_get($pdo, 200);
 $ok($back['merged_into_id'] === null && $back['account_status'] === 'active' && (int)$back['household_id'] === $h2, 'removed record is back as it was');
@@ -180,6 +191,35 @@ $throws(fn() => bcrf_crm_merge_undo($pdo, $mid, 1), 'undo twice refused', 'alrea
 $before = (int)$one("SELECT customer_id FROM bookings WHERE id = 11");
 $throws(fn() => bcrf_crm_merge($pdo, 200, 201, 1), 'staff merge refused in the transaction', 'staff');
 $ok((int)$one("SELECT customer_id FROM bookings WHERE id = 11") === $before && !$pdo->inTransaction(), 'nothing changed after a refusal');
+
+// -- Summary strip (Nov 14, 2026): Emily (100) has party 2, confirmed for Dec 5 --
+$s0 = bcrf_crm_summary($pdo, 100, '2026-11-14');
+$ok($s0['spent_cents'] === 0 && $s0['visits'] === 0 && $s0['open_tasks'] === 0 && $s0['pass_ends'] === null, 'empty summary — got ' . json_encode($s0));
+$ok($s0['next'] && $s0['next']['kind'] === 'party' && (int)$s0['next']['id'] === 2, 'next is the Dec 5 party');
+$pdo->exec("INSERT INTO sales (id, sale_number, business_date, completed_at, idempotency_key, status, total_cents, refunded_cents, customer_id)
+            VALUES (900, 'S900', '2026-10-01', NOW(), 'k900', 'completed', 2500, 500, 100),
+                   (901, 'S901', '2026-10-01', NOW(), 'k901', 'voided', 9999, 0, 100),
+                   (902, 'S902', '2026-11-10', NOW(), 'k902', 'completed', 14000, 0, 100)");
+$pdo->exec("INSERT INTO event_quotes (id, subject_type, subject_id, token, lines_json, total_cents, created_at) VALUES (50, 'event_inquiry', 2, 'tok50', '[]', 14000, NOW())");
+$pdo->exec("INSERT INTO event_payments (quote_id, subject_type, subject_id, method, amount_cents, created_at) VALUES
+            (50, 'event_inquiry', 2, 'cash', 3000, NOW()),
+            (50, 'event_inquiry', 2, 'cash', -1000, NOW()),
+            (50, 'event_inquiry', 2, 'register', 14000, NOW())");
+$pdo->exec("UPDATE event_payments SET sale_id = 902 WHERE method = 'register'");
+$pdo->exec("INSERT INTO event_payments (quote_id, subject_type, subject_id, method, amount_cents, created_at, voided_at) VALUES (50, 'event_inquiry', 2, 'cash', 7000, NOW(), NOW())");
+$pdo->exec("INSERT INTO tickets (public_code, source, purchaser_name, purchaser_email, customer_id, quantity, quantity_redeemed, status, amount_cents, created_at, payment_status)
+            VALUES ('TK9', 'online', 'Emily', 'emily@x.test', 100, 2, 2, 'active', 1600, NOW(), 'paid')");
+$tk9 = (int)$pdo->lastInsertId();
+$pdo->exec("INSERT INTO check_ins (source_type, ticket_id, party_size, guests_counted, checked_in_at, expected_out_at, business_date)
+            VALUES ('ticket', $tk9, 2, 2, NOW(), NOW(), '2026-10-01'), ('ticket', $tk9, 2, 2, NOW(), NOW(), '2026-10-20')");
+$pdo->exec("INSERT INTO tasks (title, status, related_type, related_id, created_at) VALUES ('Confirm the party', 'open', 'event_inquiry', 2, NOW()), ('Done one', 'done', 'event_inquiry', 2, NOW())");
+$s1 = bcrf_crm_summary($pdo, 100, '2026-11-14');
+// 2000 register (less refund; void left out) + 14000 sale 902 + 2000 cash net (register payment on her own sale not doubled, voided one left out) + 1600 tickets
+$ok($s1['spent_cents'] === 19600, 'spent adds register, quote payments and tickets once — got ' . $s1['spent_cents']);
+$ok($s1['visits'] === 3, 'visits are distinct days (Oct 1 sale + check-in, Oct 20, Nov 10) — got ' . $s1['visits']);
+$ok($s1['open_tasks'] === 1, 'one open task on her party');
+$s2 = bcrf_crm_summary($pdo, 100, '2026-12-06');
+$ok($s2['next'] === null && $s2['visits'] === 4, 'after the party: nothing next, party day counts as a visit — got ' . json_encode([$s2['next'], $s2['visits']]));
 
 echo "$n checks, $fails failed\n";
 exit($fails ? 1 : 0);

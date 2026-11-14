@@ -238,7 +238,12 @@ function bcrf_portal_newsletter(PDO $pdo, string $email): ?bool {
 function bcrf_portal_newsletter_set(PDO $pdo, array $c, bool $on): bool {
     $email = bcrf_portal_norm_email((string)($c['email'] ?? ''));
     if ($email === '' || ($on && empty($c['email_verified_at']))) return false;
-    if ($on) {
+    // Nov 14, 2026: go through the email preferences code when it's there, so My farm records when and where they agreed
+    // (mailing_list.consent_source/consent_at) and logs the change, like every other way of joining or leaving.
+    if (!function_exists('bcrf_email_prefs_save') && is_file(__DIR__ . '/email_prefs.php')) require_once __DIR__ . '/email_prefs.php';
+    if (function_exists('bcrf_email_prefs_ready') && bcrf_email_prefs_ready($pdo)) {
+        bcrf_email_prefs_save($pdo, $email, ['newsletter' => $on], 'portal', null, true);
+    } elseif ($on) {
         $pdo->prepare("INSERT INTO mailing_list (email, is_subscribed) VALUES (?, 1) ON DUPLICATE KEY UPDATE is_subscribed = 1")->execute([$email]);
     } else {
         $pdo->prepare("UPDATE mailing_list SET is_subscribed = 0 WHERE email = ?")->execute([$email]);

@@ -2,7 +2,7 @@
 // admin/customers.php — Customers: find anyone, see everything the farm has for them, households, and merging
 // duplicates (Farm OS Phase 3, Nov 12, 2026; includes/crm.php; 07 › Customer model, CRM extension Phase 1).
 //   GET  customers.php[?q=…]          search (name, email, phone); newest first when blank
-//   GET  customers.php?id=N           one customer: contact, notes, household, organizations, bookings, parties,
+//   GET  customers.php?id=N           one customer: summary strip (spent, visits, next, follow-ups; Nov 14, 2026), contact, notes, household, organizations, bookings, parties,
 //                                     passes, tickets, register sales, rewards, email preferences, merges
 //   GET  customers.php?dupes=1        possible duplicates (same phone or same name) to review and merge
 //   POST act=save | household_new | household_join | household_leave | child_add | child_remove | merge | undo_merge
@@ -141,6 +141,7 @@ if ($id) {
     if (!$c) { bcrf_shell_open('Customers'); echo bcrf_shell_notice('err', 'That customer wasn\'t found.'), '<a href="customers.php" class="underline text-sm">Back</a>'; bcrf_shell_close(); exit; }
     if ($c['merged_into_id']) { header('Location: customers.php?id=' . bcrf_crm_resolve($pdo, $id)); exit; }
     $p = bcrf_crm_profile($pdo, $id);
+    $sum = bcrf_crm_summary($pdo, $id);
     $dupWith = (int)($_GET['merge'] ?? 0);
     $dupRow = $dupWith ? bcrf_crm_get($pdo, $dupWith) : null;
     bcrf_shell_open(bcrf_crm_name($c), ['toast' => $toast, 'width' => 'max-w-4xl', 'js' => ['quotes.js']]);
@@ -155,10 +156,28 @@ if ($id) {
   </div>
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
 
+  <?php // Summary strip (Nov 14, 2026): bcrf_crm_summary() in includes/crm.php says what each number counts.
+    $tile = 'bg-white border border-stone-200 rounded-lg px-3 py-2 shadow-sm';
+    $nx = $sum['next'];
+    $nxText = 'Nothing booked';
+    $nxUrl = '';
+    if ($nx) {
+        $nxText = ($nx['kind'] === 'party' ? 'Party' : 'Booking') . ' ' . date('M j', strtotime((string)$nx['d'])) . ($nx['t'] ? ', ' . date('g:i A', strtotime((string)$nx['t'])) : '') . ' · ' . $nx['status'];
+        $nxUrl = $nx['kind'] === 'party' ? '/admin/party.php?id=' . (int)$nx['id'] : '/admin/admin.php?view=bookings&day=' . rawurlencode((string)$nx['d']);
+    }
+  ?>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+    <div class="<?= $tile ?>"><p class="text-xs text-stone-500">Spent with us</p><p class="text-lg font-semibold text-stone-800"><?= $h($m($sum['spent_cents'])) ?></p></div>
+    <div class="<?= $tile ?>"><p class="text-xs text-stone-500">Visits</p><p class="text-lg font-semibold text-stone-800"><?= (int)$sum['visits'] ?></p></div>
+    <div class="<?= $tile ?>"><p class="text-xs text-stone-500">Next</p><p class="text-sm font-semibold text-stone-800"><?= $nxUrl ? '<a class="underline text-amber-800" href="' . $h($nxUrl) . '">' . $h($nxText) . '</a>' : $h($nxText) ?></p></div>
+    <div class="<?= $tile ?>"><p class="text-xs text-stone-500">Follow-ups</p><p class="text-sm font-semibold text-stone-800"><?= $sum['open_tasks'] ? (int)$sum['open_tasks'] . ' open task' . ($sum['open_tasks'] === 1 ? '' : 's') : 'None open' ?></p>
+      <?php if ($sum['pass_ends']): ?><p class="text-xs text-amber-800">Pass ends <?= $h($date($sum['pass_ends'])) ?></p><?php endif; ?></div>
+  </div>
+
   <?php if ($dupRow && $mgr): $why = bcrf_crm_merge_blocker($pdo, $c, $dupRow); ?>
   <div class="<?= $card ?> border-amber-300">
     <h2 class="text-base font-semibold text-stone-800 mb-1">Merge <?= $h(bcrf_crm_name($dupRow)) ?> into this record?</h2>
-    <p class="text-sm text-stone-700 mb-2"><?= $h($dupRow['email']) ?><?= $dupRow['phone_number'] ? ' · ' . $h($dupRow['phone_number']) : '' ?>. Their bookings, parties, passes, tickets, sales and organizations move here, and their record is switched off. You can undo it afterwards.</p>
+    <p class="text-sm text-stone-700 mb-2"><?= $h($dupRow['email']) ?><?= $dupRow['phone_number'] ? ' · ' . $h($dupRow['phone_number']) : '' ?>. Their bookings, parties, passes, tickets, sales, waivers, incident reports and organizations move here, and their record is switched off. You can undo it afterwards.</p>
     <?php if ($why !== ''): ?>
       <?= bcrf_shell_notice('warning', $why) ?>
       <?php if (bcrf_crm_merge_blocker($pdo, $dupRow, $c) === ''): ?><a href="customers.php?id=<?= (int)$dupRow['id'] ?>&amp;merge=<?= $id ?>" class="<?= $btnSec ?> inline-block">Keep <?= $h(bcrf_crm_name($dupRow)) ?>'s record instead</a><?php endif; ?>

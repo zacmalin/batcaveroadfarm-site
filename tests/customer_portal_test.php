@@ -178,8 +178,12 @@ $unv = ['id' => 999, 'first_name' => 'U', 'last_name' => 'V', 'email' => 'u@exam
 $ok(!bcrf_portal_newsletter_set($pdo, $unv, true) && bcrf_portal_newsletter($pdo, 'u@example.test') === false, 'unverified email can\'t join');
 $ok(bcrf_portal_newsletter_set($pdo, $emily, true) && bcrf_portal_newsletter($pdo, 'emily@example.test') === true, 'Emily joins');
 $ok(bcrf_portal_newsletter_set($pdo, $emily, true) && (int)$one("SELECT COUNT(*) FROM mailing_list WHERE email = 'emily@example.test'") === 1, 'joining twice keeps one row');
+$ok($one("SELECT consent_source FROM mailing_list WHERE email = 'emily@example.test'") === 'portal' && $one("SELECT consent_at FROM mailing_list WHERE email = 'emily@example.test'") !== null,
+    'joining in My farm records where and when she agreed (Nov 14, 2026)');
 $ok(bcrf_portal_newsletter_set($pdo, $emily, false) && bcrf_portal_newsletter($pdo, 'emily@example.test') === false, 'Emily leaves');
 $ok((int)$one("SELECT COUNT(*) FROM audit_events WHERE object_type = 'mailing_list' AND actor_type = 'customer'") === 3, 'each change audited as the customer');
+$ok($pdo->query("SELECT CONCAT(value, via) FROM email_preference_log WHERE email = 'emily@example.test' AND setting = 'newsletter' ORDER BY id")->fetchAll(PDO::FETCH_COLUMN) === ['1portal', '0portal'],
+    'on and off are in the email preferences log');
 
 echo $fails ? "\n$fails of $n checks FAILED\n" : "All $n customer portal checks passed\n";
 exit($fails ? 1 : 0);

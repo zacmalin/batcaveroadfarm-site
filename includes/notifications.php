@@ -6,6 +6,9 @@
 //   booking_request   a new group/school booking request (bookings, status pending)  → managers
 //   online_payment    a customer paid a quote online (event_payments, Stripe)        → managers
 //   deposit_overdue   a sent quote's deposit is past its due date and not covered    → managers
+//   quote_no_reply    a quote went out BCRF_QUOTE_NUDGE_DAYS ago, nothing paid, the party/booking still waiting
+//                     on an answer (Nov 14, 2026) → managers, plus a "Follow up" task for Managers due today.
+//                     Re-sending the quote starts the clock again (the dedupe key carries sent_count).
 //   reminder_sent     a deposit/balance reminder or pass renewal email went out      → managers (includes/reminders.php)
 //   task_late         one of your tasks is late (tasks.late_notified_at)             → that person
 // Rows are made by bcrf_notify() (directly, or by bcrf_notify_sweep(), which admin/cron/reminders.php runs every 15 minutes)
@@ -15,6 +18,7 @@
 if (!function_exists('bcrf_notify')) {
 
 define('BCRF_NOTIFY_MANAGERS', ['administrator', 'moderator']);
+if (!defined('BCRF_QUOTE_NUDGE_DAYS')) define('BCRF_QUOTE_NUDGE_DAYS', 3);   // days a sent quote can sit unanswered before a nudge
 
 function bcrf_notifications_ready(PDO $pdo): bool {
     static $ready = [];
@@ -146,6 +150,32 @@ function bcrf_notify_sweep(PDO $pdo): int {
                 $added += bcrf_notify($pdo, ['kind' => 'deposit_overdue', 'dedupe' => 'deposit_overdue:' . $q['id'],
                     'link' => '/admin/quotes.php?for=' . rawurlencode($q['subject_type'] . ':' . $q['subject_id']),
                     'title' => 'Deposit overdue: ' . $s['name'], 'body' => $money($stt['deposit_left']) . ' was due ' . date('M j', strtotime((string)$q['deposit_due'])) . ' · ' . $s['what'] . ' · ' . bcrf_quote_when($s)]) ? 1 : 0;
+            }
+        });
+        $safe(function () use ($pdo, &$added, $money) {   // quotes with no reply (Nov 14, 2026)
+            $st = $pdo->prepare("SELECT * FROM event_quotes WHERE sent_at IS NOT NULL AND sent_at <= UTC_TIMESTAMP() - INTERVAL ? DAY
+                                 AND sent_at >= UTC_TIMESTAMP() - INTERVAL 30 DAY ORDER BY id LIMIT 100");
+            $st->execute([(int)BCRF_QUOTE_NUDGE_DAYS]);
+            foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $q = bcrf_quote_decode($row);
+                $s = bcrf_quote_subject($pdo, $q['subject_type'], $q['subject_id']);
+                // Still waiting on them: a party not yet confirmed/declined, or a booking still pending, and nothing paid.
+                if (!$s || !in_array($s['status'], $s['is_party'] ? ['new', 'contacted', 'quoted'] : ['pending'], true)) continue;
+                if (bcrf_quote_status($pdo, $q)['paid'] !== 0) continue;
+                $sentDay = date('M j', strtotime((string)$q['sent_at'] . ' UTC'));
+                $link = '/admin/quotes.php?for=' . rawurlencode($q['subject_type'] . ':' . $q['subject_id']);
+                $nid = bcrf_notify($pdo, ['kind' => 'quote_no_reply', 'dedupe' => 'quote_no_reply:' . $q['id'] . ':' . $q['sent_count'], 'link' => $link,
+                    'title' => 'No reply yet: ' . $s['name'], 'body' => 'Quote ' . $money($q['total_cents']) . ' sent ' . $sentDay . ' · ' . $s['what'] . ' · ' . bcrf_quote_when($s)]);
+                if (!$nid) continue;
+                $added++;
+                try {
+                    if (!function_exists('bcrf_task_create')) require_once __DIR__ . '/tasks.php';
+                    $today = (new DateTimeImmutable('now', new DateTimeZone(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York')))->format('Y-m-d');
+                    bcrf_task_create($pdo, ['title' => 'Follow up: ' . $s['name'] . ' hasn\'t answered the quote', 'priority' => 'normal', 'due_date' => $today, 'who' => 'role:moderator',
+                        'description' => 'Quote sent ' . $sentDay . ' (' . $money($q['total_cents']) . ') for ' . $s['what'] . ', ' . bcrf_quote_when($s) . '. Call or email ' . ($s['phone'] ?: $s['email'] ?: 'them')
+                            . ' to see if they still want it, then confirm or decline it on the quote page: ' . $link,
+                        'related_type' => $q['subject_type'], 'related_id' => (string)$q['subject_id']]);
+                } catch (Throwable $e) { error_log('[notifications] quote follow-up task: ' . $e->getMessage()); }
             }
         });
     }

@@ -27,7 +27,12 @@ define('BCRF_CRM_REFS', [
     ['sales', 'customer_id'], ['sale_holds', 'customer_id'], ['inventory', 'consignor_customer_id'],
     ['consignor_settlements', 'consignor_customer_id'], ['recipe_comments', 'user_id'], ['recipe_ratings', 'user_id'],
     ['waivers', 'customer_id'],   // Phase 3 waivers (Nov 12, 2026)
+    ['incident_people', 'customer_id'],   // Phase 5 incident reports (0047); added to merges Nov 14, 2026
 ]);
+// Customer links a merge deliberately doesn't move: reward_members/reward_ledger (a Rewards member can't be the one removed),
+// organization_contacts (handled on its own below) and customer_merges (the merge record itself). tests/crm_test.php fails
+// when a migration adds a customer link that is in neither list, so new tables can't be forgotten again.
+define('BCRF_CRM_REFS_SKIP', ['reward_members.customer_id', 'reward_ledger.customer_id', 'organization_contacts.customer_id']);
 define('BCRF_CRM_AGES', ['under2' => 'Under 2', '2-4' => '2–4', '5-8' => '5–8', '9-12' => '9–12', '13-17' => '13–17']);
 define('BCRF_CRM_ORG_KINDS', ['school' => 'School', 'scouts' => 'Scout troop', 'church' => 'Church', 'business' => 'Business', 'other' => 'Other group']);
 define('BCRF_CRM_CONTACT_ROLES', ['booking' => 'Books visits', 'billing' => 'Pays', 'viewer' => 'Kept informed']);
@@ -178,6 +183,57 @@ function bcrf_crm_profile(PDO $pdo, int $id): array {
     $p['merges'] = $q("SELECT m.*, c.first_name, c.last_name, c.email FROM customer_merges m JOIN customers c ON c.id = m.merged_id
                        WHERE m.kept_id = ? ORDER BY m.id DESC LIMIT 20", [$id]);
     return $p;
+}
+
+/**
+ * The strip at the top of a customer's page (Nov 14, 2026). Every piece is read from records the farm already keeps:
+ *   spent_cents  register sales (less refunds) + quote payments for their parties and group bookings (less refunds; ones
+ *                rung up on their own register sale aren't counted twice) + online tickets + Stripe-paid passes + older
+ *                Stripe booking checkouts that have no quote payments.
+ *   visits       distinct days they were here: gate check-ins on their tickets, passes or sales, old pass visits, register
+ *                sales, and past parties and bookings that went ahead.
+ *   next         their next party or booking that isn't cancelled, declined or archived (null when none).
+ *   pass_ends    the soonest active pass ending in the next 45 days (null when none).
+ *   open_tasks   open or started tasks on their parties and bookings.
+ * Anything a farm hasn't set up yet simply counts as 0.
+ */
+function bcrf_crm_summary(PDO $pdo, int $id, ?string $today = null): array {
+    $today = $today ?? date('Y-m-d');
+    $one = function (string $sql, array $a) use ($pdo) { try { $st = $pdo->prepare($sql); $st->execute($a); return $st->fetchColumn(); } catch (Throwable $e) { return false; } };
+    $col = function (string $sql, array $a) use ($pdo) { try { $st = $pdo->prepare($sql); $st->execute($a); return $st->fetchAll(PDO::FETCH_COLUMN); } catch (Throwable $e) { return []; } };
+    $live = "status NOT IN ('cancelled', 'declined', 'archived')";
+    $subj = "((ep.subject_type = 'booking' AND ep.subject_id IN (SELECT id FROM bookings WHERE customer_id = ?))
+              OR (ep.subject_type = 'event_inquiry' AND ep.subject_id IN (SELECT id FROM event_inquiries WHERE customer_id = ?)))";
+    $spent = (int)$one("SELECT COALESCE(SUM(total_cents - refunded_cents), 0) FROM sales WHERE customer_id = ? AND status IN ('completed', 'partially_refunded', 'refunded')", [$id])
+           + (int)$one("SELECT COALESCE(SUM(ep.amount_cents), 0) FROM event_payments ep WHERE ep.voided_at IS NULL AND $subj
+                        AND (ep.sale_id IS NULL OR ep.sale_id NOT IN (SELECT id FROM sales WHERE customer_id = ?))", [$id, $id, $id])
+           + (int)$one("SELECT COALESCE(SUM(amount_cents), 0) FROM tickets WHERE customer_id = ? AND source = 'online' AND payment_status = 'paid'", [$id])
+           + (int)round(100 * (float)$one("SELECT COALESCE(SUM(amount_paid), 0) FROM passes WHERE customer_id = ? AND payment_status = 'paid' AND payment_provider = 'stripe'", [$id]))
+           + (int)round(100 * (float)$one("SELECT COALESCE(SUM(b.amount_total), 0) FROM bookings b WHERE b.customer_id = ? AND b.payment_status = 'paid'
+                        AND b.payment_provider = 'stripe' AND NOT EXISTS (SELECT 1 FROM event_payments ep WHERE ep.subject_type = 'booking' AND ep.subject_id = b.id)", [$id]));
+    $days = [];
+    foreach ([
+        ["SELECT DISTINCT ci.business_date FROM check_ins ci LEFT JOIN tickets t ON t.id = ci.ticket_id LEFT JOIN passes p ON p.id = ci.pass_id
+          LEFT JOIN sales s ON s.id = ci.sale_id WHERE t.customer_id = ? OR p.customer_id = ? OR s.customer_id = ?", [$id, $id, $id]],
+        ["SELECT DISTINCT DATE(pv.visited_at) FROM pass_visits pv JOIN passes p ON p.id = pv.pass_id WHERE p.customer_id = ?", [$id]],
+        ["SELECT DISTINCT business_date FROM sales WHERE customer_id = ? AND status IN ('completed', 'partially_refunded')", [$id]],
+        ["SELECT DISTINCT booking_date FROM bookings WHERE customer_id = ? AND status IN ('confirmed', 'completed') AND booking_date < ?", [$id, $today]],
+        ["SELECT DISTINCT preferred_date FROM event_inquiries WHERE customer_id = ? AND status IN ('confirmed', 'completed') AND preferred_date < ?", [$id, $today]],
+    ] as [$sql, $a]) foreach ($col($sql, $a) as $d) if ($d) $days[substr((string)$d, 0, 10)] = true;
+    $next = null;
+    try {
+        $st = $pdo->prepare("SELECT 'party' AS kind, id, preferred_date AS d, start_time AS t, status FROM event_inquiries WHERE customer_id = ? AND $live AND preferred_date >= ?
+                             UNION ALL
+                             SELECT 'booking', b.id, b.booking_date, b.start_time, b.status FROM bookings b WHERE b.customer_id = ? AND b.$live AND b.booking_date >= ?
+                             ORDER BY d, t LIMIT 1");
+        $st->execute([$id, $today, $id, $today]);
+        $next = $st->fetch(PDO::FETCH_ASSOC) ?: null;
+    } catch (Throwable $e) {}
+    $passEnds = $one("SELECT MIN(valid_until) FROM passes WHERE customer_id = ? AND status = 'active' AND valid_until BETWEEN ? AND ? + INTERVAL 45 DAY", [$id, $today, $today]);
+    $tasks = (int)$one("SELECT COUNT(*) FROM tasks WHERE status IN ('open', 'in_progress') AND (
+                          (related_type = 'booking' AND related_id IN (SELECT id FROM bookings WHERE customer_id = ?))
+                          OR (related_type = 'event_inquiry' AND related_id IN (SELECT id FROM event_inquiries WHERE customer_id = ?)))", [$id, $id]);
+    return ['spent_cents' => $spent, 'visits' => count($days), 'next' => $next, 'pass_ends' => $passEnds ?: null, 'open_tasks' => $tasks];
 }
 
 /** Name, phone and staff notes. Email is the sign-in, so it isn't changed here. */
