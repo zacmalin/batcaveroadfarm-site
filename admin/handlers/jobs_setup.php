@@ -31,6 +31,15 @@ $__keep = function (string $key) { $_SESSION['jobs_form_old'][$key] = $_POST; };
 switch ($act) {
 
     // ── Categories ──────────────────────────────────────────────────────────
+    case 'cat_active': {   // Active switch on Hiring > Categories (JSON when ajax=1)
+        require_once __DIR__ . '/../../includes/admin_switch.php';
+        $want = bcrf_switch_wanted();
+        $r = bcrf_switch_set($pdo, 'job_categories', 'is_active', $id, $want);
+        $msg = $r === null ? 'That category no longer exists.'
+             : $r['label'] . ($want ? ' is active.' : ' is off. Its jobs are hidden from the public jobs page.');
+        if (bcrf_switch_ajax()) bcrf_switch_json($r !== null, $msg, $r === null ? null : $want);
+        $__jobs_go('view=jobs_categories', $msg, $r === null ? 'error' : 'success');
+    }
     case 'cat_save': {
         $name = mb_substr(trim((string)($_POST['name'] ?? '')), 0, 80);
         if ($name === '') $__jobs_go('view=jobs_categories', 'Category name is required.', 'error');
@@ -46,8 +55,9 @@ switch ($act) {
                     $__jobs_go('view=jobs_categories', 'Some jobs in this category accept under-18s. Change those jobs to 18 and older first.', 'error');
                 }
             }
-            $pdo->prepare("UPDATE job_categories SET name = ?, sort_order = ?, allows_minors = ?, is_active = ? WHERE id = ?")
-                ->execute([$name, $sort, $minors, $active, $id]);
+            // Active has its own switch (cat_active) since Nov 14, 2026, so Save leaves it alone.
+            $pdo->prepare("UPDATE job_categories SET name = ?, sort_order = ?, allows_minors = ? WHERE id = ?")
+                ->execute([$name, $sort, $minors, $id]);
             erp_audit($pdo, 'update', 'job_categories', $id, $name);
             $__jobs_go('view=jobs_categories', 'Category saved.');
         }

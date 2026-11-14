@@ -2,7 +2,7 @@
 // admin/party_packages.php — party packages: what each includes, its price and length (Farm OS Phase 3, Nov 12, 2026;
 // includes/parties.php; 07 › Private events: "Packages (configurable)").
 //   GET  party_packages.php[?edit=N|new=1]
-//   POST act=save (id blank = new) | act=toggle (turn a package off or back on)
+//   POST act=save (id blank = new) | act=toggle, on=1|0 (the Offered switch; JSON when ajax=1, Nov 14, 2026)
 // Anyone with Private Events can look. Changing a package needs an Owner or Manager, because it changes what parties cost.
 // Quotes already made keep their price.
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
@@ -16,6 +16,7 @@ require_once __DIR__ . '/../includes/booking.php';
 require_once __DIR__ . '/../includes/event_quotes.php';
 require_once __DIR__ . '/../includes/parties.php';
 require_once __DIR__ . '/../includes/admin_shell.php';
+require_once __DIR__ . '/../includes/admin_switch.php';
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 $csrf = $_SESSION['csrf_token'];
@@ -42,17 +43,24 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && $ready) {
         } elseif ($act === 'toggle') {
             $p = bcrf_party_package($pdo, $id);
             if (!$p) throw new BcrfPartyError('That package is gone.');
-            $pdo->prepare("UPDATE party_packages SET active = ?, updated_at = UTC_TIMESTAMP() WHERE id = ?")->execute([$p['active'] ? 0 : 1, $p['id']]);
-            if (function_exists('erp_audit')) erp_audit($pdo, 'update', 'party_packages', $p['id'], 'Party package ' . ($p['active'] ? 'turned off' : 'turned on') . ': ' . $p['name']);
-            $_SESSION['pkg_flash'] = ['ok', $p['active'] ? 'Turned off. Parties that already have it keep it.' : 'Turned back on.'];
+            $want = isset($_POST['on']) ? bcrf_switch_wanted() : !$p['active'];   // the switch says which state it wants
+            if ((bool)$p['active'] !== $want) {
+                $pdo->prepare("UPDATE party_packages SET active = ?, updated_at = UTC_TIMESTAMP() WHERE id = ?")->execute([$want ? 1 : 0, $p['id']]);
+                if (function_exists('erp_audit')) erp_audit($pdo, 'update', 'party_packages', $p['id'], 'Party package ' . ($want ? 'turned on' : 'turned off') . ': ' . $p['name']);
+            }
+            $msg = $want ? $p['name'] . ' is offered again.' : $p['name'] . ' is turned off. Parties that already have it keep it.';
+            if (bcrf_switch_ajax()) bcrf_switch_json(true, $msg, $want);
+            $_SESSION['pkg_flash'] = ['ok', $msg];
         } else {
             throw new BcrfPartyError('Unknown action.');
         }
     } catch (BcrfPartyError $e) {
+        if (bcrf_switch_ajax()) bcrf_switch_json(false, $e->getMessage());
         $_SESSION['pkg_flash'] = ['err', $e->getMessage()];
         if ($act === 'save') { $_SESSION['pkg_form'] = $_POST; $back .= $id ? '?edit=' . $id : '?new=1'; }
     } catch (Throwable $e) {
         error_log('[party packages] ' . $act . ': ' . $e->getMessage());
+        if (bcrf_switch_ajax()) bcrf_switch_json(false, 'Could not save. Try again.');
         $_SESSION['pkg_flash'] = ['err', 'Could not save. Try again.'];
     }
     header('Location: ' . $back); exit;
@@ -109,18 +117,19 @@ $all = bcrf_party_packages($pdo, true);
 if ($mgr && $editing === null) echo '<a href="party_packages.php?new=1" class="', $btnMain, ' inline-block mb-4">Add a package</a>';
 if (!$all) echo '<p class="text-sm text-stone-500">No packages yet.</p>';
 foreach ($all as $p): ?>
-  <div class="<?= $card ?> <?= $p['active'] ? '' : 'opacity-60' ?>">
-    <div class="flex flex-wrap items-baseline justify-between gap-2">
-      <h2 class="text-base font-semibold text-stone-800"><?= $h($p['name']) ?><?= $p['active'] ? '' : ' (turned off)' ?></h2>
+  <div class="<?= $card ?><?= $p['active'] ? '' : ' is-off' ?>" data-switch-row>
+    <div class="ui-swmain flex flex-wrap items-baseline justify-between gap-2">
+      <h2 class="text-base font-semibold text-stone-800"><?= $h($p['name']) ?></h2>
       <span class="text-sm text-stone-700"><?= $h(bcrf_party_price_text($p)) ?> · <?= $p['duration_minutes'] ?> min</span>
     </div>
-    <?php if ($p['items']): ?><ul class="text-sm text-stone-600 mt-1"><?php foreach ($p['items'] as $it): ?><li>• <?= $h($it) ?></li><?php endforeach; ?></ul><?php endif; ?>
+    <?php if ($p['items']): ?><ul class="ui-swmain text-sm text-stone-600 mt-1"><?php foreach ($p['items'] as $it): ?><li>• <?= $h($it) ?></li><?php endforeach; ?></ul><?php endif; ?>
     <?php if ($mgr): ?>
-    <div class="flex gap-2 mt-3">
+    <div class="flex items-center gap-2 mt-3">
       <a href="party_packages.php?edit=<?= $p['id'] ?>" class="<?= $btnSec ?>">Edit</a>
-      <form method="POST" action="party_packages.php"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="toggle"><input type="hidden" name="id" value="<?= $p['id'] ?>">
-        <button class="<?= $btnSec ?>"<?= $p['active'] ? ' data-confirm="Stop offering ' . $h($p['name']) . '? Parties that already have it keep it."' : '' ?>><?= $p['active'] ? 'Turn off' : 'Turn on' ?></button></form>
+      <?= bcrf_switch(['action' => 'party_packages.php', 'csrf' => $csrf, 'fields' => ['act' => 'toggle', 'id' => (int)$p['id']],
+                       'on' => (bool)$p['active'], 'label' => 'Offer ' . $p['name'], 'on_text' => 'Offered', 'off_text' => 'Off']) ?>
     </div>
+    <?php elseif (!$p['active']): ?><p class="text-xs text-stone-500 mt-2">Turned off</p>
     <?php endif; ?>
   </div>
 <?php endforeach;

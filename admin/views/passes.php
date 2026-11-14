@@ -1,6 +1,7 @@
 <?php
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
 $csrf = $_SESSION['csrf_token'] ?? '';   // used by the hidden csrf_token fields below
+require_once __DIR__ . '/../../includes/admin_switch.php';   // pass type Active switch (Nov 14, 2026)
 // admin/views/passes.php — annual pass management.
 $statusFilter = trim((string)($_GET['pstatus'] ?? 'active'));
 $search       = trim((string)($_GET['search']  ?? ''));
@@ -213,11 +214,10 @@ try {
     $perks = json_decode($pt['perks'] ?? '[]', true) ?: [];
     $isEditing = ($editId === (int)$pt['id']);
 ?>
-<div class="bg-white border <?= $isEditing ? 'border-amber-400 ring-2 ring-amber-200' : 'border-stone-200' ?> rounded-lg shadow-xs overflow-hidden">
-    <div class="flex items-center justify-between gap-3 px-5 py-3 bg-stone-50 border-b border-stone-100">
+<div class="bg-white border <?= $isEditing ? 'border-amber-400 ring-2 ring-amber-200' : 'border-stone-200' ?> rounded-lg shadow-xs overflow-hidden<?= $pt['is_active'] ? '' : ' is-off' ?>" data-switch-row>
+    <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3 bg-stone-50 border-b border-stone-100">
         <div class="flex items-center gap-3">
             <span class="font-bold text-stone-800"><?= htmlspecialchars($pt['label']) ?></span>
-            <?php if (!$pt['is_active']): ?><span class="text-[10px] bg-stone-200 text-stone-500 px-2 py-0.5 rounded font-semibold">Inactive</span><?php endif; ?>
             <?php if ($pt['is_founding']): ?><span class="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-semibold">⭐ Featured</span><?php endif; ?>
             <?php if ($pt['founding_qty_limit']): ?><span class="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-semibold">Limited: <?= (int)$pt['founding_qty_limit'] ?></span><?php endif; ?>
         </div>
@@ -226,6 +226,8 @@ try {
             <span><?= (int)($pt['duration_months'] ?? 12) ?> mo</span>
             <span>👥 <?= (int)$pt['max_guests'] ?> guests</span>
             <span class="text-stone-400">Sold: <?= $sold ?></span>
+            <?= bcrf_switch(['action' => '/admin/admin.php?view=passes', 'csrf' => $csrf, 'fields' => ['pass_action' => 'type_active', 'pt_id' => (int)$pt['id']],
+                             'on' => (bool)$pt['is_active'], 'label' => $pt['label'] . ' on sale', 'on_text' => 'On sale', 'off_text' => 'Off']) ?>
             <a href="?view=passes&edit_type_id=<?= (int)$pt['id'] ?>#pass-types"
                class="px-3 py-1 rounded text-xs font-semibold <?= $isEditing ? 'bg-amber-500 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200' ?>">
                <?= $isEditing ? 'Editing…' : 'Edit' ?></a>

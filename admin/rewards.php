@@ -176,7 +176,10 @@ if ($tab === 'find') {
 } else {   // settings
     echo '<section class="card"><h2>Settings</h2><form class="stackf" method="POST" action="rewards.php">', $hid('rewards.php?tab=settings'),
          '<input type="hidden" name="act" value="settings">',
-         '<label><input type="checkbox" name="enabled" value="1"', $on ? ' checked' : '', '> Roost Rewards is ON (register sales earn points, the customer page is open)</label>',
+         '<label><input type="checkbox" name="enabled" value="1"', $on ? ' checked' : '',
+         ' data-confirm-on="Turn Roost Rewards ON? Register sales start earning points and the customer page opens."',
+         ' data-confirm-off="Turn Roost Rewards OFF? Register sales stop earning points and the customer page closes. Points already earned are kept.">',
+         ' Roost Rewards is ON (register sales earn points, the customer page is open)</label>',
          '<h3>Rewards</h3><p><small>A tier can be used only when it has a reward written in and is turned on.</small></p>';
     foreach (bcrf_rewards_tiers($pdo) as $t) {
         $p = (int)$t['points'];

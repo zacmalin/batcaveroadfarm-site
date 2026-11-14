@@ -153,7 +153,7 @@ if ($tab === 'setup' && $canEdit) {
             <div class="col-span-2"><label class="<?= $label ?>" for="ss<?= $sid ?>">First due (animals never done)</label><input id="ss<?= $sid ?>" name="start_date" type="date" required value="<?= $h($s['start_date']) ?>" class="<?= $input ?>"></div>
           </div>
           <div class="mb-3"><label class="<?= $label ?>" for="sn<?= $sid ?>">Note on each task</label><input id="sn<?= $sid ?>" name="note" maxlength="500" value="<?= $h($s['note']) ?>" class="<?= $input ?>"></div>
-          <label class="flex gap-1 items-center text-sm mb-3"><input type="checkbox" name="active" value="1" <?= $s['active'] ? 'checked' : '' ?>> In use (off cancels tasks nobody started)</label>
+          <label class="flex gap-1 items-center text-sm mb-3"><input type="checkbox" name="active" value="1" <?= $s['active'] ? 'checked' : '' ?> data-confirm-off="Stop this schedule? Its tasks that nobody has started will be cancelled."> In use (off cancels tasks nobody started)</label>
           <button class="<?= $btnSec ?>">Save</button>
         </form></details></li>
     <?php endforeach; ?>

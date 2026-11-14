@@ -4,6 +4,7 @@
 //   GET  products.php[?q=&cat=&type=&status=]   the product list
 //   GET  products.php?id=N | ?new=1             edit or add a product
 //   POST products.php  act=save, id, fields, csrf_token → back to the product
+//   POST products.php  act=active, id, on=1|0 → the On sale switch on the list (Nov 14, 2026; JSON when ajax=1)
 // Quantities are not edited here (06: never edited directly): new stocked products get a starting quantity; after that use Stock.
 // Permission: edit on the inventory table (Permissions Matrix). Plain forms, no script (strict CSP, C-09).
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
@@ -16,6 +17,7 @@ require_once __DIR__ . '/../includes/queue.php';
 require_once __DIR__ . '/../includes/sales.php';
 require_once __DIR__ . '/../includes/products.php';
 require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
+require_once __DIR__ . '/../includes/admin_switch.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -27,6 +29,33 @@ $q3 = fn($q) => bcrf_qtxt($q);
 if (!bcrf_sales_ready($pdo)) {
     bcrf_shell_open('Products', ['legacy' => true]); echo '<p class="flash err">Run migration 0009 in Settings › Database first.</p></div></main></body></html>';
     exit;
+}
+
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['act'] ?? '') === 'active') {
+    // On sale switch on the list. Same token and permission as Save; audited; nothing else about the product changes.
+    $id = (int)($_POST['id'] ?? 0);
+    $back = (string)($_POST['back'] ?? '');
+    $back = preg_match('#^products\.php(\?[A-Za-z0-9_=&%+.\-]*)?$#', $back) ? $back : 'products.php';
+    $want = bcrf_switch_wanted();
+    if (!hash_equals($csrf, (string)($_POST['csrf_token'] ?? ''))) {
+        $msg = 'Security token expired. Reload the page and try again.';
+        if (bcrf_switch_ajax()) bcrf_switch_json(false, $msg);
+        $_SESSION['prod_flash'] = ['err', $msg]; header('Location: ' . $back); exit;
+    }
+    try {
+        $r = bcrf_switch_set($pdo, 'inventory', 'is_active', $id, $want);
+        if ($r === null) throw new InvalidArgumentException('That product no longer exists.');
+        if ($r['was'] !== $want && function_exists('bcrf_event')) bcrf_event('product.updated', 'inventory', $id, ['name' => $r['label']]);
+        $msg = $r['label'] . ($want ? ' is on sale.' : ' is off the register and website.');
+        if (bcrf_switch_ajax()) bcrf_switch_json(true, $msg, $want);
+        $_SESSION['prod_flash'] = ['ok', $msg];
+    } catch (Throwable $e) {
+        if (!$e instanceof InvalidArgumentException) error_log('[products] active: ' . $e->getMessage());
+        $msg = $e instanceof InvalidArgumentException ? $e->getMessage() : 'Could not save. Try again.';
+        if (bcrf_switch_ajax()) bcrf_switch_json(false, $msg);
+        $_SESSION['prod_flash'] = ['err', $msg];
+    }
+    header('Location: ' . $back); exit;
 }
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
@@ -79,15 +108,20 @@ if (!$editing) {
          '<button class="btn sm" type="submit">Show</button><a class="btn sm primary" href="products.php?new=1">Add a product</a></form>';
     if (!$rows) echo '<p class="card muted">No products match.</p>';
     else {
+        $backQs = 'products.php' . ($_SERVER['QUERY_STRING'] ?? '' ? '?' . (string)$_SERVER['QUERY_STRING'] : '');
         echo '<div class="card hist">';
         foreach ($rows as $r) {
             $priceTxt = $r['pricing_mode'] === 'open_price' ? 'open price' : $money($r['price']) . ($r['unit'] !== 'each' ? ' / ' . $r['unit'] : '');
-            echo '<a class="lrow cardlink" href="products.php?id=', (int)$r['id'], '"><div><b>', $h($r['name']), '</b>', (int)$r['is_active'] ? '' : ' <small class="off">off</small>',
+            $on = (int)$r['is_active'] === 1;
+            echo '<div class="lrow ui-swrow', $on ? '' : ' is-off', '" data-switch-row><a class="cardlink ui-swmain" href="products.php?id=', (int)$r['id'], '"><div><b>', $h($r['name']), '</b>',
                  '<br><small class="muted">', $h($r['cat']), ' · ', $h(bcrf_product_type_label($r['product_type'])), $r['sku'] ? ' · ' . $h($r['sku']) : '',
                  ' · ' . $h($r['tax_name'] ?: 'General tax'), '</small></div><div class="r"><b>', $h($priceTxt), '</b><br><small class="muted">',
-                 (int)$r['track_inventory'] ? $h($q3($r['stock_quantity'])) . ' on hand' : 'not stocked', '</small></div></a>';
+                 (int)$r['track_inventory'] ? $h($q3($r['stock_quantity'])) . ' on hand' : 'not stocked', '</small></div></a>',
+                 bcrf_switch(['action' => 'products.php', 'csrf' => $csrf, 'fields' => ['act' => 'active', 'id' => (int)$r['id'], 'back' => $backQs],
+                              'on' => $on, 'label' => $r['name'] . ' on sale']),
+                 '</div>';
         }
-        echo '</div><p class="muted">', count($rows), ' product', count($rows) === 1 ? '' : 's', '. Nothing is deleted: turn a product off to take it off the register and website.</p>';
+        echo '</div><p class="muted">', count($rows), ' product', count($rows) === 1 ? '' : 's', '. Nothing is deleted: flip a product\'s switch off to take it off the register and website.</p>';
     }
     echo '</div></main></body></html>'; exit;
 }

@@ -178,23 +178,24 @@ elseif ($tab === 'templates'):
     $key = (string)($_GET['tpl'] ?? '');
     if (!isset($all[$key])) $key = '';
     $defaults = jobs_default_templates();
+    require_once __DIR__ . '/../../../includes/admin_switch.php';   // On/Off switch per email (Nov 14, 2026)
 
     if ($key === ''):
 ?>
   <p class="text-sm text-stone-600 mb-3">Tap an email to change its wording. The farm header and footer are added automatically.</p>
   <ul class="space-y-2">
     <?php foreach ($all as $k => $t): $edited = isset($defaults[$k]) && ($defaults[$k]['subject'] !== $t['subject'] || $defaults[$k]['body'] !== $t['body_html']); ?>
-    <li><a href="/admin/admin.php?view=jobs_emails&tab=templates&tpl=<?= $h(rawurlencode($k)) ?>" class="block bg-white border border-stone-200 rounded-lg p-3 shadow-sm hover:border-amber-400">
+    <li class="ui-swrow bg-white border border-stone-200 rounded-lg p-3 shadow-sm<?= (int)$t['is_active'] ? '' : ' is-off' ?>" data-switch-row><a href="/admin/admin.php?view=jobs_emails&tab=templates&tpl=<?= $h(rawurlencode($k)) ?>" class="block">
       <div class="flex items-start justify-between gap-2">
         <span class="font-semibold text-stone-800"><?= $h($t['name']) ?></span>
         <span class="shrink-0 flex gap-1">
           <?php if ($edited): ?><span class="text-[11px] px-2 py-0.5 rounded bg-sky-50 text-sky-800 border border-sky-200">Edited</span><?php endif; ?>
-          <span class="text-[11px] px-2 py-0.5 rounded border <?= (int)$t['is_active'] ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-stone-100 text-stone-500 border-stone-300' ?>"><?= (int)$t['is_active'] ? 'On' : 'Off' ?></span>
         </span>
       </div>
       <div class="text-xs text-stone-500 mt-0.5"><?= $h($CAT[$k]['when'] ?? '') ?></div>
       <div class="text-sm text-stone-700 mt-1 break-words">“<?= $h($t['subject']) ?>”</div>
-    </a></li>
+    </a><?= bcrf_switch(['action' => '/admin/admin.php?view=jobs_emails', 'csrf' => $_SESSION['csrf_token'] ?? '', 'fields' => ['jobs_emails_action' => 'tpl_active', 'tpl_key' => $k],
+                          'on' => (int)$t['is_active'] === 1, 'label' => 'Send ' . $t['name']]) ?></li>
     <?php endforeach; ?>
   </ul>
 <?php

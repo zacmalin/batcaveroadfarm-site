@@ -30,6 +30,20 @@ $cat = jobs_template_catalog();
 switch ($act) {
 
     // ── Templates ───────────────────────────────────────────────────────────
+    case 'tpl_active': {   // On/Off switch on the template list (Nov 14, 2026; JSON when ajax=1)
+        require_once __DIR__ . '/../../includes/admin_switch.php';
+        $want = bcrf_switch_wanted();
+        $st = $pdo->prepare('SELECT name, is_active FROM email_templates WHERE tpl_key = ?'); $st->execute([$key]);
+        $t = $st->fetch(PDO::FETCH_ASSOC);
+        if (!$t) { if (bcrf_switch_ajax()) bcrf_switch_json(false, 'Unknown template.'); $__je_go('Unknown template.', 'error', 'view=jobs_emails&tab=templates'); }
+        if ((int)$t['is_active'] !== ($want ? 1 : 0)) {
+            $pdo->prepare('UPDATE email_templates SET is_active = ? WHERE tpl_key = ?')->execute([$want ? 1 : 0, $key]);
+            erp_audit($pdo, 'update', 'email_templates', null, 'Email template ' . ($want ? 'turned on' : 'turned off') . ': ' . $key);
+        }
+        $msg = $t['name'] . ($want ? ' is on.' : ' is off. Nothing will be sent for it.');
+        if (bcrf_switch_ajax()) bcrf_switch_json(true, $msg, $want);
+        $__je_go($msg, 'success', 'view=jobs_emails&tab=templates');
+    }
     case 'tpl_save': {
         if (!isset($cat[$key])) $__je_go('Unknown template.', 'error');
         [$ok, $msg] = jobs_template_save($pdo, $key, (string)($_POST['subject'] ?? ''), (string)($_POST['body_html'] ?? ''), !empty($_POST['is_active']));

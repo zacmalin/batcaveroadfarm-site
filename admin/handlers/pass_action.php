@@ -11,6 +11,23 @@ $passId  = (int)($_POST['pass_id'] ?? 0);
 $pstatus = trim((string)($_GET['pstatus'] ?? 'active'));
 $back    = '/admin/admin.php?view=passes&pstatus=' . rawurlencode($pstatus);
 
+// ── PASS TYPE ON/OFF SWITCH (Nov 14, 2026; includes/admin_switch.php, JSON when ajax=1) ──────────
+if ($action === 'type_active') {
+    require_once dirname(__DIR__, 2) . '/includes/admin_switch.php';
+    $want = bcrf_switch_wanted();
+    try {
+        $r = bcrf_switch_set($pdo, 'pass_types', 'is_active', (int)($_POST['pt_id'] ?? 0), $want, 'label');
+        $msg = $r === null ? 'That pass type no longer exists.' : $r['label'] . ($want ? ' is on sale.' : ' is off sale. Passes already sold still work.');
+    } catch (Throwable $e) {
+        error_log('[passes] type_active: ' . $e->getMessage());
+        $r = null; $msg = 'Could not save. Try again.';
+    }
+    if (bcrf_switch_ajax()) bcrf_switch_json($r !== null, $msg, $r === null ? null : $want);
+    $_SESSION['toast_msg']  = $msg;
+    $_SESSION['toast_type'] = $r === null ? 'error' : 'success';
+    header('Location: /admin/admin.php?view=passes#pass-types'); exit;
+}
+
 // ── SAVE / CREATE PASS TYPE ──────────────────────────────────────────────────
 if ($action === 'save_type') {
     $ptId    = (int)($_POST['pt_id'] ?? 0);

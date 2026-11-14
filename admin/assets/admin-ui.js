@@ -6,6 +6,8 @@
 //  - form[data-autosave="key"]: keeps unsaved edits on this device for 24 hours and offers to restore them
 //    after an interruption (phone call, app switch, dead battery). Skips hidden fields (except rich text),
 //    passwords and files. Never put data-autosave on forms with payment or personal details.
+//  - form[data-switch]: on/off switch that saves in the background, with Undo (Nov 14, 2026; includes/admin_switch.php)
+//  - input[type=checkbox][data-confirm-on|off]: asks "Are you sure?" on submit only when that box changed
 (function () {
     'use strict';
 
@@ -141,6 +143,83 @@
         if (!c) return;
         var d = c.closest('details');
         if (d) d.open = false;
+    });
+
+    // ── On/off switches (includes/admin_switch.php) ─────────────────────────
+    // form[data-switch] saves in the background and shows "Saved · Undo". Without this script the form simply posts.
+    var toastBox = null, toastTimer = null;
+    function toast(msg, isErr, undo) {
+        if (!toastBox) {
+            toastBox = document.createElement('div');
+            toastBox.className = 'ui-switch-toast';
+            toastBox.setAttribute('role', 'status');
+            toastBox.setAttribute('aria-live', 'polite');
+            document.body.appendChild(toastBox);
+        }
+        clearTimeout(toastTimer);
+        toastBox.textContent = '';
+        toastBox.classList.toggle('is-err', !!isErr);
+        var m = document.createElement('span');
+        m.textContent = msg;
+        toastBox.appendChild(m);
+        if (undo) {
+            var b = document.createElement('button');
+            b.type = 'button'; b.textContent = 'Undo';
+            b.addEventListener('click', function () { toastBox.classList.remove('is-on'); undo(); });
+            toastBox.appendChild(b);
+        }
+        toastBox.classList.add('is-on');
+        toastTimer = setTimeout(function () { toastBox.classList.remove('is-on'); }, isErr ? 7000 : 5000);
+    }
+    function switchShow(form, on) {
+        var b = form.querySelector('.ui-switch');
+        b.setAttribute('aria-checked', on ? 'true' : 'false');
+        var t = b.querySelector('.ui-switch-text');
+        if (t) t.textContent = on ? (b.getAttribute('data-on-text') || 'On') : (b.getAttribute('data-off-text') || 'Off');
+        form.querySelector('input[name="on"]').value = on ? '0' : '1';   // what a plain submit would ask for next
+        var row = form.closest('[data-switch-row]');
+        if (row) row.classList.toggle('is-off', !on);
+    }
+    function switchSave(form, want, offerUndo) {
+        var b = form.querySelector('.ui-switch');
+        if (b.getAttribute('aria-busy') === 'true') return;
+        var was = b.getAttribute('aria-checked') === 'true';
+        switchShow(form, want);
+        b.setAttribute('aria-busy', 'true');
+        var fd = new FormData(form);
+        fd.set('on', want ? '1' : '0');
+        fd.set('ajax', '1');
+        fetch(form.action, { method: 'POST', body: fd, credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.json().catch(function () { return { ok: false, msg: "Couldn't save. Reload the page and try again." }; }); })
+            .then(function (j) {
+                b.removeAttribute('aria-busy');
+                if (!j || !j.ok) { switchShow(form, was); toast((j && j.msg) || "Couldn't save. Try again.", true); return; }
+                var now = j.on === null || j.on === undefined ? want : !!j.on;
+                switchShow(form, now);
+                toast(j.msg || 'Saved.', false, offerUndo && now !== was ? function () { switchSave(form, was, false); } : null);
+            })
+            .catch(function () { b.removeAttribute('aria-busy'); switchShow(form, was); toast("Couldn't reach the server. Check the connection and try again.", true); });
+    }
+    document.addEventListener('submit', function (e) {
+        var f = e.target;
+        if (!f.hasAttribute || !f.hasAttribute('data-switch') || !window.fetch || !window.FormData) return;
+        e.preventDefault();
+        var b = f.querySelector('.ui-switch');
+        if (b && !b.disabled) switchSave(f, b.getAttribute('aria-checked') !== 'true', true);
+    });
+
+    // ── "Are you sure?" only when a checkbox actually changed ───────────────
+    // <input type="checkbox" data-confirm-on="…" data-confirm-off="…">: asked on Save if that box was ticked / unticked.
+    document.addEventListener('submit', function (e) {
+        var f = e.target;
+        if (!f.querySelectorAll || e.defaultPrevented) return;
+        var boxes = f.querySelectorAll('input[type=checkbox][data-confirm-on], input[type=checkbox][data-confirm-off]');
+        for (var i = 0; i < boxes.length; i++) {
+            var c = boxes[i];
+            if (c.checked === c.defaultChecked) continue;
+            var msg = c.getAttribute(c.checked ? 'data-confirm-on' : 'data-confirm-off');
+            if (msg && !window.confirm(msg)) { e.preventDefault(); return; }
+        }
     });
 
     function init() {
