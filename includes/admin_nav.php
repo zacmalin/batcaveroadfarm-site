@@ -21,6 +21,7 @@ function bcrf_admin_nav_sections(): array {
             ['Thrift',     '/admin/thrift.php',                       'table', 'inventory'],          // Farm OS Phase 2 slice 2.3
             ['Settlements','/admin/settlements.php',                  'table', 'inventory'],          // Farm OS Phase 2 consignor payouts
             ['Orders',     '/admin/purchase_orders.php',              'table', 'inventory'],          // Farm OS Phase 2 slice 2.4 PO-lite
+            ['Invoices',   '/admin/documents.php',                    'table', 'inventory'],          // invoices & receipts (Nov 14, 2026)
             ['Counts',     '?view=inventory_update',                  'view',  'inventory_update'],
             ['Full editor','?view=schema&table=inventory',            'table', 'inventory'],          // C-10: administrator fallback
             ['Categories', '?view=schema&table=inventory_categories', 'table', 'inventory_categories'],
@@ -172,6 +173,7 @@ function bcrf_admin_nav_keywords(): array {
         '/admin/thrift.php'                         => 'consignment used secondhand',
         '/admin/settlements.php'                    => 'consignor payout consignment',
         '/admin/purchase_orders.php'                => 'po purchase order supplier reorder',
+        '/admin/documents.php'                      => 'invoice invoices receipt receipts bill bills paperwork scan upload expense expenses packing slip',
         '?view=inventory_update'                    => 'stock count inventory count cycle count',
         '?view=receipts'                            => 'sales transactions refunds drawer cash out',
         '/admin/reconcile.php'                      => 'venmo zelle cash app paypal peer to peer p2p',

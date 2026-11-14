@@ -13,6 +13,7 @@ require_permission([['table', 'inventory', 'edit']]);
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/receiving.php';
 if (is_file(__DIR__ . '/../includes/purchasing.php')) require_once __DIR__ . '/../includes/purchasing.php';
+require_once __DIR__ . '/../includes/documents.php';   // invoice / receipt photos (Nov 14, 2026)
 require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -47,6 +48,10 @@ function bcrf_receive_resolve_product(PDO $pdo, $pidRaw, $skuRaw): array {
 
 // -- POST --
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+    if (!$_POST && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+        $_SESSION['recv_flash'] = ['err', 'Nothing was saved: the invoice photos were too big to send together. Receive first, then add the invoice on the receive.'];
+        header('Location: receive.php?new=1'); exit;
+    }
     if (!hash_equals($csrf, (string)($_POST['csrf_token'] ?? ''))) {
         $_SESSION['recv_flash'] = ['err', 'Security token expired; try again.'];
         header('Location: receive.php'); exit;
@@ -79,6 +84,19 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             'lines' => $lines,
         ], $uid);
         $_SESSION['recv_flash'] = ['ok', 'Received. Stock and average cost updated.'];
+        // Invoice photo / PDF taken with the receive (Nov 14, 2026). The receive is saved either way.
+        $docFiles = bcrf_doc_files_from($_FILES, ['doc_camera', 'doc_files']);
+        if ($docFiles && bcrf_docs_ready($pdo)) {
+            try {
+                $dr = bcrf_doc_create($pdo, ['doc_type' => 'invoice', 'link' => 'receive:' . $id], $docFiles, $uid);
+                $_SESSION['recv_flash'] = $dr['dupes']
+                    ? ['warning', 'Received, and the invoice is saved. Heads up: the same file is already on document #' . implode(', #', $dr['dupes']) . '.']
+                    : ['ok', 'Received, and the invoice is saved. Stock and average cost updated.'];
+            } catch (Throwable $e) {
+                if (!$e instanceof BcrfDocError) error_log('[receive] invoice upload: ' . $e->getMessage());
+                $_SESSION['recv_flash'] = ['warning', 'Received. But the invoice did not save: ' . ($e instanceof BcrfDocError ? $e->getMessage() : 'try again below.')];
+            }
+        }
         header('Location: receive.php?id=' . $id); exit;
     } catch (InvalidArgumentException | BcrfStockError $e) {
         $_SESSION['recv_flash'] = ['err', $e->getMessage()];
@@ -152,6 +170,7 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
     }
     echo '<div class="lrow"><b>Total</b><span class="r"><b>', $m($sum), '</b></span></div></div>';
     echo '<p class="muted">Average cost on each product was updated. Stock history shows reason Received.</p>';
+    echo bcrf_doc_box_html($pdo, 'receive', (int)$r['id'], '/admin/receive.php?id=' . (int)$r['id'], $csrf);
     echo '</div></main></body></html>';
     exit;
 }
@@ -208,7 +227,7 @@ echo '<section class="card"><h2>New receive</h2>';
 if ($poRow) {
     echo '<p class="muted">Against <a href="purchase_orders.php?id=', (int)$poRow['id'], '">PO #', (int)$poRow['id'], '</a> (', $h($poRow['vendor_name']), '). Remaining quantities are prefilled; adjust if the delivery differs.</p>';
 }
-echo '<form class="stackf" method="POST" action="receive.php" autocomplete="off">';
+echo '<form class="stackf" method="POST" action="receive.php" autocomplete="off" enctype="multipart/form-data">';
 echo '<input type="hidden" name="csrf_token" value="', $h($csrf), '">';
 echo '<input type="hidden" name="_lines" value="', $lineCount, '">';
 if ($preProduct) echo '<input type="hidden" name="_product" value="', $preProduct, '">';
@@ -249,9 +268,14 @@ if ($lineCount < 20) {
     echo '<a href="receive.php?' . $h(http_build_query($q)) . '">Add more lines (', $more, ')</a> · ';
 }
 echo 'Or submit this receive and start another.</p></fieldset>';
+if (bcrf_docs_ready($pdo)) {
+    echo '<fieldset class="grp"><legend>Invoice / receipt (optional)</legend>', bcrf_doc_inputs_html('doc', true),
+         '<p class="muted">Snap the invoice or packing slip. It\'s saved with this receive; vendor, date and total are copied over.</p></fieldset>';
+}
 echo '<div class="rbar"><button class="btn primary" type="submit">Receive</button></div></form></section>';
 
 $rows = bcrf_receive_list($pdo, [], 30);
+$withDoc = bcrf_docs_ready($pdo) ? bcrf_doc_map($pdo, 'receive', array_column($rows, 'id')) : [];
 echo '<h2>Recent</h2>';
 if (!$rows) echo '<p class="card muted">No receives yet.</p>';
 else {
@@ -261,7 +285,7 @@ else {
              $h($r['business_date']), ' · ', $h($r['location_name'] ?? ''),
              $r['vendor_name'] ? ' · ' . $h($r['vendor_name']) : '',
              $r['invoice_ref'] ? ' · ' . $h($r['invoice_ref']) : '',
-             '<br><small class="muted">', (int)$r['lines_n'], ' line', (int)$r['lines_n'] === 1 ? '' : 's', '</small></div>',
+             '<br><small class="muted">', (int)$r['lines_n'], ' line', (int)$r['lines_n'] === 1 ? '' : 's', isset($withDoc[(int)$r['id']]) ? ' · 📎 invoice' : '', '</small></div>',
              '<div class="r"><b>', $m($r['total_cents']), '</b></div></a>';
     }
     echo '</div>';

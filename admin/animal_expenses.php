@@ -13,6 +13,7 @@ require_once __DIR__ . '/includes/permission_checks.php';
 require_permission([['table', 'animals']]);
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/animal_expenses.php';
+require_once __DIR__ . '/../includes/documents.php';   // receipt photos (Nov 14, 2026)
 require_once __DIR__ . '/../includes/admin_shell.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -40,6 +41,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $back = $animal ? 'animals.php?id=' . $animal . '&tab=expenses' : 'animal_expenses.php';
     $key = $animal ? 'an_flash' : 'ax_flash';
     try {
+        if (!$_POST && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) throw new BcrfAnimalError('Nothing was saved: the receipt was too big to send. Save the expense, then add the receipt on Invoices & receipts.');
         if (!hash_equals($csrf, (string)($_POST['csrf_token'] ?? ''))) throw new BcrfAnimalError('Security token expired; try again.');
         if (!$canEdit) throw new BcrfAnimalError('You can see animal costs but not add or change them.');
         if ($act === 'add') {
@@ -49,6 +51,18 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $e = bcrf_expense_get($pdo, $id);
             if (function_exists('erp_audit')) erp_audit($pdo, 'create', 'animal_expenses', $id, 'Animal expense ' . bcrf_expense_fmt((int)$e['amount_cents']));
             $_SESSION[$key] = ['ok', 'Saved ' . bcrf_expense_fmt((int)$e['amount_cents']) . '.'];
+            // Receipt photo / PDF with the expense (Nov 14, 2026). The expense is saved either way.
+            $docFiles = bcrf_doc_files_from($_FILES, ['doc_camera', 'doc_files']);
+            if ($docFiles && bcrf_docs_ready($pdo)) {
+                try {
+                    $dr = bcrf_doc_create($pdo, ['doc_type' => 'receipt', 'link' => 'animal_expense:' . $id], $docFiles, $uid);
+                    $_SESSION[$key] = $dr['dupes'] ? ['warning', 'Saved ' . bcrf_expense_fmt((int)$e['amount_cents']) . ' with its receipt. Heads up: the same file is already on document #' . implode(', #', $dr['dupes']) . '.']
+                                                   : ['ok', 'Saved ' . bcrf_expense_fmt((int)$e['amount_cents']) . ' with its receipt.'];
+                } catch (Throwable $de) {
+                    if (!$de instanceof BcrfDocError) error_log('[animal_expenses] receipt upload: ' . $de->getMessage());
+                    $_SESSION[$key] = ['warning', 'Saved ' . bcrf_expense_fmt((int)$e['amount_cents']) . '. But the receipt did not save: ' . ($de instanceof BcrfDocError ? $de->getMessage() : 'try again on Invoices & receipts.')];
+                }
+            }
         } elseif ($act === 'void') {
             $eid = (int)($_POST['expense_id'] ?? 0);
             bcrf_expense_void($pdo, $eid, (string)($_POST['reason'] ?? ''), $uid);
@@ -80,6 +94,7 @@ if (($_GET['csv'] ?? '') !== '') {
 
 $t = bcrf_expense_totals($lines);
 $recent = bcrf_expense_recent($pdo, 0, 30);
+$receipts = bcrf_docs_ready($pdo) ? bcrf_doc_map($pdo, 'animal_expense', array_column($recent, 'id')) : [];
 $species = $pdo->query("SELECT id, class_name FROM classifications ORDER BY class_name")->fetchAll(PDO::FETCH_ASSOC);
 $animals = bcrf_animals_list($pdo, 'all');
 $flash = $_SESSION['ax_flash'] ?? null; unset($_SESSION['ax_flash']);
@@ -118,7 +133,7 @@ if ($error) echo bcrf_shell_notice('err', $error);
 
   <?php if ($canEdit): ?>
   <details class="<?= $card ?>" <?= $lines ? '' : 'open' ?>><summary class="cursor-pointer text-base font-semibold text-stone-800">Add an expense</summary>
-    <form method="POST" class="mt-3"><?= $hidden ?><input type="hidden" name="act" value="add">
+    <form method="POST" class="mt-3" enctype="multipart/form-data"><?= $hidden ?><input type="hidden" name="act" value="add">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
         <div><label class="<?= $label ?>" for="ed">Date</label><input id="ed" name="spent_on" type="date" required max="<?= $h($today) ?>" value="<?= $h($today) ?>" class="<?= $input ?>"></div>
         <div><label class="<?= $label ?>" for="ea">Amount ($)</label><input id="ea" name="amount" inputmode="decimal" required class="<?= $input ?>" placeholder="e.g. 42.50"></div>
@@ -129,6 +144,7 @@ if ($error) echo bcrf_shell_notice('err', $error);
         <div><label class="<?= $label ?>" for="esp">Species (if a whole species)</label><select id="esp" name="classification_id" class="<?= $input ?>"><option value="0">—</option><?php foreach ($species as $s): ?><option value="<?= (int)$s['id'] ?>"><?= $h($s['class_name']) ?></option><?php endforeach; ?></select></div>
         <div><label class="<?= $label ?>" for="ean">Animal (if one animal)</label><select id="ean" name="animal_id" class="<?= $input ?>"><option value="0">—</option><?php foreach ($animals as $a): ?><option value="<?= (int)$a['id'] ?>"><?= $h($a['name']) ?><?= bcrf_animal_is_leaving((string)$a['status']) ? ' (left)' : '' ?></option><?php endforeach; ?></select></div>
       </div>
+      <?php if (bcrf_docs_ready($pdo)): ?><p class="text-xs font-semibold text-stone-600 mb-1">Receipt (optional)</p><?= bcrf_doc_inputs_html('doc') ?><?php endif; ?>
       <button class="<?= $btnMain ?>">Save expense</button>
     </form>
   </details>
@@ -166,7 +182,7 @@ if ($error) echo bcrf_shell_notice('err', $error);
     <ul class="divide-y divide-stone-100">
       <?php foreach ($recent as $e): ?>
       <li class="py-2 text-sm"><span class="<?= $e['voided_at'] ? 'line-through text-stone-500' : '' ?>"><strong><?= $m($e['amount_cents']) ?></strong> · <?= $h(date('M j, Y', strtotime($e['spent_on']))) ?> · <?= $h(BCRF_EXPENSE_CATEGORIES[$e['category']] ?? $e['category']) ?> · <?= $h($e['description']) ?></span>
-        <span class="block text-xs text-stone-500"><?= $h(bcrf_expense_for_text($e)) ?><?= $e['vendor'] ? ' · ' . $h($e['vendor']) : '' ?><?= trim((string)$e['by_name']) !== '' ? ' · ' . $h($e['by_name']) : '' ?><?= $e['voided_at'] ? ' · voided: ' . $h($e['void_reason']) : '' ?></span>
+        <span class="block text-xs text-stone-500"><?= $h(bcrf_expense_for_text($e)) ?><?= $e['vendor'] ? ' · ' . $h($e['vendor']) : '' ?><?= trim((string)$e['by_name']) !== '' ? ' · ' . $h($e['by_name']) : '' ?><?= $e['voided_at'] ? ' · voided: ' . $h($e['void_reason']) : '' ?><?= isset($receipts[(int)$e['id']]) ? ' · <a class="underline text-amber-800" href="documents.php?id=' . (int)$receipts[(int)$e['id']] . '">📎 Receipt</a>' : '' ?></span>
         <?php if ($canEdit && !$e['voided_at']): ?>
         <details class="mt-1"><summary class="cursor-pointer text-xs text-amber-800 underline">Void</summary>
           <form method="POST" class="flex flex-wrap gap-2 items-end mt-2"><?= $hidden ?><input type="hidden" name="act" value="void"><input type="hidden" name="expense_id" value="<?= (int)$e['id'] ?>">

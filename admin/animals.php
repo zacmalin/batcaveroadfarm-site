@@ -29,6 +29,7 @@ if (is_file(__DIR__ . '/../includes/animal_breeding.php')) require_once __DIR__ 
 if (is_file(__DIR__ . '/../includes/animal_expenses.php')) require_once __DIR__ . '/../includes/animal_expenses.php';   // slice 7
 if (is_file(__DIR__ . '/../includes/incidents.php')) require_once __DIR__ . '/../includes/incidents.php';   // slice 8
 if (is_file(__DIR__ . '/../includes/animal_public.php')) require_once __DIR__ . '/../includes/animal_public.php';   // slice 9
+if (is_file(__DIR__ . '/../includes/documents.php')) require_once __DIR__ . '/../includes/documents.php';   // receipt photos on expenses (Nov 14)
 if (is_file(__DIR__ . '/../includes/staff_extras.php')) require_once __DIR__ . '/../includes/staff_extras.php';     // per-person extras: review first (Nov 14)
 require_once __DIR__ . '/../includes/admin_shell.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
@@ -344,7 +345,8 @@ if ($id) {
         $tAll = bcrf_expense_totals($all)['total']; $tYear = bcrf_expense_totals($year)['total'];
         $shown = array_slice(array_reverse($all), 0, 50);
         $xhidden = $hidden . '<input type="hidden" name="return_animal" value="' . $id . '">';
-        $mm = fn($c) => $h(bcrf_expense_fmt((int)$c)); ?>
+        $mm = fn($c) => $h(bcrf_expense_fmt((int)$c));
+        $receipts = (function_exists('bcrf_doc_map') && bcrf_docs_ready($pdo)) ? bcrf_doc_map($pdo, 'animal_expense', array_filter(array_column($shown, 'expense_id'))) : []; ?>
   <div class="<?= $card ?>">
     <h2 class="text-base font-semibold text-stone-800 mb-2">Costs for <?= $h($a['name']) ?></h2>
     <table class="w-full text-sm"><thead><tr class="text-left text-xs text-stone-500 border-b border-stone-200"><th class="py-2 pr-2"></th><th class="py-2 px-2 text-right">Vet</th><th class="py-2 px-2 text-right">Feed</th><th class="py-2 px-2 text-right">Other</th><th class="py-2 pl-2 text-right">Total</th></tr></thead><tbody>
@@ -356,7 +358,7 @@ if ($id) {
   </div>
   <?php if ($canEdit): ?>
   <details class="<?= $card ?>"><summary class="cursor-pointer text-base font-semibold text-stone-800">Add an expense for <?= $h($a['name']) ?></summary>
-    <form method="POST" action="animal_expenses.php" class="mt-3"><?= $xhidden ?><input type="hidden" name="act" value="add">
+    <form method="POST" action="animal_expenses.php" class="mt-3" enctype="multipart/form-data"><?= $xhidden ?><input type="hidden" name="act" value="add">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
         <div><label class="<?= $label ?>" for="xd">Date</label><input id="xd" name="spent_on" type="date" required max="<?= $h($today) ?>" value="<?= $h($today) ?>" class="<?= $input ?>"></div>
         <div><label class="<?= $label ?>" for="xa">Amount ($)</label><input id="xa" name="amount" inputmode="decimal" required class="<?= $input ?>" placeholder="e.g. 42.50"></div>
@@ -364,6 +366,7 @@ if ($id) {
         <div class="sm:col-span-2"><label class="<?= $label ?>" for="xs">Description</label><input id="xs" name="description" maxlength="200" required class="<?= $input ?>" placeholder="e.g. Farrier visit"></div>
         <div><label class="<?= $label ?>" for="xv">Where from (optional)</label><input id="xv" name="vendor" maxlength="120" class="<?= $input ?>"></div>
       </div>
+      <?php if (function_exists('bcrf_doc_inputs_html') && bcrf_docs_ready($pdo)): ?><p class="text-xs font-semibold text-stone-600 mb-1">Receipt (optional)</p><?= bcrf_doc_inputs_html('doc') ?><?php endif; ?>
       <button class="<?= $btnMain ?>">Save expense</button>
       <p class="text-xs text-stone-500 mt-2">Vet visits with a medical record already count from Health; feed counts from Care.</p>
     </form>
@@ -375,7 +378,7 @@ if ($id) {
     <ul class="divide-y divide-stone-100">
       <?php foreach ($shown as $l): ?>
       <li class="py-2 text-sm"><strong><?= $mm($l['cents']) ?></strong> · <?= $h(date('M j, Y', strtotime($l['date']))) ?> · <?= $h($l['source'] === 'other' ? (BCRF_EXPENSE_CATEGORIES[$l['category']] ?? 'Other') : BCRF_EXPENSE_SOURCES[$l['source']]) ?>
-        <span class="block text-xs text-stone-500"><?= $h($l['description']) ?></span>
+        <span class="block text-xs text-stone-500"><?= $h($l['description']) ?><?= ($l['expense_id'] && isset($receipts[(int)$l['expense_id']])) ? ' · <a class="underline text-amber-800" href="documents.php?id=' . (int)$receipts[(int)$l['expense_id']] . '">📎 Receipt</a>' : '' ?></span>
         <?php if ($canEdit && $l['expense_id']): ?>
         <details class="mt-1"><summary class="cursor-pointer text-xs text-amber-800 underline">Void</summary>
           <form method="POST" action="animal_expenses.php" class="flex flex-wrap gap-2 items-end mt-2"><?= $xhidden ?><input type="hidden" name="act" value="void"><input type="hidden" name="expense_id" value="<?= (int)$l['expense_id'] ?>">

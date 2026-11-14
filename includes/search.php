@@ -38,6 +38,7 @@ function bcrf_search_kinds(): array {
         'waivers'    => ['Waivers',          '✍️', [['view', 'customers']]],
         'vendors'    => ['Vendors',          '🚚', [['table', 'inventory', 'edit']]],
         'pos'        => ['Purchase orders',  '📦', [['table', 'inventory', 'edit']]],
+        'documents'  => ['Invoices & receipts', '📎', [['table', 'inventory', 'edit'], ['view', 'animal_expenses']]],   // Nov 14, 2026
         'staff'      => ['Staff',            '🧑‍🌾', [['admin']]],
         // Nov 14, 2026
         'tasks'      => ['Tasks',            '✅', [['view', 'tasks']]],
@@ -381,6 +382,24 @@ function bcrf_search(PDO $pdo, string $q, callable $can, array $me = []): array 
                 foreach (bcrf_search_rows($pdo, "SELECT p.id, p.po_ref, p.status, v.name FROM purchase_orders p LEFT JOIN vendors v ON v.id = p.vendor_id
                         WHERE p.po_ref LIKE ? OR v.name LIKE ? ORDER BY p.id DESC LIMIT $n", [$like, $like]) as $r)
                     $rows[] = [($r['po_ref'] ?: 'PO #' . (int)$r['id']) . ' · ' . $r['name'], ucfirst((string)$r['status']), '/admin/purchase_orders.php?id=' . (int)$r['id']];
+                break;
+            case 'documents':
+                // Vendor, invoice #, note, file name or an amount ("212.40"). Animal-expense receipts only for people who see animal costs.
+                $stockOk = bcrf_search_allowed([['table', 'inventory', 'edit']], $can); $animalOk = bcrf_search_allowed([['view', 'animal_expenses']], $can);
+                $vis = $stockOk && $animalOk ? '' : ($stockOk ? " AND (d.link_type IS NULL OR d.link_type <> 'animal_expense')" : " AND d.link_type = 'animal_expense'");
+                $money = str_replace([',', '$', ' '], '', $q);
+                $amt = preg_match('/^\d+(\.\d{1,2})?$/', $money) ? ' OR d.total_cents = ?' : '';
+                $types = ['invoice' => 'Invoice', 'receipt' => 'Receipt', 'packing' => 'Packing slip', 'statement' => 'Statement', 'other' => 'Document'];
+                foreach (bcrf_search_rows($pdo, "SELECT d.id, d.doc_type, d.doc_date, d.total_cents, d.ref, d.note, d.vendor_name, v.name AS vendor FROM purchase_docs d
+                        LEFT JOIN vendors v ON v.id = d.vendor_id WHERE d.deleted_at IS NULL$vis AND (v.name LIKE ? OR d.vendor_name LIKE ? OR d.ref LIKE ? OR d.note LIKE ?
+                        OR EXISTS (SELECT 1 FROM purchase_doc_files f WHERE f.doc_id = d.id AND f.original_name LIKE ?)$amt)
+                        ORDER BY d.doc_date DESC, d.id DESC LIMIT $n", array_merge([$like, $like, $like, $like, $like], $amt ? [(int)round((float)$money * 100)] : [])) as $r) {
+                    $who = $r['vendor'] ?: $r['vendor_name'];
+                    $rows[] = [$join($types[$r['doc_type']] ?? 'Document', $who, $r['ref'] ? '#' . $r['ref'] : ''),
+                               $join($date($r['doc_date']), $r['total_cents'] !== null ? bcrf_search_money((int)$r['total_cents']) : '', bcrf_search_in($q, $who, $r['ref']) ? '' : bcrf_search_snip($r['note'], $q)),
+                               '/admin/documents.php?id=' . (int)$r['id']];
+                }
+                $more = '/admin/documents.php?q=' . $enc;
                 break;
             case 'staff':
                 if (!function_exists('bcrf_role_label')) require_once __DIR__ . '/roles.php';
