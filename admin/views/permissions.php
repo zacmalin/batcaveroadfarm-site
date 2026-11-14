@@ -139,7 +139,7 @@ if (!empty($inspect_role)) {
 
         <div class="flex justify-end">
             <button type="submit"
-                class="bg-stone-950 text-white font-bold uppercase tracking-wider py-2.5 px-8 rounded hover:bg-amber-800 transition shadow-sm">
+                class="bg-amber-700 text-white font-bold uppercase tracking-wider py-2.5 px-8 rounded hover:bg-amber-800 transition shadow-sm">
                 Save Permissions →
             </button>
         </div>

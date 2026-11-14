@@ -744,7 +744,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                             <?php endforeach; ?>
                         </div>
                         <button type="button" id="addPairingBtn"
-                            class="mt-2 text-xxs font-bold uppercase tracking-wider bg-amber-700 text-white px-2.5 py-1.5 rounded hover:bg-stone-950 transition">
+                            class="mt-2 text-xxs font-bold uppercase tracking-wider bg-amber-700 text-white px-2.5 py-1.5 rounded hover:bg-amber-800 transition">
                             Add Pairs Well With +
                         </button>
                     </div>
@@ -1106,7 +1106,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                             <?php endforeach; ?>
                         </div>
                         <button type="button" onclick="addNewIngredientRow()"
-                            class="mt-2 text-xxs font-bold uppercase tracking-wider bg-amber-700 text-white px-2.5 py-1.5 rounded hover:bg-stone-950 transition">
+                            class="mt-2 text-xxs font-bold uppercase tracking-wider bg-amber-700 text-white px-2.5 py-1.5 rounded hover:bg-amber-800 transition">
                             Add Ingredient +
                         </button>
                         <?php

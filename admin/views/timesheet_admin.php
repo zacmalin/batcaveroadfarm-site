@@ -36,7 +36,7 @@ if ($current_role !== 'administrator') {
 <?php else: ?>
     <?php foreach ($all_time_cards as $week => $users): ?>
         <div class="bg-white border rounded shadow-sm mb-8 overflow-hidden print:border-stone-300 print:shadow-none">
-            <div class="bg-amber-700 text-white p-3 font-bold text-xs uppercase tracking-wider">
+            <div class="bg-stone-50 text-stone-800 border-b border-stone-200 p-3 font-bold text-xs uppercase tracking-wider">
                 Week Ending: <?= htmlspecialchars($week) ?>
             </div>
             <table class="w-full text-xs text-center border-collapse">
