@@ -69,10 +69,11 @@ details.ui-expand:not([open]) .ui-expand-open{display:none}
 /* ── On/off switch (includes/admin_switch.php, Nov 14, 2026) ─────────────────
    Saves on tap (admin-ui.js). Brand: Barn Red when on, stone when off. 44px tap target. */
 .ui-switch-form{display:inline-flex;margin:0;flex:0 0 auto}
-.ui-switch{display:inline-flex;align-items:center;gap:.45rem;min-height:44px;padding:0 .25rem;background:none;border:0;cursor:pointer;font:inherit;font-size:12px;font-weight:700;color:#57534e;-webkit-tap-highlight-color:transparent}
+/* form-scoped selectors so page button styles (.fset button, .fs-pay button) can't repaint the switch */
+.ui-switch-form button.ui-switch,.ui-switch-form button.ui-switch:hover{display:inline-flex;align-items:center;justify-content:flex-start;gap:.45rem;min-height:44px;min-width:0;margin:0;padding:0 .25rem;background:none;border:0;border-radius:0;box-shadow:none;cursor:pointer;font:inherit;font-size:12px;font-weight:700;line-height:1;color:#57534e;-webkit-tap-highlight-color:transparent}
 .ui-switch-track{position:relative;display:inline-block;width:44px;height:26px;border-radius:999px;background:#d6d3d1;transition:background .15s}
 .ui-switch-knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
-.ui-switch[aria-checked="true"]{color:#8A3324}
+.ui-switch-form button.ui-switch[aria-checked="true"]{color:#8A3324}
 .ui-switch[aria-checked="true"] .ui-switch-track{background:#8A3324}
 .ui-switch[aria-checked="true"] .ui-switch-knob{transform:translateX(18px)}
 .ui-switch:focus-visible{outline:none}
@@ -83,11 +84,12 @@ details.ui-expand:not([open]) .ui-expand-open{display:none}
 @media (prefers-reduced-motion:reduce){.ui-switch-track,.ui-switch-knob{transition:none}}
 /* A list row that holds a link plus a switch: [data-switch-row] dims when off */
 .ui-swrow{display:flex;align-items:center;gap:.5rem}
-.ui-swrow > a{flex:1 1 auto;min-width:0}
+.ui-swrow > a,.ui-swrow > .ui-swmain{flex:1 1 auto;min-width:0}
 .ui-swmain{display:flex;justify-content:space-between;align-items:center;gap:.75rem}
 .ui-swmain > div:first-child{min-width:0;overflow-wrap:anywhere}
 .ui-swmain .r{text-align:right}
 [data-switch-row].is-off > a, [data-switch-row].is-off > .ui-swmain{opacity:.55}
+.fs-pay .trow > b{flex:1}
 /* Saved · Undo note */
 .ui-switch-toast{position:fixed;left:50%;bottom:calc(1rem + env(safe-area-inset-bottom));z-index:9999;display:flex;align-items:center;gap:1rem;max-width:calc(100vw - 2rem);padding:.7rem 1rem;border-radius:.6rem;background:#3E2A1E;color:#F7F1E3;font-size:13px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.25);transform:translate(-50%,150%);opacity:0;transition:transform .2s,opacity .2s;pointer-events:none}
 .ui-switch-toast.is-on{transform:translate(-50%,0);opacity:1;pointer-events:auto}

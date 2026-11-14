@@ -9,6 +9,7 @@
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
 require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
+require_once __DIR__ . '/../includes/admin_switch.php';   // payment type switches (Nov 14, 2026)
 check_admin();
 if (($_SESSION['user_role'] ?? '') !== 'administrator') { http_response_code(403); exit('Administrators only.'); }
 require_once __DIR__ . '/includes/audit.php';
@@ -28,7 +29,31 @@ $go    = function (string $type, string $msg) use ($tab) { $_SESSION['pay_flash'
 
 // ── Save ─────────────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!hash_equals($csrf, (string)($_POST['csrf_token'] ?? ''))) $go('err', 'Security token expired; reload and try again.');
+    if (!hash_equals($csrf, (string)($_POST['csrf_token'] ?? ''))) {
+        if (bcrf_switch_ajax()) bcrf_switch_json(false, 'Security token expired. Reload the page and try again.');
+        $go('err', 'Security token expired; reload and try again.');
+    }
+    if ($tab === 'methods' && ($_POST['form'] ?? '') === 'tender') {
+        // One payment type's switch (JSON when ajax=1). Keeps the button order; a type turned on goes last.
+        $code = (string)($_POST['code'] ?? '');
+        $all = bcrf_tenders();
+        $want = bcrf_switch_wanted();
+        $msg = ''; $ok = false;
+        if (!isset($all[$code])) $msg = 'Unknown payment type.';
+        else {
+            $active = array_keys(bcrf_tenders_active($pdo));
+            $order = [];
+            foreach ($active as $i => $c) $order[$c] = $i + 1;
+            $on = $want ? array_values(array_unique(array_merge($active, [$code]))) : array_values(array_diff($active, [$code]));
+            try {
+                bcrf_tenders_save($pdo, $on, $order);
+                $ok = true;
+                $msg = $all[$code] . ($want ? ' is on the register.' : ' is off the register. Past sales and refunds still work.') . ' Registers pick it up when they reload.';
+            } catch (InvalidArgumentException $e) { $msg = $e->getMessage(); }
+        }
+        if (bcrf_switch_ajax()) bcrf_switch_json($ok, $msg, $ok ? $want : null);
+        $go($ok ? 'ok' : 'err', $msg);
+    }
     if ($tab === 'tax') {
         if (!$ready) $go('err', 'Run migration 0009 in Settings › Database first.');
         $cats = bcrf_tax_categories($pdo);
@@ -46,9 +71,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $go('ok', $changed ? 'Saved: ' . implode(', ', $changed) . '. New sales use these rates.' : 'No changes.');
     }
     if ($tab === 'methods' && ($_POST['form'] ?? '') === 'tenders') {
-        try { bcrf_tenders_save($pdo, array_map('strval', (array)($_POST['on'] ?? [])), (array)($_POST['order'] ?? [])); }
+        // Order only: each type's on/off is its own switch (form=tender) since Nov 14, 2026.
+        try { bcrf_tenders_save($pdo, array_keys(bcrf_tenders_active($pdo)), (array)($_POST['order'] ?? [])); }
         catch (InvalidArgumentException $e) { $go('err', $e->getMessage()); }
-        $go('ok', 'Saved. Registers show the new payment buttons when they reload.');
+        $go('ok', 'Order saved. Registers show it when they reload.');
     }
     // Methods and Register tabs each post only their own fields; keep the rest as they are.
     $cur = bcrf_pos_settings($pdo);
@@ -87,20 +113,30 @@ $methodNotes = [
   <label>Cash App $cashtag <small class="muted">($<b>name</b>)</small><input type="text" name="p2p_cashapp" value="<?= $h($ps['handles']['cashapp']) ?>" maxlength="41" autocomplete="off"></label>
   <button type="submit">Save payment apps</button>
 </form>
+<?php $act = bcrf_tenders_active($pdo); $pos = array_flip(array_keys($act)); $n = count($act); ?>
+<div class="card">
+  <h2>Payment types on the register</h2>
+  <p class="muted" style="margin:0">Each switch saves as soon as you tap it. Turning one off only hides it for new sales; past sales and refunds still work.<br>None of these are connected to a payment company: the register records them, it doesn't verify them.</p>
+  <?php foreach (bcrf_tenders() as $code => $label): $isOn = isset($act[$code]); ?>
+    <div class="mrow trow ui-swrow<?= $isOn ? '' : ' is-off' ?>" data-switch-row>
+      <span class="ui-swmain"><span><b><?= $h($label) ?></b><br><small class="muted"><?= $h($methodNotes[$code] ?? '') ?></small></span></span>
+      <?= bcrf_switch(['action' => '/admin/payment_settings.php?tab=methods', 'csrf' => $csrf, 'fields' => ['form' => 'tender', 'code' => $code],
+                       'on' => $isOn, 'label' => $label . ' on the register']) ?>
+    </div>
+  <?php endforeach; ?>
+</div>
 <form method="POST" class="card">
   <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
   <input type="hidden" name="form" value="tenders">
-  <h2>Payment types on the register</h2>
-  <p class="muted" style="margin:0">Tick the ones staff can take. The number sets the button order (1 first). Turning one off only hides it for new sales; past sales and refunds still work.<br>None of these are connected to a payment company: the register records them, it doesn't verify them.</p>
-  <?php $act = bcrf_tenders_active($pdo); $pos = array_flip(array_keys($act)); $n = count($act);
-        foreach (bcrf_tenders() as $code => $label): $isOn = isset($act[$code]); ?>
+  <h2>Button order</h2>
+  <p class="muted" style="margin:0">The number sets the order of the payment buttons on the register (1 first).</p>
+  <?php foreach (bcrf_tenders() as $code => $label): $isOn = isset($act[$code]); ?>
     <div class="mrow trow">
-      <label class="tchk"><input type="checkbox" name="on[]" value="<?= $h($code) ?>"<?= $isOn ? ' checked' : '' ?>> <b><?= $h($label) ?></b></label>
+      <b><?= $h($label) ?></b>
       <label class="tord">Order <input type="number" name="order[<?= $h($code) ?>]" value="<?= $isOn ? $pos[$code] + 1 : ++$n ?>" min="1" max="20" inputmode="numeric"></label>
-      <small class="muted"><?= $h($methodNotes[$code] ?? '') ?></small>
     </div>
   <?php endforeach; ?>
-  <button type="submit">Save payment types</button>
+  <button type="submit">Save order</button>
 </form>
 
 <?php elseif ($tab === 'register'): ?>

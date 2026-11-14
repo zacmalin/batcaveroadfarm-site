@@ -14,7 +14,8 @@ require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/sales.php';
 require_once __DIR__ . '/../includes/refunds.php';
 require_once __DIR__ . '/../includes/rewards.php';
-require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
+require_once __DIR__ . '/../includes/admin_shell.php';
+require_once __DIR__ . '/../includes/admin_switch.php';   // reward tier Offer switches (Nov 14, 2026)   // shared Farm OS shell (Nov 11, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -40,6 +41,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $say = function (string $kind, string $msg) { $_SESSION['rewards_flash'] = [$kind, $msg]; };
     $cid = (int)($_POST['customer_id'] ?? 0);
     if (!hash_equals($csrf, (string)($_POST['csrf_token'] ?? ''))) {
+        if (bcrf_switch_ajax()) bcrf_switch_json(false, 'Security token expired. Reload the page and try again.');
         $say('err', 'Security token expired; try again.');
     } else {
         $act = (string)($_POST['act'] ?? '');
@@ -61,13 +63,38 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 bcrf_rewards_adjust($pdo, $cid, $pts, (string)($_POST['reason'] ?? ''), (string)($_POST['key'] ?? ''));
                 if (function_exists('erp_audit')) erp_audit($pdo, 'update', 'reward_members', $cid, sprintf('Adjusted %+d points: %s', $pts, $_POST['reason'] ?? ''));
                 $say('ok', sprintf('%+d points saved.', $pts));
+            } elseif ($act === 'tier') {   // Offer switch for one reward (JSON when ajax=1)
+                if (!$isAdmin) throw new BcrfRewardError('Only an administrator can change Roost Rewards settings.');
+                $p = (int)($_POST['points'] ?? 0);
+                $st = $pdo->prepare("SELECT points, benefit, active FROM reward_tiers WHERE points = ?"); $st->execute([$p]);
+                $t = $st->fetch(PDO::FETCH_ASSOC);
+                if (!$t) throw new BcrfRewardError('That reward no longer exists.');
+                $want = bcrf_switch_wanted();
+                if ($want && trim((string)$t['benefit']) === '') throw new BcrfRewardError('Write in what the ' . $n($p) . '-point reward is and tap Save settings first.');
+                if ((int)$t['active'] !== ($want ? 1 : 0)) {
+                    $pdo->prepare("UPDATE reward_tiers SET active = ? WHERE points = ?")->execute([$want ? 1 : 0, $p]);
+                    if (function_exists('bcrf_audit_event') && function_exists('bcrf_audit_actor')) {
+                        [$at, $aid, $an, $aip] = bcrf_audit_actor();
+                        bcrf_audit_event($pdo, ['actor_type' => $at, 'actor_id' => $aid, 'actor_label' => $an, 'ip' => $aip, 'action' => 'update',
+                            'object_type' => 'reward_tiers', 'object_id' => (string)$p, 'object_label' => $n($p) . '-point reward ' . ($want ? 'turned on' : 'turned off'),
+                            'before' => ['active' => (int)$t['active']], 'after' => ['active' => $want ? 1 : 0]]);
+                    }
+                    header('X-LiteSpeed-Purge: *');   // the customer rewards page lists the rewards
+                    require_once __DIR__ . '/../includes/adapter_cloudflare.php';
+                    require_once __DIR__ . '/../includes/queue.php';
+                    if (!bcrf_cdn_purge()) bcrf_queue_push('cdn.purge', [], ['dedupe' => 'cdn.purge:all']);
+                }
+                $msg = 'The ' . $n($p) . '-point reward is ' . ($want ? 'offered.' : 'turned off.');
+                if (bcrf_switch_ajax()) bcrf_switch_json(true, $msg, $want);
+                $say('ok', $msg);
             } elseif ($act === 'settings') {
                 if (!$isAdmin) throw new BcrfRewardError('Only an administrator can change Roost Rewards settings.');
+                // Each reward's Offer switch saves on its own (act=tier, Nov 14, 2026); Save keeps it, except a blank reward is turned off.
                 $up = $pdo->prepare("UPDATE reward_tiers SET benefit = ?, active = ? WHERE points = ?");
                 foreach (bcrf_rewards_tiers($pdo) as $t) {
                     $p = (int)$t['points'];
                     $b = mb_substr(trim(strip_tags((string)($_POST['benefit'][$p] ?? ''))), 0, 160);
-                    $up->execute([$b, $b !== '' && !empty($_POST['active'][$p]) ? 1 : 0, $p]);
+                    $up->execute([$b, $b !== '' && (int)$t['active'] === 1 ? 1 : 0, $p]);
                 }
                 $on = !empty($_POST['enabled']) ? '1' : '0';
                 $pdo->prepare("INSERT INTO site_settings (setting_key, setting_value) VALUES ('rewards_enabled', ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)")->execute([$on]);
@@ -80,9 +107,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 $say('ok', 'Settings saved. Roost Rewards is ' . ($on === '1' ? 'ON' : 'OFF') . '.');
             }
         } catch (BcrfRewardError $e) {
+            if (bcrf_switch_ajax()) bcrf_switch_json(false, $e->getMessage());
             $say('err', $e->getMessage());
         } catch (Throwable $e) {
             error_log('[BCRF rewards admin] ' . $e->getMessage());
+            if (bcrf_switch_ajax()) bcrf_switch_json(false, 'Something went wrong; nothing was saved.');
             $say('err', 'Something went wrong; nothing was saved.');
         }
     }
@@ -181,11 +210,19 @@ if ($tab === 'find') {
          ' data-confirm-off="Turn Roost Rewards OFF? Register sales stop earning points and the customer page closes. Points already earned are kept.">',
          ' Roost Rewards is ON (register sales earn points, the customer page is open)</label>',
          '<h3>Rewards</h3><p><small>A tier can be used only when it has a reward written in and is turned on.</small></p>';
-    foreach (bcrf_rewards_tiers($pdo) as $t) {
+    $tiers = bcrf_rewards_tiers($pdo);
+    foreach ($tiers as $t) {
         $p = (int)$t['points'];
-        echo '<label>', $n($p), ' points <input type="text" name="benefit[', $p, ']" maxlength="160" value="', $h($t['benefit']), '" placeholder="e.g. Free bag of feed"></label>',
-             '<label><input type="checkbox" name="active[', $p, ']" value="1"', (int)$t['active'] ? ' checked' : '', '> Offer the ', $n($p), '-point reward</label>';
+        echo '<label>', $n($p), ' points <input type="text" name="benefit[', $p, ']" maxlength="160" value="', $h($t['benefit']), '" placeholder="e.g. Free bag of feed"></label>';
     }
-    echo '<button class="btn primary" type="submit">Save settings</button></form></section>';
+    echo '<button class="btn primary" type="submit">Save settings</button></form>',
+         '<h3>Which rewards are offered</h3><p><small>Each switch saves as soon as you tap it.</small></p>';
+    foreach ($tiers as $t) {
+        $p = (int)$t['points'];
+        echo '<div class="lrow ui-swrow', (int)$t['active'] ? '' : ' is-off', '" data-switch-row><span class="ui-swmain">', $n($p), ' points', $t['benefit'] !== '' ? ': ' . $h($t['benefit']) : ' (no reward written in yet)', '</span>',
+             bcrf_switch(['action' => 'rewards.php', 'csrf' => $csrf, 'fields' => ['act' => 'tier', 'points' => $p, 'back' => 'rewards.php?tab=settings'],
+                          'on' => (int)$t['active'] === 1, 'label' => 'Offer the ' . $n($p) . '-point reward', 'on_text' => 'Offered', 'off_text' => 'Off']), '</div>';
+    }
+    echo '</section>';
 }
 echo '</div></main></body></html>';

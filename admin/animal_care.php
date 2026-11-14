@@ -5,7 +5,7 @@
 //   GET  animal_care.php?tab=log               all recent entries, with void
 //   GET  animal_care.php?tab=setup             care types, care schedules per species (slice 5) and which products are feed
 //                                              (edit permission)
-//   POST act=log | void | type | feed | sched
+//   POST act=log | void | type | feed | sched | type_active (In use switch on Setup, Nov 14, 2026; JSON when ajax=1)
 // Section tabs (Log care, Recent, Setup) come from the sidebar.
 // Permission: table 'animals' view to log care (staff do this from their phones); edit to void entries or change setup.
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
@@ -17,6 +17,7 @@ require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/animal_care.php';
 if (is_file(__DIR__ . '/../includes/animal_schedules.php')) require_once __DIR__ . '/../includes/animal_schedules.php';   // slice 5
 require_once __DIR__ . '/../includes/admin_shell.php';
+require_once __DIR__ . '/../includes/admin_switch.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -53,12 +54,24 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             bcrf_care_void($pdo, $id, (string)($_POST['reason'] ?? ''), $uid);
             if (function_exists('erp_audit')) erp_audit($pdo, 'update', 'animal_care_logs', $id, 'Care entry voided: ' . trim((string)$_POST['reason']));
             $_SESSION['ac_flash'] = ['ok', 'Voided. Any feed went back into stock.'];
+        } elseif ($act === 'type_active') {
+            if (!$canEdit) throw new BcrfCareError('You can log care but not change the setup.');
+            $back = 'animal_care.php?tab=setup';
+            $want = bcrf_switch_wanted();
+            $r = bcrf_switch_set($pdo, 'animal_care_types', 'active', (int)($_POST['type_id'] ?? 0), $want);
+            if ($r === null) throw new BcrfCareError('That care type no longer exists.');
+            $msg = $r['label'] . ($want ? ' is in use.' : ' is turned off. Staff won\'t see it; past entries stay.');
+            if (bcrf_switch_ajax()) bcrf_switch_json(true, $msg, $want);
+            $_SESSION['ac_flash'] = ['ok', $msg];
         } elseif ($act === 'type' || $act === 'feed') {
             if (!$canEdit) throw new BcrfCareError('You can log care but not change the setup.');
             $back = 'animal_care.php?tab=setup';
             if ($act === 'type') {
                 $tid = (int)($_POST['type_id'] ?? 0);
-                $saved = bcrf_care_type_save($pdo, $tid, (string)($_POST['name'] ?? ''), !empty($_POST['is_feeding']), !empty($_POST['quick']), !empty($_POST['active']) || !$tid, (int)($_POST['sort_order'] ?? 0));
+                // In use has its own switch (type_active) since Nov 14, 2026, so Save keeps whatever it is now.
+                $activeNow = true;
+                if ($tid) { $st = $pdo->prepare("SELECT active FROM animal_care_types WHERE id = ?"); $st->execute([$tid]); $activeNow = (int)$st->fetchColumn() === 1; }
+                $saved = bcrf_care_type_save($pdo, $tid, (string)($_POST['name'] ?? ''), !empty($_POST['is_feeding']), !empty($_POST['quick']), $activeNow, (int)($_POST['sort_order'] ?? 0));
                 if (function_exists('erp_audit')) erp_audit($pdo, $tid ? 'update' : 'create', 'animal_care_types', $saved, 'Care type ' . trim((string)$_POST['name']));
                 $_SESSION['ac_flash'] = ['ok', $tid ? 'Saved.' : 'Added.'];
             } else {
@@ -78,10 +91,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             throw new BcrfCareError('Unknown action.');
         }
     } catch (BcrfCareError | BcrfAnimalError $e) {
+        if ($act === 'type_active' && bcrf_switch_ajax()) bcrf_switch_json(false, $e->getMessage());
         $_SESSION['ac_flash'] = ['err', $e->getMessage()];
         if ($act === 'log' && !(int)($_POST['return_animal'] ?? 0)) $back = 'animal_care.php?type=' . (int)($_POST['type'] ?? 0);
     } catch (Throwable $e) {
         error_log('[animal_care] ' . $act . ': ' . $e->getMessage());
+        if ($act === 'type_active' && bcrf_switch_ajax()) bcrf_switch_json(false, 'Could not save. Try again.');
         $_SESSION['ac_flash'] = ['err', 'Could not save. Try again.'];
     }
     header('Location: ' . $back); exit;
@@ -120,13 +135,15 @@ if ($tab === 'setup' && $canEdit) {
     <p class="text-sm text-stone-500 mb-3">Quick types get a big button on the phone. A feeding type asks which feed and how much.</p>
     <ul class="divide-y divide-stone-100">
     <?php foreach ($types as $t): ?>
-      <li class="py-3"><form method="POST" action="animal_care.php" class="flex flex-wrap gap-2 items-end"><?= $hidden ?><input type="hidden" name="act" value="type"><input type="hidden" name="type_id" value="<?= $t['id'] ?>">
+      <li class="py-3<?= $t['active'] ? '' : ' is-off' ?>" data-switch-row><form method="POST" action="animal_care.php" class="ui-swmain flex flex-wrap gap-2 items-end"><?= $hidden ?><input type="hidden" name="act" value="type"><input type="hidden" name="type_id" value="<?= $t['id'] ?>">
         <div class="flex-1 min-w-48"><label class="<?= $label ?>" for="tn<?= $t['id'] ?>">Name</label><input id="tn<?= $t['id'] ?>" name="name" maxlength="60" required value="<?= $h($t['name']) ?>" class="<?= $input ?>"></div>
         <div class="w-24"><label class="<?= $label ?>" for="to<?= $t['id'] ?>">Order</label><input id="to<?= $t['id'] ?>" name="sort_order" type="number" value="<?= $t['sort_order'] ?>" class="<?= $input ?>"></div>
         <label class="flex gap-1 items-center text-sm"><input type="checkbox" name="quick" value="1" <?= $t['quick'] ? 'checked' : '' ?>> Quick</label>
         <label class="flex gap-1 items-center text-sm"><input type="checkbox" name="is_feeding" value="1" <?= $t['is_feeding'] ? 'checked' : '' ?>> Feeding</label>
-        <label class="flex gap-1 items-center text-sm"><input type="checkbox" name="active" value="1" <?= $t['active'] ? 'checked' : '' ?>> In use</label>
-        <button class="<?= $btnSec ?>">Save</button></form></li>
+        <button class="<?= $btnSec ?>">Save</button></form>
+        <div class="flex items-center gap-2 mt-1 text-sm text-stone-600">In use
+          <?= bcrf_switch(['action' => 'animal_care.php', 'csrf' => $csrf, 'fields' => ['act' => 'type_active', 'type_id' => (int)$t['id']],
+                           'on' => (bool)$t['active'], 'label' => $t['name'] . ' in use']) ?></div></li>
     <?php endforeach; ?>
     </ul>
     <form method="POST" action="animal_care.php" class="flex flex-wrap gap-2 items-end mt-3"><?= $hidden ?><input type="hidden" name="act" value="type"><input type="hidden" name="type_id" value="0">
