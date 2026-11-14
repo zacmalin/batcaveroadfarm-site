@@ -2,6 +2,8 @@
 // includes/vendors.php — vendors and product cost (Farm OS Phase 2, slice 2.1, Nov 9, 2026; 06 Purchasing & Inventory)
 //   bcrf_vendors_ready($pdo)
 //   bcrf_vendor_list / get / save
+//   bcrf_vendors_has_web($pdo) — website + address columns exist (migration 0065, Nov 14, 2026)
+//   bcrf_vendor_web_url / bcrf_vendor_tel / bcrf_vendor_map_url — links for the Call, Open and Map buttons
 //   bcrf_product_set_cost — set avg_cost_cents and append product_cost_history
 //   bcrf_product_apply_receive_cost — moving-average update used by receiving (slice 2.2+)
 declare(strict_types=1);
@@ -16,6 +18,42 @@ function bcrf_vendors_ready(PDO $pdo): bool {
         $c = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'inventory' AND column_name = 'avg_cost_cents'")->fetchColumn();
         return $ready = ($t === 1 && $c === 1);
     } catch (Throwable $e) { return $ready = false; }
+}
+
+/** Website and address columns (migration 0065). Before it runs, the page hides those boxes and Save skips them. */
+function bcrf_vendors_has_web(PDO $pdo): bool {
+    static $has = null;
+    if ($has !== null) return $has;
+    try {
+        $has = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'vendors' AND column_name IN ('website','address')")->fetchColumn() === 2;
+    } catch (Throwable $e) { $has = false; }
+    return $has;
+}
+
+/** Tidy a typed website into a full http(s) link: "tractorsupply.com" -> "https://tractorsupply.com". '' stays ''. Throws on anything that isn't a web link. */
+function bcrf_vendor_web_url(string $raw): string {
+    $u = trim($raw);
+    if ($u === '') return '';
+    if (!preg_match('#^[a-z][a-z0-9+.\-]*://#i', $u)) $u = 'https://' . ltrim($u, '/');
+    $scheme = strtolower((string)parse_url($u, PHP_URL_SCHEME));
+    $host = (string)parse_url($u, PHP_URL_HOST);
+    if (!in_array($scheme, ['http', 'https'], true) || $host === '' || !str_contains($host, '.') || !filter_var($u, FILTER_VALIDATE_URL) || preg_match('/\s/', $u)) {
+        throw new InvalidArgumentException('Check the website (for example tractorsupply.com).');
+    }
+    return $u;
+}
+
+/** tel: link target: digits and a leading +, '' when there are fewer than 7 digits. */
+function bcrf_vendor_tel(?string $phone): string {
+    $d = preg_replace('/[^0-9+]/', '', (string)$phone);
+    $d = ($d !== '' && $d[0] === '+' ? '+' : '') . str_replace('+', '', $d);
+    return strlen(ltrim($d, '+')) >= 7 ? $d : '';
+}
+
+/** Google Maps search link for an address (opens the Maps app on iPhone and Android). */
+function bcrf_vendor_map_url(?string $address): string {
+    $a = trim(preg_replace('/\s+/', ' ', (string)$address));
+    return $a === '' ? '' : 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode($a);
 }
 
 function bcrf_vendor_list(PDO $pdo, array $f = []): array {
@@ -51,7 +89,8 @@ function bcrf_vendor_options(PDO $pdo): array {
 
 /**
  * Create or update a vendor. Throws InvalidArgumentException.
- * $in: name, contact_name, email, phone, account_number, payment_terms, notes, is_active
+ * $in: name, contact_name, email, phone, website, address, account_number, payment_terms, notes, is_active
+ * website/address are skipped (left as they are) until migration 0065 has run.
  */
 function bcrf_vendor_save(PDO $pdo, ?int $id, array $in, ?int $uid): int {
     $bad = fn(string $m) => throw new InvalidArgumentException($m);
@@ -66,6 +105,8 @@ function bcrf_vendor_save(PDO $pdo, ?int $id, array $in, ?int $uid): int {
         'contact_name'   => $str('contact_name', 120) ?: null,
         'email'          => $email ?: null,
         'phone'          => $str('phone', 40) ?: null,
+        'website'        => bcrf_vendor_web_url($str('website', 255)) ?: null,
+        'address'        => trim(preg_replace('/\s+/', ' ', $str('address', 255))) ?: null,
         'account_number' => $str('account_number', 80) ?: null,
         'payment_terms'  => $str('payment_terms', 80) ?: null,
         'notes'          => $str('notes', 5000) ?: null,
@@ -75,12 +116,16 @@ function bcrf_vendor_save(PDO $pdo, ?int $id, array $in, ?int $uid): int {
     $old = $id ? bcrf_vendor_get($pdo, $id) : null;
     if ($id && !$old) $bad('That vendor no longer exists.');
 
+    if (strlen((string)$v['website']) > 255) $bad('That website link is too long.');
+    if (!bcrf_vendors_has_web($pdo)) unset($v['website'], $v['address']);
+    $cols = array_keys($v);
     if ($old) {
-        $pdo->prepare('UPDATE vendors SET name=?, contact_name=?, email=?, phone=?, account_number=?, payment_terms=?, notes=?, is_active=?, updated_at=UTC_TIMESTAMP(), updated_by=? WHERE id=?')
-            ->execute([$v['name'], $v['contact_name'], $v['email'], $v['phone'], $v['account_number'], $v['payment_terms'], $v['notes'], $v['is_active'], $uid, $id]);
+        $set = implode(', ', array_map(fn($c) => "$c=?", $cols));
+        $pdo->prepare("UPDATE vendors SET $set, updated_at=UTC_TIMESTAMP(), updated_by=? WHERE id=?")
+            ->execute([...array_values($v), $uid, $id]);
     } else {
-        $pdo->prepare('INSERT INTO vendors (name, contact_name, email, phone, account_number, payment_terms, notes, is_active, created_at, created_by) VALUES (?,?,?,?,?,?,?,?,UTC_TIMESTAMP(),?)')
-            ->execute([$v['name'], $v['contact_name'], $v['email'], $v['phone'], $v['account_number'], $v['payment_terms'], $v['notes'], $v['is_active'], $uid]);
+        $pdo->prepare('INSERT INTO vendors (' . implode(', ', $cols) . ', created_at, created_by) VALUES (' . str_repeat('?,', count($cols)) . 'UTC_TIMESTAMP(),?)')
+            ->execute([...array_values($v), $uid]);
         $id = (int)$pdo->lastInsertId();
     }
 

@@ -3,6 +3,7 @@
 // Permission: edit on inventory (same as Products). Plain forms, strict CSP (C-09).
 // Nov 11, 2026: runs inside the shared Farm OS shell (includes/admin_shell.php) with the Hiring-screen look;
 // the Products & Inventory tabs replace the old "← Admin · Products · Stock" links.
+// Nov 14, 2026: Website and Address boxes (migration 0065), with Call / Open / Map buttons next to Phone, Website and Address.
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
 check_admin();
@@ -162,6 +163,22 @@ $field = function (string $name, string $text, string $type = 'text', int $max =
          . '<input id="f_' . $name . '" type="' . $type . '" name="' . $name . '" value="' . $val($name) . '" maxlength="' . $max . '" class="' . $input . '"' . $extra . '></div>';
 };
 
+// Call / Open / Map buttons use the SAVED values, so they always match what's on file (shown once there's something saved).
+$hasWeb = bcrf_vendors_has_web($pdo);
+$telHref = bcrf_vendor_tel($v['phone'] ?? '');
+$webHref = '';
+if ($hasWeb && !empty($v['website'])) { try { $webHref = bcrf_vendor_web_url((string)$v['website']); } catch (InvalidArgumentException $e) { $webHref = ''; } }
+$mapHref = $hasWeb ? bcrf_vendor_map_url($v['address'] ?? '') : '';
+$btnIcon = 'shrink-0 inline-flex items-center justify-center px-3 rounded text-sm font-semibold border border-stone-300 text-stone-700 bg-white hover:bg-stone-100';
+$withBtn = function (string $fieldHtml, string $href, string $text, string $aria, bool $newTab = false) use ($h, $btnIcon) {
+    if ($href === '') return $fieldHtml;
+    // Put the button beside the input, under the same label.
+    $btn = '<a href="' . $h($href) . '" class="' . $btnIcon . '" aria-label="' . $h(trim($aria)) . '"' . ($newTab ? ' target="_blank" rel="noopener noreferrer"' : '') . '>' . $h($text) . '</a>';
+    $in = strpos($fieldHtml, '<input ');
+    $end = strrpos($fieldHtml, '</div>');
+    return substr($fieldHtml, 0, $in) . '<div class="flex gap-2 items-stretch">' . substr($fieldHtml, $in, $end - $in) . $btn . '</div></div>';
+};
+
 bcrf_shell_open($v ? $v['name'] . ' — Vendors' : 'Add a vendor', ['toast' => $toast, 'width' => 'max-w-2xl']);
 ?>
   <a href="vendors.php" class="inline-block text-sm text-stone-500 hover:text-stone-800 mb-2">← All vendors</a>
@@ -175,8 +192,14 @@ bcrf_shell_open($v ? $v['name'] . ' — Vendors' : 'Add a vendor', ['toast' => $
     <?= $field('contact_name', 'Contact name') ?>
     <div class="grid gap-3 sm:grid-cols-2">
       <?= $field('email', 'Email', 'email', 190, ' autocomplete="off"') ?>
-      <?= $field('phone', 'Phone', 'text', 40, ' autocomplete="off"') ?>
+      <?= $withBtn($field('phone', 'Phone', 'tel', 40, ' autocomplete="off"'), $telHref !== '' ? 'tel:' . $telHref : '', 'Call', 'Call ' . ($v['name'] ?? '')) ?>
     </div>
+    <?php if ($hasWeb): ?>
+    <?= $withBtn($field('website', 'Website', 'text', 255, ' autocomplete="off" inputmode="url" placeholder="tractorsupply.com"'), $webHref, 'Open', 'Open ' . ($v['name'] ?? '') . ' website in a new tab', true) ?>
+    <?= $withBtn($field('address', 'Address', 'text', 255, ' autocomplete="off" placeholder="Street, town, state ZIP"'), $mapHref, 'Map', 'Open ' . ($v['name'] ?? '') . ' address in maps', true) ?>
+    <?php else: ?>
+    <p class="text-xs text-stone-500">Website and Address boxes appear after migration 0065 runs in <a href="/admin/migrations.php" class="text-amber-800 underline">Settings › Database</a>.</p>
+    <?php endif; ?>
     <div class="grid gap-3 sm:grid-cols-2">
       <?= $field('account_number', 'Account number', 'text', 80, ' autocomplete="off"') ?>
       <?= $field('payment_terms', 'Payment terms', 'text', 80, '', '(e.g. Net 30, COD)') ?>
