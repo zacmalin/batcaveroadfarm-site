@@ -62,7 +62,7 @@ if (!empty($_GET['id'])) {
         exit;
     }
     echo '<p><a href="settlements.php">← Payable & history</a></p>';
-    if ($flash) echo '<p class="flash', $flash[0] === 'err' ? ' err' : '', '">', $h($flash[1]), '</p>';
+    if ($flash) echo bcrf_shell_flash($flash);
     echo '<h1>Settlement #', (int)$s['id'], '</h1>';
     echo '<p class="muted">', $h(trim((string)$s['consignor_name']) ?: ('Customer #' . $s['consignor_customer_id'])),
          $s['consignor_email'] ? ' · ' . $h($s['consignor_email']) : '',
@@ -87,7 +87,7 @@ if (!empty($_GET['id'])) {
 
 // Main: payable groups + history
 echo '<h1>Consignor settlements</h1>';
-if ($flash) echo '<p class="flash', $flash[0] === 'err' ? ' err' : '', '">', $h($flash[1]), '</p>';
+if ($flash) echo bcrf_shell_flash($flash);
 
 $groups = bcrf_settlement_payable_by_consignor($pdo);
 if (!$groups) {

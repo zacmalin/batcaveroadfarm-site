@@ -72,7 +72,7 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
         exit;
     }
     echo '<p><a href="thrift.php">← All thrift</a> · <a href="thrift.php?new=1">Intake</a></p>';
-    if ($flash) echo '<p class="flash', $flash[0] === 'err' ? ' err' : '', '">', $h($flash[1]), '</p>';
+    if ($flash) echo bcrf_shell_flash($flash);
     echo '<h1>', $h($p['name']), '</h1>';
     echo '<p class="muted">', $h($p['sku']), ' · ', $h(bcrf_thrift_sources()[$p['thrift_source']] ?? $p['thrift_source']),
          ' · ', $h(bcrf_thrift_statuses()[$p['thrift_status']] ?? $p['thrift_status']),
@@ -106,7 +106,7 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
 if (!empty($_GET['new'])) {
     $d = $typed ?: ['source' => 'donated', 'condition' => 'good', 'consignor_share_pct' => '60'];
     echo '<p><a href="thrift.php">← All thrift</a></p><h1>Thrift intake</h1>';
-    if ($flash) echo '<p class="flash', $flash[0] === 'err' ? ' err' : '', '">', $h($flash[1]), '</p>';
+    if ($flash) echo bcrf_shell_flash($flash);
     echo '<form class="card stackf" method="POST" action="thrift.php"><input type="hidden" name="csrf_token" value="', $h($csrf), '">';
     echo '<label>Title<input type="text" name="name" value="', $h($d['name'] ?? ''), '" maxlength="255" required autofocus></label>';
     echo '<label>Source', $sel('source', bcrf_thrift_sources(), $d['source'] ?? 'donated'), '</label>';
@@ -135,7 +135,7 @@ $f = [
 ];
 $rows = bcrf_thrift_list($pdo, $f);
 echo '<h1>Thrift</h1>';
-if ($flash) echo '<p class="flash', $flash[0] === 'err' ? ' err' : '', '">', $h($flash[1]), '</p>';
+if ($flash) echo bcrf_shell_flash($flash);
 echo '<form class="rform" method="GET" action="thrift.php"><input type="search" name="q" value="', $h($f['q']), '" placeholder="Title or SKU" aria-label="Search">',
      $sel('status', ['available' => 'For sale', 'sold' => 'Sold', 'all' => 'All', 'returned' => 'Returned', 'withdrawn' => 'Withdrawn'], $f['status']),
      $sel('source', bcrf_thrift_sources(), $f['source'] ?? '', 'All sources'),

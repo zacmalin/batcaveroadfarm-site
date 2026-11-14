@@ -95,8 +95,24 @@ function bcrf_shell_notice(string $type, string $message): string {
         'warning' => 'bg-amber-50 border-amber-200 text-amber-800',
         'info'    => 'bg-stone-50 border-stone-200 text-stone-700',
     ][$type] ?? 'bg-stone-50 border-stone-200 text-stone-700';
-    return '<div class="p-3 mb-4 border rounded text-sm ' . $cls . '" role="' . ($type === 'err' ? 'alert' : 'status') . '">'
+    // Errors get a ✕ (admin-ui.js) and stay until it's tapped or the page changes
+    return '<div class="p-3 mb-4 border rounded text-sm ' . $cls . '" role="' . ($type === 'err' ? 'alert" data-closable="' : 'status') . '">'
          . htmlspecialchars($message, ENT_QUOTES, 'UTF-8') . '</div>';
+}
+
+/**
+ * The message after a save, one look on every page (Nov 14, 2026): $flash = ['ok'|'err'|'warning', 'message'].
+ * Success → the toast that fades after 5 s; an error or warning → a box on the page that stays until ✕.
+ */
+function bcrf_shell_flash($flash): string {
+    if (!is_array($flash) || !isset($flash[1]) || trim((string)$flash[1]) === '') return '';
+    $kind = (string)($flash[0] ?? 'ok');
+    if ($kind === 'err' || $kind === 'error') return bcrf_shell_notice('err', (string)$flash[1]);
+    if ($kind === 'warning' || $kind === 'warn') return str_replace('role="status"', 'role="alert" data-closable', bcrf_shell_notice('warning', (string)$flash[1]));
+    $toastType = 'success'; $toastMessage = (string)$flash[1];
+    ob_start();
+    require dirname(__DIR__) . '/admin/views/layout/toast.php';
+    return (string)ob_get_clean();
 }
 
 }

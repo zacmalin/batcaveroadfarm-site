@@ -166,7 +166,7 @@ $ok      = $signed && !(int)($a['needs_reconnect'] ?? 0);
     <a class="btn" href="/admin/pinterest_connect.php?start=1"><?= $signed ? 'Reconnect Pinterest' : 'Connect Pinterest' ?></a>
     <?php if ($signed): ?>
       <form method="post" style="display:inline"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="check"><button class="ghost">Check connection</button></form>
-      <form method="post" style="display:inline" onsubmit="return confirm('Disconnect Pinterest? Auto-posting will be switched off.')"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="disconnect"><button class="danger">Disconnect</button></form>
+      <form method="post" style="display:inline" data-confirm="Disconnect Pinterest? Auto-posting will be switched off."><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="disconnect"><button class="danger">Disconnect</button></form>
     <?php endif; ?>
   </div>
   <?php if (!$signed): ?>

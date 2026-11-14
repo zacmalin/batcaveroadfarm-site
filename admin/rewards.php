@@ -132,7 +132,7 @@ echo '<nav class="rtabs" aria-label="Roost Rewards"><a href="rewards.php"', $tab
      $isAdmin ? '<a href="rewards.php?tab=settings"' . ($tab === 'settings' ? ' aria-current="page"' : '') . '>Settings</a>' : '', '</nav>';
 echo '<h1>Roost Rewards</h1>';
 if (!$on) echo '<p class="flash err">Roost Rewards is OFF: sales are not earning points.', $isAdmin ? ' Turn it on in <a href="rewards.php?tab=settings">Settings</a>.' : '', '</p>';
-if ($flash) echo '<p class="flash', $flash[0] === 'err' ? ' err' : '', '" role="status">', $h($flash[1]), '</p>';
+if ($flash) echo bcrf_shell_flash($flash);
 
 if ($tab === 'find') {
     $q = trim((string)($_GET['q'] ?? ''));

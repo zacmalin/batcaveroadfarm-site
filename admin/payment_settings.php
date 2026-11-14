@@ -101,7 +101,7 @@ $methodNotes = [
 ?><?php bcrf_shell_open('Payments & Register', ['strict' => false, 'css' => ['admin-settings.css'], 'width' => 'max-w-3xl fset fs-pay']); ?>
 <h1>💳 Payments &amp; Register</h1>
 <p class="muted" style="margin:0">Everything the register uses for payments, discounts, receipts and tax. Changes are saved to the audit log.</p>
-<?php if ($flash): ?><div class="flash <?= $flash[0] === 'ok' ? 'ok' : 'err' ?>"><?= $h($flash[1]) ?></div><?php endif; ?>
+<?php if ($flash) echo bcrf_shell_flash($flash); ?>
 
 <?php if ($tab === 'methods'): ?>
 <form method="POST" class="card">

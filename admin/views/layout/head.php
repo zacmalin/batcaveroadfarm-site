@@ -145,33 +145,15 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// Any element with data-confirm="message" gets a sysConfirm dialog instead of
-// the browser native confirm(). Works for submit buttons and links.
-// Optional attributes: data-confirm-title, data-confirm-label
-document.addEventListener('click', async function(e) {
-    const el = e.target.closest('[data-confirm]');
-    if (!el || el.dataset.confirmed === '1') return;
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    const msg   = el.dataset.confirm;
-    const title = el.dataset.confirmTitle || 'Are you sure?';
-    const label = el.dataset.confirmLabel || 'Confirm';
-    const yes   = await sysConfirm(msg, title, '⚠️', label);
-    if (yes) {
-        el.dataset.confirmed = '1';
-        const form = el.closest('form');
-        if (form) { form.submit(); }
-        else if (el.tagName === 'A' && el.href) { window.location.href = el.href; }
-        else { el.click(); }
-    }
-}, true); // capture phase so it fires before other listeners
+// data-confirm="message" on buttons, forms and links is handled by admin/assets/admin-ui.js (bcrfConfirm),
+// which keeps the tapped button's name/value. sysConfirm/sysAlert above stay for page scripts that call them.
 
 </script>
 <!-- Admin list search + sort (external, CSP-safe) -->
 <script defer src="/admin/assets/admin-list.js?v=20260615b"></script>
 <!-- Shared UI kit (02 Navigation & UX): chips, phone card tables, common behaviours -->
-<link rel="stylesheet" href="/admin/assets/admin-ui.css?v=20261114b">
-<script defer src="/admin/assets/admin-ui.js?v=20261114a"></script>
+<link rel="stylesheet" href="/admin/assets/admin-ui.css?v=20261114c">
+<script defer src="/admin/assets/admin-ui.js?v=20261114b"></script>
 <!-- Shell chrome (sidebar rail, phone bar, More sheet, tabs) — moved out of sidebar.php Nov 11, 2026 -->
 <link rel="stylesheet" href="/admin/assets/admin-shell.css?v=20261113a">
 

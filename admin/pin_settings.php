@@ -101,9 +101,7 @@ if ($isOwner && $ready) {
 bcrf_shell_open('PIN sign-in', ['width' => 'max-w-3xl', 'css' => ['pin.css']]);
 ?>
 <div class="pins">
-<?php if ($flash): ?>
-  <p class="pins-flash<?= $flash[1] ? ' bad' : '' ?>" role="<?= $flash[1] ? 'alert' : 'status' ?>"><?= $h($flash[0]) ?></p>
-<?php endif; ?>
+<?php if ($flash) echo bcrf_shell_flash([$flash[1] ? 'err' : 'ok', $flash[0]]); ?>
 <?php if (!$ready): ?>
   <div class="pins-card"><h2>Waiting for migration 0058</h2><p>An Owner runs it in Settings › Database. Then PINs and shared devices can be set up here.</p></div>
 <?php else: ?>

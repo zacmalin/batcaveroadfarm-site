@@ -90,9 +90,36 @@ details.ui-expand:not([open]) .ui-expand-open{display:none}
 .ui-swmain .r{text-align:right}
 [data-switch-row].is-off > a, [data-switch-row].is-off > .ui-swmain{opacity:.55}
 .fs-pay .trow > b{flex:1}
-/* Saved · Undo note */
-.ui-switch-toast{position:fixed;left:50%;bottom:calc(1rem + env(safe-area-inset-bottom));z-index:9999;display:flex;align-items:center;gap:1rem;max-width:calc(100vw - 2rem);padding:.7rem 1rem;border-radius:.6rem;background:#3E2A1E;color:#F7F1E3;font-size:13px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.25);transform:translate(-50%,150%);opacity:0;transition:transform .2s,opacity .2s;pointer-events:none}
-.ui-switch-toast.is-on{transform:translate(-50%,0);opacity:1;pointer-events:auto}
-.ui-switch-toast.is-err{background:#991b1b;color:#fff}
-.ui-switch-toast button{background:none;border:0;color:#D9A441;font:inherit;font-weight:800;text-decoration:underline;cursor:pointer;min-height:36px;padding:0 .25rem}
-@media (max-width:767.98px){.ui-switch-toast{bottom:calc(5rem + env(safe-area-inset-bottom))}}
+/* Messages (Nov 14, 2026): one look for every admin page. Success fades on its own; errors stay until ✕. */
+.ui-toast{position:fixed;left:50%;bottom:calc(1rem + env(safe-area-inset-bottom));z-index:9999;display:flex;align-items:center;gap:1rem;width:max-content;max-width:calc(100vw - 2rem);padding:.7rem 1rem;border-radius:.6rem;background:#3E2A1E;color:#F7F1E3;font-size:13px;font-weight:600;line-height:1.35;box-shadow:0 6px 20px rgba(0,0,0,.25);transform:translate(-50%,150%);opacity:0;transition:transform .2s,opacity .2s;pointer-events:none;text-align:left}
+.ui-toast.is-on{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+.ui-toast.is-err{background:#991b1b;color:#fff}
+.ui-toast.is-warn{background:#92400e;color:#fff}
+.ui-toast button{background:none;border:0;color:#D9A441;font:inherit;font-weight:800;text-decoration:underline;cursor:pointer;min-height:36px;padding:0 .25rem;flex:0 0 auto}
+.ui-toast.is-err button,.ui-toast.is-warn button{color:#fff}
+.ui-toast button.ui-toast-x{text-decoration:none;font-size:16px;min-width:36px;margin:-.35rem -.5rem -.35rem 0;opacity:.85}
+/* A toast printed by the server (views/layout/toast.php): success slides in, then fades after 5 s, even without JS */
+.ui-toast.is-auto{animation:uiToastAuto 5.2s ease-in-out forwards}
+@keyframes uiToastAuto{0%{transform:translate(-50%,150%);opacity:0}6%{transform:translate(-50%,0);opacity:1}90%{transform:translate(-50%,0);opacity:1}100%{transform:translate(-50%,150%);opacity:0;visibility:hidden}}
+@media (max-width:767.98px){.ui-toast{bottom:calc(5rem + env(safe-area-inset-bottom))}}
+@media (prefers-reduced-motion:reduce){.ui-toast{transition:none}.ui-toast.is-auto{animation-duration:6s;animation-timing-function:steps(1,end)}}
+@media print{.ui-toast,.ui-modal{display:none!important}}
+/* Error notices on the page (bcrf_shell_notice 'err'): a ✕ to put them away */
+[data-closable]{position:relative;padding-right:2.75rem!important}
+[data-closable] > .ui-toast-x{position:absolute;top:50%;right:.35rem;transform:translateY(-50%);min-width:36px;min-height:36px;background:none;border:0;font-size:16px;font-weight:800;color:inherit;opacity:.7;cursor:pointer}
+[data-closable] > .ui-toast-x:hover{opacity:1}
+
+/* Confirm box (admin-ui.js bcrfConfirm), in place of the browser's own pop-up */
+.ui-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;padding:1rem}
+.ui-modal.is-on{display:flex}
+.ui-modal-back{position:absolute;inset:0;background:rgba(28,25,23,.6)}
+.ui-modal-card{position:relative;width:100%;max-width:26rem;max-height:85vh;overflow:auto;background:#fff;border-radius:.9rem;box-shadow:0 20px 50px rgba(0,0,0,.35);padding:1.25rem 1.25rem 1rem;color:#292524}
+.ui-modal-title{margin:0 0 .5rem;font-size:17px;font-weight:800;line-height:1.25;color:#3E2A1E}
+.ui-modal-msg{margin:0 0 1.1rem;font-size:14px;line-height:1.5;color:#44403c;white-space:pre-line;overflow-wrap:anywhere}
+.ui-modal-btns{display:flex;justify-content:flex-end;gap:.6rem;flex-wrap:wrap}
+.ui-modal-btns button{min-height:44px;padding:0 1.1rem;border-radius:.6rem;font:inherit;font-size:14px;font-weight:700;cursor:pointer;margin:0;box-shadow:none}
+.ui-modal-btns .ui-modal-no{background:#fff;border:1px solid #d6d3d1;color:#44403c}
+.ui-modal-btns .ui-modal-yes{background:#1c1917;border:1px solid #1c1917;color:#fff}
+.ui-modal-btns .ui-modal-yes.is-danger{background:#b91c1c;border-color:#b91c1c}
+.ui-modal-btns button:focus-visible{outline:3px solid #D9A441;outline-offset:2px}
+@media (max-width:479.98px){.ui-modal{align-items:flex-end;padding:.75rem}.ui-modal-btns button{flex:1 1 0}}

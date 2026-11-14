@@ -65,7 +65,7 @@ $btn = fn(string $act, string $label, array $extra = [], string $cls = 'btn sm')
 
 bcrf_shell_open('P2P matching', ['legacy' => true]);
 echo '<h1>PayPal, Venmo & Cash App</h1>';
-if ($flash) echo '<p class="flash', $flash[0] === 'err' ? ' err' : '', '">', $h($flash[1]), '</p>';
+if ($flash) echo bcrf_shell_flash($flash);
 echo '<nav class="rtabs" aria-label="P2P">',
      '<a href="', $h($self(['tab' => 'open'])), '"', $tab === 'open' ? ' aria-current="page"' : '', '>To check', $c['open'] ? ' (' . $c['open'] . ')' : '', '</a>',
      '<a href="', $h($self(['tab' => 'flagged'])), '"', $tab === 'flagged' ? ' aria-current="page"' : '', '>Problems', $c['flagged'] ? ' (' . $c['flagged'] . ')' : '', '</a>',

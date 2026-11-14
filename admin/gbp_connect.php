@@ -153,7 +153,7 @@ $h    = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
     <?php endif; ?>
     <?php if ($signed): ?>
       <form method="post" style="display:inline"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="check"><button class="ghost">Check connection</button></form>
-      <form method="post" style="display:inline" onsubmit="return confirm('Disconnect Google Business Profile?')"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="disconnect"><button class="danger">Disconnect</button></form>
+      <form method="post" style="display:inline" data-confirm="Disconnect Google Business Profile?"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="disconnect"><button class="danger">Disconnect</button></form>
     <?php endif; ?>
   </div>
 </div>

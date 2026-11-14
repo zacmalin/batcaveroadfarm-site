@@ -83,7 +83,7 @@ $base  = 'show=' . $show . ($q !== '' ? '&q=' . rawurlencode($q) : '');
         <div class="text-xs text-stone-400">Since <?= $h($d($r['confirmed_at'])) ?><?= $r['last_sent_at'] ? ' · last alert ' . $h($d($r['last_sent_at'])) : ' · no alerts yet' ?><?= $stopped ? ' · stopped ' . $h($d($r['unsubscribed_at'])) : '' ?></div>
       </div>
       <?php if (!$stopped): ?>
-      <form method="POST" action="/admin/admin.php?view=jobs_alerts" class="shrink-0" onsubmit="return confirm('Stop job alerts for <?= $h(addslashes($r['email'])) ?>?');">
+      <form method="POST" action="/admin/admin.php?view=jobs_alerts" class="shrink-0" data-confirm="Stop job alerts for <?= $h($r['email']) ?>?">
         <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
         <input type="hidden" name="jobs_alerts_action" value="sub_remove">
         <input type="hidden" name="email" value="<?= $h($r['email']) ?>">

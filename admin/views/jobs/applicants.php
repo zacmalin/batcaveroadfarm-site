@@ -226,7 +226,7 @@ if ($appId > 0):
         <div class="text-sm text-stone-800 whitespace-pre-line break-words"><?= $h($n['body']) ?></div>
         <div class="flex items-center justify-between mt-1">
           <span class="text-[11px] text-stone-500"><?= $h($n['user_name'] ?: 'Admin') ?> · <?= $h($fmt($n['created_at'])) ?></span>
-          <form method="POST" action="/admin/admin.php?view=jobs" onsubmit="return confirm('Delete this note?');">
+          <form method="POST" action="/admin/admin.php?view=jobs" data-confirm="Delete this note?">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
             <input type="hidden" name="jobs_pipeline_action" value="note_delete">
             <input type="hidden" name="id" value="<?= (int)$a['id'] ?>">
@@ -294,7 +294,7 @@ if ($appId > 0):
     <?php foreach ([[(int)$a['is_spam'] ? 'not_spam' : 'spam', (int)$a['is_spam'] ? 'Not spam' : 'Mark as spam', 'Hide this as spam? Any held emails to them are cancelled.'],
                     [$a['archived_at'] ? 'unarchive' : 'archive', $a['archived_at'] ? 'Bring back from archive' : 'Archive', '']] as [$act, $lab, $conf]):
         if ($act === 'archive' && (int)$a['is_spam']) continue; ?>
-    <form method="POST" action="/admin/admin.php?view=jobs" <?= $conf ? 'onsubmit="return confirm(' . $h(json_encode($conf)) . ');"' : '' ?>>
+    <form method="POST" action="/admin/admin.php?view=jobs" <?= $conf ? 'data-confirm="' . $h($conf) . '"' : '' ?>>
       <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
       <input type="hidden" name="jobs_pipeline_action" value="<?= $act ?>">
       <input type="hidden" name="id" value="<?= (int)$a['id'] ?>">
@@ -527,7 +527,8 @@ $filtersOn = $F['job'] || $F['cat'] || $F['round'] !== 'current' || $F['flag'] !
       var label = SL[s.value] || s.value, msg = 'Move to ' + label + '?';
       if (s.value === 'not_selected') msg += '\nThe "not selected" email goes in the queue (nothing is sent yet).';
       if (s.value === 'interview' || s.value === 'offer') { s.form.submit(); return; }
-      if (confirm(msg)) s.form.submit(); else s.value = '';
+      var ask = window.bcrfConfirm || function (m) { return Promise.resolve(window.confirm(m)); };
+      ask(msg, { title: 'Move this application?', label: 'Move' }).then(function (yes) { if (yes) s.form.submit(); else s.value = ''; });
     });
   });
   var bulk = document.getElementById('jp-bulk'); if (!bulk) return;
@@ -543,14 +544,15 @@ $filtersOn = $F['job'] || $F['cat'] || $F['round'] !== 'current' || $F['flag'] !
     qw.classList.toggle('hidden', !ns); qw.classList.toggle('flex', ns);
     note.placeholder = sel.value === 'note' ? 'Type the note' : 'Note (optional)';
     note.required = sel.value === 'note';
+    // Shared confirm box (admin-ui.js) asks this when the bulk form is sent
+    if (sel.value) bulk.setAttribute('data-confirm', sel.options[sel.selectedIndex].text + ' for ' + c + ' application' + (c === 1 ? '' : 's') + '?');
+    else bulk.removeAttribute('data-confirm');
   }
   all.addEventListener('change', function () { Array.prototype.forEach.call(boxes(), function (b) { b.checked = all.checked; }); sync(); });
   bulk.addEventListener('change', sync);
   bulk.addEventListener('submit', function (e) {
     var c = bulk.querySelectorAll('.jp-id:checked').length;
-    if (!sel.value) { e.preventDefault(); alert('Pick what to do.'); return; }
-    var t = sel.options[sel.selectedIndex].text;
-    if (!confirm(t + ' for ' + c + ' application' + (c === 1 ? '' : 's') + '?')) e.preventDefault();
+    if (!sel.value) { e.preventDefault(); sel.focus(); }   // nothing picked yet; with a pick, data-confirm asks first
   });
   sync();
 })();

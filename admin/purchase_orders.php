@@ -110,7 +110,7 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
         exit;
     }
     echo '<p><a href="purchase_orders.php">← All orders</a> · <a href="purchase_orders.php?new=1">New order</a></p>';
-    if ($flash) echo '<p class="flash', $flash[0] === 'err' ? ' err' : '', '">', $h($flash[1]), '</p>';
+    if ($flash) echo bcrf_shell_flash($flash);
     echo '<h1>PO #', (int)$po['id'], '</h1>';
     echo '<p class="muted">', $h($statusLabel[$po['status']] ?? $po['status']), ' · ', $h($po['vendor_name']),
          $po['po_ref'] ? ' · ref ' . $h($po['po_ref']) : '',
@@ -186,7 +186,7 @@ if (!empty($_GET['new'])) {
     $d = $typed ?: ['vendor_id' => (int)($_GET['vendor'] ?? 0) ?: '', 'expected_date' => ''];
     $lineCount = max(4, min(20, (int)($_GET['lines'] ?? 6)));
     echo '<p><a href="purchase_orders.php">← All orders</a></p><h1>New purchase order</h1>';
-    if ($flash) echo '<p class="flash', $flash[0] === 'err' ? ' err' : '', '">', $h($flash[1]), '</p>';
+    if ($flash) echo bcrf_shell_flash($flash);
     if (!$vendors) {
         echo '<p class="card muted">Add a <a href="vendors.php?new=1">vendor</a> first.</p></div></main></body></html>';
         exit;
@@ -218,7 +218,7 @@ $f = [
 ];
 $rows = bcrf_po_list($pdo, $f);
 echo '<h1>Purchase orders</h1>';
-if ($flash) echo '<p class="flash', $flash[0] === 'err' ? ' err' : '', '">', $h($flash[1]), '</p>';
+if ($flash) echo bcrf_shell_flash($flash);
 echo '<form class="rform" method="GET" action="purchase_orders.php"><input type="search" name="q" value="', $h($f['q']), '" placeholder="Ref, vendor, note" aria-label="Search">',
      $sel('status', ['open' => 'Open', 'draft' => 'Draft', 'ordered' => 'Ordered', 'partial' => 'Partial', 'received' => 'Received', 'cancelled' => 'Cancelled', 'all' => 'All'], $f['status']),
      $sel('vendor', $vendors, $f['vendor_id'] ?? '', 'All vendors'),

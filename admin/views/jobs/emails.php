@@ -127,13 +127,13 @@ if ($tab === 'queue'):
         <?php if ($open && $editId !== (int)$q['id']): ?>
         <div class="flex flex-wrap gap-2 mt-3">
           <?php if (!$stale): ?>
-          <form method="POST" action="/admin/admin.php?view=jobs_emails" onsubmit="return confirm(<?= $h(json_encode('Send this email to ' . $who . ' now?')) ?>);">
+          <form method="POST" action="/admin/admin.php?view=jobs_emails" data-confirm="<?= $h('Send this email to ' . $who . ' now?') ?>">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>"><input type="hidden" name="jobs_emails_action" value="q_send"><input type="hidden" name="qid" value="<?= (int)$q['id'] ?>">
             <button class="bg-amber-700 hover:bg-amber-800 text-white font-semibold px-4 py-2 rounded text-sm"><?= $q['status'] === 'failed' ? 'Try again' : 'Send' ?></button>
           </form>
           <a href="/admin/admin.php?view=jobs_emails&tab=queue&edit=<?= (int)$q['id'] ?>#q<?= (int)$q['id'] ?>" class="px-4 py-2 rounded text-sm border border-stone-300 text-stone-700 hover:bg-stone-50">Edit</a>
           <?php endif; ?>
-          <form method="POST" action="/admin/admin.php?view=jobs_emails" onsubmit="return confirm('Cancel this email? Nothing will be sent.');">
+          <form method="POST" action="/admin/admin.php?view=jobs_emails" data-confirm="Cancel this email? Nothing will be sent.">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>"><input type="hidden" name="jobs_emails_action" value="q_cancel"><input type="hidden" name="qid" value="<?= (int)$q['id'] ?>">
             <button class="px-4 py-2 rounded text-sm border border-stone-300 text-stone-700 hover:bg-stone-50">Cancel email</button>
           </form>
@@ -156,13 +156,16 @@ if ($tab === 'queue'):
   (function () {
     var f = document.getElementById('je-bulk'), all = document.getElementById('je-all'), bar = document.getElementById('je-bar'), n = document.getElementById('je-n');
     var boxes = function () { return document.querySelectorAll('.je-id'); };
-    function sync() { var c = document.querySelectorAll('.je-id:checked').length; bar.classList.toggle('hidden', !c); n.textContent = c + ' picked'; if (all) all.checked = c > 0 && c === boxes().length; }
+    function sync() {
+      var c = document.querySelectorAll('.je-id:checked').length; bar.classList.toggle('hidden', !c); n.textContent = c + ' picked'; if (all) all.checked = c > 0 && c === boxes().length;
+      // Shared confirm box (admin-ui.js) asks this on the tapped button
+      Array.prototype.forEach.call(document.querySelectorAll('button[form="je-bulk"][name=bulk_do]'), function (b) {
+        var how = b.value === 'cancel' ? 'cancel' : 'send';
+        b.setAttribute('data-confirm', (how === 'send' ? 'Send ' : 'Cancel ') + c + ' email' + (c === 1 ? '' : 's') + '?' + (how === 'cancel' ? ' Nothing will be sent.' : ''));
+      });
+    }
     if (all) all.addEventListener('change', function () { Array.prototype.forEach.call(boxes(), function (b) { b.checked = all.checked; }); sync(); });
     document.addEventListener('change', function (e) { if (e.target.classList && e.target.classList.contains('je-id')) sync(); });
-    f.addEventListener('submit', function (e) {
-      var c = document.querySelectorAll('.je-id:checked').length, how = e.submitter ? e.submitter.value : 'send';
-      if (!confirm((how === 'send' ? 'Send ' : 'Cancel ') + c + ' email' + (c === 1 ? '' : 's') + '?' + (how === 'cancel' ? ' Nothing will be sent.' : ''))) e.preventDefault();
-    });
     sync();
   })();
   </script>
@@ -254,7 +257,7 @@ elseif ($tab === 'templates'):
   </form>
 
   <?php if ($hasDefault): ?>
-  <form method="POST" action="/admin/admin.php?view=jobs_emails" class="mt-3" onsubmit="return confirm('Put back the original wording? Your changes to this email will be lost.');">
+  <form method="POST" action="/admin/admin.php?view=jobs_emails" class="mt-3" data-confirm="Put back the original wording? Your changes to this email will be lost.">
     <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
     <input type="hidden" name="jobs_emails_action" value="tpl_reset">
     <input type="hidden" name="tpl_key" value="<?= $h($key) ?>">

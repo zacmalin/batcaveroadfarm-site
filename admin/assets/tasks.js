@@ -66,10 +66,7 @@
   }
   on(freq, 'change', sync); on(anchor, 'change', sync); sync();
 
-  // ── Confirm before cancelling; skip needs a reason ──
-  document.querySelectorAll('button[data-confirm]').forEach(function (b) {
-    on(b, 'click', function (e) { if (!window.confirm(b.getAttribute('data-confirm'))) e.preventDefault(); });
-  });
+  // ── Skip needs a reason (data-confirm buttons: admin-ui.js confirm box) ──
   document.querySelectorAll('button[name=to][value=skip]').forEach(function (b) {
     on(b, 'click', function (e) {
       var n = document.getElementById('t_note');

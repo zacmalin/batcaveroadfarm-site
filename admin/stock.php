@@ -145,7 +145,7 @@ $histTable = function (array $rows, bool $showItem = true) use ($h, $q3, $pdo) {
 $title = ['stock' => 'Stock', 'item' => 'Stock', 'counts' => 'Counts', 'count' => 'Count', 'history' => 'Stock history', 'locations' => 'Locations'][$tab];
 bcrf_shell_open($title, ['legacy' => true]);
 echo '<h1>Stock</h1>';
-if ($flash) echo '<p class="flash', $flash[0] === 'err' ? ' err' : '', '">', $h($flash[1]), '</p>';
+if ($flash) echo bcrf_shell_flash($flash);
 if ($synced) echo '<p class="flash">', $synced, ' item', $synced === 1 ? '' : 's', ' had been changed outside Stock (old register, Full Editor or connector); the difference is now on ', $h($locById[bcrf_location_default($pdo)]['name'] ?? 'the default location'), ' and in the history.</p>';
 $cur = in_array($tab, ['item'], true) ? 'stock' : ($tab === 'count' ? 'counts' : $tab);
 $openCounts = (int)$pdo->query("SELECT COUNT(*) FROM inventory_counts WHERE status = 'open'")->fetchColumn();

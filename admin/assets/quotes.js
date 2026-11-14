@@ -39,7 +39,5 @@
     });
   });
 
-  document.querySelectorAll('button[data-confirm]').forEach(function (b) {
-    b.addEventListener('click', function (e) { if (!window.confirm(b.getAttribute('data-confirm'))) e.preventDefault(); });
-  });
+  // data-confirm buttons: admin-ui.js shows the shared confirm box (Nov 14, 2026)
 })();

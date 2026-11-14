@@ -100,7 +100,7 @@ foreach (['bcrf-db-' => 'Last Drive copy: database', 'bcrf-files-' => 'Last Driv
 ?><?php bcrf_shell_open('Backups', ['strict' => false, 'css' => ['admin-settings.css'], 'width' => 'max-w-3xl fset fs-bak']); ?>
 <h1>💾 Backups</h1>
 <p style="margin:0;color:#57534e">Database every night, photos/résumés/secrets every week — encrypted, kept on the server and copied to Google Drive.</p>
-<?php if ($flash): ?><div class="flash <?= $flash[0] === 'ok' ? 'ok' : 'err' ?>"><?= $h($flash[1]) ?></div><?php endif; ?>
+<?php if ($flash) echo bcrf_shell_flash($flash); ?>
 
 <div class="card">
 <?php foreach ($checks as [$label, $val, $good]): ?>
@@ -143,7 +143,7 @@ foreach (['bcrf-db-' => 'Last Drive copy: database', 'bcrf-files-' => 'Last Driv
     <button class="primary" name="action" value="connect" <?= bcrf_gdrive_configured() ? '' : 'disabled' ?>><?= bcrf_gdrive_connected() ? 'Reconnect Google Drive' : 'Connect Google Drive' ?></button>
     <?php if (bcrf_gdrive_connected()): ?>
       <button class="plain" name="action" value="test">Test connection</button>
-      <button class="danger" name="action" value="disconnect" onclick="return confirm('Stop copying backups to Google Drive?')">Disconnect</button>
+      <button class="danger" name="action" value="disconnect" data-confirm="Stop copying backups to Google Drive?">Disconnect</button>
     <?php endif; ?>
   </form>
   <?php if (!bcrf_gdrive_configured()): ?><p style="color:#57534e;margin:6px 0 0">Finish the one-time setup below first.</p><?php endif; ?>

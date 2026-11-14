@@ -8,6 +8,12 @@
 //    passwords and files. Never put data-autosave on forms with payment or personal details.
 //  - form[data-switch]: on/off switch that saves in the background, with Undo (Nov 14, 2026; includes/admin_switch.php)
 //  - input[type=checkbox][data-confirm-on|off]: asks "Are you sure?" on submit only when that box changed
+//  - Confirm box (Nov 14, 2026), in place of the browser's own pop-up on every admin page:
+//      <button data-confirm="Send this?">, <form data-confirm="…">, <a data-confirm="…">
+//      optional data-confirm-title, data-confirm-label (button text; default: the tapped button's own text),
+//      data-confirm-danger (red button; also automatic for delete / refund / remove / cancel / end / turn off…).
+//      The tapped button's name/value still go with the form. From page scripts: bcrfConfirm(msg, opts) → Promise<bool>.
+//  - Messages: .ui-toast (success fades after 5 s; errors stay until ✕) and [data-closable] notices get a ✕.
 (function () {
     'use strict';
 
@@ -151,13 +157,13 @@
     function toast(msg, isErr, undo) {
         if (!toastBox) {
             toastBox = document.createElement('div');
-            toastBox.className = 'ui-switch-toast';
-            toastBox.setAttribute('role', 'status');
+            toastBox.className = 'ui-toast ui-switch-toast';
             toastBox.setAttribute('aria-live', 'polite');
             document.body.appendChild(toastBox);
         }
         clearTimeout(toastTimer);
         toastBox.textContent = '';
+        toastBox.setAttribute('role', isErr ? 'alert' : 'status');
         toastBox.classList.toggle('is-err', !!isErr);
         var m = document.createElement('span');
         m.textContent = msg;
@@ -168,8 +174,9 @@
             b.addEventListener('click', function () { toastBox.classList.remove('is-on'); undo(); });
             toastBox.appendChild(b);
         }
+        if (isErr) toastBox.appendChild(closeButton());   // errors stay until closed
         toastBox.classList.add('is-on');
-        toastTimer = setTimeout(function () { toastBox.classList.remove('is-on'); }, isErr ? 7000 : 5000);
+        if (!isErr) toastTimer = setTimeout(function () { toastBox.classList.remove('is-on'); }, 5000);
     }
     function switchShow(form, on) {
         var b = form.querySelector('.ui-switch');
@@ -208,22 +215,158 @@
         if (b && !b.disabled) switchSave(f, b.getAttribute('aria-checked') !== 'true', true);
     });
 
-    // ── "Are you sure?" only when a checkbox actually changed ───────────────
-    // <input type="checkbox" data-confirm-on="…" data-confirm-off="…">: asked on Save if that box was ticked / unticked.
+    // ── Confirm box (replaces the browser's confirm() pop-up) ───────────────
+    var DANGER = /\b(delete|remove|refund|void|cancel|end|turn off|stop|disconnect|clear|reset|spam|close)\b/i;
+    var modal = null, modalDone = null, modalBack = null;
+    function modalClose(answer) {
+        if (!modal || !modalDone) return;
+        modal.classList.remove('is-on');
+        document.removeEventListener('keydown', modalKeys, true);
+        var done = modalDone; modalDone = null;
+        if (modalBack && modalBack.focus) { try { modalBack.focus({ preventScroll: true }); } catch (e) {} }
+        done(answer);
+    }
+    function modalKeys(e) {
+        if (e.key === 'Escape') { e.preventDefault(); modalClose(false); }
+        else if (e.key === 'Tab') {   // keep focus inside the box
+            var b = modal.querySelectorAll('button'), first = b[0], last = b[b.length - 1];
+            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+    }
+    function bcrfConfirm(message, opts) {
+        opts = opts || {};
+        return new Promise(function (resolve) {
+            if (!document.body) { resolve(window.confirm(message)); return; }
+            if (modalDone) modalClose(false);
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.className = 'ui-modal';
+                modal.innerHTML = '<div class="ui-modal-back" data-modal-no></div>'
+                    + '<div class="ui-modal-card" role="alertdialog" aria-modal="true" aria-labelledby="uiModalTitle" aria-describedby="uiModalMsg">'
+                    + '<h2 id="uiModalTitle" class="ui-modal-title"></h2><p id="uiModalMsg" class="ui-modal-msg"></p>'
+                    + '<div class="ui-modal-btns"><button type="button" class="ui-modal-no" data-modal-no>Cancel</button>'
+                    + '<button type="button" class="ui-modal-yes" data-modal-yes></button></div></div>';
+                document.body.appendChild(modal);
+                modal.addEventListener('click', function (e) {
+                    if (e.target.closest('[data-modal-yes]')) modalClose(true);
+                    else if (e.target.closest('[data-modal-no]')) modalClose(false);
+                });
+            }
+            var label = (opts.label || 'Yes').trim();
+            var danger = opts.danger !== undefined ? !!opts.danger : DANGER.test(label);
+            modal.querySelector('.ui-modal-title').textContent = opts.title || 'Are you sure?';
+            modal.querySelector('.ui-modal-msg').textContent = message;
+            var yes = modal.querySelector('.ui-modal-yes');
+            yes.textContent = label;
+            yes.classList.toggle('is-danger', danger);
+            modalDone = resolve;
+            modalBack = document.activeElement;
+            modal.classList.add('is-on');
+            document.addEventListener('keydown', modalKeys, true);
+            (danger ? modal.querySelector('.ui-modal-no') : yes).focus();
+        });
+    }
+    window.bcrfConfirm = bcrfConfirm;
+
+    // Text for the confirm button: data-confirm-label, else the tapped button's own short text ("Send", "Refund").
+    function confirmLabel(el, fallback) {
+        var l = el && el.getAttribute('data-confirm-label');
+        if (l) return l;
+        var t = el ? (el.tagName === 'INPUT' ? el.value : el.textContent) : '';
+        t = (t || '').replace(/\s+/g, ' ').trim();
+        return (t.length >= 2 && t.length <= 24 && /[a-z]/i.test(t)) ? t : fallback;
+    }
+    function confirmOpts(el, form, fallbackLabel) {
+        var src = el && el.hasAttribute('data-confirm') ? el : form;
+        var o = { title: (src && src.getAttribute('data-confirm-title')) || (el && el.getAttribute('data-confirm-title')) || '', label: confirmLabel(el, fallbackLabel || 'Yes') };
+        if ((src && src.hasAttribute('data-confirm-danger')) || (el && el.hasAttribute('data-confirm-danger'))) o.danger = true;
+        return o;
+    }
+
+    // The submit button that was tapped (e.submitter is missing on older Safari).
+    var lastSubmitter = null;
+    document.addEventListener('click', function (e) {
+        var b = e.target.closest && e.target.closest('button, input[type=submit], input[type=image]');
+        if (b && b.form && (b.type === 'submit' || b.type === 'image')) lastSubmitter = b;
+    }, true);
+
+    // Forms: <form data-confirm>, a submit <button data-confirm>, or a checkbox with data-confirm-on|off that changed.
+    // Runs first (capture), holds the submit, asks, then sends it again with the same button.
     document.addEventListener('submit', function (e) {
         var f = e.target;
-        if (!f.querySelectorAll || e.defaultPrevented) return;
-        var boxes = f.querySelectorAll('input[type=checkbox][data-confirm-on], input[type=checkbox][data-confirm-off]');
-        for (var i = 0; i < boxes.length; i++) {
-            var c = boxes[i];
-            if (c.checked === c.defaultChecked) continue;
-            var msg = c.getAttribute(c.checked ? 'data-confirm-on' : 'data-confirm-off');
-            if (msg && !window.confirm(msg)) { e.preventDefault(); return; }
+        if (!f || f.tagName !== 'FORM') return;
+        if (f.__bcrfConfirmed) { f.__bcrfConfirmed = false; return; }
+        var sub = e.submitter || (lastSubmitter && lastSubmitter.form === f ? lastSubmitter : null);
+        var msg = '', el = null;
+        if (sub && sub.hasAttribute && sub.hasAttribute('data-confirm')) { msg = sub.getAttribute('data-confirm'); el = sub; }
+        else if (f.hasAttribute('data-confirm')) { msg = f.getAttribute('data-confirm'); el = sub; }
+        else {
+            var boxes = f.querySelectorAll('input[type=checkbox][data-confirm-on], input[type=checkbox][data-confirm-off]');
+            for (var i = 0; i < boxes.length && !msg; i++) {
+                var c = boxes[i];
+                if (c.checked !== c.defaultChecked) msg = c.getAttribute(c.checked ? 'data-confirm-on' : 'data-confirm-off') || '';
+            }
+            el = sub;
         }
+        if (!msg) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        var opts = confirmOpts(el, f.hasAttribute('data-confirm') ? f : null, el ? 'Yes' : 'Save');
+        bcrfConfirm(msg, opts).then(function (yes) {
+            if (!yes) return;
+            f.__bcrfConfirmed = true;
+            if (f.requestSubmit) {
+                try {
+                    f.requestSubmit(sub && sub.form === f ? sub : undefined);
+                    f.__bcrfConfirmed = false;   // still set if the browser's own field checks stopped the send
+                    return;
+                } catch (err) { /* fall through */ }
+            }
+            // Old browsers: carry the button's name/value by hand, then post.
+            if (sub && sub.name) {
+                var h = document.createElement('input');
+                h.type = 'hidden'; h.name = sub.name; h.value = sub.value;
+                f.appendChild(h);
+            }
+            f.__bcrfConfirmed = false;
+            HTMLFormElement.prototype.submit.call(f);
+        });
+    }, true);
+
+    // Links: <a href data-confirm="…">
+    document.addEventListener('click', function (e) {
+        var a = e.target.closest && e.target.closest('a[data-confirm]');
+        if (!a || !a.href) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        bcrfConfirm(a.getAttribute('data-confirm'), confirmOpts(a, null, 'Yes')).then(function (yes) { if (yes) window.location.href = a.href; });
+    }, true);
+
+    // ── Messages: success fades, errors stay until ✕ ──────────────────────
+    document.addEventListener('click', function (e) {
+        var x = e.target.closest && e.target.closest('[data-toast-close]');
+        if (!x) return;
+        var box = x.closest('.ui-toast, [data-closable]');
+        if (!box) return;
+        if (box === toastBox) box.classList.remove('is-on');   // the switch toast is reused
+        else box.remove();
     });
+    function closeButton() {
+        var x = document.createElement('button');
+        x.type = 'button'; x.className = 'ui-toast-x'; x.setAttribute('data-toast-close', '');
+        x.setAttribute('aria-label', 'Close'); x.textContent = '✕';
+        return x;
+    }
+    function initMessages() {
+        Array.prototype.forEach.call(document.querySelectorAll('[data-closable]'), function (n) {
+            if (!n.querySelector('[data-toast-close]')) n.appendChild(closeButton());
+        });
+    }
 
     function init() {
         labelTables();
+        initMessages();
         Array.prototype.forEach.call(document.querySelectorAll('form[data-autosave]'), function (f) {
             try { initAutosave(f); } catch (e) { /* never break the page */ }
         });

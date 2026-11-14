@@ -134,7 +134,7 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
         exit;
     }
     echo '<p><a href="receive.php">← All receives</a> · <a href="receive.php?new=1">New receive</a></p>';
-    if ($flash) echo '<p class="flash', $flash[0] === 'err' ? ' err' : '', '">', $h($flash[1]), '</p>';
+    if ($flash) echo bcrf_shell_flash($flash);
     echo '<h1>Receive #', (int)$r['id'], '</h1>';
     echo '<p class="muted">', $h($r['business_date']), ' · ', $h($r['location_name'] ?? ''),
          $r['vendor_name'] ? ' · ' . $h($r['vendor_name']) : '',
@@ -158,7 +158,7 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
 
 // List + form
 echo '<h1>Receive stock</h1>';
-if ($flash) echo '<p class="flash', $flash[0] === 'err' ? ' err' : '', '">', $h($flash[1]), '</p>';
+if ($flash) echo bcrf_shell_flash($flash);
 
 $preProduct = (int)($_GET['product'] ?? 0);
 if ($preProduct && !isset($byId[$preProduct])) $preProduct = 0;

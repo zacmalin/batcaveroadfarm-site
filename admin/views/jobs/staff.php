@@ -85,11 +85,11 @@ if ($userId > 0):
       <?php if ($invTxt !== ''): ?><p class="text-xs text-stone-400 mb-3"><?= $h($invTxt) ?></p><?php endif; ?>
       <div class="flex flex-wrap gap-2 mt-2">
         <?php if ($openN): ?>
-        <form method="POST" action="<?= $h($act) ?>" onsubmit="return confirm('Email <?= $h(addslashes($u['first_name'])) ?> a new set-password link? Older links stop working.')"><?= $hidden ?><input type="hidden" name="jobs_hire_action" value="send_link">
+        <form method="POST" action="<?= $h($act) ?>" data-confirm="Email <?= $h($u['first_name']) ?> a new set-password link? Older links stop working."><?= $hidden ?><input type="hidden" name="jobs_hire_action" value="send_link">
           <button class="<?= $btn ?> border-amber-600 text-amber-800 hover:bg-amber-50">Send a new set-password link</button></form>
         <?php endif; ?>
         <?php if (!$isMe): ?>
-        <form method="POST" action="<?= $h($act) ?>" onsubmit="return confirm('Turn off <?= $h(addslashes($u['first_name'])) ?>\'s login?')"><?= $hidden ?><input type="hidden" name="jobs_hire_action" value="login_off">
+        <form method="POST" action="<?= $h($act) ?>" data-confirm="Turn off <?= $h($u['first_name']) ?>'s login?"><?= $hidden ?><input type="hidden" name="jobs_hire_action" value="login_off">
           <button class="<?= $btn ?> border-stone-300 text-stone-700 hover:bg-stone-50">Turn login off</button></form>
         <?php endif; ?>
       </div>
@@ -130,7 +130,7 @@ if ($userId > 0):
     <?php if ($cur): ?>
     <details class="mt-3 border-t border-stone-100 pt-3">
       <summary class="text-sm text-red-700 cursor-pointer select-none">End this job</summary>
-      <form method="POST" action="<?= $h($act) ?>" class="mt-3 space-y-2" onsubmit="return confirm('End <?= $h(addslashes($u['first_name'])) ?>\'s job as <?= $h(addslashes($s['staff_position'])) ?>?')">
+      <form method="POST" action="<?= $h($act) ?>" class="mt-3 space-y-2" data-confirm="End <?= $h($u['first_name']) ?>'s job as <?= $h($s['staff_position']) ?>?">
         <?= $hidden ?><input type="hidden" name="jobs_hire_action" value="end"><input type="hidden" name="stint_id" value="<?= (int)$s['id'] ?>">
         <div class="grid grid-cols-2 gap-2">
           <label class="text-xs text-stone-600">Last day<input type="date" name="end_date" value="<?= $h(jobs_today()) ?>" min="<?= $h($s['start_date']) ?>" required class="<?= $in ?>"></label>

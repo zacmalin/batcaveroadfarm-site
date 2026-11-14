@@ -100,7 +100,7 @@ if (!$editing) {
           'status' => in_array($_GET['status'] ?? '', ['active', 'off', 'all'], true) ? $_GET['status'] : 'active'];
     $rows = bcrf_product_list($pdo, $f);
     echo '<h1>Products</h1>';
-    if ($flash) echo '<p class="flash', $flash[0] === 'err' ? ' err' : '', '">', $h($flash[1]), '</p>';
+    if ($flash) echo bcrf_shell_flash($flash);
     echo '<form class="rform" method="GET" action="products.php"><input type="search" name="q" value="', $h($f['q']), '" placeholder="Name or SKU (scan)" aria-label="Search">',
          $sel('cat', $cats, $f['category_id'], 'All categories', ['aria-label' => 'Category']),
          $sel('type', bcrf_product_types() + ['admission' => 'Admission'], $f['type'], 'All types', ['aria-label' => 'Type']),
@@ -138,7 +138,7 @@ $val = fn(string $k) => $h($d[$k] ?? '');
 $num = fn(string $k) => isset($d[$k]) && $d[$k] !== null && $d[$k] !== '' ? $h(is_numeric($d[$k]) ? rtrim(rtrim(number_format((float)$d[$k], 3, '.', ''), '0'), '.') : $d[$k]) : '';
 
 echo '<p><a href="products.php">← All products</a></p><h1>', $p ? $h($p['name']) : 'Add a product', '</h1>';
-if ($flash) echo '<p class="flash', $flash[0] === 'err' ? ' err' : '', '">', $h($flash[1]), '</p>';
+if ($flash) echo bcrf_shell_flash($flash);
 echo '<form class="card stackf" method="POST" action="products.php"><input type="hidden" name="csrf_token" value="', $h($csrf), '"><input type="hidden" name="id" value="', $id ?: '', '">';
 echo '<label>Name<input type="text" name="name" value="', $val('name'), '" maxlength="255" required></label>';
 if ($isAdm) echo '<p class="muted">Admission product: its ticket type, check-ins and capacity come from the Admissions category. Price, tax, name and photo can be changed here.</p><input type="hidden" name="product_type" value="admission">';

@@ -73,7 +73,7 @@ $btn  = 'px-4 py-2 rounded text-sm font-semibold text-white';
         <p><strong>Removed:</strong> résumé files, name, email, phone, guardian details, cover note, answers, private notes, held emails, and the address on sent emails.</p>
         <p><strong>Kept:</strong> job, round, status, age group and dates, so your counts per round still add up. Staff accounts and job records of people you hired aren't touched.</p>
       </div>
-      <form method="POST" action="/admin/admin.php?view=jobs_records" onsubmit="return confirm('Clear personal details on up to <?= JOBS_PURGE_BATCH ?> applications now? This can\'t be undone.');">
+      <form method="POST" action="/admin/admin.php?view=jobs_records" data-confirm="Clear personal details on up to <?= JOBS_PURGE_BATCH ?> applications now? This can't be undone.">
         <?= $hid ?><input type="hidden" name="jobs_records_action" value="purge">
         <?= $sure ?>
         <button class="<?= $btn ?> bg-red-700 hover:bg-red-800">Clear <?= min($sum['due'], JOBS_PURGE_BATCH) ?> now</button>

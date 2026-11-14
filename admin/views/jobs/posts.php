@@ -78,7 +78,7 @@ if (!$isNew && $editId === 0):
       <div class="flex gap-2 mt-3">
         <a href="/admin/admin.php?view=jobs_posts&edit=<?= (int)$j['id'] ?>" class="px-3 py-1.5 rounded text-sm border border-stone-300 text-stone-700 hover:bg-stone-100">Edit</a>
         <?php if ($open): ?>
-        <form method="POST" action="/admin/admin.php?view=jobs_posts" onsubmit="return confirm('Close hiring for this job? It comes off the public Jobs page.');">
+        <form method="POST" action="/admin/admin.php?view=jobs_posts" data-confirm="Close hiring for this job? It comes off the public Jobs page.">
           <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
           <input type="hidden" name="jobs_setup_action" value="job_close">
           <input type="hidden" name="from" value="list">
@@ -150,7 +150,7 @@ $lbl   = 'block text-xs font-semibold text-stone-600 mb-1';
         <label class="col-span-2 flex items-center gap-2 text-sm text-stone-600"><input type="checkbox" name="auto_close" value="1" <?= (int)$cycle['auto_close_when_filled'] ? 'checked' : '' ?>> Close hiring automatically when all openings are filled</label>
         <div class="col-span-2"><button class="px-4 py-2 rounded text-sm border border-stone-300 text-stone-700 hover:bg-stone-100">Update round</button></div>
       </form>
-      <form method="POST" action="/admin/admin.php?view=jobs_posts" class="mt-3 pt-3 border-t border-stone-100" onsubmit="return confirm('Close hiring? The job comes off the public Jobs page. Applications stay in the pipeline.');">
+      <form method="POST" action="/admin/admin.php?view=jobs_posts" class="mt-3 pt-3 border-t border-stone-100" data-confirm="Close hiring? The job comes off the public Jobs page. Applications stay in the pipeline.">
         <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
         <input type="hidden" name="jobs_setup_action" value="job_close">
         <input type="hidden" name="id" value="<?= (int)$job['id'] ?>">
@@ -355,7 +355,7 @@ $lbl   = 'block text-xs font-semibold text-stone-600 mb-1';
               <button class="w-8 h-7 border border-stone-300 rounded text-stone-600 hover:bg-stone-100" aria-label="Move <?= $dir ?>"><?= $arrow ?></button>
             </form>
             <?php endforeach; ?>
-            <form method="POST" action="/admin/admin.php?view=jobs_posts" onsubmit="return confirm('Remove this question from the job? It stays in the question bank.');">
+            <form method="POST" action="/admin/admin.php?view=jobs_posts" data-confirm="Remove this question from the job? It stays in the question bank.">
               <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
               <input type="hidden" name="jobs_setup_action" value="jq_remove">
               <input type="hidden" name="id" value="<?= (int)$job['id'] ?>">
@@ -420,7 +420,7 @@ $lbl   = 'block text-xs font-semibold text-stone-600 mb-1';
         }
         if ($stillIds): $nS = count($stillIds); ?>
       <form method="POST" action="/admin/admin.php?view=jobs" class="mt-4 pt-4 border-t border-stone-100"
-            onsubmit="return confirm(<?= $h(json_encode('Move ' . $nS . ' still-open application' . ($nS === 1 ? '' : 's') . ' to Not Selected? Their emails wait in the queue until you send them.')) ?>);">
+            data-confirm="<?= $h('Move ' . $nS . ' still-open application' . ($nS === 1 ? '' : 's') . ' to Not Selected? Their emails wait in the queue until you send them.') ?>">
         <input type="hidden" name="csrf_token" value="<?= $h($_SESSION['csrf_token'] ?? '') ?>">
         <input type="hidden" name="jobs_pipeline_action" value="bulk">
         <input type="hidden" name="bulk_do" value="status:not_selected">
@@ -444,7 +444,7 @@ $lbl   = 'block text-xs font-semibold text-stone-600 mb-1';
       <input type="hidden" name="id" value="<?= (int)$job['id'] ?>">
       <button class="px-4 py-2 rounded text-sm border border-stone-300 text-stone-700 hover:bg-stone-100">Make a copy</button>
     </form>
-    <form method="POST" action="/admin/admin.php?view=jobs_posts" onsubmit="return confirm('Delete this job for good? Only possible if nobody has applied.');">
+    <form method="POST" action="/admin/admin.php?view=jobs_posts" data-confirm="Delete this job for good? Only possible if nobody has applied.">
       <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
       <input type="hidden" name="jobs_setup_action" value="job_delete">
       <input type="hidden" name="id" value="<?= (int)$job['id'] ?>">

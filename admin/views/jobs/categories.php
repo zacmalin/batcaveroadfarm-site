@@ -53,7 +53,7 @@ $row = function (?array $c) use ($h, $csrf, $input) {
   <?php endif; ?>
   </div>
   <?php if ($c && !(int)$c['job_count']): ?>
-  <form method="POST" action="/admin/admin.php?view=jobs_categories" class="-mt-1 mb-1 text-right" onsubmit="return confirm('Delete this category?');">
+  <form method="POST" action="/admin/admin.php?view=jobs_categories" class="-mt-1 mb-1 text-right" data-confirm="Delete this category?">
     <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
     <input type="hidden" name="jobs_setup_action" value="cat_delete">
     <input type="hidden" name="id" value="<?= $id ?>">
