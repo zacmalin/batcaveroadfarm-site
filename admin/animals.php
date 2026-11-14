@@ -12,6 +12,8 @@
 //                                                 admin/animal_public.php), where it has been, status history
 //   GET  animals.php?tab=enclosures               pens, barns and pastures with counts and capacity
 //   POST act=identity | status | move | move_many | enclosure
+// Nov 14, 2026: Papers tab (vet records, registration papers with an expiry date; includes/documents.php), dated notes and
+// linked tasks on Overview, Changes on History (includes/record_tools.php).
 // Permission: table 'animals' view to look; edit to change anything. The public bio, photos and publish switch are on
 // the Public tab (slice 9).
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
@@ -30,6 +32,7 @@ if (is_file(__DIR__ . '/../includes/animal_expenses.php')) require_once __DIR__ 
 if (is_file(__DIR__ . '/../includes/incidents.php')) require_once __DIR__ . '/../includes/incidents.php';   // slice 8
 if (is_file(__DIR__ . '/../includes/animal_public.php')) require_once __DIR__ . '/../includes/animal_public.php';   // slice 9
 if (is_file(__DIR__ . '/../includes/documents.php')) require_once __DIR__ . '/../includes/documents.php';   // receipt photos on expenses (Nov 14)
+require_once __DIR__ . '/../includes/record_tools.php';   // notes, tasks and changes on each animal (Nov 14, 2026)
 if (is_file(__DIR__ . '/../includes/staff_extras.php')) require_once __DIR__ . '/../includes/staff_extras.php';     // per-person extras: review first (Nov 14)
 require_once __DIR__ . '/../includes/admin_shell.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
@@ -138,7 +141,8 @@ if ($id) {
     $breedOn = function_exists('bcrf_breeding_ready') && bcrf_breeding_ready($pdo);
     $expOn = function_exists('bcrf_expenses_ready') && bcrf_expenses_ready($pdo) && bcrf_expenses_can();
     $pubOn = function_exists('bcrf_public_ready') && bcrf_public_ready($pdo);
-    foreach (array_merge([['Overview', '']], $careOn ? [['Care', 'care']] : [], $healthOn ? [['Health', 'health']] : [], $weightOn ? [['Weight', 'weight']] : [], $breedOn ? [['Breeding', 'breeding']] : [], $expOn ? [['Expenses', 'expenses']] : [], $pubOn ? [['Public', 'public']] : [], [['Location', 'location'], ['History', 'history']]) as [$t, $k]) {
+    $papersOn = function_exists('bcrf_doc_can_animal_papers') && bcrf_docs_ready($pdo) && bcrf_doc_can_animal_papers();
+    foreach (array_merge([['Overview', '']], $careOn ? [['Care', 'care']] : [], $healthOn ? [['Health', 'health']] : [], $weightOn ? [['Weight', 'weight']] : [], $breedOn ? [['Breeding', 'breeding']] : [], $expOn ? [['Expenses', 'expenses']] : [], $pubOn ? [['Public', 'public']] : [], $papersOn ? [['Papers', 'papers']] : [], [['Location', 'location'], ['History', 'history']]) as [$t, $k]) {
         echo '<a href="animals.php?id=', $id, $k ? '&amp;tab=' . $k : '', '" class="px-3 py-2 rounded text-sm border ', $k === $tab ? 'border-stone-800 bg-stone-800 text-white' : 'border-stone-300 text-stone-700 bg-white hover:bg-stone-100', '">', $h($t), '</a>';
     }
     echo '</div>';
@@ -602,6 +606,12 @@ if ($id) {
         bcrf_shell_close(); exit;
     }
 
+    if ($tab === 'papers' && $papersOn) {
+        echo bcrf_doc_box_html($pdo, 'animal', $id, '/admin/animals.php?id=' . $id . '&tab=papers', $csrf);
+        echo '<p class="text-xs text-stone-500">Every paper is also listed under Products &amp; Inventory › Invoices (Papers tab), where you can change its details.</p>';
+        bcrf_shell_close(); exit;
+    }
+
     if ($tab === 'history') {
         $hist = bcrf_animal_status_history($pdo, $id);
         $incs = function_exists('bcrf_incidents_ready') && bcrf_incidents_ready($pdo) && bcrf_incidents_can() ? bcrf_incident_list($pdo, ['animal' => $id], 50) : null; ?>
@@ -629,6 +639,7 @@ if ($id) {
     </ul>
     <?php endif; ?>
   </div>
+  <?= bcrf_record_changes_html($pdo, 'animal', $id) ?>
 <?php
         bcrf_shell_close(); exit;
     }
@@ -667,6 +678,8 @@ if ($id) {
     <button class="<?= $btnMain ?>" data-confirm="Change <?= $h($a['name']) ?>'s status?">Change status</button>
   </form>
   <?php endif; ?>
+  <?= bcrf_record_notes_box_html($pdo, 'animal', $id, '/admin/animals.php?id=' . $id, $csrf) ?>
+  <?= bcrf_record_tasks_box_html($pdo, 'animal', $id) ?>
 <?php
     bcrf_shell_close(); exit;
 }

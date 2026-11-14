@@ -6,6 +6,8 @@
 //        act=staff_add / staff_remove
 //        act=guests_add            names, one per line ("Name" or "Name, note"), as children or adults
 //        act=guest_remove / arrived / not_arrived
+// Nov 14, 2026: Call / Text / Email buttons, staff's dated notes, the party's tasks (its checklist and any others) and a
+// Changes list (includes/record_tools.php), for people with Private Events access.
 // Access: Private Events (view event_inquiries) can do everything. Staff assigned to the party can open it and check
 // guests in, nothing else.
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
@@ -19,6 +21,7 @@ require_once __DIR__ . '/../includes/event_quotes.php';
 require_once __DIR__ . '/../includes/tasks.php';
 require_once __DIR__ . '/../includes/parties.php';
 require_once __DIR__ . '/../includes/admin_shell.php';
+require_once __DIR__ . '/../includes/record_tools.php';   // Call/Text/Email, notes, tasks, changes (Nov 14, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -132,9 +135,9 @@ bcrf_shell_open('Party: ' . $inq['customer_name'], ['toast' => $toast, 'width' =
   <?php if ($full): ?>
   <div class="flex flex-wrap gap-2 mb-4">
     <a href="/admin/quotes.php?for=event_inquiry:<?= $id ?>" class="<?= $btnSec ?>"><?= $q ? 'Quote &amp; payments' : 'Make a quote' ?></a>
-    <?php if (!empty($inq['phone'])): ?><a href="tel:<?= $h($inq['phone']) ?>" class="<?= $btnSec ?>">Call <?= $h(strtok((string)$inq['customer_name'], ' ')) ?></a><?php endif; ?>
-    <?php if (!empty($inq['email'])): ?><a href="mailto:<?= $h($inq['email']) ?>" class="<?= $btnSec ?>">Email</a><?php endif; ?>
+    <?php if (!empty($inq['customer_id'])): ?><a href="/admin/customers.php?id=<?= (int)$inq['customer_id'] ?>" class="<?= $btnSec ?>">Customer record</a><?php endif; ?>
   </div>
+  <?= bcrf_contact_buttons_html($inq['phone'] ?? '', $inq['email'] ?? '', (string)$inq['customer_name']) ?>
   <?php endif; ?>
   <?php if (!empty($inq['special_requests'])): ?>
   <div class="<?= $card ?>"><h2 class="text-base font-semibold text-stone-800 mb-1">Their notes</h2><p class="text-sm text-stone-700 whitespace-pre-line"><?= $h($inq['special_requests']) ?></p></div>
@@ -224,5 +227,10 @@ bcrf_shell_open('Party: ' . $inq['customer_name'], ['toast' => $toast, 'width' =
     </form>
     <?php endif; ?>
   </div>
+  <?php if ($full): ?>
+  <?= bcrf_record_notes_box_html($pdo, 'event_inquiry', $id, '/admin/party.php?id=' . $id, $csrf, (string)($inq['admin_notes'] ?? '')) ?>
+  <?= bcrf_record_tasks_box_html($pdo, 'event_inquiry', $id) ?>
+  <?= bcrf_record_changes_html($pdo, 'event_inquiry', $id) ?>
+  <?php endif; ?>
 <?php
 bcrf_shell_close();

@@ -2,6 +2,7 @@
 // admin/views/bookings.php — booking management: day occupancy, pending queue, schedule, blackouts.
 require_once __DIR__ . '/../../includes/booking.php';
 require_once __DIR__ . '/layout/ui.php';   // shared chips, money, buttons (02 Navigation & UX)
+require_once __DIR__ . '/../../includes/record_tools.php';   // Call / Text / Email buttons, Download CSV, tasks link (Nov 14, 2026)
 
 $csrf   = $_SESSION['csrf_token'] ?? '';
 $day    = (isset($_GET['day']) && strtotime((string)$_GET['day'])) ? date('Y-m-d', strtotime((string)$_GET['day'])) : date('Y-m-d');
@@ -119,7 +120,10 @@ $btn  = 'inline-flex items-center justify-center min-h-10 md:min-h-8 px-3 rounde
 ?>
 
 <div class="max-w-6xl">
-  <h1 class="text-2xl font-bold text-stone-800 mb-1">📋 Bookings</h1>
+  <div class="flex flex-wrap items-end justify-between gap-2 mb-1">
+    <h1 class="text-2xl font-bold text-stone-800">📋 Bookings</h1>
+    <?= bcrf_csv_link_html('bookings', ['from' => date('Y-m-d', strtotime($day . ' -90 days')), 'to' => date('Y-m-d', strtotime($day . ' +365 days'))]) ?>
+  </div>
   <p class="text-sm text-stone-500 mb-6">Confirm requests, watch the grounds cap of <?= (int)$cap ?> concurrent guests, and block out dates. Walk-ins under 6 don't book; the public form covers groups of 6+, tours, and private events.</p>
 
   <?php if (!$ready): ?>
@@ -174,6 +178,7 @@ $allPendingPay = count(array_filter($pending,    fn($r) => ($r['payment_status']
             <div class="text-stone-400 text-xs mt-1"><?= htmlspecialchars($p['phone'] ?: '—') ?> · <?= htmlspecialchars($p['email'] ?: '—') ?></div>
             <?php if (!empty($p['notes'])): ?><div class="text-stone-600 text-xs mt-1 italic">“<?= htmlspecialchars($p['notes']) ?>”</div><?php endif; ?>
             <div class="mt-1.5"><?= $payBadge($p) ?><?= $tixBreakdown($p) ?></div>
+            <?= bcrf_contact_buttons_html($p['phone'] ?? '', $p['email'] ?? '', (string)$p['customer_name'], null, 'flex flex-wrap gap-2 mt-2') ?>
           </div>
           <div class="flex flex-wrap gap-2 items-center">
             <?php if ($isWarn): ?>
@@ -252,9 +257,11 @@ $allPendingPay = count(array_filter($pending,    fn($r) => ($r['payment_status']
           <?= $statusBadge($r['status']) ?>
           <?= $payBadge($r) ?><?= $tixBreakdown($r) ?>
           <?php if (!empty($r['admin_note'])): ?><span class="text-stone-400 italic text-xs">— <?= htmlspecialchars($r['admin_note']) ?></span><?php endif; ?>
+          <?= bcrf_contact_buttons_html($r['phone'] ?? '', $r['email'] ?? '', (string)$r['customer_name'], null, 'flex flex-wrap gap-2 mt-2') ?>
         </div>
         <div class="flex flex-wrap gap-2">
           <?= $quoteLink($r) ?>
+          <a href="/admin/tasks.php?new=1&amp;related=booking:<?= (int)$r['id'] ?>" class="<?= $btn ?> bg-stone-100 text-stone-600 hover:bg-stone-200">Add task</a>
           <?php
             if ($r['status'] === 'pending')   $act('confirm', (int)$r['id'], 'Confirm', $btn . ' bg-green-600 text-white hover:bg-green-700');
             if ($r['status'] === 'confirmed') {

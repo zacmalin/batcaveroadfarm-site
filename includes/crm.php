@@ -194,7 +194,7 @@ function bcrf_crm_profile(PDO $pdo, int $id): array {
  *                sales, and past parties and bookings that went ahead.
  *   next         their next party or booking that isn't cancelled, declined or archived (null when none).
  *   pass_ends    the soonest active pass ending in the next 45 days (null when none).
- *   open_tasks   open or started tasks on their parties and bookings.
+ *   open_tasks   open or started tasks on their parties and bookings, or linked to the customer.
  * Anything a farm hasn't set up yet simply counts as 0.
  */
 function bcrf_crm_summary(PDO $pdo, int $id, ?string $today = null): array {
@@ -232,7 +232,8 @@ function bcrf_crm_summary(PDO $pdo, int $id, ?string $today = null): array {
     $passEnds = $one("SELECT MIN(valid_until) FROM passes WHERE customer_id = ? AND status = 'active' AND valid_until BETWEEN ? AND ? + INTERVAL 45 DAY", [$id, $today, $today]);
     $tasks = (int)$one("SELECT COUNT(*) FROM tasks WHERE status IN ('open', 'in_progress') AND (
                           (related_type = 'booking' AND related_id IN (SELECT id FROM bookings WHERE customer_id = ?))
-                          OR (related_type = 'event_inquiry' AND related_id IN (SELECT id FROM event_inquiries WHERE customer_id = ?)))", [$id, $id]);
+                          OR (related_type = 'event_inquiry' AND related_id IN (SELECT id FROM event_inquiries WHERE customer_id = ?))
+                          OR (related_type = 'customer' AND related_id = ?))", [$id, $id, (string)$id]);   // + tasks linked to the customer (Nov 14, 2026)
     return ['spent_cents' => $spent, 'visits' => count($days), 'next' => $next, 'pass_ends' => $passEnds ?: null, 'open_tasks' => $tasks];
 }
 

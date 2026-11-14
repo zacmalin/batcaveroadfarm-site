@@ -7,7 +7,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
 require_once '../config.php';
 check_admin();
 require_once __DIR__ . '/includes/permission_checks.php';
-require_permission([['table', 'inventory', 'edit'], ['view', 'animal_expenses']]);
+require_permission([['table', 'inventory', 'edit'], ['view', 'animal_expenses'], ['table', 'animals']]);   // + animal papers (Nov 14, 2026)
 require_once __DIR__ . '/../includes/documents.php';
 
 $fail = function (int $code) { http_response_code($code); header('Content-Type: text/plain'); exit($code === 404 ? 'Not found' : 'Not allowed'); };

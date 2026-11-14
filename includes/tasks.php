@@ -331,7 +331,7 @@ function bcrf_tasks_counts(PDO $pdo): array {
     return ['overdue' => (int)($r['o'] ?? 0), 'today' => (int)($r['d'] ?? 0)];
 }
 
-/** Everyone's tasks (managers). $f: status (open|done|all|<status>), who (anyone|role:X|user:N), from, to, q, related (booking:N | event_inquiry:N) */
+/** Everyone's tasks (managers). $f: status (open|done|all|<status>), who (anyone|role:X|user:N), from, to, q, related (kind:N, e.g. booking:12, vendor:5) */
 function bcrf_tasks_list(PDO $pdo, array $f = [], int $limit = 300): array {
     $w = []; $a = [];
     $s = (string)($f['status'] ?? 'open');
@@ -345,7 +345,7 @@ function bcrf_tasks_list(PDO $pdo, array $f = [], int $limit = 300): array {
     if (!empty($f['from'])) { $w[] = 't.due_date >= ?'; $a[] = $f['from']; }
     if (!empty($f['to']))   { $w[] = 't.due_date <= ?'; $a[] = $f['to']; }
     if (($q = trim((string)($f['q'] ?? ''))) !== '') { $w[] = '(t.title LIKE ? OR t.description LIKE ?)'; $a[] = "%$q%"; $a[] = "%$q%"; }
-    if (preg_match('/^(booking|event_inquiry):(\d+)$/', (string)($f['related'] ?? ''), $rm)) { $w[] = 't.related_type = ? AND t.related_id = ?'; $a[] = $rm[1]; $a[] = $rm[2]; }   // one event's checklist
+    if (preg_match('/^([a-z_]{2,20}):(\d{1,10})$/', (string)($f['related'] ?? ''), $rm)) { $w[] = 't.related_type = ? AND t.related_id = ?'; $a[] = $rm[1]; $a[] = $rm[2]; }   // one record's tasks (an event's checklist, a vendor, an animal…)
     $st = $pdo->prepare(bcrf_tasks_select() . ($w ? ' WHERE ' . implode(' AND ', $w) : '')
         . " ORDER BY t.due_date IS NULL, t.due_date " . ($s === 'open' ? 'ASC' : 'DESC') . ", t.due_time, t.id LIMIT " . max(1, min(2000, $limit)));
     $st->execute($a);

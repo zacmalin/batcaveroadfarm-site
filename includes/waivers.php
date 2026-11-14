@@ -254,7 +254,7 @@ function bcrf_waiver_search(PDO $pdo, string $q = '', int $limit = 100): array {
         $sql .= " WHERE w.signer_name LIKE ? OR w.signer_email LIKE ? OR w.signer_phone LIKE ? OR w.minors_json LIKE ?";
         $args = [$like, $like, $like, $like];
     }
-    $st = $pdo->prepare($sql . " ORDER BY w.signed_at DESC, w.id DESC LIMIT " . max(1, min(500, $limit)));
+    $st = $pdo->prepare($sql . " ORDER BY w.signed_at DESC, w.id DESC LIMIT " . max(1, min(5000, $limit)));   // up to 5000 for the CSV (Nov 14, 2026)
     $st->execute($args);
     return array_map(function ($r) { $r['minors'] = json_decode((string)$r['minors_json'], true) ?: []; return $r; }, $st->fetchAll(PDO::FETCH_ASSOC));
 }

@@ -16,6 +16,7 @@ require_once __DIR__ . '/../includes/queue.php';
 require_once __DIR__ . '/../includes/booking.php';
 require_once __DIR__ . '/../includes/event_quotes.php';
 require_once __DIR__ . '/../includes/admin_shell.php';
+require_once __DIR__ . '/../includes/record_tools.php';   // Call / Text / Email buttons (Nov 14, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -160,6 +161,7 @@ if ($type) {
     <?php if ($s['is_party'] && ($s['adults'] || $s['children'])): ?>(<?= (int)$s['adults'] ?> adult<?= $s['adults'] === 1 ? '' : 's' ?>, <?= (int)$s['children'] ?> child<?= $s['children'] === 1 ? '' : 'ren' ?>)<?php endif; ?></p>
   <p class="text-sm text-stone-500 mb-4"><?= $h(ucfirst($s['status'])) ?> · <?= $h($s['email'] ?: 'no email') ?><?= $s['phone'] ? ' · ' . $h($s['phone']) : '' ?> · <a class="underline" href="<?= $h($back) ?>">Open the <?= $kind ?></a></p>
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
+  <?= bcrf_contact_buttons_html($s['phone'] ?? '', $s['email'] ?? '', (string)$s['name']) ?>
   <?php if (!$s['live']) echo bcrf_shell_notice('warning', 'This ' . $kind . ' is ' . $s['status'] . '. The customer can\'t pay online; refunds still work.'); ?>
 
   <?php if (!$q): ?>

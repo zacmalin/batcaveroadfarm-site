@@ -15,6 +15,7 @@ require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/queue.php';
 require_once __DIR__ . '/../includes/waivers.php';
 require_once __DIR__ . '/../includes/admin_shell.php';
+require_once __DIR__ . '/../includes/record_tools.php';   // Download CSV (Nov 14, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -205,8 +206,9 @@ echo '<h1 class="text-2xl font-bold text-stone-800 mb-1">Waivers</h1>', $tabs(''
 if ($error) echo bcrf_shell_notice('err', $error);
 if (!$cur) echo bcrf_shell_notice('warning', $status);
 ?>
-  <form method="GET" action="waivers.php" class="flex gap-2 mb-4">
-    <input name="q" value="<?= $h($q) ?>" placeholder="Name, email, phone or a child's name" aria-label="Search waivers" class="<?= $input ?>"><button class="<?= $btnSec ?> shrink-0">Search</button></form>
+  <form method="GET" action="waivers.php" class="flex flex-wrap gap-2 mb-4">
+    <input name="q" value="<?= $h($q) ?>" placeholder="Name, email, phone or a child's name" aria-label="Search waivers" class="<?= $input ?> flex-1 min-w-48"><button class="<?= $btnSec ?> shrink-0">Search</button>
+    <?= bcrf_csv_link_html('waivers', ['q' => $q]) ?></form>
   <?php if (!$rows): ?><p class="text-sm text-stone-500"><?= $q !== '' ? 'Nothing matches that.' : 'No waivers signed yet.' ?></p><?php else: ?>
   <div class="<?= $card ?> p-0 overflow-hidden">
     <ul class="divide-y divide-stone-100">

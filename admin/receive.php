@@ -14,7 +14,8 @@ require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/receiving.php';
 if (is_file(__DIR__ . '/../includes/purchasing.php')) require_once __DIR__ . '/../includes/purchasing.php';
 require_once __DIR__ . '/../includes/documents.php';   // invoice / receipt photos (Nov 14, 2026)
-require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
+require_once __DIR__ . '/../includes/admin_shell.php';
+require_once __DIR__ . '/../includes/record_tools.php';   // Changes list (Nov 14, 2026)   // shared Farm OS shell (Nov 11, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -171,6 +172,7 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
     echo '<div class="lrow"><b>Total</b><span class="r"><b>', $m($sum), '</b></span></div></div>';
     echo '<p class="muted">Average cost on each product was updated. Stock history shows reason Received.</p>';
     echo bcrf_doc_box_html($pdo, 'receive', (int)$r['id'], '/admin/receive.php?id=' . (int)$r['id'], $csrf);
+    echo bcrf_record_changes_html($pdo, 'receive', (int)$r['id']);   // who made it / changed it (Nov 14, 2026)
     echo '</div></main></body></html>';
     exit;
 }

@@ -1,6 +1,7 @@
 <?php
 // admin/views/event_inquiries.php — private event inquiry management.
 require_once __DIR__ . '/layout/ui.php';   // shared chips, buttons, empty states (02 Navigation & UX)
+require_once __DIR__ . '/../../includes/record_tools.php';   // Call / Text / Email buttons, Download CSV (Nov 14, 2026)
 $csrf = $_SESSION['csrf_token'] ?? '';      // was never set here, so status/note saves posted an empty token and were refused
 $statusFilter = trim((string)($_GET['status'] ?? 'new'));
 $allowedStatuses = ['new','contacted','quoted','confirmed','declined','archived','all'];
@@ -45,7 +46,10 @@ $eventLabels = [
 ];
 ?>
 <div class="max-w-5xl">
-    <h1 class="text-2xl font-bold text-stone-800 mb-1">🎉 Private Event Inquiries</h1>
+    <div class="flex flex-wrap items-end justify-between gap-2 mb-1">
+        <h1 class="text-2xl font-bold text-stone-800">🎉 Private Event Inquiries</h1>
+        <?= bcrf_csv_link_html('parties', ['status' => $statusFilter]) ?>
+    </div>
     <p class="text-sm text-stone-500 mb-6">Manage birthday parties, field trips, and private event leads.</p>
 
     <!-- Status filter tabs -->
@@ -98,10 +102,7 @@ $eventLabels = [
                 <?php if ($inq['birthday_age']): ?><div class="text-stone-600 mt-1">🎂 Birthday child age: <?= (int)$inq['birthday_age'] ?></div><?php endif; ?>
                 <?php if (!empty($addons)): ?><div class="text-stone-600 mt-1">✨ <?= htmlspecialchars(implode(', ', $addons)) ?></div><?php endif; ?>
                 <?php if ($inq['heard_from']): ?><div class="text-stone-400 text-xs mt-1">Heard from: <?= htmlspecialchars($inq['heard_from']) ?></div><?php endif; ?>
-                <div class="flex flex-wrap gap-2 mt-3">
-                    <?php if ($inq['phone']): ?><a href="tel:<?= htmlspecialchars($inq['phone'], ENT_QUOTES) ?>" class="<?= ui_btn('secondary') ?>">📞 Call</a><?php endif; ?>
-                    <a href="mailto:<?= htmlspecialchars($inq['email'], ENT_QUOTES) ?>" class="<?= ui_btn('secondary') ?>">✉️ Email</a>
-                </div>
+                <?= bcrf_contact_buttons_html($inq['phone'] ?? '', $inq['email'] ?? '', (string)$inq['customer_name'], null, 'flex flex-wrap gap-2 mt-3') ?>
             </div>
             <div>
                 <?php if ($inq['special_requests']): ?>

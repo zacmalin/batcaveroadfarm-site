@@ -11,6 +11,12 @@
 //                     Re-sending the quote starts the clock again (the dedupe key carries sent_count).
 //   reminder_sent     a deposit/balance reminder or pass renewal email went out      → managers (includes/reminders.php)
 //   task_late         one of your tasks is late (tasks.late_notified_at)             → that person
+//   Nov 14, 2026 (things that only emailed or sat on the dashboard before):
+//   incident          a new incident report (last 3 days)                             → managers (owners are also emailed)
+//   low_stock         items at or below their minimum, one line a day                 → managers
+//   applicant         a new job application (last 3 days, not spam)                   → managers
+//   vaccine_due       a vaccination due within 14 days or late, once per due date     → managers
+//   paper_expiring    a vendor or animal paper (insurance, W-9, vet...) runs out within 30 days, once per date → managers
 // Rows are made by bcrf_notify() (directly, or by bcrf_notify_sweep(), which admin/cron/reminders.php runs every 15 minutes)
 // and kept 60 days. dedupe_key makes each thing one notification however often the sweep runs.
 // Who sees a row: user_id = you; or no user_id and role = your role; or neither set and you're an Owner or Manager.
@@ -184,6 +190,55 @@ function bcrf_notify_sweep(PDO $pdo): int {
                               AND assignee_user_id IS NOT NULL AND status NOT IN ('done', 'skipped', 'cancelled') ORDER BY id LIMIT 100") as $r) {
             $added += bcrf_notify($pdo, ['kind' => 'task_late', 'dedupe' => 'task_late:' . $r['id'], 'user_id' => (int)$r['assignee_user_id'],
                 'link' => '/admin/tasks.php?id=' . (int)$r['id'], 'title' => 'Late: ' . $r['title']]) ? 1 : 0;
+        }
+    });
+    $farmToday = (new DateTimeImmutable('now', new DateTimeZone(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York')))->format('Y-m-d');
+    $safe(function () use ($pdo, &$added) {   // new incident reports (Nov 14, 2026)
+        if (!defined('BCRF_INCIDENT_TYPES') && is_file(__DIR__ . '/incidents.php')) require_once __DIR__ . '/incidents.php';
+        foreach ($pdo->query("SELECT id, type, severity, location, happened_at FROM incidents WHERE created_at >= UTC_TIMESTAMP() - INTERVAL 3 DAY ORDER BY id LIMIT 50") as $r) {
+            $kind = defined('BCRF_INCIDENT_TYPES') ? (BCRF_INCIDENT_TYPES[$r['type']] ?? $r['type']) : $r['type'];
+            $sev = defined('BCRF_INCIDENT_SEVERITY') ? (BCRF_INCIDENT_SEVERITY[$r['severity']] ?? $r['severity']) : $r['severity'];
+            $added += bcrf_notify($pdo, ['kind' => 'incident', 'dedupe' => 'incident:' . $r['id'], 'link' => '/admin/incidents.php?id=' . (int)$r['id'],
+                'title' => 'Incident reported: ' . $kind, 'body' => trim($sev . ($r['location'] ? ' · ' . $r['location'] : ''))]) ? 1 : 0;
+        }
+    });
+    $safe(function () use ($pdo, &$added, $farmToday) {   // low stock, one line a day (Nov 14, 2026)
+        $rows = $pdo->query("SELECT name FROM inventory WHERE is_active = 1 AND track_inventory = 1 AND min_stock_level IS NOT NULL AND min_stock_level > 0
+                             AND stock_quantity <= min_stock_level ORDER BY name LIMIT 200")->fetchAll(PDO::FETCH_COLUMN);
+        if (!$rows) return;
+        $n = count($rows);
+        $added += bcrf_notify($pdo, ['kind' => 'low_stock', 'dedupe' => 'low_stock:' . $farmToday, 'link' => '/admin/stock.php?low=1',
+            'title' => $n . ' item' . ($n === 1 ? ' is' : 's are') . ' low on stock', 'body' => implode(', ', array_slice($rows, 0, 8)) . ($n > 8 ? ' and ' . ($n - 8) . ' more' : '')]) ? 1 : 0;
+    });
+    $safe(function () use ($pdo, &$added) {   // new job applications (Nov 14, 2026)
+        foreach ($pdo->query("SELECT a.id, a.first_name, a.last_name, j.title AS job FROM applications a LEFT JOIN jobs j ON j.id = a.job_id
+                              WHERE a.is_spam = 0 AND a.archived_at IS NULL AND a.anonymized_at IS NULL AND a.status = 'new'
+                              AND a.created_at >= NOW() - INTERVAL 3 DAY ORDER BY a.id LIMIT 50") as $r) {
+            $added += bcrf_notify($pdo, ['kind' => 'applicant', 'dedupe' => 'applicant:' . $r['id'], 'link' => '/admin/admin.php?view=jobs&app=' . (int)$r['id'],
+                'title' => 'New applicant: ' . trim($r['first_name'] . ' ' . $r['last_name']), 'body' => $r['job'] ?: null]) ? 1 : 0;
+        }
+    });
+    $safe(function () use ($pdo, &$added, $farmToday) {   // vaccinations due within 14 days or late (Nov 14, 2026; same rule as the dashboard)
+        $until = (new DateTimeImmutable($farmToday))->modify('+14 days')->format('Y-m-d');
+        $st = $pdo->prepare("SELECT v.id, v.animal_id, a.name AS animal_name, v.vaccine, v.next_due FROM animal_vaccinations v JOIN animals a ON a.id = v.animal_id
+                             WHERE v.next_due IS NOT NULL AND v.next_due <= ? AND v.next_due >= ? - INTERVAL 30 DAY AND a.status NOT IN ('sold','transferred','adopted','deceased')
+                               AND NOT EXISTS (SELECT 1 FROM animal_vaccinations v2 WHERE v2.animal_id = v.animal_id AND v2.vaccine = v.vaccine
+                                               AND (v2.given_on > v.given_on OR (v2.given_on = v.given_on AND v2.id > v.id)))
+                             ORDER BY v.next_due LIMIT 100");
+        $st->execute([$until, $farmToday]);
+        foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $late = $r['next_due'] < $farmToday;
+            $added += bcrf_notify($pdo, ['kind' => 'vaccine_due', 'dedupe' => 'vaccine_due:' . $r['id'] . ':' . $r['next_due'], 'link' => '/admin/animals.php?id=' . (int)$r['animal_id'] . '&tab=health',
+                'title' => $r['animal_name'] . ': ' . $r['vaccine'] . ($late ? ' is late' : ' due soon'), 'body' => ($late ? 'Was due ' : 'Due ') . date('D M j', strtotime((string)$r['next_due']))]) ? 1 : 0;
+        }
+    });
+    $safe(function () use ($pdo, &$added, $farmToday) {   // vendor / animal papers running out (Nov 14, 2026; migration 0067)
+        if (!function_exists('bcrf_doc_expiring')) require_once __DIR__ . '/documents.php';
+        foreach (bcrf_doc_expiring($pdo, $farmToday) as $d) {
+            $what = (BCRF_DOC_TYPES[$d['doc_type']] ?? 'Paper') . (trim((string)($d['link_name'] ?? '')) !== '' ? ' for ' . $d['link_name'] : '');
+            $past = (string)$d['expires_on'] < $farmToday;
+            $added += bcrf_notify($pdo, ['kind' => 'paper_expiring', 'dedupe' => 'paper_expiring:' . $d['id'] . ':' . $d['expires_on'], 'link' => '/admin/documents.php?id=' . (int)$d['id'],
+                'title' => $what . ($past ? ' has run out' : ' runs out soon'), 'body' => ($past ? 'Ran out ' : 'Runs out ') . date('D M j, Y', strtotime((string)$d['expires_on'])) . '. Ask for a new one.']) ? 1 : 0;
         }
     });
     try { $pdo->exec("DELETE FROM notifications WHERE created_at < UTC_TIMESTAMP() - INTERVAL 60 DAY"); $pdo->exec("DELETE r FROM notification_reads r LEFT JOIN notifications n ON n.id = r.notification_id WHERE n.id IS NULL"); }

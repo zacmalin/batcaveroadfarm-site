@@ -6,13 +6,17 @@
 //        act=save      change the details          act=delete | restore            owner only (nothing is ever removed)
 //        act=remove_file | restore_file            owner only, one page
 // Permission: inventory edit (people who receive stock) or the animal_expenses view; each document is checked again.
+// Nov 14, 2026 (later; migration 0067): papers on vendors (insurance certificate, W-9, contract) and animals (vet record,
+// registration) with an expiry date; Papers and "Running out" tabs; Download CSV (admin/export.php?what=documents).
+// Animal papers can be opened by anyone who can open animals.
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
 check_admin();
 require_once __DIR__ . '/includes/permission_checks.php';
-require_permission([['table', 'inventory', 'edit'], ['view', 'animal_expenses']]);
+require_permission([['table', 'inventory', 'edit'], ['view', 'animal_expenses'], ['table', 'animals']]);
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/documents.php';
+require_once __DIR__ . '/../includes/record_tools.php';   // flash keys, CSV link (Nov 14, 2026)
 if (is_file(__DIR__ . '/../includes/vendors.php')) require_once __DIR__ . '/../includes/vendors.php';
 require_once __DIR__ . '/../includes/admin_shell.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
@@ -31,7 +35,7 @@ if (!bcrf_docs_ready($pdo)) {
 /** Only come back to our own admin pages. */
 $safeBack = function ($b): string {
     $b = (string)$b;
-    return preg_match('#^/admin/(receive|purchase_orders|animal_expenses|animals|documents)\.php(\?[A-Za-z0-9_=&%.\-]*)?$#', $b) ? $b : '';
+    return preg_match('#^/admin/(receive|purchase_orders|animal_expenses|animals|vendors|documents)\.php(\?[A-Za-z0-9_=&%.\-]*)?$#', $b) ? $b : '';
 };
 
 // ── POST ──────────────────────────────────────────────────────────────────────
@@ -98,9 +102,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     }
     // Pages that show their own message read it from their own flash key
     if ($back && !str_starts_with($back, '/admin/documents.php')) {
-        $key = str_starts_with($back, '/admin/receive.php') ? 'recv_flash' : (str_starts_with($back, '/admin/purchase_orders.php') ? 'po_flash'
-             : (str_starts_with($back, '/admin/animals.php') ? 'an_flash' : 'ax_flash'));
-        $_SESSION[$key] = $_SESSION['doc_flash']; unset($_SESSION['doc_flash']);
+        $key = bcrf_record_flash_key($back) ?: 'ax_flash';
+        $fl = $_SESSION['doc_flash'];
+        if ($fl[0] === 'warning' && in_array($key, ['an_flash', 'vend_flash'], true)) $fl[0] = 'ok';   // those pages show ok / err only
+        $_SESSION[$key] = $fl; unset($_SESSION['doc_flash']);
+        if (in_array($key, ['an_flash', 'vend_flash'], true) && !str_contains($go, '#')) $go .= '#papers';
     }
     header('Location: ' . $go); exit;
 }
@@ -109,6 +115,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 $flash = $_SESSION['doc_flash'] ?? null; unset($_SESSION['doc_flash']);
 $isOwner = bcrf_doc_is_owner();
 $canStock = bcrf_doc_can_stock();
+$canPapers = $canStock || bcrf_doc_can_animal_papers();
+$hasExpiry = bcrf_docs_expiry_ready($pdo);
 $vendors = ($canStock && function_exists('bcrf_vendor_options')) ? bcrf_vendor_options($pdo) : [];
 $linkChoices = bcrf_doc_link_choices($pdo);
 $input   = 'p-2 border border-stone-300 rounded bg-stone-50 text-base md:text-sm w-full';
@@ -121,7 +129,7 @@ $local   = fn($utc) => $utc ? (new DateTimeImmutable((string)$utc, new DateTimeZ
 $opt     = fn(string $v, string $text, string $cur) => '<option value="' . $h($v) . '"' . ($v === $cur ? ' selected' : '') . '>' . $h($text) . '</option>';
 
 /** The details fields (new upload and edit). $d = current values. */
-$fields = function (array $d) use ($h, $input, $label, $opt, $vendors, $linkChoices, $canStock): string {
+$fields = function (array $d) use ($h, $input, $label, $opt, $vendors, $linkChoices, $canStock, $hasExpiry): string {
     $cur = $d['link_type'] ? ($d['link_type'] === 'expense' ? 'expense' : $d['link_type'] . ':' . (int)$d['link_id']) : '';
     $o = '<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">';
     $o .= '<div><label class="' . $label . '" for="f_type">What is it</label><select id="f_type" name="doc_type" class="' . $input . '">';
@@ -148,7 +156,8 @@ $fields = function (array $d) use ($h, $input, $label, $opt, $vendors, $linkChoi
     $o .= '<div><label class="' . $label . '" for="f_vname">' . ($vendors ? 'Or store name' : 'Store / vendor') . '</label><input id="f_vname" name="vendor_name" maxlength="120" class="' . $input . '" value="' . $h($d['vendor_name'] ?? '') . '" placeholder="e.g. Tractor Supply"></div>';
     $o .= '<div><label class="' . $label . '" for="f_date">Date on it</label><input id="f_date" name="doc_date" type="date" class="' . $input . '" value="' . $h($d['doc_date'] ?? '') . '"></div>';
     $o .= '<div><label class="' . $label . '" for="f_total">Total ($)</label><input id="f_total" name="total" inputmode="decimal" class="' . $input . '" value="' . $h($d['total_cents'] !== null && $d['total_cents'] !== '' ? number_format((int)$d['total_cents'] / 100, 2, '.', '') : '') . '" placeholder="e.g. 212.40"></div>';
-    $o .= '<div><label class="' . $label . '" for="f_ref">Invoice / receipt #</label><input id="f_ref" name="ref" maxlength="80" class="' . $input . '" value="' . $h($d['ref'] ?? '') . '"></div>';
+    $o .= '<div><label class="' . $label . '" for="f_ref">Invoice / receipt / policy #</label><input id="f_ref" name="ref" maxlength="80" class="' . $input . '" value="' . $h($d['ref'] ?? '') . '"></div>';
+    if ($hasExpiry) $o .= '<div><label class="' . $label . '" for="f_exp">Expires <span class="font-normal text-stone-400">papers only</span></label><input id="f_exp" name="expires_on" type="date" class="' . $input . '" value="' . $h($d['expires_on'] ?? '') . '"></div>';
     $o .= '<div class="sm:col-span-3"><label class="' . $label . '" for="f_note">Note</label><input id="f_note" name="note" maxlength="255" class="' . $input . '" value="' . $h($d['note'] ?? '') . '"></div>';
     return $o . '</div>';
 };
@@ -171,6 +180,8 @@ if (!empty($_GET['id'])) {
     echo bcrf_shell_flash($flash);
     echo '<h1 class="text-2xl font-bold text-stone-800 mb-1">', $h(BCRF_DOC_TYPES[$d['doc_type']] ?? 'Document'), ' #', (int)$d['id'], '</h1>';
     $lurl = bcrf_doc_link_url($d['link_type'], $d['link_id'] !== null ? (int)$d['link_id'] : null);
+    [$xText, $xSoon] = bcrf_doc_expiry($d);
+    if ($xText !== '' && $xSoon) echo bcrf_shell_notice('warning', ucfirst($xText) . '. Ask for a new one and add it.');
     echo '<p class="text-sm text-stone-600 mb-4">', $h(bcrf_doc_line($d)), '<br>For: ', $lurl ? '<a class="underline text-amber-800" href="' . $h($lurl) . '">' . $h(bcrf_doc_link_label($d)) . '</a>' : $h(bcrf_doc_link_label($d)),
          '<br><span class="text-xs text-stone-500">Uploaded ', $h($local($d['created_at'])), $d['by_name'] ? ' by ' . $h($d['by_name']) : '', '</span></p>';
     if (!$live) echo bcrf_shell_notice('warning', 'This document is deleted. Only owners can see it.');
@@ -218,9 +229,11 @@ if (!empty($_GET['id'])) {
 }
 
 // ── List ──────────────────────────────────────────────────────────────────────
-$show = in_array($_GET['show'] ?? '', ['inbox', 'expense', 'missing', 'deleted'], true) ? (string)$_GET['show'] : 'all';
+$show = in_array($_GET['show'] ?? '', ['inbox', 'expense', 'missing', 'papers', 'expiring', 'deleted'], true) ? (string)$_GET['show'] : 'all';
 if ($show === 'deleted' && !$isOwner) $show = 'all';
 if (!$canStock && in_array($show, ['inbox', 'expense', 'missing'], true)) $show = 'all';
+if (!$canPapers && in_array($show, ['papers', 'expiring'], true)) $show = 'all';
+$expiringN = $canPapers && $hasExpiry ? count(bcrf_doc_list($pdo, ['show' => 'expiring'], 500)) : 0;
 $valid = fn($v) => is_string($v) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $v) && DateTimeImmutable::createFromFormat('!Y-m-d', $v)?->format('Y-m-d') === $v;
 $q = trim(mb_substr((string)($_GET['q'] ?? ''), 0, 100));
 $from = $valid($_GET['from'] ?? null) ? (string)$_GET['from'] : '';
@@ -237,7 +250,7 @@ echo bcrf_shell_flash($flash);
     <h2 class="text-base font-semibold text-stone-800 mb-3">Add an invoice or receipt</h2>
     <?= bcrf_doc_inputs_html('doc') ?>
     <details class="mb-3"><summary class="cursor-pointer text-sm text-amber-800 underline">Details (optional, you can add them later)</summary>
-      <div class="mt-3"><?= $fields(['doc_type' => $canStock ? 'invoice' : 'receipt', 'link_type' => null, 'link_id' => null, 'expense_category' => 'other', 'vendor_id' => null, 'vendor_name' => '', 'doc_date' => '', 'total_cents' => null, 'ref' => '', 'note' => '']) ?></div>
+      <div class="mt-3"><?= $fields(['doc_type' => $canStock ? 'invoice' : (bcrf_doc_can_animal() ? 'receipt' : 'vet'), 'link_type' => null, 'link_id' => null, 'expense_category' => 'other', 'vendor_id' => null, 'vendor_name' => '', 'doc_date' => '', 'total_cents' => null, 'ref' => '', 'note' => '']) ?></div>
     </details>
     <button class="<?= $btnMain ?>">Save</button>
     <p class="text-xs text-stone-500 mt-2">Photos (JPEG, PNG, WebP, HEIC) or PDFs, up to <?= (int)(BCRF_DOC_MAX_BYTES / 1048576) ?> MB each. Several files at once become pages of one document. Saved outside the website and kept in the weekly files backup.</p>
@@ -247,6 +260,7 @@ echo bcrf_shell_flash($flash);
     <?php
     $tabs = ['all' => 'All'];
     if ($canStock) { $tabs['inbox'] = 'Inbox' . ($inboxN ? " ($inboxN)" : ''); $tabs['expense'] = 'Other expenses'; $tabs['missing'] = 'Receives with no invoice' . ($missing ? ' (' . count($missing) . ')' : ''); }
+    if ($canPapers) { $tabs['papers'] = 'Papers'; if ($hasExpiry) $tabs['expiring'] = 'Running out' . ($expiringN ? " ($expiringN)" : ''); }
     if ($isOwner) $tabs['deleted'] = 'Deleted';
     foreach ($tabs as $k => $t): ?>
     <a class="px-3 py-1 rounded-full border <?= $show === $k ? 'bg-amber-700 border-amber-700 text-white' : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-100' ?>" href="documents.php<?= $k === 'all' ? '' : '?show=' . $k ?>"><?= $h($t) ?></a>
@@ -271,15 +285,17 @@ echo bcrf_shell_flash($flash);
     <div><label class="<?= $label ?>" for="df">From</label><input id="df" name="from" type="date" value="<?= $h($from) ?>" class="<?= $input ?>"></div>
     <div><label class="<?= $label ?>" for="dt">To</label><input id="dt" name="to" type="date" value="<?= $h($to) ?>" class="<?= $input ?>"></div>
     <button class="<?= $btnSec ?>">Show</button>
+    <?= bcrf_csv_link_html('documents', ['show' => $show === 'all' ? '' : $show, 'q' => $q, 'from' => $from, 'to' => $to]) ?>
   </form>
   <div class="<?= $card ?>">
-    <?php if (!$rows): ?><p class="text-sm text-stone-500"><?= $q !== '' || $from || $to ? 'Nothing matches.' : ($show === 'inbox' ? 'The Inbox is empty.' : 'Nothing saved yet.') ?></p><?php else: ?>
+    <?php if (!$rows): ?><p class="text-sm text-stone-500"><?= $q !== '' || $from || $to ? 'Nothing matches.' : ($show === 'inbox' ? 'The Inbox is empty.' : ($show === 'expiring' ? 'Nothing runs out in the next ' . BCRF_DOC_EXPIRY_WARN_DAYS . ' days.' : 'Nothing saved yet.')) ?></p><?php else: ?>
     <ul class="divide-y divide-stone-100">
       <?php foreach ($rows as $d): ?>
       <li class="py-2 flex gap-3 items-center">
         <?= bcrf_doc_thumb_html($d) ?>
         <div class="min-w-0">
           <a class="text-sm font-semibold underline text-amber-800" href="documents.php?id=<?= (int)$d['id'] ?>"><?= $h(bcrf_doc_line($d)) ?></a>
+          <?php [$xText, $xSoon] = bcrf_doc_expiry($d); if ($xText !== '' && $xSoon): ?><span class="block text-xs font-semibold text-red-700"><?= $h(ucfirst($xText)) ?></span><?php endif; ?>
           <span class="block text-xs text-stone-500"><?= $h(bcrf_doc_link_label($d)) ?> · <?= (int)$d['files_n'] ?> page<?= (int)$d['files_n'] === 1 ? '' : 's' ?><?= $d['by_name'] ? ' · ' . $h($d['by_name']) : '' ?><?= $d['note'] ? ' · ' . $h(mb_strimwidth((string)$d['note'], 0, 60, '…')) : '' ?></span>
         </div>
       </li>

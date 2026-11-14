@@ -4,6 +4,8 @@
 //   GET  customers.php[?q=…]          search (name, email, phone); newest first when blank
 //   GET  customers.php?id=N           one customer: summary strip (spent, visits, next, follow-ups; Nov 14, 2026), contact, notes, household, organizations, bookings, parties,
 //                                     passes, tickets, register sales, rewards, email preferences, merges
+//   GET  customers.php?id=N also has Call / Text / Email buttons, dated notes, linked tasks and a Changes list (Nov 14, 2026;
+//                                     includes/record_tools.php). The list has Download CSV (admin/export.php?what=customers).
 //   GET  customers.php?dupes=1        possible duplicates (same phone or same name) to review and merge
 //   POST act=save | household_new | household_join | household_leave | child_add | child_remove | merge | undo_merge
 //        | email_off (staff can turn an email off when a customer asks; only the customer can turn news on)
@@ -21,6 +23,7 @@ require_once __DIR__ . '/../includes/event_quotes.php';
 require_once __DIR__ . '/../includes/crm.php';
 require_once __DIR__ . '/../includes/email_prefs.php';
 require_once __DIR__ . '/../includes/admin_shell.php';
+require_once __DIR__ . '/../includes/record_tools.php';   // Call/Text/Email, notes, tasks, changes, CSV (Nov 14, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -155,6 +158,7 @@ if ($id) {
     <div><?= $badge($c) ?><?= $p['rewards'] !== null ? $chip('Roost Rewards: ' . $p['rewards'] . ' pts', 'bg-amber-100 text-amber-900') : '' ?></div>
   </div>
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
+  <?= bcrf_contact_buttons_html($c['phone_number'], $c['email'], bcrf_crm_name($c)) ?>
 
   <?php // Summary strip (Nov 14, 2026): bcrf_crm_summary() in includes/crm.php says what each number counts.
     $tile = 'bg-white border border-stone-200 rounded-lg px-3 py-2 shadow-sm';
@@ -196,7 +200,7 @@ if ($id) {
         <div><label class="<?= $label ?>" for="ln">Last name</label><input id="ln" name="last_name" maxlength="50" value="<?= $h($c['last_name']) ?>" class="<?= $input ?>"></div>
       </div>
       <label class="<?= $label ?>" for="ph">Phone</label><input id="ph" name="phone" maxlength="20" value="<?= $h($c['phone_number']) ?>" class="<?= $input ?> mb-2">
-      <label class="<?= $label ?>" for="sn">Staff notes (never shown to the customer)</label><textarea id="sn" name="staff_notes" rows="3" class="<?= $input ?> mb-2"><?= $h($c['staff_notes']) ?></textarea>
+      <label class="<?= $label ?>" for="sn">Pinned note <span class="font-normal text-stone-400">always on top, never shown to the customer. Dated notes go in Notes below.</span></label><textarea id="sn" name="staff_notes" rows="3" class="<?= $input ?> mb-2"><?= $h($c['staff_notes']) ?></textarea>
       <button class="<?= $btnSec ?>">Save</button>
     </form>
 
@@ -230,7 +234,12 @@ if ($id) {
     </div>
   </div>
 
-  <div class="<?= $card ?> mt-4">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+    <div><?= bcrf_record_notes_box_html($pdo, 'customer', $id, '/admin/customers.php?id=' . $id, $csrf) ?></div>
+    <div><?= bcrf_record_tasks_box_html($pdo, 'customer', $id) ?></div>
+  </div>
+
+  <div class="<?= $card ?>">
     <h2 class="text-base font-semibold text-stone-800 mb-2">History</h2>
     <p class="text-sm text-stone-700 mb-3">Register: <?= $p['sales']['count'] ?> sale<?= $p['sales']['count'] === 1 ? '' : 's' ?>, <?= $h($m($p['sales']['total'])) ?><?= $p['sales']['last'] ? ', last ' . $h($date($p['sales']['last'])) : '' ?></p>
     <?php if ($p['orgs']): ?><p class="text-sm text-stone-700 mb-3">Organizations: <?php foreach ($p['orgs'] as $i => $o): ?><?= $i ? ', ' : '' ?><a class="underline text-amber-800" href="organizations.php?id=<?= (int)$o['id'] ?>"><?= $h($o['name']) ?></a> <span class="text-xs text-stone-500">(<?= $h(strtolower(BCRF_CRM_CONTACT_ROLES[$o['role']] ?? $o['role'])) ?>)</span><?php endforeach; ?></p><?php endif; ?>
@@ -279,6 +288,8 @@ if ($id) {
     <?php endif; ?>
   </div>
   <?php endif; ?>
+
+  <?= bcrf_record_changes_html($pdo, 'customer', $id) ?>
 
   <?php if ($p['merges']): ?>
   <div class="<?= $card ?>">
@@ -334,9 +345,10 @@ echo '<h1 class="text-2xl font-bold text-stone-800 mb-1">Customers</h1>', $tabs(
 if ($error) echo bcrf_shell_notice('err', $error);
 if ($sync['linked']) echo '<p class="text-xs text-stone-500 mb-2">Linked ', $sync['linked'], ' new booking, party, pass or ticket record', $sync['linked'] === 1 ? '' : 's', ' to their customer', $sync['created'] ? ' (' . $sync['created'] . ' new guest customer' . ($sync['created'] === 1 ? '' : 's') . ')' : '', '.</p>';
 ?>
-  <form method="GET" action="customers.php" class="flex gap-2 mb-4">
-    <input name="q" value="<?= $h($q) ?>" placeholder="Name, email or phone" aria-label="Search customers" class="<?= $input ?>">
+  <form method="GET" action="customers.php" class="flex flex-wrap gap-2 mb-4">
+    <input name="q" value="<?= $h($q) ?>" placeholder="Name, email or phone" aria-label="Search customers" class="<?= $input ?> flex-1 min-w-48">
     <button class="<?= $btnMain ?> shrink-0">Search</button>
+    <?= bcrf_csv_link_html('customers', ['q' => $q]) ?>
   </form>
   <?php if (!$list): ?><p class="text-sm text-stone-500"><?= $q !== '' ? 'Nobody matches that.' : 'No customers yet.' ?></p><?php else: ?>
   <div class="<?= $card ?> p-0 overflow-hidden">

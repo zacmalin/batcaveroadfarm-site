@@ -82,3 +82,16 @@ bcrf_shell_close();
   loads `reports.css` + `admin-farmos.css` and wraps the content in `.fos`
 - `css`, `js` — extra files from `admin/assets/`
 - `strict` — `false` skips the strict policy `<meta>` (older Settings pages only)
+
+## Record boxes (includes/record_tools.php, Nov 14, 2026)
+
+A record page (customer, organization, vendor, animal, party, product, PO, receive) uses the same boxes, so they look
+and work the same everywhere. Add a new kind to `bcrf_record_kinds()` first (label, who can open it, its audit
+object_type, whether it takes notes).
+
+- `bcrf_contact_buttons_html($phone, $email, $name, $address)` — Call / Text / Email / Map
+- `bcrf_record_notes_box_html($pdo, $type, $id, $back, $csrf, $oldNote)` — dated notes (posts to `admin/record_note.php`)
+- `bcrf_record_tasks_box_html($pdo, $type, $id)` — open tasks + "Add a task" prefilled to this record
+- `bcrf_record_changes_html($pdo, $type, $id)` — folded "Changes" panel from the audit log
+- `bcrf_doc_box_html($pdo, 'vendor'|'animal', $id, $back, $csrf)` — papers with an expiry date (includes/documents.php)
+- `bcrf_csv_link_html($what, $filters)` — "Download CSV" via `admin/export.php` (add new exports there)

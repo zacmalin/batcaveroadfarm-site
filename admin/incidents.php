@@ -15,6 +15,7 @@ require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/queue.php';
 require_once __DIR__ . '/../includes/incidents.php';
 require_once __DIR__ . '/../includes/admin_shell.php';
+require_once __DIR__ . '/../includes/record_tools.php';   // Download CSV on the list (Nov 14, 2026)
 if (is_file(__DIR__ . '/../includes/animals.php')) require_once __DIR__ . '/../includes/animals.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -318,6 +319,7 @@ if ($error) echo bcrf_shell_notice('err', $error); ?>
     <div><label class="<?= $label ?>" for="f_ty">Kind</label><select id="f_ty" name="type" class="<?= $input ?>"><option value="">Every kind</option>
       <?php foreach (BCRF_INCIDENT_TYPES as $k => $v): ?><option value="<?= $k ?>"<?= $type === $k ? ' selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?></select></div>
     <button class="<?= $btnSec ?>">Show</button>
+    <?= bcrf_csv_link_html('incidents', ['status' => $status, 'type' => $type]) ?>
   </form>
   <div class="<?= $card ?>">
     <?php if (!$rows): ?><p class="text-sm text-stone-500"><?= $status === 'open' ? 'No open incidents.' : 'Nothing here.' ?></p><?php else: ?>

@@ -38,7 +38,8 @@ function bcrf_search_kinds(): array {
         'waivers'    => ['Waivers',          '✍️', [['view', 'customers']]],
         'vendors'    => ['Vendors',          '🚚', [['table', 'inventory', 'edit']]],
         'pos'        => ['Purchase orders',  '📦', [['table', 'inventory', 'edit']]],
-        'documents'  => ['Invoices & receipts', '📎', [['table', 'inventory', 'edit'], ['view', 'animal_expenses']]],   // Nov 14, 2026
+        'documents'  => ['Invoices, receipts & papers', '📎', [['table', 'inventory', 'edit'], ['view', 'animal_expenses'], ['table', 'animals']]],   // Nov 14, 2026
+        'notes'      => ['Notes on records', '🗒️', [['view', 'customers'], ['table', 'inventory', 'edit'], ['table', 'animals'], ['view', 'event_inquiries']]],   // Nov 14, 2026 (record_notes)
         'staff'      => ['Staff',            '🧑‍🌾', [['admin']]],
         // Nov 14, 2026
         'tasks'      => ['Tasks',            '✅', [['view', 'tasks']]],
@@ -385,11 +386,18 @@ function bcrf_search(PDO $pdo, string $q, callable $can, array $me = []): array 
                 break;
             case 'documents':
                 // Vendor, invoice #, note, file name or an amount ("212.40"). Animal-expense receipts only for people who see animal costs.
+                // Vendor papers go with stock; animal papers (vet, registration) with the animals table (includes/documents.php bcrf_doc_visible_sql).
                 $stockOk = bcrf_search_allowed([['table', 'inventory', 'edit']], $can); $animalOk = bcrf_search_allowed([['view', 'animal_expenses']], $can);
-                $vis = $stockOk && $animalOk ? '' : ($stockOk ? " AND (d.link_type IS NULL OR d.link_type <> 'animal_expense')" : " AND d.link_type = 'animal_expense'");
+                $papersOk = bcrf_search_allowed([['table', 'animals']], $can);
+                $or = [];
+                if ($stockOk) $or[] = "(d.link_type IS NULL OR d.link_type NOT IN ('animal_expense', 'animal'))";
+                if ($animalOk) $or[] = "d.link_type = 'animal_expense'";
+                if ($papersOk) $or[] = "d.link_type = 'animal'";
+                $vis = ($stockOk && $animalOk && $papersOk) ? '' : ' AND (' . implode(' OR ', $or ?: ['1=0']) . ')';
                 $money = str_replace([',', '$', ' '], '', $q);
                 $amt = preg_match('/^\d+(\.\d{1,2})?$/', $money) ? ' OR d.total_cents = ?' : '';
-                $types = ['invoice' => 'Invoice', 'receipt' => 'Receipt', 'packing' => 'Packing slip', 'statement' => 'Statement', 'other' => 'Document'];
+                $types = ['invoice' => 'Invoice', 'receipt' => 'Receipt', 'packing' => 'Packing slip', 'statement' => 'Statement', 'other' => 'Document',
+                          'insurance' => 'Insurance', 'w9' => 'W-9', 'contract' => 'Contract', 'vet' => 'Vet paper', 'registration' => 'Registration'];
                 foreach (bcrf_search_rows($pdo, "SELECT d.id, d.doc_type, d.doc_date, d.total_cents, d.ref, d.note, d.vendor_name, v.name AS vendor FROM purchase_docs d
                         LEFT JOIN vendors v ON v.id = d.vendor_id WHERE d.deleted_at IS NULL$vis AND (v.name LIKE ? OR d.vendor_name LIKE ? OR d.ref LIKE ? OR d.note LIKE ?
                         OR EXISTS (SELECT 1 FROM purchase_doc_files f WHERE f.doc_id = d.id AND f.original_name LIKE ?)$amt)
@@ -400,6 +408,22 @@ function bcrf_search(PDO $pdo, string $q, callable $can, array $me = []): array 
                                '/admin/documents.php?id=' . (int)$r['id']];
                 }
                 $more = '/admin/documents.php?q=' . $enc;
+                break;
+            case 'notes':
+                // Dated notes (record_notes, migration 0067) on the kinds of record this person can open. Hidden notes never show.
+                if (!function_exists('bcrf_record_kinds')) require_once __DIR__ . '/record_tools.php';
+                $okTypes = [];
+                foreach (bcrf_record_kinds() as $t => $k) if (!empty($k['notes']) && bcrf_search_allowed($k['need'], $can)) $okTypes[] = $t;
+                if (!$okTypes) break;
+                $in = implode(',', array_fill(0, count($okTypes), '?'));
+                foreach (bcrf_search_rows($pdo, "SELECT id, record_type, record_id, body, created_at FROM record_notes
+                        WHERE deleted_at IS NULL AND record_type IN ($in) AND body LIKE ? ORDER BY created_at DESC, id DESC LIMIT $n",
+                        array_merge($okTypes, [$like])) as $r) {
+                    $url = bcrf_record_url($pdo, (string)$r['record_type'], (int)$r['record_id']);
+                    if ($url === '') continue;
+                    $rows[] = [bcrf_record_label($pdo, (string)$r['record_type'], (int)$r['record_id']), $join($date($r['created_at']), bcrf_search_snip($r['body'], $q)),
+                               $url . (str_contains($url, '#') ? '' : '#notes')];
+                }
                 break;
             case 'staff':
                 if (!function_exists('bcrf_role_label')) require_once __DIR__ . '/roles.php';

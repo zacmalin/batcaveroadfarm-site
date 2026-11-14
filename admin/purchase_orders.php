@@ -13,7 +13,8 @@ require_permission([['table', 'inventory', 'edit']]);
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/purchasing.php';
 require_once __DIR__ . '/../includes/documents.php';   // invoice / quote papers (Nov 14, 2026)
-require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
+require_once __DIR__ . '/../includes/admin_shell.php';
+require_once __DIR__ . '/../includes/record_tools.php';   // Changes list (Nov 14, 2026)   // shared Farm OS shell (Nov 11, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -151,6 +152,7 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
     }
     echo '</div>';
     echo bcrf_doc_box_html($pdo, 'po', (int)$po['id'], '/admin/purchase_orders.php?id=' . (int)$po['id'], $csrf);
+    echo bcrf_record_changes_html($pdo, 'purchase_order', (int)$po['id']);   // who made it / changed it (Nov 14, 2026)
 
     // Inline edit for draft when ?edit=1
     if ($po['status'] === 'draft' && !empty($_GET['edit'])) {

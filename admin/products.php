@@ -6,6 +6,7 @@
 //   POST products.php  act=save, id, fields, csrf_token → back to the product
 //   POST products.php  act=active, id, on=1|0 → the On sale switch on the list (Nov 14, 2026; JSON when ajax=1)
 // Quantities are not edited here (06: never edited directly): new stocked products get a starting quantity; after that use Stock.
+// Nov 14, 2026: a product shows its linked tasks and a Changes list (who changed price, tax, stock settings; includes/record_tools.php).
 // Permission: edit on the inventory table (Permissions Matrix). Plain forms, no script (strict CSP, C-09).
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
@@ -18,6 +19,7 @@ require_once __DIR__ . '/../includes/sales.php';
 require_once __DIR__ . '/../includes/products.php';
 require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
 require_once __DIR__ . '/../includes/admin_switch.php';
+require_once __DIR__ . '/../includes/record_tools.php';   // tasks and changes on each product (Nov 14, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -197,4 +199,5 @@ echo '<label class="check"><input type="checkbox" name="is_active" value="1"', $
      '<div class="rbar"><button class="btn primary" type="submit">', $p ? 'Save' : 'Add product', '</button>',
      $p ? '<a class="btn" href="print_label.php?item_id=' . (int)$p['id'] . '">Print label</a>' : '', '</div></form>';
 if ($p && in_array(($_SESSION['user_role'] ?? ''), ['administrator'], true)) echo '<p class="muted">Other fields: <a href="admin.php?view=schema&amp;table=inventory">Full editor</a> (administrators).</p>';
-echo '</div></main></body></html>';
+if ($p) echo '<div class="mt-4"></div>', bcrf_record_tasks_box_html($pdo, 'inventory', (int)$p['id']), bcrf_record_changes_html($pdo, 'inventory', (int)$p['id']);
+bcrf_shell_close();

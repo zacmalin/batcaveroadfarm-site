@@ -11,6 +11,8 @@
 //                   act=photo_del | prefs (morning list / late emails)
 //   GET  tasks.php?tab=events      party and booking checklists, ?step=N | ?step=new&plan=party (managers; slice 3)
 //   POST act=step_save | step_active;  GET tasks.php?tab=all&related=booking:12 lists one event's tasks
+//   GET  tasks.php?new=1&related=vendor:5   new task already linked to a record (the "Add a task" button on record pages, Nov 14, 2026);
+//        tasks.php?tab=all&related=vendor:5 every task for that record. Linked records show their name and open with one tap.
 //   GET  tasks.php?incident=new | N  report an incident / see your report (admin/incidents.php; Phase 5 slice 8, Nov 12).
 //                   Staff can only open this page (config.php), so the incident form loads here for every staff member.
 // Permission: view 'tasks' to see and do tasks; 'tasks_manage' (managers) for chores, checklists and everyone's tasks.
@@ -26,6 +28,7 @@ require_once __DIR__ . '/../includes/tasks.php';
 require_once __DIR__ . '/../includes/task_notify.php';
 require_once __DIR__ . '/../includes/event_tasks.php';
 require_once __DIR__ . '/../includes/admin_shell.php';
+require_once __DIR__ . '/../includes/record_tools.php';   // record links, task kinds, CSV (Nov 14, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -312,10 +315,12 @@ if (isset($_GET['id'])) {
     <?= $h($dayLabel($t['due_date'])) ?><?= $t['due_time'] ? ' at ' . $h(bcrf_tasks_fmt_time($t['due_time'])) : '' ?> · <?= $h(bcrf_tasks_who($t)) ?>
     <?php if ($rec): ?> · 🔁 <?= $h(bcrf_rec_describe($rec)) ?><?php endif; ?>
     <?php if ($parent): ?> · follow-up of <a class="underline" href="tasks.php?id=<?= (int)$parent['id'] ?>"><?= $h($parent['title']) ?></a>
-    <?php elseif ($t['related_type'] === 'booking'): ?> · <a class="underline" href="/admin/admin.php?view=bookings">booking #<?= $h($t['related_id']) ?></a> · <a class="underline" href="tasks.php?tab=all&amp;status=all&amp;related=booking:<?= $h($t['related_id']) ?>">its checklist</a>
-    <?php elseif ($t['related_type'] === 'event_inquiry'): ?> · <a class="underline" href="/admin/admin.php?view=event_inquiries&amp;status=confirmed">party #<?= $h($t['related_id']) ?></a> · <a class="underline" href="tasks.php?tab=all&amp;status=all&amp;related=event_inquiry:<?= $h($t['related_id']) ?>">its checklist</a>
-    <?php elseif ($t['related_type'] === 'incident'): ?> · <a class="underline" href="/admin/incidents.php?id=<?= (int)$t['related_id'] ?>">incident #<?= $h($t['related_id']) ?></a>
-    <?php elseif ($t['related_type']): ?> · linked to <?= $h($t['related_type']) ?> <?= $h($t['related_id']) ?><?php endif; ?>
+    <?php elseif ($t['related_type']):   // Nov 14, 2026: every linked record opens with one tap and shows its name
+        $relUrl = bcrf_record_can((string)$t['related_type']) ? bcrf_record_url($pdo, (string)$t['related_type'], $t['related_id']) : '';
+        $relLabel = isset(bcrf_record_kinds()[$t['related_type']]) ? bcrf_record_label($pdo, (string)$t['related_type'], $t['related_id']) : 'linked to ' . $t['related_type'] . ' ' . $t['related_id']; ?>
+     · <?= $relUrl !== '' ? '<a class="underline" href="' . $h($relUrl) . '">' . $h($relLabel) . '</a>' : $h($relLabel) ?>
+    <?php if (in_array($t['related_type'], ['booking', 'event_inquiry'], true) && bcrf_record_id($t['related_id'])): ?> · <a class="underline" href="tasks.php?tab=all&amp;status=all&amp;related=<?= $h($t['related_type'] . ':' . bcrf_record_id($t['related_id'])) ?>">its checklist</a><?php endif; ?>
+    <?php endif; ?>
   </p>
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
   <?php if ($t['description']): ?><div class="<?= $card ?> p-4 mb-4 text-sm text-stone-700 whitespace-pre-line"><?= $h($t['description']) ?></div><?php endif; ?>
@@ -463,6 +468,10 @@ if (isset($_GET['new']) || isset($_GET['edit'])) {
                     : ($tpl ? ['title' => $tpl['title'], 'description' => $tpl['description'], 'checklist' => implode("\n", $tpl['lines']), 'priority' => $tpl['priority'],
                                'who' => bcrf_tasks_who_value($tpl), 'due_date' => $today, 'template_id' => $tpl['id'], 'photo_rule' => $tpl['photo_rule'] ?? 'none']
                             : ['due_date' => $today, 'who' => 'anyone', 'priority' => 'normal']));
+    // "Add a task" from a record page: ?related=vendor:5 links the new task to it (Nov 14, 2026)
+    $relGet = (!$t && preg_match('/^([a-z_]{2,20}):(\d{1,10})$/', (string)($_GET['related'] ?? ''), $rm) && isset(bcrf_record_kinds()[$rm[1]])) ? [$rm[1], $rm[2]] : null;
+    if ($relGet && !$typed) { $d['related_type'] = $relGet[0]; $d['related_id'] = $relGet[1]; }
+    $relNow = (string)($d['related_type'] ?? '') !== '' && (string)($d['related_id'] ?? '') !== '' && isset(bcrf_record_kinds()[$d['related_type']]) ? bcrf_record_label($pdo, (string)$d['related_type'], $d['related_id']) : '';
     $tpls = $t ? [] : bcrf_tpl_list($pdo, true);
     $open($t ? 'Change task' : 'New task', 'my', 'max-w-2xl');
     ?>
@@ -471,7 +480,7 @@ if (isset($_GET['new']) || isset($_GET['edit'])) {
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
   <?php if ($tpls): ?>
   <div class="flex flex-wrap items-center gap-2 mb-3 text-sm"><span class="text-stone-500">Start from a saved checklist:</span>
-    <?php foreach ($tpls as $tp): ?><a href="tasks.php?new=1&amp;tpl=<?= (int)$tp['id'] ?>" class="px-2 py-1 rounded border border-stone-300 bg-white hover:bg-stone-100 <?= ($tpl['id'] ?? 0) == $tp['id'] ? 'font-bold' : '' ?>"><?= $h($tp['title']) ?></a><?php endforeach; ?>
+    <?php foreach ($tpls as $tp): ?><a href="tasks.php?new=1&amp;tpl=<?= (int)$tp['id'] ?><?= $relGet ? '&amp;related=' . $h($relGet[0] . ':' . $relGet[1]) : '' ?>" class="px-2 py-1 rounded border border-stone-300 bg-white hover:bg-stone-100 <?= ($tpl['id'] ?? 0) == $tp['id'] ? 'font-bold' : '' ?>"><?= $h($tp['title']) ?></a><?php endforeach; ?>
   </div>
   <?php endif; ?>
   <form method="POST" action="tasks.php" class="<?= $card ?> p-4 space-y-3">
@@ -493,12 +502,16 @@ if (isset($_GET['new']) || isset($_GET['edit'])) {
       <textarea id="f_list" name="checklist" rows="6" class="<?= $input ?>"><?= $h(is_array($d['checklist'] ?? '') ? implode("\n", $d['checklist']) : ($d['checklist'] ?? '')) ?></textarea></div>
     <div><label for="f_desc" class="<?= $label ?>">Notes <span class="font-normal text-stone-400">optional</span></label>
       <textarea id="f_desc" name="description" rows="3" class="<?= $input ?>"><?= $h($d['description'] ?? '') ?></textarea></div>
-    <details class="text-sm"><summary class="cursor-pointer text-stone-500">Link to a record (optional)</summary>
+    <?php // Link to a record. Every kind is listed, and a kind not in the list (an older link) is kept as it is, so saving never drops it.
+      $relKinds = ['' => 'Nothing'] + bcrf_record_task_kinds();
+      $relCur = (string)($d['related_type'] ?? '');
+      if ($relCur !== '' && !isset($relKinds[$relCur])) $relKinds[$relCur] = ucfirst(str_replace('_', ' ', $relCur)); ?>
+    <details class="text-sm"<?= $relNow !== '' ? ' open' : '' ?>><summary class="cursor-pointer text-stone-500">Link to a record (optional)<?= $relNow !== '' ? ': <b class="text-stone-700">' . $h($relNow) . '</b>' : '' ?></summary>
       <div class="grid gap-3 sm:grid-cols-2 mt-2">
         <div><label for="f_rt" class="<?= $label ?>">Kind</label><select id="f_rt" name="related_type" class="<?= $input ?>">
-          <?php foreach (['' => 'Nothing', 'animal' => 'Animal', 'booking' => 'Booking', 'inventory' => 'Product', 'event' => 'Event', 'vendor' => 'Vendor'] as $k => $v): ?>
-          <option value="<?= $k ?>"<?= (string)($d['related_type'] ?? '') === $k ? ' selected' : '' ?>><?= $v ?></option><?php endforeach; ?></select></div>
-        <div><label for="f_ri" class="<?= $label ?>">Number or name</label><input id="f_ri" name="related_id" maxlength="64" value="<?= $h($d['related_id'] ?? '') ?>" class="<?= $input ?>"></div>
+          <?php foreach ($relKinds as $k => $v): ?>
+          <option value="<?= $h($k) ?>"<?= $relCur === (string)$k ? ' selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?></select></div>
+        <div><label for="f_ri" class="<?= $label ?>">Number <span class="font-normal text-stone-400">the record's # (filled in for you from its page)</span></label><input id="f_ri" name="related_id" maxlength="64" value="<?= $h($d['related_id'] ?? '') ?>" class="<?= $input ?>"></div>
       </div>
     </details>
     <button type="submit" class="<?= $btnMain ?>"><?= $t ? 'Save' : 'Add task' ?></button>
@@ -798,15 +811,18 @@ if ($tab === 'templates') {
 if ($tab === 'all') {
     $f = ['status' => (string)($_GET['status'] ?? 'open'), 'who' => (string)($_GET['who'] ?? ''), 'from' => (string)($_GET['from'] ?? ''),
           'to' => (string)($_GET['to'] ?? ''), 'q' => (string)($_GET['q'] ?? ''), 'related' => (string)($_GET['related'] ?? '')];
-    if (!preg_match('/^(booking|event_inquiry):\d+$/', $f['related'])) $f['related'] = '';
+    if (!preg_match('/^([a-z_]{2,20}):\d{1,10}$/', $f['related'], $rm) || !isset(bcrf_record_kinds()[$rm[1]])) $f['related'] = '';
     foreach (['from', 'to'] as $k) if ($f[$k] !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $f[$k])) $f[$k] = '';
     if ($f['status'] === 'open' && $f['to'] === '' && !isset($_GET['to']) && $f['related'] === '') $f['to'] = bcrf_tasks_add_days($today, 7);
     $list = bcrf_tasks_list($pdo, $f);
     $open('Everyone', 'all', 'max-w-4xl');
     ?>
-  <h1 class="text-2xl font-bold text-stone-800 mb-3">Everyone's tasks</h1>
-  <?php if ($f['related'] !== ''): [$rt, $rid] = explode(':', $f['related']); ?>
-  <p class="text-sm text-stone-600 mb-3">Checklist for <?= $rt === 'booking' ? 'booking' : 'party' ?> #<?= (int)$rid ?> · <a class="underline" href="tasks.php?tab=all">show everything</a></p>
+  <div class="flex flex-wrap items-end justify-between gap-2 mb-3">
+    <h1 class="text-2xl font-bold text-stone-800">Everyone's tasks</h1>
+    <?= bcrf_csv_link_html('tasks', $f) ?>
+  </div>
+  <?php if ($f['related'] !== ''): [$rt, $rid] = explode(':', $f['related']); $relUrl = bcrf_record_can($rt) ? bcrf_record_url($pdo, $rt, (int)$rid) : ''; $relLabel = bcrf_record_label($pdo, $rt, (int)$rid); ?>
+  <p class="text-sm text-stone-600 mb-3">Tasks for <?= $relUrl !== '' ? '<a class="underline" href="' . $h($relUrl) . '">' . $h($relLabel) . '</a>' : $h($relLabel) ?> · <a class="underline" href="tasks.php?new=1&amp;related=<?= $h($f['related']) ?>">add one</a> · <a class="underline" href="tasks.php?tab=all">show everything</a></p>
   <?php endif; ?>
   <form method="GET" action="tasks.php" class="<?= $card ?> p-3 mb-3 grid gap-2 sm:grid-cols-6 items-end">
     <input type="hidden" name="tab" value="all"><?php if ($f['related'] !== ''): ?><input type="hidden" name="related" value="<?= $h($f['related']) ?>"><?php endif; ?>

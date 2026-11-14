@@ -4,6 +4,8 @@
 // Nov 11, 2026: runs inside the shared Farm OS shell (includes/admin_shell.php) with the Hiring-screen look;
 // the Products & Inventory tabs replace the old "← Admin · Products · Stock" links.
 // Nov 14, 2026: Website and Address boxes (migration 0065), with Call / Open / Map buttons next to Phone, Website and Address.
+// Nov 14, 2026 (later): Email button, Papers (insurance certificate, W-9, contracts with an expiry date; includes/documents.php),
+// dated notes, linked tasks and a Changes list (includes/record_tools.php).
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
 check_admin();
@@ -13,6 +15,8 @@ require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/vendors.php';
 require_once __DIR__ . '/../includes/admin_shell.php';
 require_once __DIR__ . '/../includes/admin_switch.php';   // Active switch on the list (Nov 14, 2026)
+require_once __DIR__ . '/../includes/record_tools.php';    // notes, tasks, changes (Nov 14, 2026)
+require_once __DIR__ . '/../includes/documents.php';       // papers: insurance certificate, W-9, contracts (Nov 14, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -191,7 +195,7 @@ bcrf_shell_open($v ? $v['name'] . ' — Vendors' : 'Add a vendor', ['toast' => $
     <?= $field('name', 'Name', 'text', 120, ' required') ?>
     <?= $field('contact_name', 'Contact name') ?>
     <div class="grid gap-3 sm:grid-cols-2">
-      <?= $field('email', 'Email', 'email', 190, ' autocomplete="off"') ?>
+      <?= $withBtn($field('email', 'Email', 'email', 190, ' autocomplete="off"'), (!empty($v['email']) && filter_var((string)$v['email'], FILTER_VALIDATE_EMAIL)) ? 'mailto:' . $v['email'] : '', 'Email', 'Email ' . ($v['name'] ?? '')) ?>
       <?= $withBtn($field('phone', 'Phone', 'tel', 40, ' autocomplete="off"'), $telHref !== '' ? 'tel:' . $telHref : '', 'Call', 'Call ' . ($v['name'] ?? '')) ?>
     </div>
     <?php if ($hasWeb): ?>
@@ -205,7 +209,7 @@ bcrf_shell_open($v ? $v['name'] . ' — Vendors' : 'Add a vendor', ['toast' => $
       <?= $field('payment_terms', 'Payment terms', 'text', 80, '', '(e.g. Net 30, COD)') ?>
     </div>
     <div>
-      <label for="f_notes" class="<?= $label ?>">Notes</label>
+      <label for="f_notes" class="<?= $label ?>">Pinned note <span class="font-normal text-stone-400">always on top. Dated notes go in Notes below.</span></label>
       <textarea id="f_notes" name="notes" rows="3" maxlength="5000" class="<?= $input ?>"><?= $val('notes') ?></textarea>
     </div>
     <label class="flex items-center gap-2 text-sm text-stone-600">
@@ -217,5 +221,11 @@ bcrf_shell_open($v ? $v['name'] . ' — Vendors' : 'Add a vendor', ['toast' => $
       <a href="vendors.php" class="<?= $btnSec ?>">Cancel</a>
     </div>
   </form>
-<?php
+<?php if ($v): ?>
+  <div class="mt-4"></div>
+  <?= bcrf_doc_box_html($pdo, 'vendor', $id, '/admin/vendors.php?id=' . $id, $csrf) ?>
+  <?= bcrf_record_notes_box_html($pdo, 'vendor', $id, '/admin/vendors.php?id=' . $id, $csrf) ?>
+  <?= bcrf_record_tasks_box_html($pdo, 'vendor', $id) ?>
+  <?= bcrf_record_changes_html($pdo, 'vendor', $id) ?>
+<?php endif;
 bcrf_shell_close();
