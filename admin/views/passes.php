@@ -48,37 +48,37 @@ $sBadge = fn(string $s) => match($s) {
 
 <!-- Summary cards -->
 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-    <div class="bg-white border rounded-lg p-3 shadow-xs">
-        <div class="text-[9px] font-bold uppercase tracking-widest text-stone-400 font-mono">Active passes</div>
-        <div class="text-2xl font-black text-green-700 font-mono mt-1"><?= $counts['active'] ?></div>
+    <div class="bg-white border border-stone-200 rounded-lg p-3 shadow-sm">
+        <div class="text-[9px] font-bold uppercase tracking-widest text-stone-400">Active passes</div>
+        <div class="text-2xl font-black text-green-700 mt-1"><?= $counts['active'] ?></div>
     </div>
-    <div class="bg-white border rounded-lg p-3 shadow-xs">
-        <div class="text-[9px] font-bold uppercase tracking-widest text-stone-400 font-mono">Pass revenue</div>
-        <div class="text-2xl font-black text-emerald-700 font-mono mt-1">$<?= number_format($revenue, 0) ?></div>
+    <div class="bg-white border border-stone-200 rounded-lg p-3 shadow-sm">
+        <div class="text-[9px] font-bold uppercase tracking-widest text-stone-400">Pass revenue</div>
+        <div class="text-2xl font-black text-emerald-700 mt-1">$<?= number_format($revenue, 0) ?></div>
     </div>
-    <div class="bg-white border rounded-lg p-3 shadow-xs">
-        <div class="text-[9px] font-bold uppercase tracking-widest text-stone-400 font-mono">Expiring this month</div>
+    <div class="bg-white border border-stone-200 rounded-lg p-3 shadow-sm">
+        <div class="text-[9px] font-bold uppercase tracking-widest text-stone-400">Expiring this month</div>
         <?php
             $expiring = 0;
             try { $expiring = (int)$pdo->query("SELECT COUNT(*) FROM passes WHERE status='active' AND valid_until <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)")->fetchColumn(); } catch (Throwable $e) {}
         ?>
-        <div class="text-2xl font-black <?= $expiring > 0 ? 'text-amber-600' : 'text-stone-400' ?> font-mono mt-1"><?= $expiring ?></div>
+        <div class="text-2xl font-black <?= $expiring > 0 ? 'text-amber-600' : 'text-stone-400' ?> mt-1"><?= $expiring ?></div>
     </div>
-    <div class="bg-white border rounded-lg p-3 shadow-xs">
-        <div class="text-[9px] font-bold uppercase tracking-widest text-stone-400 font-mono">Pending payment</div>
-        <div class="text-2xl font-black <?= $counts['pending_payment'] > 0 ? 'text-amber-600' : 'text-stone-400' ?> font-mono mt-1"><?= $counts['pending_payment'] ?></div>
+    <div class="bg-white border border-stone-200 rounded-lg p-3 shadow-sm">
+        <div class="text-[9px] font-bold uppercase tracking-widest text-stone-400">Pending payment</div>
+        <div class="text-2xl font-black <?= $counts['pending_payment'] > 0 ? 'text-amber-600' : 'text-stone-400' ?> mt-1"><?= $counts['pending_payment'] ?></div>
     </div>
 </div>
 
 <!-- Issue pass manually -->
-<details class="bg-white border border-stone-200 rounded-lg mb-6 shadow-xs">
+<details class="bg-white border border-stone-200 rounded-lg mb-6 shadow-sm">
     <summary class="px-5 py-3 cursor-pointer font-semibold text-stone-700 text-sm select-none">+ Issue pass manually (in-person / cash sale)</summary>
     <form method="POST" action="/admin/admin.php?view=passes" class="p-5 grid grid-cols-2 md:grid-cols-3 gap-4">
         <input type="hidden" name="csrf_token"   value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
         <input type="hidden" name="pass_action"  value="issue">
         <div>
             <label class="block text-xs font-semibold text-stone-500 mb-1">Pass type *</label>
-            <select name="pt_id" required class="w-full p-2 border rounded bg-stone-50 text-sm">
+            <select name="pt_id" required class="w-full p-2 border border-stone-300 rounded bg-stone-50 text-sm">
                 <option value="">— Select —</option>
                 <?php foreach ($passTypes as $pt): ?>
                 <option value="<?= (int)$pt['id'] ?>"><?= htmlspecialchars($pt['label']) ?> — $<?= number_format((float)$pt['price'],0) ?></option>
@@ -87,29 +87,29 @@ $sBadge = fn(string $s) => match($s) {
         </div>
         <div>
             <label class="block text-xs font-semibold text-stone-500 mb-1">Holder name *</label>
-            <input type="text" name="holder_name" required class="w-full p-2 border rounded bg-stone-50 text-sm">
+            <input type="text" name="holder_name" required class="w-full p-2 border border-stone-300 rounded bg-stone-50 text-sm">
         </div>
         <div>
             <label class="block text-xs font-semibold text-stone-500 mb-1">Email *</label>
-            <input type="email" name="email" required class="w-full p-2 border rounded bg-stone-50 text-sm">
+            <input type="email" name="email" required class="w-full p-2 border border-stone-300 rounded bg-stone-50 text-sm">
         </div>
         <div>
             <label class="block text-xs font-semibold text-stone-500 mb-1">Phone</label>
-            <input type="tel" name="phone" class="w-full p-2 border rounded bg-stone-50 text-sm">
+            <input type="tel" name="phone" class="w-full p-2 border border-stone-300 rounded bg-stone-50 text-sm">
         </div>
         <div>
             <label class="block text-xs font-semibold text-stone-500 mb-1">Payment method</label>
-            <select name="payment_provider" class="w-full p-2 border rounded bg-stone-50 text-sm">
+            <select name="payment_provider" class="w-full p-2 border border-stone-300 rounded bg-stone-50 text-sm">
                 <option value="cash">Cash</option>
                 <option value="comp">Complimentary (free)</option>
             </select>
         </div>
         <div>
             <label class="block text-xs font-semibold text-stone-500 mb-1">Amount collected ($)</label>
-            <input type="number" name="amount_paid" min="0" step="0.01" class="w-full p-2 border rounded bg-stone-50 text-sm" placeholder="0.00">
+            <input type="number" name="amount_paid" min="0" step="0.01" class="w-full p-2 border border-stone-300 rounded bg-stone-50 text-sm" placeholder="0.00">
         </div>
         <div class="col-span-2 md:col-span-3">
-            <button type="submit" class="px-5 py-2 bg-stone-800 text-white rounded text-sm font-semibold hover:bg-stone-700">Issue Pass & Send Email</button>
+            <button type="submit" class="px-5 py-2 bg-amber-700 text-white rounded text-sm font-semibold hover:bg-amber-800">Issue Pass & Send Email</button>
         </div>
     </form>
 </details>
@@ -137,12 +137,12 @@ $sBadge = fn(string $s) => match($s) {
 
 <!-- Pass list -->
 <?php if (!$passes): ?>
-<div class="bg-white border rounded-lg p-8 text-center text-stone-400 text-sm">No passes found.</div>
+<div class="bg-white border border-stone-200 rounded-lg p-8 text-center text-stone-400 text-sm">No passes found.</div>
 <?php else: foreach ($passes as $p):
     $verifyUrl = (bcrf_farm_url() . '/passes/verify.php?token=') . rawurlencode($p['token']);
     $isExpiring = $p['status'] === 'active' && $p['valid_until'] && $p['valid_until'] <= date('Y-m-d', strtotime('+30 days'));
 ?>
-<div class="bg-white border <?= $isExpiring ? 'border-amber-300' : 'border-stone-200' ?> rounded-lg mb-3 shadow-xs">
+<div class="bg-white border border-stone-200 <?= $isExpiring ? 'border-amber-300' : 'border-stone-200' ?> rounded-lg mb-3 shadow-sm">
     <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3 bg-stone-50 border-b border-stone-100">
         <div>
             <span class="font-bold text-stone-800"><?= htmlspecialchars($p['holder_name']) ?></span>
@@ -173,7 +173,7 @@ $sBadge = fn(string $s) => match($s) {
                 <option value="<?= $s ?>" <?= $p['status'] === $s ? 'selected' : '' ?>><?= ucfirst($s) ?></option>
                 <?php endforeach; ?>
             </select>
-            <button type="submit" class="px-3 py-1.5 text-xs rounded font-semibold bg-stone-800 text-white hover:bg-stone-700">Update</button>
+            <button type="submit" class="px-3 py-1.5 text-xs rounded font-semibold bg-amber-700 text-white hover:bg-amber-800">Update</button>
         </form>
         <?php if ($p['status'] === 'active'): ?>
         <form method="POST" action="/admin/admin.php?view=passes&pstatus=<?= $statusFilter ?>">
@@ -214,7 +214,7 @@ try {
     $perks = json_decode($pt['perks'] ?? '[]', true) ?: [];
     $isEditing = ($editId === (int)$pt['id']);
 ?>
-<div class="bg-white border <?= $isEditing ? 'border-amber-400 ring-2 ring-amber-200' : 'border-stone-200' ?> rounded-lg shadow-xs overflow-hidden<?= $pt['is_active'] ? '' : ' is-off' ?>" data-switch-row>
+<div class="bg-white border border-stone-200 <?= $isEditing ? 'border-amber-400 ring-2 ring-amber-200' : 'border-stone-200' ?> rounded-lg shadow-sm overflow-hidden<?= $pt['is_active'] ? '' : ' is-off' ?>" data-switch-row>
     <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3 bg-stone-50 border-b border-stone-100">
         <div class="flex items-center gap-3">
             <span class="font-bold text-stone-800"><?= htmlspecialchars($pt['label']) ?></span>
@@ -222,7 +222,7 @@ try {
             <?php if ($pt['founding_qty_limit']): ?><span class="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-semibold">Limited: <?= (int)$pt['founding_qty_limit'] ?></span><?php endif; ?>
         </div>
         <div class="flex items-center gap-4 text-xs text-stone-500">
-            <span class="font-mono font-bold text-stone-700">$<?= number_format((float)$pt['price'],2) ?></span>
+            <span class="font-bold text-stone-700">$<?= number_format((float)$pt['price'],2) ?></span>
             <span><?= (int)($pt['duration_months'] ?? 12) ?> mo</span>
             <span>👥 <?= (int)$pt['max_guests'] ?> guests</span>
             <span class="text-stone-400">Sold: <?= $sold ?></span>
@@ -367,13 +367,13 @@ try {
         </div>
 
         <?php if ($editType): ?>
-        <div class="mb-4 text-xs text-stone-400 font-mono">
+        <div class="mb-4 text-xs text-stone-400">
             URL key: <strong><?= htmlspecialchars($f['type_key']) ?></strong> (auto-generated on create, fixed after)
         </div>
         <?php endif; ?>
 
         <div class="flex gap-3">
-            <button type="submit" class="px-6 py-2.5 bg-stone-800 text-white rounded-lg text-sm font-semibold hover:bg-stone-700">
+            <button type="submit" class="px-6 py-2.5 bg-amber-700 text-white rounded-lg text-sm font-semibold hover:bg-amber-800">
                 <?= $editType ? 'Save changes' : 'Create pass type' ?>
             </button>
             <a href="?view=passes#pass-types" class="px-5 py-2.5 bg-stone-100 text-stone-600 rounded-lg text-sm font-semibold hover:bg-stone-200">Cancel</a>
@@ -395,7 +395,7 @@ function addPerk() {
 
 <?php else: ?>
 <a href="?view=passes&create_type=1#pass-types"
-   class="inline-block px-5 py-2.5 bg-stone-800 text-white rounded-lg text-sm font-semibold hover:bg-stone-700">
+   class="inline-block px-5 py-2.5 bg-amber-700 text-white rounded-lg text-sm font-semibold hover:bg-amber-800">
    + Create new pass type
 </a>
 <?php endif; ?>

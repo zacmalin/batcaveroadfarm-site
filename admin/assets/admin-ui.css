@@ -1,6 +1,10 @@
 /* admin/assets/admin-ui.css
    Shared UI kit — 02 Navigation & UX (Nov 5, 2026). Plain CSS for the bits Tailwind classes can't express. */
 
+/* Console views (Nov 14, 2026): Tailwind 4 draws a bare `border` in the text colour (black). Make it the same light
+   stone line as the Farm OS pages. In a layer, so any border-* colour class on the element still wins. */
+@layer base{main *,main ::before,main ::after{border-color:#e7e5e4}}
+
 /* Status chip (colors come from ui_chip() in admin/views/layout/ui.php) */
 .ui-chip{display:inline-flex;align-items:center;gap:.25rem;padding:.1rem .5rem;border-radius:999px;font-size:10px;font-weight:700;line-height:1.5;white-space:nowrap;vertical-align:middle}
 

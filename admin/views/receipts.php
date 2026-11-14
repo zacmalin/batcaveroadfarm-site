@@ -1,5 +1,5 @@
 <?php if ($current_role !== 'administrator'): ?>
-    <p class="p-6 text-red-700 font-mono text-xs">Access denied.</p>
+    <p class="p-6 text-red-700 text-xs">Access denied.</p>
 <?php return; endif; ?>
 
 <?php
@@ -84,9 +84,9 @@ function receipts_page_url(int $p): string {
 $is_filtered = !empty($search_q) || !empty($date_from) || !empty($date_to);
 ?>
 
-<h1 class="text-2xl font-serif font-black mb-6">Master Transaction Log Registry</h1>
+<h1 class="text-2xl font-bold text-stone-800 mb-6">Receipts</h1>
 
-<div class="bg-white border rounded p-5 shadow-xs space-y-4">
+<div class="bg-white border border-stone-200 rounded p-5 shadow-sm space-y-4">
 
     <!-- ── FILTER BAR ── -->
     <form method="GET" action="/admin/admin.php" class="grid grid-cols-1 md:grid-cols-5 gap-3 font-sans text-xs items-end">
@@ -98,7 +98,7 @@ $is_filtered = !empty($search_q) || !empty($date_from) || !empty($date_to);
             <input type="text" name="search_q"
                 value="<?= htmlspecialchars($search_q, ENT_QUOTES) ?>"
                 placeholder="Ticket #, Item Name, or Method..."
-                class="w-full p-2 border bg-stone-50 rounded font-medium outline-none">
+                class="w-full p-2 border border-stone-300 bg-stone-50 rounded font-medium outline-none">
         </div>
 
         <!-- Fix 5: Date range -->
@@ -106,25 +106,25 @@ $is_filtered = !empty($search_q) || !empty($date_from) || !empty($date_to);
             <label class="block font-bold text-stone-500 uppercase tracking-wider mb-1 text-[10px]">From</label>
             <input type="date" name="date_from"
                 value="<?= htmlspecialchars($date_from, ENT_QUOTES) ?>"
-                class="w-full p-2 border bg-stone-50 rounded font-mono outline-none">
+                class="w-full p-2 border border-stone-300 bg-stone-50 rounded outline-none">
         </div>
         <div>
             <label class="block font-bold text-stone-500 uppercase tracking-wider mb-1 text-[10px]">To</label>
             <input type="date" name="date_to"
                 value="<?= htmlspecialchars($date_to, ENT_QUOTES) ?>"
-                class="w-full p-2 border bg-stone-50 rounded font-mono outline-none">
+                class="w-full p-2 border border-stone-300 bg-stone-50 rounded outline-none">
         </div>
 
         <div class="flex gap-2">
-            <button type="submit" class="flex-1 bg-stone-900 text-white font-mono font-bold uppercase tracking-wider py-2 rounded text-center text-xxs">Search</button>
+            <button type="submit" class="flex-1 bg-amber-700 text-white font-semibold py-2 rounded text-center text-xs">Search</button>
             <?php if ($is_filtered): ?>
-                <a href="/admin/admin.php?view=receipts" class="flex-1 border py-2 bg-stone-100 rounded font-bold text-stone-600 text-center uppercase tracking-wider font-mono text-xxs">Reset</a>
+                <a href="/admin/admin.php?view=receipts" class="flex-1 border border-stone-200 py-2 bg-stone-100 rounded font-semibold text-stone-600 text-center text-xs">Reset</a>
             <?php endif; ?>
         </div>
     </form>
 
     <!-- Fix 6: Summary bar -->
-    <div class="grid grid-cols-3 gap-3 bg-stone-50 border rounded p-3 font-mono text-xs">
+    <div class="grid grid-cols-3 gap-3 bg-stone-50 border border-stone-200 rounded p-3 text-xs">
         <div>
             <span class="block text-[10px] uppercase tracking-wider text-stone-400 font-bold">
                 <?= $is_filtered ? 'Filtered Revenue' : 'Total Revenue' ?>
@@ -147,10 +147,10 @@ $is_filtered = !empty($search_q) || !empty($date_from) || !empty($date_to);
     </div>
 
     <!-- ── RECEIPTS TABLE ── -->
-    <div class="overflow-x-auto border rounded">
+    <div class="overflow-x-auto border border-stone-200 rounded">
         <table class="w-full text-left border-collapse text-xs font-sans font-medium">
             <thead>
-                <tr class="bg-stone-900 text-stone-100 uppercase tracking-widest text-[9px] font-bold">
+                <tr class="bg-stone-50 border-b text-stone-500 uppercase tracking-wider text-[10px] font-bold">
                     <th class="p-3">Receipt #</th>
                     <th class="p-3">Timestamp</th>
                     <th class="p-3">Items</th>
@@ -178,8 +178,8 @@ $is_filtered = !empty($search_q) || !empty($date_from) || !empty($date_to);
                     $breakdown_text = implode(', ', $breakdown_plain);
                 ?>
                 <tr class="hover:bg-stone-50/50">
-                    <td class="p-3 font-mono font-bold text-stone-900"><?= htmlspecialchars($rc['receipt_number'], ENT_QUOTES) ?></td>
-                    <td class="p-3 font-mono text-stone-500 text-[10px] whitespace-nowrap"><?= date('M d, Y H:i:s', strtotime($rc['created_at'])) ?></td>
+                    <td class="p-3 font-bold text-stone-900"><?= htmlspecialchars($rc['receipt_number'], ENT_QUOTES) ?></td>
+                    <td class="p-3 text-stone-500 text-[10px] whitespace-nowrap"><?= date('M d, Y H:i:s', strtotime($rc['created_at'])) ?></td>
                     <td class="p-3 text-stone-700 font-sans text-xxs leading-tight max-w-xs">
                         <!-- Fix 1+2: plain text in array, escape both the visible text and title attribute -->
                         <div class="truncate select-all"
@@ -188,10 +188,10 @@ $is_filtered = !empty($search_q) || !empty($date_from) || !empty($date_to);
                         </div>
                     </td>
                     <!-- Fix 7: hide discount cell when zero -->
-                    <td class="p-3 font-mono text-amber-700">
+                    <td class="p-3 text-amber-700">
                         <?= (float)$rc['discount'] > 0 ? '-$' . number_format($rc['discount'], 2) : '<span class="text-stone-300">—</span>' ?>
                     </td>
-                    <td class="p-3 font-mono font-black text-stone-900">$<?= number_format($rc['total'], 2) ?></td>
+                    <td class="p-3 font-black text-stone-900">$<?= number_format($rc['total'], 2) ?></td>
                     <td class="p-3">
                         <?php
                         $method_colors = [
@@ -203,7 +203,7 @@ $is_filtered = !empty($search_q) || !empty($date_from) || !empty($date_to);
                         $method = strtoupper($rc['payment_method']);
                         $cls    = $method_colors[$method] ?? 'bg-stone-100 text-stone-700 border-stone-300';
                         ?>
-                        <span class="px-2 py-0.5 rounded text-[10px] uppercase font-mono font-bold border <?= $cls ?>">
+                        <span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-stone-200 <?= $cls ?>">
                             <?= htmlspecialchars($method, ENT_QUOTES) ?>
                         </span>
                     </td>
@@ -215,7 +215,7 @@ $is_filtered = !empty($search_q) || !empty($date_from) || !empty($date_to);
 
     <!-- Fix 8: Pagination -->
     <?php if ($total_pages > 1): ?>
-        <div class="flex items-center justify-between pt-2 font-mono text-xs">
+        <div class="flex items-center justify-between pt-2 text-xs">
             <span class="text-stone-400">
                 Page <?= $page ?> of <?= $total_pages ?>
                 &nbsp;&bull;&nbsp; <?= number_format($summary['filtered_count']) ?> records
@@ -233,7 +233,7 @@ $is_filtered = !empty($search_q) || !empty($date_from) || !empty($date_to);
                 for ($p = $window_start; $p <= $window_end; $p++):
                 ?>
                     <a href="<?= receipts_page_url($p) ?>"
-                        class="px-2 py-1 border rounded font-bold <?= $p === $page ? 'bg-stone-900 text-white border-stone-900' : 'bg-stone-50 hover:bg-stone-200' ?>">
+                        class="px-2 py-1 border rounded font-bold <?= $p === $page ? 'bg-amber-700 text-white border-amber-700' : 'bg-stone-50 hover:bg-stone-200' ?>">
                         <?= $p ?>
                     </a>
                 <?php endfor; ?>

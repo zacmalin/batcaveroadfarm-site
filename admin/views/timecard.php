@@ -11,45 +11,45 @@ function fmt_duration(int $secs): string {
 $elapsed_seconds = $active_shift ? (time() - strtotime($active_shift['clock_in'])) : 0;
 ?>
 
-<h1 class="text-2xl font-serif font-black mb-6">Shift Time Clock Interface</h1>
+<h1 class="text-2xl font-bold text-stone-800 mb-6">Time clock</h1>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
     <!-- ── CLOCK IN/OUT PANEL ── -->
-    <div class="bg-white border rounded p-6 shadow-xs self-start space-y-4">
-        <h3 class="font-serif font-black text-sm uppercase tracking-wide border-b pb-2 text-stone-800">Terminal Connection</h3>
+    <div class="bg-white border border-stone-200 rounded p-6 shadow-sm self-start space-y-4">
+        <h3 class="font-semibold text-base border-b pb-2 text-stone-800">Clock in or out</h3>
 
         <form method="POST" class="space-y-4 font-sans text-xs">
             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
 
             <?php if (!$active_shift): ?>
-                <div class="p-3 bg-red-50 border border-red-200 text-red-800 font-bold rounded font-mono text-[11px] tracking-wide">
+                <div class="p-3 bg-red-50 border border-red-200 text-red-800 font-bold rounded text-[11px] tracking-wide">
                     ⏹ STATUS: CLOCKED OUT
                 </div>
                 <div>
                     <!-- Fix 8: maxlength cap on notes -->
                     <label class="block font-bold text-stone-600 mb-1">Shift Start Notes</label>
                     <input type="text" name="clock_notes" maxlength="120"
-                        class="w-full p-2 border bg-stone-50 rounded text-xs"
+                        class="w-full p-2 border border-stone-300 bg-stone-50 rounded text-xs"
                         placeholder="e.g., Running farm stand register...">
                 </div>
                 <button type="submit" name="time_clock_action" value="clock_in"
-                    class="w-full bg-stone-900 text-white font-mono font-bold uppercase tracking-wider py-3 rounded hover:bg-stone-800 transition shadow-xs">
+                    class="w-full bg-amber-700 text-white font-semibold py-3 rounded hover:bg-amber-800 transition shadow-sm">
                     Clock IN →
                 </button>
 
             <?php else: ?>
-                <div class="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold rounded font-mono text-[11px] tracking-wide animate-pulse">
+                <div class="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold rounded text-[11px] tracking-wide animate-pulse">
                     ▶ STATUS: SHIFT ACTIVE
                 </div>
 
                 <!-- Fix 3: elapsed time display, updates live via JS -->
-                <div class="bg-stone-50 border rounded p-3 text-center">
+                <div class="bg-stone-50 border border-stone-200 rounded p-3 text-center">
                     <span class="block text-[10px] uppercase tracking-widest font-bold text-stone-400 mb-1">Elapsed Time</span>
-                    <span id="elapsedDisplay" class="text-2xl font-black font-mono text-stone-900">
+                    <span id="elapsedDisplay" class="text-2xl font-black text-stone-900">
                         <?= fmt_duration($elapsed_seconds) ?>
                     </span>
-                    <span class="block text-xxs text-stone-400 mt-1 font-mono">
+                    <span class="block text-xxs text-stone-400 mt-1">
                         Since <?= date('g:i A', strtotime($active_shift['clock_in'])) ?>
                     </span>
                 </div>
@@ -57,14 +57,14 @@ $elapsed_seconds = $active_shift ? (time() - strtotime($active_shift['clock_in']
                 <!-- Fix 9: confirm dialog on clock-out -->
                 <button type="submit" name="time_clock_action" value="clock_out"
                     onclick="return sysClockOutConfirm(this);"
-                    class="w-full bg-red-700 text-white font-mono font-bold uppercase tracking-wider py-3 rounded hover:bg-red-900 transition shadow-xs">
+                    class="w-full bg-red-700 text-white font-semibold py-3 rounded hover:bg-red-900 transition shadow-sm">
                     Clock OUT ✕
                 </button>
             <?php endif; ?>
         </form>
 
         <!-- Fix 6: weekly hours summary card -->
-        <div class="border-t pt-4 space-y-1 font-mono text-xs">
+        <div class="border-t pt-4 space-y-1 text-xs">
             <span class="block text-[10px] uppercase tracking-widest font-bold text-stone-400">This Week</span>
             <div class="flex justify-between items-baseline">
                 <span class="text-stone-600 font-bold">Completed Hours</span>
@@ -80,8 +80,8 @@ $elapsed_seconds = $active_shift ? (time() - strtotime($active_shift['clock_in']
     </div>
 
     <!-- ── WEEKLY LOG TABLE ── -->
-    <div class="lg:col-span-2 bg-white border rounded p-6 shadow-xs">
-        <h3 class="font-serif font-black text-sm uppercase tracking-wide border-b pb-2 mb-4 text-stone-800">Weekly Shift Log</h3>
+    <div class="lg:col-span-2 bg-white border border-stone-200 rounded p-6 shadow-sm">
+        <h3 class="font-semibold text-base border-b pb-2 mb-4 text-stone-800">This week's shifts</h3>
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse font-sans text-xs" data-admin-list data-list-name-col="0" data-list-date-col="0">
                 <thead>
@@ -108,20 +108,20 @@ $elapsed_seconds = $active_shift ? (time() - strtotime($active_shift['clock_in']
                         $dur_secs = $out_ts ? ($out_ts - $in_ts) : null;
                     ?>
                     <tr class="hover:bg-stone-50/50">
-                        <td class="p-3 font-mono text-stone-900 whitespace-nowrap">
+                        <td class="p-3 text-stone-900 whitespace-nowrap">
                             <?= date('M d, g:i A', $in_ts) ?>
                         </td>
-                        <td class="p-3 font-mono text-stone-600 whitespace-nowrap">
+                        <td class="p-3 text-stone-600 whitespace-nowrap">
                             <?php if ($mc['clock_out']): ?>
                                 <?= date('M d, g:i A', $out_ts) ?>
                             <?php else: ?>
                                 <span class="text-xxs font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">Active</span>
                             <?php endif; ?>
                         </td>
-                        <td class="p-3 font-mono font-bold <?= $dur_secs ? 'text-stone-700' : 'text-emerald-600' ?>">
+                        <td class="p-3 font-bold <?= $dur_secs ? 'text-stone-700' : 'text-emerald-600' ?>">
                             <?= $dur_secs ? fmt_duration($dur_secs) : '<span id="rowElapsed">—</span>' ?>
                         </td>
-                        <td class="p-3 font-mono text-stone-400 text-xxs">
+                        <td class="p-3 text-stone-400 text-xxs">
                             <?= htmlspecialchars($mc['ip_address'] ?? '', ENT_QUOTES) ?>
                         </td>
                         <td class="p-3 text-stone-500 font-medium max-w-xs truncate">
@@ -134,7 +134,7 @@ $elapsed_seconds = $active_shift ? (time() - strtotime($active_shift['clock_in']
                 <!-- Fix 2: weekly total footer row -->
                 <?php if (!empty($my_shift_rows)): ?>
                 <tfoot>
-                    <tr class="border-t-2 border-stone-300 bg-stone-50 font-mono font-bold text-xs">
+                    <tr class="border-t-2 border-stone-300 bg-stone-50 font-bold text-xs">
                         <td class="p-3 text-stone-500 uppercase tracking-wider text-[10px]" colspan="2">Weekly Total</td>
                         <td class="p-3 text-stone-900 font-black"><?= fmt_duration($weekly_seconds) ?></td>
                         <td colspan="2"></td>

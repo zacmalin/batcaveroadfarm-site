@@ -80,7 +80,7 @@ $tixBreakdown = function (array $row): string {
     foreach ($tb as $name => $data) {
         $parts[] = htmlspecialchars($name) . ' Ã' . (int)$data['qty'];
     }
-    return '<div class="text-[10px] font-mono text-stone-400 mt-1 tracking-tight">ðï¸ ' . implode(' &bull; ', $parts) . '</div>';
+    return '<div class="text-[10px] text-stone-400 mt-1 tracking-tight">ðï¸ ' . implode(' &bull; ', $parts) . '</div>';
 };
 
 // Ticket breakdown — replaces the helper above, which printed garbled characters (× and the ticket icon).
@@ -92,14 +92,14 @@ $tixBreakdown = function (array $row): string {
     foreach ($tb as $name => $data) {
         $parts[] = htmlspecialchars((string)$name) . ' × ' . (int)($data['qty'] ?? 0);
     }
-    return '<div class="text-[10px] font-mono text-stone-400 mt-1 tracking-tight">🎟️ ' . implode(' &bull; ', $parts) . '</div>';
+    return '<div class="text-[10px] text-stone-400 mt-1 tracking-tight">🎟️ ' . implode(' &bull; ', $parts) . '</div>';
 };
 
 $payBadge = function (array $row): string {
     $ps  = $row['payment_status'] ?? 'waived';
     $key = $ps === 'pending' ? 'unpaid' : $ps;
     $amt = !empty($row['amount_total']) && (float)$row['amount_total'] > 0
-        ? ' <span class="text-[10px] font-mono text-stone-500">' . ui_money($row['amount_total']) . '</span>' : '';
+        ? ' <span class="text-[10px] text-stone-500">' . ui_money($row['amount_total']) . '</span>' : '';
     return ui_chip($key) . $amt;
 };
 
@@ -128,7 +128,7 @@ $btn  = 'inline-flex items-center justify-center min-h-10 md:min-h-8 px-3 rounde
 
   <?php if (!$ready): ?>
     <div class="bg-amber-50 border border-amber-300 text-amber-800 rounded-lg p-4 text-sm">
-      Booking tables aren't set up yet. Run <code class="font-mono bg-amber-100 px-1 rounded">sql/booking_module.sql</code> in phpMyAdmin, then reload.
+      Booking tables aren't set up yet. Run <code class="bg-amber-100 px-1 rounded">sql/booking_module.sql</code> in phpMyAdmin, then reload.
     </div>
   <?php else: ?>
 
@@ -142,21 +142,21 @@ $allPendingPay = count(array_filter($pending,    fn($r) => ($r['payment_status']
 
 <!-- Revenue summary -->
 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-  <div class="bg-white border border-stone-200 rounded-lg p-3 shadow-xs">
-    <div class="text-[9px] font-bold uppercase tracking-widest text-stone-400 font-mono">Paid today</div>
-    <div class="text-xl font-black text-emerald-700 font-mono mt-1">$<?= number_format($dayPaidRev, 2) ?></div>
+  <div class="bg-white border border-stone-200 rounded-lg p-3 shadow-sm">
+    <div class="text-[9px] font-bold uppercase tracking-widest text-stone-400">Paid today</div>
+    <div class="text-xl font-black text-emerald-700 mt-1">$<?= number_format($dayPaidRev, 2) ?></div>
   </div>
-  <div class="bg-white border border-stone-200 rounded-lg p-3 shadow-xs">
-    <div class="text-[9px] font-bold uppercase tracking-widest text-stone-400 font-mono">Awaiting payment</div>
-    <div class="text-xl font-black <?= ($dayPendingPay + $allPendingPay) > 0 ? 'text-amber-600' : 'text-stone-400' ?> font-mono mt-1"><?= $dayPendingPay + $allPendingPay ?></div>
+  <div class="bg-white border border-stone-200 rounded-lg p-3 shadow-sm">
+    <div class="text-[9px] font-bold uppercase tracking-widest text-stone-400">Awaiting payment</div>
+    <div class="text-xl font-black <?= ($dayPendingPay + $allPendingPay) > 0 ? 'text-amber-600' : 'text-stone-400' ?> mt-1"><?= $dayPendingPay + $allPendingPay ?></div>
   </div>
-  <div class="bg-white border border-stone-200 rounded-lg p-3 shadow-xs">
-    <div class="text-[9px] font-bold uppercase tracking-widest text-stone-400 font-mono">Pending requests</div>
-    <div class="text-xl font-black text-stone-700 font-mono mt-1"><?= count($pending) ?></div>
+  <div class="bg-white border border-stone-200 rounded-lg p-3 shadow-sm">
+    <div class="text-[9px] font-bold uppercase tracking-widest text-stone-400">Pending requests</div>
+    <div class="text-xl font-black text-stone-700 mt-1"><?= count($pending) ?></div>
   </div>
-  <div class="bg-white border border-stone-200 rounded-lg p-3 shadow-xs">
-    <div class="text-[9px] font-bold uppercase tracking-widest text-stone-400 font-mono">Today's bookings</div>
-    <div class="text-xl font-black text-stone-700 font-mono mt-1"><?= count($daySched) ?></div>
+  <div class="bg-white border border-stone-200 rounded-lg p-3 shadow-sm">
+    <div class="text-[9px] font-bold uppercase tracking-widest text-stone-400">Today's bookings</div>
+    <div class="text-xl font-black text-stone-700 mt-1"><?= count($daySched) ?></div>
   </div>
 </div>
 
@@ -166,7 +166,7 @@ $allPendingPay = count(array_filter($pending,    fn($r) => ($r['payment_status']
     <?php if (!$pending): ?>
       <p class="text-sm text-stone-400">No pending requests. 🎉</p>
     <?php else: foreach ($pending as $p): $isWarn = ($warnId === (int)$p['id']); ?>
-      <div class="border <?= $isWarn ? 'border-red-400 bg-red-50' : 'border-stone-200' ?> rounded-lg p-3 mb-3">
+      <div class="border border-stone-200 <?= $isWarn ? 'border-red-400 bg-red-50' : 'border-stone-200' ?> rounded-lg p-3 mb-3">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div class="text-sm text-stone-700">
             <div class="font-semibold">
@@ -251,7 +251,7 @@ $allPendingPay = count(array_filter($pending,    fn($r) => ($r['payment_status']
     <?php else: foreach ($daySched as $r): ?>
       <div class="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 py-2 text-sm">
         <div class="text-stone-700">
-          <span class="font-mono text-stone-500"><?= htmlspecialchars(booking_fmt_time($r['start_time'])) ?></span>
+          <span class="text-stone-500"><?= htmlspecialchars(booking_fmt_time($r['start_time'])) ?></span>
           <span class="font-semibold ml-2"><?= htmlspecialchars($r['customer_name']) ?></span>
           <span class="text-stone-400">· <?= htmlspecialchars($r['label']) ?> · <?= (int)$r['party_size'] ?> ppl</span>
           <?= $statusBadge($r['status']) ?>
@@ -301,7 +301,7 @@ $allPendingPay = count(array_filter($pending,    fn($r) => ($r['payment_status']
       <p class="text-sm text-stone-400">No upcoming blackout dates.</p>
     <?php else: foreach ($blackouts as $bo): ?>
       <div class="flex items-center justify-between border-b border-stone-100 py-2 text-sm">
-        <div class="text-stone-700"><span class="font-mono"><?= htmlspecialchars(date('D, M j Y', strtotime($bo['d_date']))) ?></span>
+        <div class="text-stone-700"><span class=""><?= htmlspecialchars(date('D, M j Y', strtotime($bo['d_date']))) ?></span>
           <?php if (!empty($bo['reason'])): ?><span class="text-stone-400">— <?= htmlspecialchars($bo['reason']) ?></span><?php endif; ?>
         </div>
         <?php $act('blackout_remove', (int)$bo['id'], 'Remove', $btn . ' bg-stone-100 text-stone-500 hover:bg-stone-200'); ?>
@@ -334,7 +334,7 @@ $allPendingPay = count(array_filter($pending,    fn($r) => ($r['payment_status']
       <summary class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-stone-50">
         <div>
           <span class="font-semibold text-stone-800"><?= htmlspecialchars($bt['label']) ?></span>
-          <span class="ml-2 font-mono text-stone-400 text-xs"><?= htmlspecialchars($bt['type_key']) ?></span>
+          <span class="ml-2 text-stone-400 text-xs"><?= htmlspecialchars($bt['type_key']) ?></span>
           <?php if (!$bt['is_active']): ?><span class="ml-2 text-[10px] bg-stone-200 text-stone-500 px-2 py-0.5 rounded font-semibold uppercase">Inactive</span><?php endif; ?>
           <?php if ($reqPay): ?><span class="ml-2 text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-semibold">💳 requires payment</span><?php endif; ?>
         </div>
@@ -447,7 +447,7 @@ $allPendingPay = count(array_filter($pending,    fn($r) => ($r['payment_status']
         </div>
         <div>
           <label class="<?= $label ?>">Type key (unique slug) *</label>
-          <input type="text" name="bt[type_key]" required pattern="[a-z0-9_\-]+" placeholder="e.g. petting_zoo" class="<?= $inp ?> font-mono">
+          <input type="text" name="bt[type_key]" required pattern="[a-z0-9_\-]+" placeholder="e.g. petting_zoo" class="<?= $inp ?> ">
         </div>
         <div>
           <label class="<?= $label ?>">Sort order</label>

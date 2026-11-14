@@ -195,7 +195,7 @@ ob_end_flush();
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Two-step sign-in · Farm Console</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="/admin/assets/admin-ui.css?v=20261114c">
+    <link rel="stylesheet" href="/admin/assets/admin-ui.css?v=20261114d">
     <script defer src="/admin/assets/admin-ui.js?v=20261114b"></script>
 </head>
 <body class="bg-stone-100 min-h-screen p-4 flex items-start sm:items-center justify-center">

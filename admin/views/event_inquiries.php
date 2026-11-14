@@ -77,12 +77,12 @@ $eventLabels = [
         $typeLabel = $eventLabels[$inq['event_type']] ?? $inq['event_type'];
         $guests = (int)$inq['adult_count'] + (int)$inq['child_count'];
     ?>
-    <div class="bg-white border border-stone-200 rounded-lg mb-4 overflow-hidden shadow-xs">
+    <div class="bg-white border border-stone-200 rounded-lg mb-4 overflow-hidden shadow-sm">
         <!-- Header row -->
         <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3 bg-stone-50 border-b border-stone-100">
             <div>
                 <span class="font-bold text-stone-800"><?= htmlspecialchars($inq['customer_name']) ?></span>
-                <span class="ml-2 text-stone-400 text-xs font-mono"><?= date('M j, Y', strtotime($inq['created_at'])) ?></span>
+                <span class="ml-2 text-stone-400 text-xs"><?= date('M j, Y', strtotime($inq['created_at'])) ?></span>
                 <span class="ml-2"><?= $statusBadge($inq['status']) ?></span>
             </div>
             <div class="text-xs text-stone-500 flex flex-wrap gap-x-4 gap-y-1">

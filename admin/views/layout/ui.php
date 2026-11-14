@@ -55,14 +55,14 @@ function ui_money($n): string {
 function ui_btn(string $kind = 'secondary'): string {
     $base = 'inline-flex items-center justify-center gap-1 min-h-10 md:min-h-8 px-3 rounded-lg text-xs font-bold transition disabled:opacity-40';
     return $base . ' ' . ([
-        'primary'   => 'bg-stone-900 text-white hover:bg-stone-700',
+        'primary'   => 'bg-amber-700 text-white hover:bg-amber-800',   // same amber as the Farm OS pages (Nov 14, 2026)
         'success'   => 'bg-emerald-600 text-white hover:bg-emerald-700',
         'danger'    => 'bg-red-600 text-white hover:bg-red-700',
         'danger-soft' => 'bg-red-50 text-red-700 hover:bg-red-100',
         'accent'    => 'bg-amber-600 text-white hover:bg-amber-700',
         'quiet'     => 'text-stone-500 hover:bg-stone-100 hover:text-stone-800',
-        'secondary' => 'bg-stone-100 text-stone-700 hover:bg-stone-200',
-    ][$kind] ?? 'bg-stone-100 text-stone-700 hover:bg-stone-200');
+        'secondary' => 'bg-white border border-stone-300 text-stone-700 hover:bg-stone-100',
+    ][$kind] ?? 'bg-white border border-stone-300 text-stone-700 hover:bg-stone-100');
 }
 
 /** Empty state: what the screen is for + the first action. $action = [label, href] or null. */
