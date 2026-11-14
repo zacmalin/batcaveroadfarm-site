@@ -150,20 +150,7 @@ UNSUB;
                                 <!-- Social icons side by side -->
                                 <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin:0 auto;">
                                 <tr>
-                                    <td style="padding:0 8px;">
-                                        <a href="https://facebook.com/batcaveroadfarm/" target="_blank" style="text-decoration:none;">
-                                            <img src="{{SITE_URL}}/img/facebook.png" alt="Facebook"
-                                                width="48" height="48"
-                                                style="width:48px; height:48px; border-radius:10px; display:block; box-shadow:0 4px 14px rgba(0,0,0,0.25);">
-                                        </a>
-                                    </td>
-                                    <td style="padding:0 8px;">
-                                        <a href="https://instagram.com/batcaveroadfarm/" target="_blank" style="text-decoration:none;">
-                                            <img src="{{SITE_URL}}/img/instagram.png" alt="Instagram"
-                                                width="48" height="48"
-                                                style="width:48px; height:48px; border-radius:10px; display:block; box-shadow:0 4px 14px rgba(0,0,0,0.25);">
-                                        </a>
-                                    </td>
+{{SOCIAL_CELLS}}
                                 </tr>
                                 </table>
                             </td>
@@ -197,11 +184,57 @@ EMAILHTML;
     if (!function_exists('site_address_lines')) require_once dirname(__DIR__, 2) . '/includes/site_info.php';
     $e = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES);
     $addr = site_address_lines();
+    $tpl = str_replace('{{SOCIAL_CELLS}}', bcf_email_social_cells(), $tpl);
     return str_replace(['{{UNSUBSCRIBE_ROW}}', '{{SITE_URL}}', '{{SUPPORT_EMAIL}}', '{{FARM_NAME}}', '{{ADDR_LINE1}}', '{{ADDR_LINE2}}',
                         '{{MAP_URL}}', '{{TEL}}', '{{PHONE}}', '{{YEAR}}'],
                        [str_replace('{{FARM_NAME}}', $e(site('business_name', 'Bat Cave Road Farm')), $unsubRow), bcrf_farm_url(),
                         $e(bcrf_farm_email('support')), $e(site('business_name', 'Bat Cave Road Farm')), $e($addr['line1']), $e($addr['line2']),
                         $e(site_map_query_url()), $e(site_tel()), $e(site_phone_display()), date('Y')], $tpl);
+}
+
+/**
+ * Social icons for the email footer chalkboard, from Admin › Site Info › Socials (same list as the
+ * website footer, so a new network shows up in emails too). Nov 14, 2026.
+ * Email clients like Outlook can't show WebP, so a .webp icon is swapped for a .png copy next to it,
+ * made once with GD the first time it's needed. If that can't be made, the .webp is used as is.
+ */
+function bcf_email_social_cells(): string {
+    if (!function_exists('site_socials_display')) require_once dirname(__DIR__, 2) . '/includes/site_info.php';
+    $e = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES);
+    $cells = '';
+    foreach (site_socials_display() as $s) {
+        $name = (string)$s['name'];
+        $img  = bcf_email_png_icon((string)$s['image']);
+        $inner = $img !== ''
+            ? '<img src="' . $e($img) . '" alt="' . $e($name) . '" width="44" height="44"'
+              . ' style="width:44px; height:44px; border-radius:10px; display:block; box-shadow:0 4px 14px rgba(0,0,0,0.25);">'
+            : '<span style="font-family:Caveat, cursive; color:#f0ece0; font-size:18px;">' . $e($name) . '</span>';
+        $cells .= '                                    <td style="padding:0 4px;">' . "\n"
+                . '                                        <a href="' . $e($s['url']) . '" target="_blank" style="text-decoration:none;">' . $inner . '</a>' . "\n"
+                . '                                    </td>' . "\n";
+    }
+    return rtrim($cells, "\n");
+}
+
+/** Email-safe icon URL: our own .webp images become a cached .png copy (see above). Other URLs pass through. */
+function bcf_email_png_icon(string $url): string {
+    if (!preg_match('~\.webp$~i', $url)) return $url;
+    $path = (string)parse_url($url, PHP_URL_PATH);
+    $host = (string)parse_url($url, PHP_URL_HOST);
+    if ($host !== '' && $host !== bcrf_farm_domain()) return $url;
+    if (!preg_match('~^/img/[A-Za-z0-9/_.-]+\.webp$~i', $path) || str_contains($path, '..')) return $url;
+    $root = dirname(__DIR__, 2);
+    $src  = $root . $path;
+    $png  = substr($src, 0, -5) . '.png';
+    $pngUrl = substr($url, 0, -5) . '.png';
+    if (is_file($png) && filemtime($png) >= filemtime($src)) return $pngUrl;
+    if (!is_file($src) || !function_exists('imagecreatefromwebp')) return $url;
+    $im = @imagecreatefromwebp($src);
+    if (!$im) return $url;
+    imagealphablending($im, false);
+    imagesavealpha($im, true);
+    $ok = @imagepng($im, $png, 9);
+    return $ok ? $pngUrl : $url;
 }
 
 /**
