@@ -61,10 +61,10 @@ require_once __DIR__ . '/ga.php';   // GA4: staff visits tagged internal, queued
         <style>@media (max-width:600px){body{background-image:url('<?= bcrf_farm_url() . $__bgPhone ?>') !important}}</style>
         <?php endif; ?>
         <?php
-        // Header/nav wood texture re-saved at WebP quality 75, same 800px size (PageSpeed: ~22 KB savings, Nov 13, 2026).
+        // Header/main-nav wood texture (#main-nav only, so the footer and breadcrumb navs keep their own look; Nov 14 2026) re-saved at WebP quality 75, same 800px size (PageSpeed: ~22 KB savings, Nov 13, 2026).
         $__bgTex = bcrf_img_thumb('/img/background.webp', 800, 75, true);
         if ($__bgTex !== '/img/background.webp' && preg_match('#^/img/_thumbs/800q75/background\.webp\?v=\d+$#', $__bgTex)): ?>
-        <style>header,nav{background-image:url('<?= bcrf_farm_url() . $__bgTex ?>') !important}</style>
+        <style>header,#main-nav{background-image:url('<?= bcrf_farm_url() . $__bgTex ?>') !important}</style>
         <?php endif; ?>
         <title><?php echo isset($pageTitle) ? htmlspecialchars($pageTitle) : "Bat Cave Road Farm | Petting Zoo, Farmstand & Thrift Shop — Old Fort, NC"; ?></title>
         <?php require_once __DIR__ . '/fonts.php'; echo bcrf_fonts_head(!empty($preloadImage) && preg_match('#^(?:https?://[^/]+)?/img/[^/]+\.(?:webp|jpe?g|png)$#i', (string)$preloadImage) ? ['rye-latin-400-normal', 'lora-latin-400-normal', 'lora-latin-400-italic'] : ['rye-latin-400-normal', 'lora-latin-400-normal']); /* self-hosted fonts (Nov 11, 2026), was Google Fonts. Hero pages also preload Lora italic (hero subtitle) so the hero doesn't resize when it arrives (CLS, Nov 13 2026) */ ?>
