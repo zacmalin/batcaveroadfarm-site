@@ -19,6 +19,7 @@ require_once __DIR__ . '/../includes/booking.php';
 require_once __DIR__ . '/../includes/event_quotes.php';
 require_once __DIR__ . '/../includes/weather_days.php';
 require_once __DIR__ . '/../includes/site_info.php';
+require_once __DIR__ . '/../includes/weather_forecast.php';
 require_once __DIR__ . '/../includes/admin_shell.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -72,6 +73,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 'object_label' => 'Website: closed today for weather', 'after' => ['date' => $on ? $today : '', 'note' => $note]]);
             header('X-LiteSpeed-Purge: *');   // cached public pages pick up the banner right away
             $_SESSION['w_flash'] = ['ok', $on ? 'The website now says you\'re closed today for weather.' : 'The closed-for-weather notice is off.'];
+        } elseif ($act === 'wx_refresh') {
+            $r = bcrf_wx_fetch($pdo);
+            if (!$r['ok']) error_log('[weather] fetch (button): ' . $r['msg']);
+            else header('X-LiteSpeed-Purge: *');
+            $_SESSION['w_flash'] = [$r['ok'] ? 'ok' : 'err', $r['ok'] ? 'Website weather updated.' : 'Weather didn\'t update: ' . $r['msg']];
         } elseif ($act === 'outcome') {
             bcrf_weather_set_outcome($pdo, (int)($_POST['item_id'] ?? 0), (string)($_POST['outcome'] ?? ''), (string)($_POST['note'] ?? ''), $uid);
             $_SESSION['w_flash'] = ['ok', 'Saved.'];
@@ -149,6 +155,14 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
       <p class="text-sm text-stone-500">Only an Owner or Manager can turn this on.</p>
       <?php endif; ?>
     <?php endif; ?>
+    <?php $wxc = json_decode(bcrf_wx_setting($pdo, 'wx_cache'), true); $wxAt = is_array($wxc) ? (int)($wxc['at'] ?? 0) : 0; ?>
+    <div class="mt-4 pt-3 border-t border-stone-100 flex flex-wrap items-center gap-3 text-sm text-stone-600">
+      <span>Website forecast: <?= $wxAt ? 'updated ' . $h(date('M j, g:i A', $wxAt)) . (time() - $wxAt > BCRF_WX_MAX_AGE ? ' (too old, hidden)' : '') : 'not fetched yet' ?>. It refreshes by itself every 30 minutes.</span>
+      <?php if ($mgr): ?>
+      <form method="POST" action="weather.php"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="date" value="<?= $h($date) ?>">
+        <button name="act" value="wx_refresh" class="<?= $btnSec ?>">Refresh weather now</button></form>
+      <?php endif; ?>
+    </div>
   </div>
 
   <form method="GET" action="weather.php" class="flex flex-wrap gap-2 items-end mb-4">

@@ -22,6 +22,7 @@ bcrf_cron_begin('fetch_weather');
 
 try {
     $r = bcrf_wx_fetch($pdo);
+    if (!$r['ok']) error_log('[weather] fetch: ' . $r['msg']);   // shows on System Health and in the PHP error log
     if (!$r['ok'] && !bcrf_wx_periods(bcrf_wx_setting($pdo, 'wx_cache'))) bcrf_cron_exit(1, $r['msg']);
     if (!$r['ok']) fwrite(STDERR, 'fetch_weather: ' . $r['msg'] . " (keeping the last forecast)\n");
 } catch (Throwable $e) {
