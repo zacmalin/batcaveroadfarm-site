@@ -115,38 +115,23 @@ if ($target_view === 'dashboard') {
         error_log('[ERP] Dashboard: low stock query failed: ' . $e->getMessage());
     }
 
-    // Today's sales
+    // Today's sales, yesterday, 7-day average (Nov 14, 2026): all money in, from includes/reports.php, so the card
+    // matches the Sales tab and Reports. Was pos_receipts by the database's Mountain-time day, tax included,
+    // partial refunds never taken off, register only.
     try {
-        $sales_today = $pdo->query("
-            SELECT COALESCE(SUM(total), 0) AS rev, COUNT(*) AS count
-            FROM   pos_receipts
-            WHERE  DATE(created_at) = CURDATE()
-        ")->fetch();
+        require_once dirname(__DIR__, 2) . '/includes/reports.php';
+        if (bcrf_sales_ready($pdo) && bcrf_refunds_ready($pdo)) {
+            $bd  = function_exists('bcrf_business_date') ? bcrf_business_date() : date('Y-m-d');
+            $yd  = date('Y-m-d', strtotime($bd . ' -1 day'));
+            $wk  = bcrf_rpt_money_in($pdo, date('Y-m-d', strtotime($bd . ' -7 days')), $bd);
+            $day = fn(string $d) => array_sum($wk['by_day'][$d] ?? []);
+            $mt  = bcrf_rpt_money_in($pdo, $bd, $bd);
+            $sales_today     = ['rev' => $day($bd) / 100, 'count' => array_sum(array_column($mt['sources'], 'count'))];
+            $sales_yesterday = ['rev' => $day($yd) / 100];
+            $sales_7day_avg  = (array_sum(array_map('array_sum', $wk['by_day'])) - $day($bd)) / 7 / 100;   // the 7 full days before today
+        }
     } catch (Throwable $e) {
-        error_log('[ERP] Dashboard: sales today query failed: ' . $e->getMessage());
-    }
-
-    // Yesterday's revenue for comparison
-    try {
-        $sales_yesterday = $pdo->query("
-            SELECT COALESCE(SUM(total), 0) AS rev
-            FROM   pos_receipts
-            WHERE  DATE(created_at) = CURDATE() - INTERVAL 1 DAY
-        ")->fetch();
-    } catch (Throwable $e) {
-        error_log('[ERP] Dashboard: sales yesterday query failed: ' . $e->getMessage());
-    }
-
-    // 7-day average daily revenue
-    try {
-        $result = $pdo->query("
-            SELECT COALESCE(SUM(total), 0) / 7 AS avg_daily
-            FROM   pos_receipts
-            WHERE  created_at >= CURDATE() - INTERVAL 7 DAY
-        ")->fetch();
-        $sales_7day_avg = (float)($result['avg_daily'] ?? 0);
-    } catch (Throwable $e) {
-        error_log('[ERP] Dashboard: 7-day avg query failed: ' . $e->getMessage());
+        error_log('[ERP] Dashboard: sales card failed: ' . $e->getMessage());
     }
 
     // Forecast velocity — FETCH_ASSOC + manual build avoids FETCH_KEY_PAIR fragility

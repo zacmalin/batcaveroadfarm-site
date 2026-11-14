@@ -105,7 +105,7 @@ function mcp_tools(): array {
             'search' => ['type' => 'string'], 'low_stock_only' => ['type' => 'boolean'],
             'include_inactive' => ['type' => 'boolean'], 'limit' => $lim]], $RO, 'mcp_t_list_inventory'],
     'sales_report' => [
-        'Sales between two dates: POS totals (by day and payment method), top items, plus booking and pass revenue. Defaults to the last 7 days.',
+        'Money in between two farm-local dates, the same numbers as Farm OS Reports: all money in (register, online tickets, passes, bookings & parties; before tax, after refunds; gift cards count when spent), register totals by day and payment type, top items, and the same span just before for comparison. Money is in cents. Defaults to the last 7 days.',
         ['type' => 'object', 'properties' => ['from' => $date, 'to' => $date]], $RO, 'mcp_t_sales'],
     'list_content' => [
         'List recipes, blog posts or events (title, slug, status, dates).',
@@ -204,7 +204,12 @@ function mcp_t_overview(PDO $pdo, array $a): array {
     $out['new_inquiries'] = ($one($q("SELECT COUNT(*) AS n FROM event_inquiries WHERE status = 'new'")) ?? [])['n'] ?? null;
     $out['low_stock'] = $q("SELECT id, name, stock_quantity, min_stock_level FROM inventory
                              WHERE is_active = 1 AND track_inventory = 1 AND min_stock_level IS NOT NULL AND stock_quantity <= min_stock_level ORDER BY name LIMIT 30");
-    $out['pos_today'] = $one($q("SELECT COUNT(*) AS receipts, COALESCE(SUM(total),0) AS total FROM pos_receipts WHERE DATE(created_at) = ?", [$today]));
+    try {   // Nov 14, 2026: from the register's own tables (was pos_receipts by the database's Mountain-time day, tax included)
+        require_once dirname(__DIR__) . '/reports.php';
+        $mi = bcrf_rpt_money_in($pdo, $today, $today);
+        $out['money_in_today'] = ['net_cents' => $mi['net'], 'tax_cents' => $mi['tax'],
+                                  'by_source' => array_map(fn($x) => ['count' => $x['count'], 'net_cents' => $x['net']], $mi['sources'])];
+    } catch (Throwable $e) { $out['money_in_today'] = null; }
     $out['upcoming_events'] = $q("SELECT id, title, start_datetime, status FROM events
                                    WHERE status = 'published' AND (start_datetime >= NOW() OR recurrence <> 'none') ORDER BY start_datetime LIMIT 5");
     return $out;
@@ -287,33 +292,30 @@ function mcp_t_list_inventory(PDO $pdo, array $a): array {
 }
 
 function mcp_t_sales(PDO $pdo, array $a): array {
+    // Nov 14, 2026: built on includes/reports.php so it matches the Sales tab and Reports (was pos_receipts + sales_history).
+    require_once dirname(__DIR__) . '/reports.php';
     $to   = mcp_date_arg($a, 'to', mcp_today());
     $from = mcp_date_arg($a, 'from', (new DateTime($to, mcp_tz()))->modify('-6 days')->format('Y-m-d'));
     if ($from > $to) throw new McpToolError('from must be on or before to.');
-    $f = $from . ' 00:00:00'; $t = $to . ' 23:59:59';
-    $run = function (string $sql, array $p) use ($pdo) { $s = $pdo->prepare($sql); $s->execute($p); return $s->fetchAll(PDO::FETCH_ASSOC); };
-    $out = ['from' => $from, 'to' => $to];
-    $out['pos_summary'] = $run("SELECT COUNT(*) AS receipts, COALESCE(SUM(total),0) AS revenue, COALESCE(SUM(tax),0) AS tax,
-                                       COALESCE(SUM(discount),0) AS discounts, COALESCE(AVG(total),0) AS average
-                                  FROM pos_receipts WHERE created_at BETWEEN ? AND ?", [$f, $t])[0] ?? null;
-    $out['pos_by_day'] = $run("SELECT DATE(created_at) AS day, COUNT(*) AS receipts, SUM(total) AS revenue
-                                 FROM pos_receipts WHERE created_at BETWEEN ? AND ? GROUP BY DATE(created_at) ORDER BY day", [$f, $t]);
-    $out['pos_by_payment'] = $run("SELECT payment_method, COUNT(*) AS receipts, SUM(total) AS revenue
-                                     FROM pos_receipts WHERE created_at BETWEEN ? AND ? GROUP BY payment_method ORDER BY revenue DESC", [$f, $t]);
-    try {
-        $out['top_items'] = $run("SELECT i.name, SUM(sh.quantity_sold) AS qty, ROUND(SUM(sh.quantity_sold * i.price), 2) AS revenue
-                                    FROM sales_history sh JOIN inventory i ON i.id = sh.inventory_id
-                                   WHERE sh.sold_at BETWEEN ? AND ? GROUP BY i.id, i.name ORDER BY revenue DESC LIMIT 15", [$f, $t]);
-    } catch (Throwable $e) { $out['top_items'] = null; }
-    try {
-        $out['bookings_paid'] = $run("SELECT COUNT(*) AS bookings, COALESCE(SUM(amount_total),0) AS revenue
-                                        FROM bookings WHERE payment_status = 'paid' AND COALESCE(paid_at, created_at) BETWEEN ? AND ?", [$f, $t])[0] ?? null;
-    } catch (Throwable $e) { $out['bookings_paid'] = null; }
-    try {
-        $out['passes_paid'] = $run("SELECT COUNT(*) AS passes, COALESCE(SUM(amount_paid),0) AS revenue
-                                      FROM passes WHERE payment_status = 'paid' AND created_at BETWEEN ? AND ?", [$f, $t])[0] ?? null;
-    } catch (Throwable $e) { $out['passes_paid'] = null; }
-    return $out;
+    if ((strtotime($to) - strtotime($from)) / 86400 > 366) throw new McpToolError('Ask for a year or less at a time.');
+    if (!bcrf_sales_ready($pdo) || !bcrf_refunds_ready($pdo)) throw new McpToolError('The register tables are not set up yet.');
+    $mi = bcrf_rpt_money_in($pdo, $from, $to);
+    [$pf, $pt] = bcrf_rpt_prev_range($from, $to);
+    $pv = bcrf_rpt_money_in($pdo, $pf, $pt);
+    $days = bcrf_rpt_days($pdo, $from, $to, false);
+    $tot = bcrf_rpt_total($days);
+    $reg = fn(array $d) => array_intersect_key($d, array_flip(['sales_count', 'gross_sales', 'discounts', 'refunds', 'net_sales', 'tax', 'register_total',
+                                                               'cash', 'paypal', 'venmo', 'cashapp', 'check', 'other_tender', 'visitors']));
+    return [
+        'from' => $from, 'to' => $to, 'money' => 'cents',
+        'money_in' => ['net' => $mi['net'], 'tax' => $mi['tax'], 'paid_incl_tax' => $mi['gross'],
+                       'by_source' => $mi['sources'], 'gift_cards_sold_owed' => $mi['gc_sold'], 'gift_cards_spent' => $mi['gc_spent']],
+        'previous_period' => ['from' => $pf, 'to' => $pt, 'net' => $pv['net']],
+        'register_total' => $reg($tot) + ['note' => 'net_sales includes gift cards sold at the register; money_in does not'],
+        'register_by_day' => array_values(array_map(fn($d) => ['date' => $d['business_date']] + $reg($d), array_filter($days, fn($d) => $d['sales_count'] || $d['refunds']))),
+        'money_in_by_day' => $mi['by_day'],
+        'top_items' => bcrf_rpt_register_detail($pdo, $from, $to, 15)['items'],
+    ];
 }
 
 function mcp_content_table(array $a): string {

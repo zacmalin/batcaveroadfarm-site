@@ -580,13 +580,13 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
       <section class="<?= $card ?> p-4" aria-labelledby="salesHead">
         <h2 id="salesHead" class="text-sm font-black uppercase tracking-widest text-stone-500 mb-2">Today's sales</h2>
         <div class="text-3xl font-black text-emerald-800"><?= $money($tr) ?></div>
-        <div class="text-xs text-stone-500"><?= (int)($sales_today['count'] ?? 0) ?> transaction<?= (int)($sales_today['count'] ?? 0) === 1 ? '' : 's' ?></div>
+        <div class="text-xs text-stone-500"><?= (int)($sales_today['count'] ?? 0) ?> sale<?= (int)($sales_today['count'] ?? 0) === 1 ? '' : 's' ?> &amp; payments, before tax (register, online, passes, parties)</div>
         <?php if ($yr > 0): $diff = $tr - $yr; $up = $diff >= 0; ?>
           <div class="mt-2 text-[11px] font-bold font-mono <?= $up ? 'text-emerald-600' : 'text-red-500' ?>">
             <?= $up ? '▲ +' : '▼ -' ?><?= $money(abs($diff)) ?> (<?= (int)round(abs($diff) / $yr * 100) ?>%) vs yesterday
           </div>
         <?php else: ?>
-          <div class="mt-2 text-[11px] font-mono text-stone-400">No sales yesterday to compare</div>
+          <div class="mt-2 text-[11px] font-mono text-stone-400">No money in yesterday to compare</div>
         <?php endif; ?>
         <div class="mt-2 pt-2 border-t border-stone-100 text-[11px] font-mono text-stone-500">7-day avg: <span class="font-bold text-stone-700"><?= $money($sales_7day_avg ?? 0) ?>/day</span></div>
       </section>

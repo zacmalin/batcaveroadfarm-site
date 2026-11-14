@@ -223,6 +223,26 @@ if ($r === 'month') {
          $nextM <= substr($today, 0, 7) ? '<a class="btn sm" href="' . $h($q(['r' => 'month', 'month' => $nextM])) . '">Next ›</a>' : '',
          $dateForm('month', $month, 'month'), '<button type="button" class="btn sm" id="btnPrint">Print</button></div>';
 
+    // All money in (Nov 14, 2026): every way money came in, before tax, after refunds, vs the same days last month.
+    // Gift cards count when spent (the register sale they pay for), so a card bought is shown as owed, not as income.
+    $mi = bcrf_rpt_money_in($pdo, $a, $b);
+    [$pa, $pb] = bcrf_rpt_prev_range($a, $b);
+    $pv = bcrf_rpt_money_in($pdo, $pa, $pb);
+    $span = date('M j', strtotime($pa)) . ($pa !== $pb ? '–' . date('j', strtotime($pb)) : '');
+    $vs = fn(int $now, int $was) => $was > 0 ? (($now >= $was ? '+' : '−') . number_format(abs($now - $was) * 100 / $was, 0) . '%') : ($now ? 'new' : '');
+    echo '<h2>All money in</h2><table class="rt"><tr class="th"><td></td><td class="r">', $h(date('M', strtotime($a))), '</td><td class="r">', $h($span), '</td><td class="r">Change</td></tr>';
+    foreach ($mi['sources'] as $k => $x) {
+        $was = $pv['sources'][$k]['net'];
+        if (!$x['net'] && !$was && !$x['count']) continue;
+        echo '<tr><td>', $h($x['label']), ' <small class="muted">· ', (int)$x['count'], '</small></td><td class="r">', $m($x['net']), '</td><td class="r">', $m($was), '</td><td class="r">', $h($vs($x['net'], $was)), '</td></tr>';
+    }
+    echo '<tr class="b"><td>Total, before tax</td><td class="r">', $m($mi['net']), '</td><td class="r">', $m($pv['net']), '</td><td class="r">', $h($vs($mi['net'], $pv['net'])), '</td></tr>',
+         '<tr><td>Sales tax inside that</td><td class="r">', $m($mi['tax']), '</td><td class="r">', $m($pv['tax']), '</td><td></td></tr>',
+         '<tr><td>Paid in, with tax</td><td class="r">', $m($mi['gross']), '</td><td class="r">', $m($pv['gross']), '</td><td></td></tr>';
+    if ($mi['gc_sold'] || $mi['gc_spent']) echo '<tr><td>Gift cards bought <small class="muted">· ', (int)$mi['gc_sold_count'], ', owed until spent</small></td><td class="r">', $m($mi['gc_sold']), '</td><td class="r">', $m($pv['gc_sold']), '</td><td></td></tr>',
+                                               '<tr><td>Gift cards spent <small class="muted">· in Register above</small></td><td class="r">', $m($mi['gc_spent']), '</td><td class="r">', $m($pv['gc_spent']), '</td><td></td></tr>';
+    echo '</table><p class="muted">Compared with the same days of last month. Register is after discounts and refunds, without gift cards sold. Online tickets, passes and bookings &amp; parties are by the day they were paid; their prices include tax (recorded from Nov 13, 2026; before that the whole price is shown). Comp passes and cards given away are not money in. Register net sales below still include gift cards sold, to match the drawer.</p>';
+
     $taxes = bcrf_rpt_breakdown($pdo, $a, $b, 'tax');
     $itax = bcrf_itax_rows($pdo, ...bcrf_rpt_utc_range($a, $b));   // online tickets and passes, tax inside the price
     echo '<h2>Tax by tax category (for filing)</h2>';

@@ -18,6 +18,7 @@ require_once __DIR__ . '/sales.php';
 require_once __DIR__ . '/drawers.php';
 require_once __DIR__ . '/refunds.php';
 require_once __DIR__ . '/admission.php';
+require_once __DIR__ . '/included_tax.php';   // tax inside ticket, pass and booking prices (all money in)
 
 /** CSV columns for the daily/monthly export. Keep names and order stable (13: spreadsheet formulas depend on them). */
 function bcrf_rpt_day_columns(): array {
@@ -336,6 +337,148 @@ function bcrf_rpt_margin(PDO $pdo, string $from, string $to): array {
     $tot['by_type'] = $sort(array_values($byType));
     $tot['by_category'] = $sort(array_values($byCat));
     return $tot;
+}
+
+/**
+ * All money in (Nov 14, 2026): every way money comes in, for farm-local dates $from..$to, net of refunds.
+ * One figure for the Sales tab, the dashboard card, the Monthly report and the connector, so they agree.
+ *   register  register sale lines after discounts and refunds (refunds on their own date), no gift card lines
+ *   tickets   online tickets paid to Stripe (by paid date)
+ *   passes    annual passes paid (Stripe or cash at the office; comp passes are not money)
+ *   events    booking and party payments not taken at the register (the register sale holds those),
+ *             plus Stripe booking payments that have no ledger row yet
+ * Gift cards count when they're spent, not when they're bought: a card sold is money owed (gc_sold), and the
+ * register sale it's spent on is already in "register". Online tickets, passes and bookings include tax in the
+ * price; tax is only known from Nov 13, 2026 (before that, net = what was paid).
+ * Returns cents: ['sources' => [key => [label, count, gross, tax, net]], 'by_day' => [date => [key => net]],
+ *                 'gross', 'tax', 'net', 'gc_sold', 'gc_sold_count', 'gc_spent'].
+ */
+function bcrf_rpt_money_in(PDO $pdo, string $from, string $to): array {
+    $labels = ['register' => 'Register', 'tickets' => 'Online tickets', 'passes' => 'Annual passes', 'events' => 'Bookings & parties'];
+    $src = [];
+    foreach ($labels as $k => $l) $src[$k] = ['label' => $l, 'count' => 0, 'gross' => 0, 'tax' => 0, 'net' => 0];
+    $byDay = [];
+    foreach (bcrf_rpt_dates($from, $to) as $d) $byDay[$d] = array_fill_keys(array_keys($labels), 0);
+    $add = function (string $k, ?string $day, int $gross, int $tax, int $n = 1) use (&$src, &$byDay) {
+        if ($day === null || !isset($byDay[$day])) return;
+        $src[$k]['count'] += $n; $src[$k]['gross'] += $gross; $src[$k]['tax'] += $tax; $src[$k]['net'] += $gross - $tax;
+        $byDay[$day][$k] += $gross - $tax;
+    };
+    $utcDay = fn($utc) => $utc ? bcrf_local_time((string)$utc, 'Y-m-d') : null;
+    [$ua, $ub] = bcrf_rpt_utc_range($from, $to);
+
+    if (bcrf_sales_ready($pdo)) {
+        $st = $pdo->prepare("SELECT s.business_date d, COUNT(DISTINCT s.id) n, SUM(l.gross_cents - l.discount_cents) net, SUM(l.tax_cents) t
+                             FROM sales s JOIN sale_lines l ON l.sale_id = s.id
+                             WHERE s.status <> 'voided' AND l.product_type <> 'gift_card' AND s.business_date BETWEEN ? AND ? GROUP BY s.business_date");
+        $st->execute([$from, $to]);
+        foreach ($st as $r) $add('register', $r['d'], (int)$r['net'] + (int)$r['t'], (int)$r['t'], (int)$r['n']);
+        if (bcrf_refunds_ready($pdo)) {
+            $st = $pdo->prepare("SELECT r.business_date d, SUM(rl.net_cents) net, SUM(rl.tax_cents) t
+                                 FROM refunds r JOIN refund_lines rl ON rl.refund_id = r.id JOIN sale_lines l ON l.id = rl.sale_line_id
+                                 WHERE l.product_type <> 'gift_card' AND r.business_date BETWEEN ? AND ? GROUP BY r.business_date");
+            $st->execute([$from, $to]);
+            foreach ($st as $r) $add('register', $r['d'], -((int)$r['net'] + (int)$r['t']), -(int)$r['t'], 0);
+        }
+    }
+    if (bcrf_rpt_online_ready($pdo)) {
+        $hasTax = function_exists('bcrf_itax_ready') && bcrf_itax_ready($pdo, 'tickets');
+        $st = $pdo->prepare("SELECT paid_at, amount_cents" . ($hasTax ? ", COALESCE(tax_cents, 0) tax_cents" : ", 0 tax_cents") . " FROM tickets
+                             WHERE source = 'online' AND payment_status = 'paid' AND paid_at >= ? AND paid_at < ?");
+        $st->execute([$ua, $ub]);
+        foreach ($st as $t) $add('tickets', $utcDay($t['paid_at']), (int)$t['amount_cents'], (int)$t['tax_cents']);
+    }
+    try {   // passes: paid_at from migration 0060; older rows fall back to created_at
+        $hasTax = function_exists('bcrf_itax_ready') && bcrf_itax_ready($pdo, 'passes');
+        $st = $pdo->prepare("SELECT " . ($hasTax ? "COALESCE(paid_at, created_at) at, COALESCE(tax_cents, 0) tax_cents" : "created_at at, 0 tax_cents") . ", amount_paid
+                             FROM passes WHERE payment_status = 'paid' AND COALESCE(payment_provider, '') <> 'comp' AND amount_paid > 0
+                               AND " . ($hasTax ? "COALESCE(paid_at, created_at)" : "created_at") . " >= ? AND " . ($hasTax ? "COALESCE(paid_at, created_at)" : "created_at") . " < ?");
+        $st->execute([gmdate('Y-m-d H:i:s', strtotime($ua . ' UTC') - 86400), gmdate('Y-m-d H:i:s', strtotime($ub . ' UTC') + 86400)]);
+        foreach ($st as $p) {
+            $at = (string)$p['at'];
+            if ($at < $ua || $at >= $ub) continue;
+            $add('passes', $utcDay($at), (int)round((float)$p['amount_paid'] * 100), (int)$p['tax_cents']);
+        }
+    } catch (Throwable $e) { /* passes table missing */ }
+    if (function_exists('bcrf_itax_ready') && bcrf_itax_ready($pdo, 'event_payments')) {
+        try {   // the ledger: deposits, balances and refunds (negative) not taken at the register
+            $st = $pdo->prepare("SELECT created_at, amount_cents, COALESCE(tax_cents, 0) tax_cents FROM event_payments
+                                 WHERE voided_at IS NULL AND method <> 'register' AND created_at >= ? AND created_at < ?");
+            $st->execute([$ua, $ub]);
+            foreach ($st as $p) $add('events', $utcDay($p['created_at']), (int)$p['amount_cents'], (int)$p['tax_cents'], (int)$p['amount_cents'] > 0 ? 1 : 0);
+        } catch (Throwable $e) { error_log('[reports] money in, ledger: ' . $e->getMessage()); }
+    }
+    try {   // Stripe booking payments with no ledger row (paid_at is farm-local, as bcrf_itax_rows reads it)
+        $hasLedger = function_exists('bcrf_itax_ready') && bcrf_itax_ready($pdo, 'event_payments');
+        $bp = $hasLedger && function_exists('bcrf_itax_admission_rate') ? bcrf_itax_admission_rate($pdo) : 0;
+        $st = $pdo->prepare("SELECT b.amount_total, b.paid_at FROM bookings b
+                             WHERE b.payment_status = 'paid' AND b.payment_provider = 'stripe' AND b.amount_total > 0 AND b.paid_at >= ? AND b.paid_at < ?"
+                          . ($hasLedger ? " AND NOT EXISTS (SELECT 1 FROM event_payments e WHERE e.subject_type = 'booking' AND e.subject_id = b.id)" : ""));
+        $st->execute([$from . ' 00:00:00', date('Y-m-d', strtotime($to . ' +1 day')) . ' 00:00:00']);
+        foreach ($st as $b) {
+            $c = (int)round((float)$b['amount_total'] * 100);
+            $tax = $bp && (string)$b['paid_at'] >= '2026-11-13' ? bcrf_itax_part($c, $bp) : 0;
+            $add('events', substr((string)$b['paid_at'], 0, 10), $c, $tax);
+        }
+    } catch (Throwable $e) { /* bookings table missing */ }
+
+    $gcSold = 0; $gcN = 0; $gcSpent = 0;
+    try {   // gift cards bought (register or online) = money owed until spent; cards given without a sale are not money in
+        $st = $pdo->prepare("SELECT COUNT(*) n, COALESCE(SUM(initial_cents), 0) c FROM gift_cards
+                             WHERE status NOT IN ('pending', 'void') AND source IN ('pos', 'online')
+                               AND COALESCE(paid_at, created_at) >= ? AND COALESCE(paid_at, created_at) < ?");
+        $st->execute([$ua, $ub]);
+        $r = $st->fetch(PDO::FETCH_ASSOC);
+        $gcN = (int)$r['n']; $gcSold = (int)$r['c'];
+        $st = $pdo->prepare("SELECT COALESCE(-SUM(amount_cents), 0) FROM gift_card_txns WHERE type IN ('redeem', 'reverse', 'refund_credit') AND created_at >= ? AND created_at < ?");   // spent, less put back by voids and refunds
+        $st->execute([$ua, $ub]);
+        $gcSpent = (int)$st->fetchColumn();
+    } catch (Throwable $e) { /* gift cards not installed */ }
+
+    $sum = fn($f) => array_sum(array_column($src, $f));
+    return ['sources' => $src, 'by_day' => $byDay, 'gross' => $sum('gross'), 'tax' => $sum('tax'), 'net' => $sum('net'),
+            'gc_sold' => $gcSold, 'gc_sold_count' => $gcN, 'gc_spent' => $gcSpent];
+}
+
+/** The same number of days just before $from..$to; the same dates last month when $from is the 1st ("vs last month"), last year when it is Jan 1. */
+function bcrf_rpt_prev_range(string $from, string $to): array {
+    if (substr($from, 8) === '01' && substr($from, 0, 7) === substr($to, 0, 7)) {
+        $pf = date('Y-m-01', strtotime($from . ' -1 month'));
+        $pt = min(date('Y-m-t', strtotime($pf)), substr($pf, 0, 8) . substr($to, 8));
+        return [$pf, $pt];
+    }
+    if (substr($from, 5) === '01-01' && substr($from, 0, 4) === substr($to, 0, 4)) {   // year so far: same dates last year
+        $y = (int)substr($from, 0, 4) - 1;
+        return [$y . '-01-01', min(date('Y-m-t', strtotime($y . substr($to, 4, 3) . '-01')), $y . substr($to, 4))];
+    }
+    $n = (int)round((strtotime($to) - strtotime($from)) / 86400) + 1;
+    return [date('Y-m-d', strtotime($from . " -$n days")), date('Y-m-d', strtotime($from . ' -1 day'))];
+}
+
+/** Register sales by farm-local hour (net, no tax, no gift cards) and top items after discounts and refunds. */
+function bcrf_rpt_register_detail(PDO $pdo, string $from, string $to, int $topN = 15): array {
+    $out = ['hours' => [], 'items' => []];
+    if (!bcrf_sales_ready($pdo)) return $out;
+    $st = $pdo->prepare("SELECT s.completed_at, SUM(l.gross_cents - l.discount_cents) net
+                         FROM sales s JOIN sale_lines l ON l.sale_id = s.id
+                         WHERE s.status <> 'voided' AND l.product_type <> 'gift_card' AND s.business_date BETWEEN ? AND ? GROUP BY s.id, s.completed_at");
+    $st->execute([$from, $to]);
+    foreach ($st as $r) {
+        $hr = (int)bcrf_local_time((string)$r['completed_at'], 'G');
+        $out['hours'][$hr]['cents'] = ($out['hours'][$hr]['cents'] ?? 0) + (int)$r['net'];
+        $out['hours'][$hr]['count'] = ($out['hours'][$hr]['count'] ?? 0) + 1;
+    }
+    $st = $pdo->prepare("SELECT COALESCE(l.product_id, CONCAT('x', l.description)) k, MAX(l.description) name, MAX(COALESCE(NULLIF(l.category_label, ''), 'Uncategorized')) cat,
+                                SUM(l.quantity - COALESCE(rb.q, 0)) qty, SUM(l.gross_cents - l.discount_cents - COALESCE(rb.c, 0)) net
+                         FROM sales s JOIN sale_lines l ON l.sale_id = s.id
+                         LEFT JOIN (SELECT sale_line_id, SUM(quantity) q, SUM(net_cents) c FROM refund_lines GROUP BY sale_line_id) rb ON rb.sale_line_id = l.id
+                         WHERE s.status <> 'voided' AND l.product_type <> 'gift_card' AND s.business_date BETWEEN ? AND ?
+                         GROUP BY k");
+    $st->execute([$from, $to]);
+    foreach ($st as $r) $out['items'][] = ['name' => (string)$r['name'], 'category' => (string)$r['cat'], 'qty' => (float)$r['qty'], 'cents' => (int)$r['net']];
+    usort($out['items'], fn($a, $b) => $b['cents'] <=> $a['cents'] ?: strcmp($a['name'], $b['name']));
+    $out['items'] = array_slice($out['items'], 0, max(1, $topN));
+    return $out;
 }
 
 /** Cents as a plain decimal for CSV (no $ or commas, so spreadsheets read it as a number). */
