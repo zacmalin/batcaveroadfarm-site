@@ -5,7 +5,7 @@
 // exist, so a Shopkeep granted Sales Analytics in the Permissions Matrix was still refused.
 // admin.php's view gate already applies the matrix; this is a second, matrix-based check.
 if (!hasViewAccess($current_role, 'sales_analytics')) {
-    echo "<p class='p-6 text-red-700 font-mono text-xs'>Access denied.</p>"; return;
+    echo "<p class='p-6 text-red-700 text-xs'>Access denied.</p>"; return;
 }
 
 // ── PERIOD FILTER ─────────────────────────────────────────────────────────────
@@ -80,7 +80,7 @@ $hourly_rows = [];
 foreach ($detail['hours'] as $hr => $x) $hourly_rows[] = ['hr' => $hr, 'cnt' => $x['count'], 'rev' => $x['cents'] / 100];
 
 } catch (Throwable $e) {
-    echo "<div class='p-4 bg-red-50 border border-red-200 text-red-700 font-mono text-xs rounded'>" . htmlspecialchars($e instanceof RuntimeException ? $e->getMessage() : 'Query error: ' . $e->getMessage()) . "</div>";
+    echo "<div class='p-4 bg-red-50 border border-red-200 text-red-700 text-xs rounded'>" . htmlspecialchars($e instanceof RuntimeException ? $e->getMessage() : 'Query error: ' . $e->getMessage()) . "</div>";
     return;
 }
 
@@ -170,8 +170,8 @@ $fmt = fn($n) => '$' . number_format((float)$n, 2);
 <!-- ── HEADER ── -->
 <div class="flex flex-wrap justify-between items-start gap-4 mb-6">
     <div>
-        <h1 class="text-2xl font-serif font-black text-stone-800">Sales Analytics</h1>
-        <p class="text-xs text-stone-400 font-mono mt-0.5">
+        <h1 class="text-2xl font-bold text-stone-800">Sales Analytics</h1>
+        <p class="text-xs text-stone-400 mt-0.5">
             <?= date('M j, Y', strtotime($date_from)) ?> — <?= date('M j, Y', strtotime($date_to)) ?>
         </p>
     </div>
@@ -179,7 +179,7 @@ $fmt = fn($n) => '$' . number_format((float)$n, 2);
         <!-- Period pills -->
         <?php foreach (['today'=>'Today','7'=>'7 Days','30'=>'30 Days','month'=>'This Month','year'=>'This Year'] as $k => $l): ?>
         <a href="?view=sales_analytics&period=<?= $k ?>"
-            class="px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider font-mono border transition
+            class="px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider border transition
                    <?= $period === $k ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 border-stone-300 hover:bg-stone-100' ?>">
             <?= $l ?>
         </a>
@@ -190,16 +190,16 @@ $fmt = fn($n) => '$' . number_format((float)$n, 2);
             <input type="hidden" name="view" value="sales_analytics">
             <input type="hidden" name="period" value="custom">
             <input type="date" name="from" value="<?= htmlspecialchars($date_from) ?>"
-                class="border rounded px-2 py-1 text-[10px] font-mono bg-white outline-none">
+                class="border rounded px-2 py-1 text-[10px] bg-white outline-none">
             <span class="text-stone-400 text-xs">—</span>
             <input type="date" name="to" value="<?= htmlspecialchars($date_to) ?>"
-                class="border rounded px-2 py-1 text-[10px] font-mono bg-white outline-none">
-            <button type="submit" class="bg-stone-800 text-white px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider">Go</button>
+                class="border rounded px-2 py-1 text-[10px] bg-white outline-none">
+            <button type="submit" class="bg-amber-700 text-white px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider">Go</button>
         </form>
 
         <!-- Export -->
         <a href="?view=sales_analytics&period=<?= $period ?>&from=<?= $date_from ?>&to=<?= $date_to ?>&export=1"
-            class="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider font-mono transition">
+            class="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition">
             ↓ CSV
         </a>
     </div>
@@ -207,17 +207,17 @@ $fmt = fn($n) => '$' . number_format((float)$n, 2);
 
 <!-- ── STAT CARDS ── -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-3">
-    <div class="bg-stone-900 text-stone-100 border rounded-lg p-4 shadow-xs lg:col-span-2">
+    <div class="bg-stone-900 text-stone-100 border border-stone-200 rounded-lg p-4 shadow-sm lg:col-span-2">
         <div class="text-lg mb-0.5">💰</div>
-        <div class="text-[10px] font-bold uppercase tracking-widest text-stone-400 font-mono">All money in <span class="normal-case tracking-normal">(before tax, after refunds)</span></div>
-        <div class="text-2xl font-black text-emerald-400 font-mono mt-1"><?= $fmt($total_combined) ?></div>
-        <div class="text-[10px] font-mono text-stone-400 mt-1">
+        <div class="text-[10px] font-bold uppercase tracking-widest text-stone-400">All money in <span class="normal-case tracking-normal">(before tax, after refunds)</span></div>
+        <div class="text-2xl font-black text-emerald-400 mt-1"><?= $fmt($total_combined) ?></div>
+        <div class="text-[10px] text-stone-400 mt-1">
           <?php if ($prev_combined > 0): $chg = ($total_combined - $prev_combined) / $prev_combined * 100; ?>
             <?= $chg >= 0 ? '▲' : '▼' ?> <?= number_format(abs($chg), 0) ?>% vs <?= htmlspecialchars($prev_label) ?> (<?= $fmt($prev_combined) ?>)
           <?php else: ?>No money in for <?= htmlspecialchars($prev_label) ?> to compare<?php endif; ?>
         </div>
-        <div class="text-[10px] font-mono text-stone-500 mt-1"><?php foreach ($money['sources'] as $src): if (!$src['count'] && !$src['net']) continue; ?><?= htmlspecialchars($src['label']) ?> <?= $fmt($src['net'] / 100) ?> &bull; <?php endforeach; ?>Tax <?= $fmt($stats['tax']) ?></div>
-        <?php if ($money['gc_sold']): ?><div class="text-[10px] font-mono text-stone-500 mt-1">Gift cards sold <?= $fmt($money['gc_sold'] / 100) ?>: owed until spent, not counted</div><?php endif; ?>
+        <div class="text-[10px] text-stone-500 mt-1"><?php foreach ($money['sources'] as $src): if (!$src['count'] && !$src['net']) continue; ?><?= htmlspecialchars($src['label']) ?> <?= $fmt($src['net'] / 100) ?> &bull; <?php endforeach; ?>Tax <?= $fmt($stats['tax']) ?></div>
+        <?php if ($money['gc_sold']): ?><div class="text-[10px] text-stone-500 mt-1">Gift cards sold <?= $fmt($money['gc_sold'] / 100) ?>: owed until spent, not counted</div><?php endif; ?>
     </div>
     <?php
     $cards = [
@@ -226,10 +226,10 @@ $fmt = fn($n) => '$' . number_format((float)$n, 2);
     ];
     foreach ($cards as [$label, $value, $cls, $icon]):
     ?>
-    <div class="bg-white border rounded-lg p-4 shadow-xs">
+    <div class="bg-white border border-stone-200 rounded-lg p-4 shadow-sm">
         <div class="text-lg mb-0.5"><?= $icon ?></div>
-        <div class="text-[10px] font-bold uppercase tracking-widest text-stone-400 font-mono"><?= $label ?></div>
-        <div class="text-xl font-black <?= $cls ?> font-mono mt-1"><?= $value ?></div>
+        <div class="text-[10px] font-bold uppercase tracking-widest text-stone-400"><?= $label ?></div>
+        <div class="text-xl font-black <?= $cls ?> mt-1"><?= $value ?></div>
     </div>
     <?php endforeach; ?>
 </div>
@@ -245,30 +245,30 @@ $fmt = fn($n) => '$' . number_format((float)$n, 2);
     ];
     foreach ($bk_cards as [$label, $value, $cls, $icon]):
     ?>
-    <div class="bg-white border rounded-lg p-4 shadow-xs">
+    <div class="bg-white border border-stone-200 rounded-lg p-4 shadow-sm">
         <div class="text-lg mb-0.5"><?= $icon ?></div>
-        <div class="text-[10px] font-bold uppercase tracking-widest text-stone-400 font-mono"><?= $label ?></div>
-        <div class="text-xl font-black <?= $cls ?> font-mono mt-1"><?= $value ?></div>
+        <div class="text-[10px] font-bold uppercase tracking-widest text-stone-400"><?= $label ?></div>
+        <div class="text-xl font-black <?= $cls ?> mt-1"><?= $value ?></div>
     </div>
     <?php endforeach; ?>
 </div>
 
 <!-- ── SECONDARY CARDS ── -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 text-xs">
-    <div class="bg-white border rounded p-3">
-        <div class="text-stone-400 font-mono uppercase tracking-wider text-[9px]">Largest Sale</div>
+    <div class="bg-white border border-stone-200 rounded p-3">
+        <div class="text-stone-400 uppercase tracking-wider text-[9px]">Largest Sale</div>
         <div class="font-black text-stone-800 mt-0.5"><?= $fmt($stats['max_order']) ?></div>
     </div>
-    <div class="bg-white border rounded p-3">
-        <div class="text-stone-400 font-mono uppercase tracking-wider text-[9px]">Total Discounts</div>
+    <div class="bg-white border border-stone-200 rounded p-3">
+        <div class="text-stone-400 uppercase tracking-wider text-[9px]">Total Discounts</div>
         <div class="font-black text-stone-800 mt-0.5"><?= $fmt($stats['total_discounts']) ?></div>
     </div>
-    <div class="bg-white border rounded p-3">
-        <div class="text-stone-400 font-mono uppercase tracking-wider text-[9px]">Tax-Exempt Sales</div>
+    <div class="bg-white border border-stone-200 rounded p-3">
+        <div class="text-stone-400 uppercase tracking-wider text-[9px]">Tax-Exempt Sales</div>
         <div class="font-black text-stone-800 mt-0.5"><?= (int)$stats['exempt_count'] ?> transactions</div>
     </div>
-    <div class="bg-white border rounded p-3">
-        <div class="text-stone-400 font-mono uppercase tracking-wider text-[9px]">Refunds (register)</div>
+    <div class="bg-white border border-stone-200 rounded p-3">
+        <div class="text-stone-400 uppercase tracking-wider text-[9px]">Refunds (register)</div>
         <div class="font-black text-stone-800 mt-0.5"><?= $fmt($stats['total_refunds']) ?></div>
     </div>
 </div>
@@ -277,8 +277,8 @@ $fmt = fn($n) => '$' . number_format((float)$n, 2);
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
 
     <!-- Daily revenue chart — 2/3 width -->
-    <div class="lg:col-span-2 bg-white border rounded-lg p-5 shadow-xs">
-        <h2 class="font-bold text-stone-800 text-xs uppercase tracking-widest font-mono mb-4">Money in by day <span class="normal-case tracking-normal text-stone-400">(before tax)</span></h2>
+    <div class="lg:col-span-2 bg-white border border-stone-200 rounded-lg p-5 shadow-sm">
+        <h2 class="font-bold text-stone-800 text-xs uppercase tracking-widest mb-4">Money in by day <span class="normal-case tracking-normal text-stone-400">(before tax)</span></h2>
         <?php if (empty($chart_labels)): ?>
         <p class="text-stone-400 italic text-center py-12 text-xs">No transactions in this period.</p>
         <?php else: ?>
@@ -287,8 +287,8 @@ $fmt = fn($n) => '$' . number_format((float)$n, 2);
     </div>
 
     <!-- Payment methods — 1/3 width -->
-    <div class="bg-white border rounded-lg p-5 shadow-xs">
-        <h2 class="font-bold text-stone-800 text-xs uppercase tracking-widest font-mono mb-4">Register payments <span class="normal-case tracking-normal text-stone-400">(after refunds)</span></h2>
+    <div class="bg-white border border-stone-200 rounded-lg p-5 shadow-sm">
+        <h2 class="font-bold text-stone-800 text-xs uppercase tracking-widest mb-4">Register payments <span class="normal-case tracking-normal text-stone-400">(after refunds)</span></h2>
         <?php if (empty($method_rows)): ?>
         <p class="text-stone-400 italic text-center py-8 text-xs">No data.</p>
         <?php else: ?>
@@ -301,7 +301,7 @@ $fmt = fn($n) => '$' . number_format((float)$n, 2);
         <div class="mb-3">
             <div class="flex justify-between items-baseline mb-1">
                 <span class="text-xs font-bold text-stone-700"><?= htmlspecialchars($m['payment_method']) ?></span>
-                <span class="text-xs font-mono text-stone-500"><?= $fmt($m['rev']) ?></span>
+                <span class="text-xs text-stone-500"><?= $fmt($m['rev']) ?></span>
             </div>
             <div class="h-2 bg-stone-100 rounded overflow-hidden">
                 <div class="h-full rounded <?= $method_colors[$m['payment_method']] ?? 'bg-stone-600' ?>"
@@ -314,8 +314,8 @@ $fmt = fn($n) => '$' . number_format((float)$n, 2);
 </div>
 
 <!-- ── HOURLY CHART ── -->
-<div class="bg-white border rounded-lg p-5 shadow-xs mb-6">
-    <h2 class="font-bold text-stone-800 text-xs uppercase tracking-widest font-mono mb-4">Register sales by hour <span class="normal-case tracking-normal text-stone-400">(farm time)</span></h2>
+<div class="bg-white border border-stone-200 rounded-lg p-5 shadow-sm mb-6">
+    <h2 class="font-bold text-stone-800 text-xs uppercase tracking-widest mb-4">Register sales by hour <span class="normal-case tracking-normal text-stone-400">(farm time)</span></h2>
     <?php if (array_sum($hour_rev) > 0): ?>
     <canvas id="hourlyChart" height="60"></canvas>
     <?php else: ?>
@@ -327,8 +327,8 @@ $fmt = fn($n) => '$' . number_format((float)$n, 2);
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 
     <!-- Top items -->
-    <div class="bg-white border rounded-lg shadow-xs overflow-hidden">
-        <div class="bg-stone-900 text-stone-100 px-5 py-3">
+    <div class="bg-white border border-stone-200 rounded-lg shadow-sm overflow-hidden">
+        <div class="bg-stone-50 text-stone-800 border-b border-stone-200 px-5 py-3">
             <h2 class="font-bold uppercase tracking-widest text-[10px]">Top Items by Revenue</h2>
         </div>
         <?php if (empty($item_rows)): ?>
@@ -351,8 +351,8 @@ $fmt = fn($n) => '$' . number_format((float)$n, 2);
                         <?= htmlspecialchars($row['name']) ?>
                     </td>
                     <td class="px-4 py-2 text-stone-500"><?= htmlspecialchars($row['category'] ?? '—') ?></td>
-                    <td class="px-4 py-2 text-right font-mono text-stone-700"><?= number_format((float)$row['qty'], 1) ?></td>
-                    <td class="px-4 py-2 text-right font-mono font-bold text-emerald-700"><?= $fmt($row['rev']) ?></td>
+                    <td class="px-4 py-2 text-right text-stone-700"><?= number_format((float)$row['qty'], 1) ?></td>
+                    <td class="px-4 py-2 text-right font-bold text-emerald-700"><?= $fmt($row['rev']) ?></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
@@ -361,8 +361,8 @@ $fmt = fn($n) => '$' . number_format((float)$n, 2);
     </div>
 
     <!-- Revenue by category -->
-    <div class="bg-white border rounded-lg shadow-xs overflow-hidden">
-        <div class="bg-stone-900 text-stone-100 px-5 py-3">
+    <div class="bg-white border border-stone-200 rounded-lg shadow-sm overflow-hidden">
+        <div class="bg-stone-50 text-stone-800 border-b border-stone-200 px-5 py-3">
             <h2 class="font-bold uppercase tracking-widest text-[10px]">Revenue by Category</h2>
         </div>
         <?php if (empty($cat_rows)): ?>
@@ -378,7 +378,7 @@ $fmt = fn($n) => '$' . number_format((float)$n, 2);
             <div>
                 <div class="flex justify-between text-xs mb-1">
                     <span class="font-bold text-stone-700"><?= htmlspecialchars($row['category'] ?? 'Uncategorized') ?></span>
-                    <span class="font-mono text-stone-500"><?= $fmt($row['rev']) ?> <span class="text-stone-400">(<?= $pct ?>%)</span></span>
+                    <span class="text-stone-500"><?= $fmt($row['rev']) ?> <span class="text-stone-400">(<?= $pct ?>%)</span></span>
                 </div>
                 <div class="h-2 bg-stone-100 rounded overflow-hidden">
                     <div class="h-full bg-stone-700 rounded" style="width:<?= $pct ?>%"></div>
@@ -392,10 +392,10 @@ $fmt = fn($n) => '$' . number_format((float)$n, 2);
 
 <!-- ── BOOKING REVENUE BY TYPE ── -->
 <?php if (!empty($bk_by_type)): ?>
-<div class="bg-white border rounded-lg shadow-xs overflow-hidden mb-6">
+<div class="bg-white border border-stone-200 rounded-lg shadow-sm overflow-hidden mb-6">
     <div class="bg-emerald-900 text-stone-100 px-5 py-3 flex justify-between items-center">
         <h2 class="font-bold uppercase tracking-widest text-[10px]">Paid bookings by type <span class="normal-case tracking-normal">(by event date)</span></h2>
-        <span class="text-[10px] font-mono text-emerald-300"><?= date('M j', strtotime($date_from)) ?> — <?= date('M j, Y', strtotime($date_to)) ?></span>
+        <span class="text-[10px] text-emerald-300"><?= date('M j', strtotime($date_from)) ?> — <?= date('M j, Y', strtotime($date_to)) ?></span>
     </div>
     <table class="w-full text-xs border-collapse">
         <thead>
@@ -419,18 +419,18 @@ $fmt = fn($n) => '$' . number_format((float)$n, 2);
                         <div class="h-full bg-emerald-600 rounded" style="width:<?= $pct ?>%"></div>
                     </div>
                 </td>
-                <td class="px-4 py-3 text-right font-mono text-stone-700"><?= (int)$row['cnt'] ?></td>
-                <td class="px-4 py-3 text-right font-mono text-stone-500"><?= number_format((float)$row['avg_party'], 1) ?></td>
-                <td class="px-4 py-3 text-right font-mono font-black text-emerald-700"><?= $fmt($row['rev']) ?></td>
+                <td class="px-4 py-3 text-right text-stone-700"><?= (int)$row['cnt'] ?></td>
+                <td class="px-4 py-3 text-right text-stone-500"><?= number_format((float)$row['avg_party'], 1) ?></td>
+                <td class="px-4 py-3 text-right font-black text-emerald-700"><?= $fmt($row['rev']) ?></td>
             </tr>
         <?php endforeach; ?>
         </tbody>
         <tfoot class="border-t-2 border-stone-200 bg-stone-50">
             <tr>
                 <td class="px-4 py-2 font-bold text-stone-700 text-[10px] uppercase">Total</td>
-                <td class="px-4 py-2 text-right font-mono font-bold text-stone-700"><?= array_sum(array_column($bk_by_type, 'cnt')) ?></td>
+                <td class="px-4 py-2 text-right font-bold text-stone-700"><?= array_sum(array_column($bk_by_type, 'cnt')) ?></td>
                 <td></td>
-                <td class="px-4 py-2 text-right font-mono font-black text-emerald-700"><?= $fmt(array_sum(array_column($bk_by_type, 'rev'))) ?></td>
+                <td class="px-4 py-2 text-right font-black text-emerald-700"><?= $fmt(array_sum(array_column($bk_by_type, 'rev'))) ?></td>
             </tr>
         </tfoot>
     </table>

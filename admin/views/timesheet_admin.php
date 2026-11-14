@@ -3,13 +3,13 @@
 // Full view for viewing aggregated weekly timesheets.
 
 if ($current_role !== 'administrator') {
-    echo "<p class='p-6 text-red-700 font-mono text-xs'>Access denied.</p>";
+    echo "<p class='p-6 text-red-700 text-xs'>Access denied.</p>";
     return;
 }
 ?>
 
 <div class="flex justify-between items-center mb-6 print:hidden">
-    <h1 class="text-2xl font-serif font-black">Administrative Timesheet Report</h1>
+    <h1 class="text-2xl font-bold text-stone-800">Timesheets</h1>
     <div class="space-x-2">
         <button onclick="window.print()" class="bg-stone-100 border border-stone-300 px-4 py-2 rounded text-xs font-bold uppercase text-stone-700 hover:bg-stone-200">🖨️ Print Report</button>
         <a href="/admin/handlers/export_timesheets.php" class="bg-emerald-700 text-white px-4 py-2 rounded text-xs font-bold uppercase tracking-wider hover:bg-emerald-800">📊 Export to CSV</a>
@@ -17,12 +17,12 @@ if ($current_role !== 'administrator') {
 </div>
 
 <!-- Search Toolbar -->
-<div class="bg-white border rounded p-5 mb-6 shadow-xs flex justify-between items-center print:hidden">
+<div class="bg-white border border-stone-200 rounded p-5 mb-6 shadow-sm flex justify-between items-center print:hidden">
     <form method="GET" class="flex gap-2">
         <input type="hidden" name="view" value="timesheet_admin">
         <input type="text" name="search_q" value="<?= htmlspecialchars($_GET['search_q'] ?? '') ?>" 
                placeholder="Search staff name..." class="p-2 border rounded text-xs outline-none focus:border-stone-500">
-        <button type="submit" class="bg-stone-900 text-white px-4 py-2 rounded text-xs font-bold uppercase tracking-wider">Search Logs</button>
+        <button type="submit" class="bg-amber-700 text-white px-4 py-2 rounded text-xs font-bold uppercase tracking-wider">Search Logs</button>
         <?php if (!empty($_GET['search_q'])): ?>
             <a href="admin.php?view=timesheet_admin" class="bg-stone-200 px-4 py-2 rounded text-xs font-bold uppercase">Clear</a>
         <?php endif; ?>
@@ -32,11 +32,11 @@ if ($current_role !== 'administrator') {
 
 
 <?php if (empty($all_time_cards)): ?>
-    <div class="bg-white p-10 border rounded text-center text-stone-500 italic">No timesheet data available for the current period.</div>
+    <div class="bg-white p-10 border border-stone-200 rounded text-center text-stone-500 italic">No timesheet data available for the current period.</div>
 <?php else: ?>
     <?php foreach ($all_time_cards as $week => $users): ?>
-        <div class="bg-white border rounded shadow-xs mb-8 overflow-hidden print:border-stone-300 print:shadow-none">
-            <div class="bg-stone-900 text-white p-3 font-bold text-xs uppercase tracking-wider">
+        <div class="bg-white border rounded shadow-sm mb-8 overflow-hidden print:border-stone-300 print:shadow-none">
+            <div class="bg-amber-700 text-white p-3 font-bold text-xs uppercase tracking-wider">
                 Week Ending: <?= htmlspecialchars($week) ?>
             </div>
             <table class="w-full text-xs text-center border-collapse">
@@ -58,7 +58,7 @@ if ($current_role !== 'administrator') {
                         <tr class="hover:bg-stone-50">
                             <td class="p-3 text-left font-bold text-stone-800"><?= htmlspecialchars($u['name']) ?> <span class="text-stone-400 font-normal">(#<?= $id ?>)</span></td>
                             <?php foreach ($u['days'] as $h): ?>
-                                <td class="p-3 font-mono text-stone-600"><?= $h > 0 ? number_format($h, 1) : '-' ?></td>
+                                <td class="p-3 text-stone-600"><?= $h > 0 ? number_format($h, 1) : '-' ?></td>
                             <?php endforeach; ?>
                             <td class="p-3 font-bold bg-stone-50 text-stone-900"><?= number_format($u['total'], 1) ?></td>
                         </tr>

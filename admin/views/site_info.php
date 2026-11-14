@@ -37,20 +37,20 @@ if (!$tablesMissing) {
 }
 
 $sectionCls = "bg-white border border-stone-200 rounded-lg mb-4 overflow-hidden";
-$sumCls     = "cursor-pointer select-none px-5 py-4 font-serif font-bold text-stone-800 flex items-center justify-between hover:bg-stone-50";
+$sumCls     = "cursor-pointer select-none px-5 py-4 font-bold text-stone-800 flex items-center justify-between hover:bg-stone-50";
 $inputCls   = "w-full px-3 py-2 border border-stone-300 rounded text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-400";
-$btnCls     = "mt-4 px-4 py-2 rounded bg-stone-800 text-stone-100 text-xs font-semibold hover:bg-stone-900";
-$labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 font-mono mb-1";
+$btnCls     = "mt-4 px-4 py-2 rounded bg-amber-700 text-white text-xs font-semibold hover:bg-amber-800";
+$labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
 ?>
 
 <div class="mb-6">
-    <h1 class="text-2xl font-serif font-black text-stone-800">🏠 Site Info</h1>
-    <p class="text-xs text-stone-400 font-mono mt-0.5">One place for address, phones, emails, hours &amp; season — edits propagate everywhere.</p>
+    <h1 class="text-2xl font-bold text-stone-800">🏠 Site Info</h1>
+    <p class="text-xs text-stone-400 mt-0.5">One place for address, phones, emails, hours &amp; season — edits propagate everywhere.</p>
 </div>
 
 <?php if ($tablesMissing): ?>
     <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded p-4 text-xs">
-        ⚠️ The Site Info tables don't exist yet. Run <code class="font-mono">site_info_module.sql</code> (Sections 1 &amp; 2) in phpMyAdmin, then reload.
+        ⚠️ The Site Info tables don't exist yet. Run <code class="">site_info_module.sql</code> (Sections 1 &amp; 2) in phpMyAdmin, then reload.
     </div>
 <?php else: ?>
 <div class="max-w-3xl">
@@ -76,7 +76,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 font-mo
                     <p class="text-[10px] text-stone-400 mt-1">Banner disappears automatically after this date. Leave blank to show indefinitely.</p>
                 </div>
             </div>
-            <button type="submit" class="px-5 py-2 bg-stone-800 text-white rounded text-sm font-semibold hover:bg-stone-700">Save announcement</button>
+            <button type="submit" class="px-5 py-2 bg-amber-700 text-white rounded text-sm font-semibold hover:bg-amber-800">Save announcement</button>
         </form>
     </details>
 
@@ -102,7 +102,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 font-mo
                 <div class="sm:col-span-2">
                     <label class="<?= $labelCls ?>">Google Maps embed URL</label>
                     <textarea class="<?= $inputCls ?>" rows="2" name="settings[map_embed_url]" placeholder="https://www.google.com/maps/embed?pb=..."><?= $g('map_embed_url') ?></textarea>
-                    <p class="text-[10px] text-stone-400 mt-1">The <code class="font-mono">src</code> from Google Maps &rarr; Share &rarr; Embed a map.</p>
+                    <p class="text-[10px] text-stone-400 mt-1">The <code class="">src</code> from Google Maps &rarr; Share &rarr; Embed a map.</p>
                 </div>
                 <div>
                     <label class="<?= $labelCls ?>">Google star rating <span class="font-normal opacity-60">(e.g. 4.8)</span></label>
@@ -195,7 +195,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 font-mo
                             <button type="button" class="si-social-del text-stone-400 hover:text-red-600 text-xl leading-none px-1 shrink-0" title="Remove">&times;</button>
                         </div>
                         <div class="flex items-center gap-2">
-                            <input type="text" id="imgUrl_soc<?= $i ?>" name="social[<?= $i ?>][image]" value="<?= htmlspecialchars((string)$s['image'], ENT_QUOTES) ?>" class="<?= $inputCls ?> flex-1 font-mono" placeholder="/img/social/icon.svg" oninput="updateImgPreview('soc<?= $i ?>')">
+                            <input type="text" id="imgUrl_soc<?= $i ?>" name="social[<?= $i ?>][image]" value="<?= htmlspecialchars((string)$s['image'], ENT_QUOTES) ?>" class="<?= $inputCls ?> flex-1" placeholder="/img/social/icon.svg" oninput="updateImgPreview('soc<?= $i ?>')">
                             <button type="button" onclick="openVaultPicker('soc<?= $i ?>')" class="shrink-0 border border-stone-300 px-3 py-2 rounded text-xs font-semibold bg-stone-50 hover:bg-stone-900 hover:text-white transition whitespace-nowrap">📁 Vault</button>
                             <label class="shrink-0 border border-stone-300 px-3 py-2 rounded text-xs font-semibold bg-stone-50 hover:bg-stone-900 hover:text-white transition whitespace-nowrap cursor-pointer">⬆ Upload
                                 <input type="file" accept="image/*" class="hidden" data-folder="social" onchange="quickUploadImage(this,'soc<?= $i ?>')">
@@ -208,7 +208,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 font-mo
             <template id="siSocialTpl">
                 <div class="si-social-row border border-stone-200 rounded-lg p-3 space-y-2">
                     <div class="flex items-center gap-2">
-                        <div id="imgPreview_soc__I__" class="hidden w-11 h-11 border rounded overflow-hidden bg-stone-100 shrink-0">
+                        <div id="imgPreview_soc__I__" class="hidden w-11 h-11 border border-stone-200 rounded overflow-hidden bg-stone-100 shrink-0">
                             <img src="" alt="" class="w-full h-full object-contain" onerror="this.closest('div').style.display='none'">
                         </div>
                         <input class="<?= $inputCls ?> flex-1 min-w-[110px]" name="social[__I__][name]" value="" placeholder="Instagram">
@@ -216,7 +216,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 font-mo
                         <button type="button" class="si-social-del text-stone-400 hover:text-red-600 text-xl leading-none px-1 shrink-0" title="Remove">&times;</button>
                     </div>
                     <div class="flex items-center gap-2">
-                        <input type="text" id="imgUrl_soc__I__" name="social[__I__][image]" value="" class="<?= $inputCls ?> flex-1 font-mono" placeholder="/img/social/icon.svg" oninput="updateImgPreview('soc__I__')">
+                        <input type="text" id="imgUrl_soc__I__" name="social[__I__][image]" value="" class="<?= $inputCls ?> flex-1" placeholder="/img/social/icon.svg" oninput="updateImgPreview('soc__I__')">
                         <button type="button" onclick="openVaultPicker('soc__I__')" class="shrink-0 border border-stone-300 px-3 py-2 rounded text-xs font-semibold bg-stone-50 hover:bg-stone-900 hover:text-white transition whitespace-nowrap">📁 Vault</button>
                         <label class="shrink-0 border border-stone-300 px-3 py-2 rounded text-xs font-semibold bg-stone-50 hover:bg-stone-900 hover:text-white transition whitespace-nowrap cursor-pointer">⬆ Upload
                             <input type="file" accept="image/*" class="hidden" data-folder="social" onchange="quickUploadImage(this,'soc__I__')">
@@ -237,7 +237,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 font-mo
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
             <input type="hidden" name="site_info_action" value="hours">
 
-            <div class="text-[11px] uppercase tracking-wider text-stone-400 font-mono mb-2">General hours</div>
+            <div class="text-[11px] uppercase tracking-wider text-stone-400 mb-2">General hours</div>
             <?php $gh = $hoursFor('general'); ?>
             <div class="space-y-1.5 mb-5">
                 <?php for ($d = 0; $d <= 6; $d++): ?>

@@ -438,7 +438,7 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
 
   <div class="flex flex-wrap items-end justify-between gap-2 mb-4">
     <div>
-      <h1 class="text-2xl font-serif font-bold text-stone-900">Dashboard</h1>
+      <h1 class="text-2xl font-bold text-stone-900">Dashboard</h1>
       <div class="text-xs text-stone-500"><?= $h(date('l, F j')) ?></div>
     </div>
     <?php if ($openSt): ?>
@@ -486,7 +486,7 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
               <?php endif; ?>
               <div class="flex flex-wrap gap-2 mt-3">
                 <?php foreach ($al['actions'] as [$lab, $href, $primary]): ?>
-                <a href="<?= $h($href) ?>" class="inline-flex items-center min-h-10 px-4 rounded-lg text-xs font-bold <?= $primary ? 'bg-stone-900 text-white hover:bg-stone-700' : 'bg-stone-100 text-stone-700 hover:bg-stone-200' ?>"><?= $h($lab) ?></a>
+                <a href="<?= $h($href) ?>" class="inline-flex items-center min-h-10 px-4 rounded-lg text-xs font-bold <?= $primary ? 'bg-amber-700 text-white hover:bg-amber-800' : 'bg-stone-100 text-stone-700 hover:bg-stone-200' ?>"><?= $h($lab) ?></a>
                 <?php endforeach; ?>
                 <?php if ($dis): ?>
                 <button type="button" data-dismiss class="inline-flex items-center min-h-10 px-3 rounded-lg text-xs font-bold text-stone-400 hover:text-stone-700 hover:bg-stone-100">Dismiss</button>
@@ -539,7 +539,7 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
           <ul class="divide-y divide-stone-100">
             <?php foreach (array_slice($todayBookings, 0, 6) as $b): ?>
             <li class="py-1.5 flex items-center gap-2 text-xs">
-              <span class="font-mono text-stone-500 w-14 shrink-0"><?= $h(date('g:ia', strtotime($b['start_time']))) ?></span>
+              <span class="text-stone-500 w-14 shrink-0"><?= $h(date('g:ia', strtotime($b['start_time']))) ?></span>
               <span class="flex-1 min-w-0 truncate"><span class="font-semibold text-stone-800"><?= $h($b['customer_name']) ?></span> <span class="text-stone-400">· <?= (int)$b['party_size'] ?> · <?= $h($b['label']) ?></span></span>
               <?php if ($b['status'] === 'pending'): ?><span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-amber-100 text-amber-800">Pending</span><?php endif; ?>
               <?php if ((int)$b['is_exclusive'] === 1): ?><span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-red-100 text-red-700">Private</span><?php endif; ?>
@@ -557,7 +557,7 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
           <div class="text-xs font-bold text-stone-700 mb-1">Farm events</div>
           <ul class="space-y-1">
             <?php foreach ($todayEvents as $ev): ?>
-            <li class="text-xs"><span class="font-mono text-stone-500"><?= $h(date('g:ia', strtotime($ev['start_datetime']))) ?></span> <span class="font-semibold text-stone-800"><?= $h($ev['title'] ?? $ev['name'] ?? 'Event') ?></span></li>
+            <li class="text-xs"><span class="text-stone-500"><?= $h(date('g:ia', strtotime($ev['start_datetime']))) ?></span> <span class="font-semibold text-stone-800"><?= $h($ev['title'] ?? $ev['name'] ?? 'Event') ?></span></li>
             <?php endforeach; ?>
           </ul>
         </div>
@@ -582,13 +582,13 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
         <div class="text-3xl font-black text-emerald-800"><?= $money($tr) ?></div>
         <div class="text-xs text-stone-500"><?= (int)($sales_today['count'] ?? 0) ?> sale<?= (int)($sales_today['count'] ?? 0) === 1 ? '' : 's' ?> &amp; payments, before tax (register, online, passes, parties)</div>
         <?php if ($yr > 0): $diff = $tr - $yr; $up = $diff >= 0; ?>
-          <div class="mt-2 text-[11px] font-bold font-mono <?= $up ? 'text-emerald-600' : 'text-red-500' ?>">
+          <div class="mt-2 text-[11px] font-bold <?= $up ? 'text-emerald-600' : 'text-red-500' ?>">
             <?= $up ? '▲ +' : '▼ -' ?><?= $money(abs($diff)) ?> (<?= (int)round(abs($diff) / $yr * 100) ?>%) vs yesterday
           </div>
         <?php else: ?>
-          <div class="mt-2 text-[11px] font-mono text-stone-400">No money in yesterday to compare</div>
+          <div class="mt-2 text-[11px] text-stone-400">No money in yesterday to compare</div>
         <?php endif; ?>
-        <div class="mt-2 pt-2 border-t border-stone-100 text-[11px] font-mono text-stone-500">7-day avg: <span class="font-bold text-stone-700"><?= $money($sales_7day_avg ?? 0) ?>/day</span></div>
+        <div class="mt-2 pt-2 border-t border-stone-100 text-[11px] text-stone-500">7-day avg: <span class="font-bold text-stone-700"><?= $money($sales_7day_avg ?? 0) ?>/day</span></div>
       </section>
       <?php endif; ?>
     </div>

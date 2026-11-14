@@ -279,7 +279,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
 
     <!-- ── RECORD LIST ── -->
-    <div class="bg-white rounded-xl border border-stone-200 p-4 shadow-xs h-fit print:hidden <?= $__editing ? 'hidden md:block' : '' ?>">
+    <div class="bg-white rounded-xl border border-stone-200 p-4 shadow-sm h-fit print:hidden <?= $__editing ? 'hidden md:block' : '' ?>">
         <div class="flex justify-between items-center mb-3">
             <h2 class="text-xs uppercase font-bold text-stone-400 capitalize">
                 <?= htmlspecialchars(str_replace('_', ' ', $target_table)) ?>
@@ -371,7 +371,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
     </div>
 
     <!-- ── EDIT / ADD FORM ── -->
-    <div class="md:col-span-2 bg-white rounded-xl border border-stone-200 p-4 md:p-6 shadow-xs <?= $__editing ? '' : 'hidden md:block' ?>">
+    <div class="md:col-span-2 bg-white rounded-xl border border-stone-200 p-4 md:p-6 shadow-sm <?= $__editing ? '' : 'hidden md:block' ?>">
         <a href="/admin/admin.php?view=schema&table=<?= urlencode($target_table) ?>" class="md:hidden inline-flex items-center min-h-10 -mt-1 mb-2 text-xs font-bold text-stone-500">← Back to list</a>
         <?php
         // Resolve a friendly label for the edit header — mirrors the list's logic
@@ -394,7 +394,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
             }
         }
         ?>
-        <h2 class="text-base font-bold font-serif text-stone-800 mb-4">
+        <h2 class="text-base font-bold text-stone-800 mb-4">
             <?= $edit_data
                 ? 'Edit: <span class="text-stone-500 font-medium">' . htmlspecialchars($edit_label) . '</span>'
                 : 'Add New ' . htmlspecialchars(ucwords(str_replace('_', ' ', $target_table))) ?>
@@ -443,7 +443,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                 <?php if ($name === '_classification_picker'): ?>
                     <div class="space-y-1">
                         <label class="block font-bold text-stone-600">Classification</label>
-                        <select name="classifications_matrix[]" class="w-full p-2 border bg-white rounded font-medium">
+                        <select name="classifications_matrix[]" class="w-full p-2 border border-stone-300 bg-white rounded font-medium">
                             <option value="">-- None --</option>
                             <?php foreach ($all_classes as $cl): ?>
                                 <option value="<?= (int)$cl['id'] ?>"
@@ -467,13 +467,13 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                         <div id="addCategoryForm_recipes" class="hidden mb-2 flex gap-2">
                             <input type="text" id="newCategoryInput_recipes" maxlength="80"
                                 placeholder="New category name..."
-                                class="flex-1 p-1.5 border rounded bg-white text-xs font-medium outline-none">
+                                class="flex-1 p-1.5 border border-stone-300 rounded bg-white text-xs font-medium outline-none">
                             <button type="button" onclick="submitNewCategory('recipes')"
-                                class="bg-stone-900 text-white text-[10px] font-bold uppercase px-3 py-1 rounded hover:bg-stone-700">Save</button>
+                                class="bg-amber-700 text-white text-[10px] font-bold uppercase px-3 py-1 rounded hover:bg-amber-800">Save</button>
                             <button type="button" onclick="toggleAddCategoryForm('recipes')"
-                                class="border text-stone-500 text-[10px] font-bold px-2 py-1 rounded hover:bg-stone-100">Cancel</button>
+                                class="border border-stone-200 text-stone-500 text-[10px] font-bold px-2 py-1 rounded hover:bg-stone-100">Cancel</button>
                         </div>
-                        <div id="categoriesCheckboxList_recipes" class="grid grid-cols-4 gap-2 p-3 border rounded bg-stone-50 max-h-24 overflow-y-auto">
+                        <div id="categoriesCheckboxList_recipes" class="grid grid-cols-4 gap-2 p-3 border border-stone-200 rounded bg-stone-50 max-h-24 overflow-y-auto">
                             <?php foreach ($all_categories as $ct): ?>
                             <label class="flex items-center space-x-2 text-xxs font-medium cursor-pointer">
                                 <input type="checkbox" name="categories_matrix[]"
@@ -499,13 +499,13 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                         <div id="addCategoryForm_blog" class="hidden mb-2 flex gap-2">
                             <input type="text" id="newCategoryInput_blog" maxlength="80"
                                 placeholder="New category name..."
-                                class="flex-1 p-1.5 border rounded bg-white text-xs font-medium outline-none">
+                                class="flex-1 p-1.5 border border-stone-300 rounded bg-white text-xs font-medium outline-none">
                             <button type="button" onclick="submitNewCategory('blog')"
-                                class="bg-stone-900 text-white text-[10px] font-bold uppercase px-3 py-1 rounded hover:bg-stone-700">Save</button>
+                                class="bg-amber-700 text-white text-[10px] font-bold uppercase px-3 py-1 rounded hover:bg-amber-800">Save</button>
                             <button type="button" onclick="toggleAddCategoryForm('blog')"
-                                class="border text-stone-500 text-[10px] font-bold px-2 py-1 rounded hover:bg-stone-100">Cancel</button>
+                                class="border border-stone-200 text-stone-500 text-[10px] font-bold px-2 py-1 rounded hover:bg-stone-100">Cancel</button>
                         </div>
-                        <div id="categoriesCheckboxList_blog" class="grid grid-cols-4 gap-2 p-3 border rounded bg-stone-50 max-h-28 overflow-y-auto">
+                        <div id="categoriesCheckboxList_blog" class="grid grid-cols-4 gap-2 p-3 border border-stone-200 rounded bg-stone-50 max-h-28 overflow-y-auto">
                             <?php foreach (($all_blog_categories ?? []) as $ct): ?>
                             <label class="flex items-center space-x-2 text-xxs font-medium cursor-pointer">
                                 <input type="checkbox" name="categories_matrix[]"
@@ -522,7 +522,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                     <div class="space-y-1 md:col-span-2">
                         <label class="block font-bold text-stone-600">Linked Recipe</label>
                         <select name="fields[linked_recipe_id]" id="linkedRecipeSelect"
-                            class="w-full p-2 border bg-white rounded font-medium text-xs">
+                            class="w-full p-2 border border-stone-300 bg-white rounded font-medium text-xs">
                             <option value="">— None —</option>
                             <option value="0"  <?= isset($edit_data['linked_recipe_id']) && (string)$edit_data['linked_recipe_id'] === '0'  ? 'selected' : '' ?>>⬆ Always show newest recipe</option>
                             <option value="-1" <?= isset($edit_data['linked_recipe_id']) && (string)$edit_data['linked_recipe_id'] === '-1' ? 'selected' : '' ?>>🔀 Show a random recipe</option>
@@ -549,7 +549,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                     $ing_fdc = (int)($edit_data['usda_fdc_id'] ?? 0);
                     ?>
                     </div><!-- /schemaFieldGrid -->
-                    <div class="mt-5 w-full border rounded-lg overflow-hidden" id="usdaPanel" data-ing="<?= htmlspecialchars((string)$ing_key, ENT_QUOTES) ?>">
+                    <div class="mt-5 w-full border border-stone-200 rounded-lg overflow-hidden" id="usdaPanel" data-ing="<?= htmlspecialchars((string)$ing_key, ENT_QUOTES) ?>">
 
                         <!-- Header -->
                         <div class="flex items-center justify-between gap-2 px-4 py-2.5 bg-stone-100 border-b">
@@ -729,11 +729,11 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                             <label class="block font-bold text-stone-700 text-xs">🍽 Pairs Well With</label>
                             <span class="text-[10px] text-stone-400">Add recipes that pair well with this one — works both ways automatically</span>
                         </div>
-                        <div id="pairingsWrapper" class="space-y-2 border p-3 rounded bg-stone-50">
+                        <div id="pairingsWrapper" class="space-y-2 border border-stone-200 p-3 rounded bg-stone-50">
                             <?php foreach ($active_pair_ids as $apid): ?>
                             <div class="pairing-row flex items-center gap-2">
                                 <span class="text-stone-400 shrink-0 text-xs">🍽</span>
-                                <select name="pairings_matrix[]" class="p-1 border bg-white rounded flex-1 text-xs">
+                                <select name="pairings_matrix[]" class="p-1 border border-stone-300 bg-white rounded flex-1 text-xs">
                                     <option value="">— Select a recipe —</option>
                                     <?php foreach ($all_pair_recipes as $pr): if ($cur_recipe_id && (int)$pr['id'] === $cur_recipe_id) continue; ?>
                                         <option value="<?= (int)$pr['id'] ?>" <?= (int)$pr['id'] === (int)$apid ? 'selected' : '' ?>><?= htmlspecialchars($pr['title']) ?></option>
@@ -744,7 +744,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                             <?php endforeach; ?>
                         </div>
                         <button type="button" id="addPairingBtn"
-                            class="mt-2 text-xxs font-bold uppercase tracking-wider bg-stone-800 text-white px-2.5 py-1.5 rounded hover:bg-stone-950 transition">
+                            class="mt-2 text-xxs font-bold uppercase tracking-wider bg-amber-700 text-white px-2.5 py-1.5 rounded hover:bg-stone-950 transition">
                             Add Pairs Well With +
                         </button>
                     </div>
@@ -808,7 +808,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                     }
                     ?>
                     </div><!-- /schemaFieldGrid -->
-                    <div class="mt-6 w-full border rounded-lg overflow-hidden" id="nutritionPanel">
+                    <div class="mt-6 w-full border border-stone-200 rounded-lg overflow-hidden" id="nutritionPanel">
 
                         <!-- Header bar -->
                         <div class="flex items-center justify-between px-4 py-2.5 bg-stone-100 border-b">
@@ -860,7 +860,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                                         ['label' => 'Carbs',      'id' => 'nutrCarbs',   'val' => $edit_data['carbs_g']   ?? null, 'unit' => 'g',  'color' => 'text-emerald-700'],
                                     ];
                                     foreach ($macros as $m): ?>
-                                    <div class="bg-stone-50 border rounded p-2.5 text-center">
+                                    <div class="bg-stone-50 border border-stone-200 rounded p-2.5 text-center">
                                         <div class="text-xl font-black <?= $m['color'] ?>" id="<?= $m['id'] ?>">
                                             <?= $m['val'] !== null ? $m['val'] . $m['unit'] : '—' ?>
                                         </div>
@@ -1059,7 +1059,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                           .ri-item-recipe{color:#4a6741;font-weight:600}
                           .ri-empty{padding:6px 10px;font-size:12px;color:#a8a29e}
                         </style>
-                        <div id="ingredientsDynamicWrapper" class="space-y-2 border p-3 rounded bg-stone-50">
+                        <div id="ingredientsDynamicWrapper" class="space-y-2 border border-stone-200 p-3 rounded bg-stone-50">
                             <?php foreach ($ri_data as $idx => $ri_row): ?>
                             <div class="dynamic-ingredient-row text-xs space-y-1.5 pb-2 border-b border-stone-200 last:border-0">
                                 <div class="flex items-center space-x-2">
@@ -1067,7 +1067,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                                     <?php $ri_pick = $ri_resolve($ri_row); ?>
                                     <div class="ri-combo relative flex-1">
                                         <input type="hidden" name="recipe_ingredients_block[<?= $idx ?>][ref]" value="<?= htmlspecialchars($ri_pick['ref'], ENT_QUOTES) ?>">
-                                        <input type="text" class="ri-search p-1 border bg-white rounded w-full" autocomplete="off" placeholder="Type an ingredient or recipe…" value="<?= htmlspecialchars($ri_pick['label'], ENT_QUOTES) ?>">
+                                        <input type="text" class="ri-search p-1 border border-stone-300 bg-white rounded w-full" autocomplete="off" placeholder="Type an ingredient or recipe…" value="<?= htmlspecialchars($ri_pick['label'], ENT_QUOTES) ?>">
                                         <div class="ri-dropdown" style="display:none"></div>
                                     </div>
                                     <input type="text" inputmode="decimal"
@@ -1106,7 +1106,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                             <?php endforeach; ?>
                         </div>
                         <button type="button" onclick="addNewIngredientRow()"
-                            class="mt-2 text-xxs font-bold uppercase tracking-wider bg-stone-800 text-white px-2.5 py-1.5 rounded hover:bg-stone-950 transition">
+                            class="mt-2 text-xxs font-bold uppercase tracking-wider bg-amber-700 text-white px-2.5 py-1.5 rounded hover:bg-stone-950 transition">
                             Add Ingredient +
                         </button>
                         <?php
@@ -1177,9 +1177,9 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
     class="fixed inset-0 bg-stone-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-lg shadow-2xl w-full max-w-3xl flex flex-col" style="max-height:90vh;">
         <div class="flex justify-between items-center px-5 py-3 border-b bg-stone-50 rounded-t-lg shrink-0">
-            <span id="blogPreviewTitle" class="font-bold text-stone-800 text-sm font-serif truncate max-w-lg"></span>
+            <span id="blogPreviewTitle" class="font-bold text-stone-800 text-sm truncate max-w-lg"></span>
             <button type="button" onclick="closeBlogPreview()"
-                class="text-[10px] font-bold uppercase tracking-wider font-mono border px-3 py-1.5 rounded hover:bg-stone-900 hover:text-white transition shrink-0">
+                class="text-[10px] font-bold uppercase tracking-wider font-mono border border-stone-200 px-3 py-1.5 rounded hover:bg-stone-900 hover:text-white transition shrink-0">
                 Close ✕
             </button>
         </div>
@@ -1252,7 +1252,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                         </label>
                         <?php if ($is_set): ?>
                             <?php // SET columns — multi-select checkboxes ?>
-                            <div class="grid grid-cols-2 gap-1 p-2 border rounded bg-stone-50">
+                            <div class="grid grid-cols-2 gap-1 p-2 border border-stone-200 rounded bg-stone-50">
                                 <?php
                                 $set_active = array_map('trim', explode(',', $raw_val));
                                 foreach ($enum_values as $ev): ?>
@@ -1284,7 +1284,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                 <?php elseif ($name === 'breed_id'): ?>
                     <div class="space-y-1">
                         <label class="block font-bold text-stone-600">Breed</label>
-                        <select name="fields[breed_id]" required class="w-full p-2 border bg-white rounded">
+                        <select name="fields[breed_id]" required class="w-full p-2 border border-stone-300 bg-white rounded">
                             <option value="">-- Select Breed --</option>
                             <?php foreach ($all_breeds as $b): ?>
                                 <option value="<?= (int)$b['id'] ?>" <?= $raw_val == $b['id'] ? 'selected' : '' ?>>
@@ -1297,7 +1297,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                 <?php elseif ($name === 'classification_id'): ?>
                     <div class="space-y-1">
                         <label class="block font-bold text-stone-600">Classification</label>
-                        <select name="fields[classification_id]" required class="w-full p-2 border bg-white rounded">
+                        <select name="fields[classification_id]" required class="w-full p-2 border border-stone-300 bg-white rounded">
                             <option value="">-- Select Classification --</option>
                             <?php foreach ($all_classes as $c): ?>
                                 <option value="<?= (int)$c['id'] ?>" <?= $raw_val == $c['id'] ? 'selected' : '' ?>>
@@ -1401,7 +1401,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                         <label class="block font-bold text-stone-600">Cuisine</label>
                         <div class="flex gap-2">
                             <select name="fields[cuisine_id]"
-                                class="flex-1 p-2 border bg-stone-50 rounded text-sm outline-none">
+                                class="flex-1 p-2 border border-stone-300 bg-stone-50 rounded text-sm outline-none">
                                 <option value="">— Select cuisine —</option>
                                 <?php foreach ($all_cuisines ?? [] as $cu): ?>
                                 <option value="<?= (int)$cu['id'] ?>"
@@ -1412,7 +1412,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                             </select>
                             <button type="button"
                                 onclick="openAddCuisineModal()"
-                                class="px-3 py-2 border rounded bg-stone-50 hover:bg-stone-100 text-[10px] font-bold uppercase tracking-wider text-stone-600 whitespace-nowrap">
+                                class="px-3 py-2 border border-stone-200 rounded bg-stone-50 hover:bg-stone-100 text-[10px] font-bold uppercase tracking-wider text-stone-600 whitespace-nowrap">
                                 + Add
                             </button>
                         </div>
@@ -1422,7 +1422,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                     <div class="space-y-1">
                         <label class="block font-bold text-stone-600">Pairs Well With Recipe</label>
                         <select name="fields[pairs_with_recipe_id]"
-                            class="w-full p-2 border bg-stone-50 rounded text-sm outline-none">
+                            class="w-full p-2 border border-stone-300 bg-stone-50 rounded text-sm outline-none">
                             <option value="">— None —</option>
                             <?php
                             try {
@@ -1445,7 +1445,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                         <label class="block font-bold text-stone-600">Category</label>
                         <div class="flex gap-2">
                             <select name="fields[category_id]"
-                                class="flex-1 p-2 border bg-stone-50 rounded text-sm outline-none">
+                                class="flex-1 p-2 border border-stone-300 bg-stone-50 rounded text-sm outline-none">
                                 <option value="">— Uncategorized —</option>
                                 <?php foreach ($all_inventory_categories ?? [] as $ic): ?>
                                 <option value="<?= (int)$ic['id'] ?>"
@@ -1455,7 +1455,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                                 <?php endforeach; ?>
                             </select>
                             <a href="/admin/admin.php?view=schema&table=inventory_categories"
-                                class="px-3 py-2 border rounded bg-stone-50 hover:bg-stone-100 text-[10px] font-bold uppercase tracking-wider text-stone-600 whitespace-nowrap flex items-center">
+                                class="px-3 py-2 border border-stone-200 rounded bg-stone-50 hover:bg-stone-100 text-[10px] font-bold uppercase tracking-wider text-stone-600 whitespace-nowrap flex items-center">
                                 Manage
                             </a>
                         </div>
@@ -1521,7 +1521,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                                 class="shrink-0 border px-3 py-2 rounded text-xs font-mono font-bold uppercase tracking-wider bg-stone-50 hover:bg-stone-900 hover:text-white transition whitespace-nowrap">
                                 📁 Vault
                             </button>
-                            <label class="shrink-0 border px-3 py-2 rounded text-xs font-mono font-bold uppercase tracking-wider bg-stone-50 hover:bg-stone-900 hover:text-white transition whitespace-nowrap cursor-pointer">
+                            <label class="shrink-0 border border-stone-200 px-3 py-2 rounded text-xs font-mono font-bold uppercase tracking-wider bg-stone-50 hover:bg-stone-900 hover:text-white transition whitespace-nowrap cursor-pointer">
                                 ⬆ Upload
                                 <input type="file" accept="image/*" class="hidden"
                                     onchange="quickUploadImage(this, '<?= htmlspecialchars($name, ENT_QUOTES) ?>')">
@@ -1562,7 +1562,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                             oninput="updateBarcodePreview(this.value)"
                             class="w-full p-2 border bg-stone-50 rounded font-mono outline-none text-sm">
                         <p class="text-[10px] text-stone-400">Leave blank to auto-generate. SKU is used for barcode scanning at the POS.</p>
-                        <div id="barcodePreviewWrap" class="<?= empty($val) ? 'hidden' : '' ?> bg-white border rounded p-3 text-center">
+                        <div id="barcodePreviewWrap" class="<?= empty($val) ? 'hidden' : '' ?> bg-white border border-stone-200 rounded p-3 text-center">
                             <svg id="barcodePreviewSvg"></svg>
                             <p class="text-[9px] text-stone-400 font-mono mt-1">Code 128 — scan preview</p>
                         </div>
@@ -1623,7 +1623,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
             <?php if (in_array($target_table, ['fruits_vegetables', 'baked_goods', 'pantry'])): ?>
                 <div class="border-t pt-4 mt-2">
                     <label class="block font-bold text-stone-700 mb-2 text-xs">Ingredients</label>
-                    <div class="grid grid-cols-3 gap-2 p-3 border rounded bg-stone-50 max-h-32 overflow-y-auto">
+                    <div class="grid grid-cols-3 gap-2 p-3 border border-stone-200 rounded bg-stone-50 max-h-32 overflow-y-auto">
                         <?php foreach ($all_ingredients as $ing): ?>
                         <label class="flex items-center space-x-2 text-xxs font-medium cursor-pointer">
                             <input type="checkbox" name="standalone_ingredients[]"
@@ -1666,11 +1666,11 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                         <div class="grid md:grid-cols-2 gap-3 mt-3">
                           <div>
                             <div class="text-[9px] font-black uppercase tracking-wider text-blue-700 mb-1">Facebook caption</div>
-                            <textarea name="social_fb" rows="5" class="w-full p-2 border rounded text-[11px] bg-white outline-none"><?= htmlspecialchars($__sc['fb']) ?></textarea>
+                            <textarea name="social_fb" rows="5" class="w-full p-2 border border-stone-300 rounded text-[11px] bg-white outline-none"><?= htmlspecialchars($__sc['fb']) ?></textarea>
                           </div>
                           <div>
                             <div class="text-[9px] font-black uppercase tracking-wider text-pink-700 mb-1">Instagram caption</div>
-                            <textarea name="social_ig" rows="5" class="w-full p-2 border rounded text-[11px] bg-white outline-none"><?= htmlspecialchars($__sc['ig']) ?></textarea>
+                            <textarea name="social_ig" rows="5" class="w-full p-2 border border-stone-300 rounded text-[11px] bg-white outline-none"><?= htmlspecialchars($__sc['ig']) ?></textarea>
                           </div>
                         </div>
                         <div class="mt-2">
@@ -1687,7 +1687,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                           <label class="flex items-center gap-2 text-[9px] font-black uppercase tracking-wider text-emerald-700 mb-1">
                             <input type="checkbox" name="social_gbp_on" value="1" checked class="rounded"> Also post to Google Business Profile
                           </label>
-                          <textarea name="social_gbp" rows="4" maxlength="1500" class="w-full p-2 border rounded text-[11px] bg-white outline-none"><?= htmlspecialchars(gbp_caption_from($__sc['fb'])) ?></textarea>
+                          <textarea name="social_gbp" rows="4" maxlength="1500" class="w-full p-2 border border-stone-300 rounded text-[11px] bg-white outline-none"><?= htmlspecialchars(gbp_caption_from($__sc['fb'])) ?></textarea>
                           <p class="text-[10px] text-stone-400 mt-1">No links here — Google adds a “Learn more” button to this page. Avoid phone numbers; Google rejects posts that include them.</p>
                         </div>
                         <?php endif; ?>
@@ -1757,7 +1757,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                         <?php endif; ?>
                         <?php if ($target_table === 'blog_posts'): ?>
                         <button type="button" onclick="openBlogPreview()"
-                            class="border font-mono font-bold uppercase tracking-wider py-2 px-4 rounded text-stone-600 hover:bg-stone-100 transition text-xs">
+                            class="border border-stone-200 font-mono font-bold uppercase tracking-wider py-2 px-4 rounded text-stone-600 hover:bg-stone-100 transition text-xs">
                             👁 Preview
                         </button>
                         <?php endif; ?>
@@ -1768,7 +1768,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                             💾 Save Draft
                         </button>
                         <button type="submit" name="post_status" value="published"
-                            class="bg-emerald-700 text-white font-mono font-bold uppercase tracking-wider py-2 px-5 rounded hover:bg-emerald-900 transition shadow-xs text-xs">
+                            class="bg-emerald-700 text-white font-mono font-bold uppercase tracking-wider py-2 px-5 rounded hover:bg-emerald-900 transition shadow-sm text-xs">
                             <?= $__review ? '📨 Send for review' : '🚀 Publish' ?>
                         </button>
                         <?php endif; ?>
@@ -1789,19 +1789,19 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
 <!-- ── ADD CUISINE MODAL ── -->
 <div id="addCuisineModal" style="display:none;"
     class="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg border max-w-xs w-full p-6 shadow-xl space-y-3">
-        <h4 class="font-serif font-black text-sm uppercase text-stone-800 tracking-wide">Add Cuisine</h4>
+    <div class="bg-white rounded-lg border border-stone-200 max-w-xs w-full p-6 shadow-xl space-y-3">
+        <h4 class="font-semibold text-base text-stone-800">Add Cuisine</h4>
         <input type="text" id="newCuisineInput" placeholder="e.g. Korean"
-            class="w-full p-2 border bg-stone-50 rounded text-sm outline-none font-mono"
+            class="w-full p-2 border border-stone-300 bg-stone-50 rounded text-sm outline-none font-mono"
             onkeydown="if(event.key==='Enter') submitNewCuisine()">
         <p id="cuisineModalMsg" class="text-red-600 text-xs font-mono min-h-[1rem]"></p>
         <div class="flex gap-2">
             <button onclick="submitNewCuisine()"
-                class="flex-1 bg-stone-900 text-white py-2 rounded font-bold text-xs uppercase tracking-wider hover:bg-stone-700">
+                class="flex-1 bg-amber-700 text-white py-2 rounded font-bold text-xs uppercase tracking-wider hover:bg-amber-800">
                 Save
             </button>
             <button onclick="closeAddCuisineModal()"
-                class="flex-1 border py-2 rounded text-stone-500 text-xs uppercase font-bold hover:bg-stone-50">
+                class="flex-1 border border-stone-200 py-2 rounded text-stone-500 text-xs uppercase font-bold hover:bg-stone-50">
                 Cancel
             </button>
         </div>

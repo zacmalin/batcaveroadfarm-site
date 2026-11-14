@@ -4,23 +4,23 @@ $total_unmoderated = count($mod_comments);
 
 <div class="flex justify-between items-center mb-6">
     <div>
-        <h1 class="text-2xl font-serif font-black text-stone-800">Comment Moderation</h1>
-        <p class="text-xs text-stone-400 font-mono mt-0.5">
+        <h1 class="text-2xl font-bold text-stone-800">Comment Moderation</h1>
+        <p class="text-xs text-stone-400 mt-0.5">
             <?= $mod_pending_count ?> pending &bull;
             <?= $mod_flagged_count ?> flagged &bull;
             <?= $total_unmoderated ?> total to review
         </p>
     </div>
     <?php if ($total_unmoderated > 0): ?>
-    <div class="flex gap-2 text-xs font-mono font-bold uppercase tracking-wider">
-        <button type="button" onclick="selectAll(true)"  class="border px-3 py-1.5 rounded bg-stone-50 hover:bg-stone-200">Select All</button>
-        <button type="button" onclick="selectAll(false)" class="border px-3 py-1.5 rounded bg-stone-50 hover:bg-stone-200">Select None</button>
+    <div class="flex gap-2 text-xs font-bold uppercase tracking-wider">
+        <button type="button" onclick="selectAll(true)"  class="border border-stone-200 px-3 py-1.5 rounded bg-stone-50 hover:bg-stone-200">Select All</button>
+        <button type="button" onclick="selectAll(false)" class="border border-stone-200 px-3 py-1.5 rounded bg-stone-50 hover:bg-stone-200">Select None</button>
     </div>
     <?php endif; ?>
 </div>
 
 <?php if (empty($mod_comments)): ?>
-    <div class="bg-white border rounded p-12 text-center text-stone-400 italic shadow-xs">
+    <div class="bg-white border border-stone-200 rounded p-12 text-center text-stone-400 italic shadow-sm">
         ✅ No comments awaiting review. All caught up!
     </div>
 <?php else: ?>
@@ -32,14 +32,14 @@ $total_unmoderated = count($mod_comments);
 
     <!-- Action bar — sticky at top -->
     <div class="sticky top-0 z-10 bg-stone-100/95 backdrop-blur-sm border-b border-stone-200 px-4 py-3 mb-4 flex justify-between items-center print:hidden">
-        <span id="selectedCount" class="text-xs font-mono text-stone-500 font-bold">0 selected</span>
+        <span id="selectedCount" class="text-xs text-stone-500 font-bold">0 selected</span>
         <div class="flex gap-2">
             <button type="button" onclick="submitAction('approve')"
-                class="bg-emerald-700 hover:bg-emerald-900 text-white font-mono font-bold uppercase tracking-wider px-5 py-2 rounded text-xs shadow-xs transition">
+                class="bg-emerald-700 hover:bg-emerald-900 text-white font-bold uppercase tracking-wider px-5 py-2 rounded text-xs shadow-sm transition">
                 ✅ Approve Selected
             </button>
             <button type="button" onclick="submitAction('reject')"
-                class="bg-red-700 hover:bg-red-900 text-white font-mono font-bold uppercase tracking-wider px-5 py-2 rounded text-xs shadow-xs transition">
+                class="bg-red-700 hover:bg-red-900 text-white font-bold uppercase tracking-wider px-5 py-2 rounded text-xs shadow-sm transition">
                 ❌ Reject Selected
             </button>
         </div>
@@ -56,7 +56,7 @@ $total_unmoderated = count($mod_comments);
             $high_risk  = (int)$comment['recent_rejections'] >= 3;
         ?>
         <label class="block cursor-pointer">
-            <div class="bg-white border rounded shadow-xs p-4 hover:border-stone-400 transition has-[:checked]:border-emerald-400 has-[:checked]:bg-emerald-50/30">
+            <div class="bg-white border rounded shadow-sm p-4 hover:border-stone-400 transition has-[:checked]:border-emerald-400 has-[:checked]:bg-emerald-50/30">
                 <div class="flex justify-between items-start gap-3">
 
                     <!-- Checkbox -->
@@ -70,7 +70,7 @@ $total_unmoderated = count($mod_comments);
                         <div class="flex flex-wrap justify-between items-center gap-2 mb-2">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <span class="font-bold text-stone-800 text-sm"><?= $commenter ?></span>
-                                <span class="text-[10px] font-mono text-stone-400 uppercase"><?= htmlspecialchars($comment['role']) ?></span>
+                                <span class="text-[10px] text-stone-400 uppercase"><?= htmlspecialchars($comment['role']) ?></span>
                                 <?php if ($is_flagged): ?>
                                     <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-red-100 text-red-700 border border-red-200">🚩 Flagged</span>
                                 <?php endif; ?>
@@ -81,7 +81,7 @@ $total_unmoderated = count($mod_comments);
                                     <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200">⚠️ <?= (int)$comment['recent_rejections'] ?> recent rejections</span>
                                 <?php endif; ?>
                             </div>
-                            <span class="text-[10px] font-mono text-stone-400 shrink-0">
+                            <span class="text-[10px] text-stone-400 shrink-0">
                                 <?= $age_hours < 1 ? 'Just now' : $age_hours . 'h ago' ?>
                             </span>
                         </div>
@@ -97,7 +97,7 @@ $total_unmoderated = count($mod_comments);
                         </p>
 
                         <!-- Footer -->
-                        <div class="flex justify-between items-center mt-2 text-[10px] font-mono text-stone-400">
+                        <div class="flex justify-between items-center mt-2 text-[10px] text-stone-400">
                             <span><?= date('M d, Y g:i A', strtotime($comment['created_at'])) ?></span>
                             <span class="<?= $is_flagged ? 'text-red-500 font-bold' : '' ?>">
                                 <?= ucfirst($comment['status']) ?>

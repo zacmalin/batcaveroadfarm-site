@@ -1,6 +1,6 @@
 <?php
 if ($current_role !== 'administrator') {
-    echo "<p class='p-6 text-red-700 font-mono text-xs'>Access denied.</p>";
+    echo "<p class='p-6 text-red-700 text-xs'>Access denied.</p>";
     return;
 }
 
@@ -12,7 +12,7 @@ $permission_sections = bcrf_permission_sections();
 
 // By person tab (Nov 14, 2026): extras for one staff member on top of their role (admin/views/permissions_person.php)
 if (($_GET['tab'] ?? '') === 'person') {
-    echo '<h1 class="text-2xl font-serif font-black mb-6">Access Permissions: by person</h1>';
+    echo '<h1 class="text-2xl font-bold text-stone-800 mb-6">Permissions by person</h1>';
     require __DIR__ . '/permissions_person.php';
     return;
 }
@@ -43,7 +43,7 @@ if (!empty($inspect_role)) {
 }
 ?>
 
-<h1 class="text-2xl font-serif font-black mb-6">Access Permissions Matrix</h1>
+<h1 class="text-2xl font-bold text-stone-800 mb-6">Permissions</h1>
 
 <div class="max-w-4xl mx-auto space-y-6">
 
@@ -52,11 +52,11 @@ if (!empty($inspect_role)) {
         <input type="hidden" name="save_permissions_matrix" value="1">
 
         <!-- Role selector -->
-        <div class="bg-white border rounded p-5 shadow-xs">
+        <div class="bg-white border border-stone-200 rounded p-5 shadow-sm">
             <label class="block font-bold text-stone-700 text-sm mb-2">Select Role</label>
             <select name="target_matrix_role"
                 onchange="window.location.href='/admin/admin.php?view=permissions&inspect_role='+encodeURIComponent(this.value)"
-                class="w-full max-w-xs p-2.5 border rounded bg-stone-50 font-bold outline-none text-xs text-stone-800 cursor-pointer">
+                class="w-full max-w-xs p-2.5 border border-stone-300 rounded bg-stone-50 font-bold outline-none text-xs text-stone-800 cursor-pointer">
                 <option value="">-- Choose Role --</option>
                 <?php foreach (bcrf_permission_roles() as $r): /* Owners always have full access; the old public 'user' role is gone (0025) */ ?>
                     <option value="<?= htmlspecialchars($r, ENT_QUOTES) ?>"
@@ -71,8 +71,8 @@ if (!empty($inspect_role)) {
 
         <!-- ── SECTIONED PERMISSION MATRIX ── -->
         <?php foreach ($permission_sections as $sec_key => $sec): ?>
-        <div class="bg-white border rounded shadow-xs overflow-hidden">
-            <div class="bg-stone-900 text-stone-100 px-5 py-3 flex items-center gap-2">
+        <div class="bg-white border border-stone-200 rounded shadow-sm overflow-hidden">
+            <div class="bg-stone-50 text-stone-800 border-b border-stone-200 px-5 py-3 flex items-center gap-2">
                 <span class="text-base"><?= $sec['icon'] ?></span>
                 <h2 class="font-bold uppercase tracking-widest text-[10px]"><?= htmlspecialchars($sec['label']) ?></h2>
             </div>
@@ -101,11 +101,11 @@ if (!empty($inspect_role)) {
                         <span class="mr-1"><?= $iicon ?></span>
                         <?= htmlspecialchars($ilabel) ?>
                         <?php if ($is_admin_only): ?>
-                            <span class="ml-1 text-[9px] font-mono text-stone-400 uppercase tracking-wider normal-case">admin only</span>
+                            <span class="ml-1 text-[9px] text-stone-400 uppercase tracking-wider normal-case">admin only</span>
                         <?php elseif ($is_view): ?>
-                            <span class="ml-1 text-[9px] font-mono text-stone-400">view</span>
+                            <span class="ml-1 text-[9px] text-stone-400">view</span>
                         <?php else: ?>
-                            <span class="ml-1 text-[9px] font-mono text-stone-400">table</span>
+                            <span class="ml-1 text-[9px] text-stone-400">table</span>
                         <?php endif; ?>
                     </td>
                     <td class="px-4 py-2.5 text-center">
@@ -139,7 +139,7 @@ if (!empty($inspect_role)) {
 
         <div class="flex justify-end">
             <button type="submit"
-                class="bg-stone-950 text-white font-mono font-bold uppercase tracking-wider py-2.5 px-8 rounded hover:bg-stone-800 transition shadow-xs">
+                class="bg-stone-950 text-white font-bold uppercase tracking-wider py-2.5 px-8 rounded hover:bg-amber-800 transition shadow-sm">
                 Save Permissions →
             </button>
         </div>

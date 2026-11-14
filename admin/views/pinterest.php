@@ -70,12 +70,12 @@ $badge = function (string $s): string {
           'sent' => 'bg-emerald-100 text-emerald-800 border-emerald-200', 'failed' => 'bg-red-100 text-red-800 border-red-200',
           'skipped' => 'bg-stone-100 text-stone-600 border-stone-200'];
     $label = $s === 'sent' ? 'posted' : $s;
-    return '<span class="text-[9px] font-black uppercase tracking-wider border px-1.5 py-0.5 rounded ' . ($m[$s] ?? $m['skipped']) . '">' . htmlspecialchars($label) . '</span>';
+    return '<span class="text-[9px] font-black uppercase tracking-wider border border-stone-200 px-1.5 py-0.5 rounded ' . ($m[$s] ?? $m['skipped']) . '">' . htmlspecialchars($label) . '</span>';
 };
 $btn  = 'px-3 py-2 rounded border text-[11px] font-bold';
 ?>
 <div class="max-w-6xl">
-  <h1 class="text-lg font-serif font-black text-stone-800 mb-1">📌 Pinterest</h1>
+  <h1 class="text-lg font-bold text-stone-800 mb-1">📌 Pinterest</h1>
   <p class="text-[11px] text-stone-500 mb-4">Drafts made from published recipes and public animals. Bulk drafts never post on their own: approving a draft queues it, and it posts once Pinterest is connected. You can also download an image, pin it by hand and record the link.</p>
 
   <?php if (!$ready): ?>
@@ -86,7 +86,7 @@ $btn  = 'px-3 py-2 rounded border text-[11px] font-bold';
   <?php return; endif; ?>
 
   <?php $pEnv = (string)($pAuth['env'] ?? ''); $pNeeds = !empty($pAuth['refresh_token_enc']) && (int)$pAuth['needs_reconnect']; ?>
-  <div class="border rounded p-3 mb-4 text-xs <?= $pOn ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : ($pNeeds || !$appOk ? 'bg-red-50 border-red-200 text-red-900' : 'bg-stone-50 border-stone-200 text-stone-700') ?>">
+  <div class="border border-stone-200 rounded p-3 mb-4 text-xs <?= $pOn ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : ($pNeeds || !$appOk ? 'bg-red-50 border-red-200 text-red-900' : 'bg-stone-50 border-stone-200 text-stone-700') ?>">
     <span class="font-black"><?= $pOn ? '✅ Pinterest connected' : ($pNeeds ? '⛔ Pinterest needs reconnecting' : ($appOk ? '⚪ Pinterest not connected' : '⚠️ Pinterest app keys missing')) ?></span>
     <span class="ml-1"><?php if ($pOn): ?>as <?= $e($pAuth['username'] ?? '?') ?> · <?= $pEnv === 'production' ? 'Production (public Pins)' : 'Sandbox (Pins visible only to you)' ?>. Approved Pins post automatically.<?php
       elseif ($pNeeds): ?><?= $e(mb_substr((string)$pAuth['last_error'], 0, 160)) ?><?php
@@ -123,7 +123,7 @@ $btn  = 'px-3 py-2 rounded border text-[11px] font-bold';
     <?php if ($last): $log = json_decode((string)$last['log_json'], true) ?: []; ?>
       <details class="mt-2 text-[11px] text-stone-600">
         <summary class="cursor-pointer">Last batch #<?= (int)$last['id'] ?>: <?= $e($last['status']) ?>, <?= (int)$last['processed'] ?>/<?= (int)$last['total'] ?><?= $last['failed_count'] ? ', ' . (int)$last['failed_count'] . ' failed' : '' ?></summary>
-        <ul class="mt-1 space-y-0.5 font-mono text-[10px]">
+        <ul class="mt-1 space-y-0.5 text-[10px]">
           <?php foreach (array_reverse($log) as $l): ?>
             <li class="<?= $l['r'] === 'failed' ? 'text-red-700' : '' ?>"><?= $e($l['t']) ?> #<?= (int)$l['id'] ?>: <?= $e($l['r']) ?> — <?= $e($l['m']) ?></li>
           <?php endforeach; ?>
@@ -135,7 +135,7 @@ $btn  = 'px-3 py-2 rounded border text-[11px] font-bold';
   <!-- Filters -->
   <div class="flex flex-wrap gap-1.5 mb-2">
     <?php foreach ($filters as $k => [$lbl]): ?>
-      <a href="<?= $e($url(['f' => $k] + ($tsel ? ['t' => $tsel] : []))) ?>" class="px-2.5 py-1.5 rounded-full border text-[11px] font-bold <?= $k === $f ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-600 border-stone-300' ?>"><?= $e($lbl) ?> <span class="opacity-60"><?= $counts[$k] ?? 0 ?></span></a>
+      <a href="<?= $e($url(['f' => $k] + ($tsel ? ['t' => $tsel] : []))) ?>" class="px-2.5 py-1.5 rounded-full border text-[11px] font-bold <?= $k === $f ? 'bg-amber-700 text-white border-amber-700' : 'bg-white text-stone-600 border-stone-300' ?>"><?= $e($lbl) ?> <span class="opacity-60"><?= $counts[$k] ?? 0 ?></span></a>
     <?php endforeach; ?>
   </div>
   <div class="flex gap-3 mb-4 text-[11px]">
@@ -213,7 +213,7 @@ $btn  = 'px-3 py-2 rounded border text-[11px] font-bold';
             <label class="block text-[10px] font-bold text-stone-500">Alt text (describes the photo)
               <input name="alt_text" maxlength="500" value="<?= $e($r['alt_text']) ?>" class="mt-0.5 w-full border border-stone-300 rounded px-2 py-1.5 text-[12px] font-normal text-stone-800 select-text"></label>
             <div class="flex gap-1.5 flex-wrap">
-              <button class="<?= $btn ?> bg-stone-800 text-white border-stone-800">Save</button>
+              <button class="<?= $btn ?> bg-amber-700 text-white border-amber-700">Save</button>
               <?php if ($r['edited_at']): ?><button name="pinterest_action" value="reset_text" formnovalidate class="<?= $btn ?> bg-white text-stone-700 border-stone-300">Reset to generated text</button><?php endif; ?>
             </div>
           </form>
@@ -229,7 +229,7 @@ $btn  = 'px-3 py-2 rounded border text-[11px] font-bold';
               <option value="">Default for <?= $e($r['board_key']) ?><?= ($defBoard[$r['board_key']] ?? '') !== '' && isset($pBoards[$defBoard[$r['board_key']]]) ? ' (' . $e($pBoards[$defBoard[$r['board_key']]]) . ')' : '' ?></option>
               <?php foreach ($pBoards as $bid => $bn): ?><option value="<?= $e($bid) ?>"<?= (string)$r['board_id'] === (string)$bid ? ' selected' : '' ?>><?= $e($bn) ?></option><?php endforeach; ?>
             </select>
-            <button class="<?= $btn ?> bg-stone-800 text-white border-stone-800">Save</button>
+            <button class="<?= $btn ?> bg-amber-700 text-white border-amber-700">Save</button>
           </form>
         </details>
       <?php endif; ?>
@@ -240,7 +240,7 @@ $btn  = 'px-3 py-2 rounded border text-[11px] font-bold';
           <form method="post" class="mt-2 flex gap-1.5">
             <?= $hidden() ?><input type="hidden" name="id" value="<?= $rid ?>"><input type="hidden" name="pinterest_action" value="mark_pinned">
             <input name="pin_url" type="url" required placeholder="https://www.pinterest.com/pin/…" class="flex-1 min-w-0 border border-stone-300 rounded px-2 py-1.5 text-[12px] select-text">
-            <button class="<?= $btn ?> bg-stone-800 text-white border-stone-800">Save</button>
+            <button class="<?= $btn ?> bg-amber-700 text-white border-amber-700">Save</button>
           </form>
         </details>
       <?php endif; ?>
@@ -251,7 +251,7 @@ $btn  = 'px-3 py-2 rounded border text-[11px] font-bold';
   <?php if ($total > $per): $pages = (int)ceil($total / $per); ?>
     <div class="flex gap-2 mt-4 text-[11px]">
       <?php for ($i = 1; $i <= $pages; $i++): ?>
-        <a href="<?= $e($url(['f' => $f, 'p' => $i] + ($tsel ? ['t' => $tsel] : []))) ?>" class="px-2.5 py-1.5 rounded border <?= $i === $page ? 'bg-stone-800 text-white border-stone-800' : 'bg-white border-stone-300' ?>"><?= $i ?></a>
+        <a href="<?= $e($url(['f' => $f, 'p' => $i] + ($tsel ? ['t' => $tsel] : []))) ?>" class="px-2.5 py-1.5 rounded border <?= $i === $page ? 'bg-amber-700 text-white border-amber-700' : 'bg-white border-stone-300' ?>"><?= $i ?></a>
       <?php endfor; ?>
     </div>
   <?php endif; ?>

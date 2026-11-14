@@ -4,7 +4,7 @@ $subscribers = $pdo->query("SELECT * FROM mailing_list ORDER BY id DESC")->fetch
 ?>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <div class="bg-white p-6 border rounded shadow-xs">
+    <div class="bg-white p-6 border border-stone-200 rounded shadow-sm">
         <h3 class="font-bold mb-4 text-stone-800 uppercase text-xs">CRM Pool (<?= count($subscribers) ?>)</h3>
         <div class="max-h-[50vh] overflow-y-auto space-y-2">
             <?php foreach ($subscribers as $sub): ?>
@@ -20,18 +20,18 @@ $subscribers = $pdo->query("SELECT * FROM mailing_list ORDER BY id DESC")->fetch
         </div>
     </div>
 
-    <div class="lg:col-span-2 bg-white p-6 border rounded shadow-xs">
+    <div class="lg:col-span-2 bg-white p-6 border border-stone-200 rounded shadow-sm">
         <h3 class="font-bold mb-4 text-stone-800 uppercase text-xs">Draft Campaign</h3>
         <form method="POST" action="handlers/campaign_action.php">
             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-            <input type="text" name="subject" placeholder="Campaign Subject" class="w-full p-2 border rounded mb-4" required>
-            <select name="segment" class="w-full p-2 border rounded mb-4 text-xs">
+            <input type="text" name="subject" placeholder="Campaign Subject" class="w-full p-2 border border-stone-300 rounded mb-4" required>
+            <select name="segment" class="w-full p-2 border border-stone-300 rounded mb-4 text-xs">
                 <option value="all">Send to All Active</option>
                 <option value="nursery">Nursery Updates Only</option>
                 <option value="inventory">Inventory Alerts Only</option>
             </select>
-            <textarea name="body" class="w-full h-40 p-2 border rounded mb-4" placeholder="Newsletter content..." required></textarea>
-            <button type="submit" class="w-full bg-stone-900 text-white py-2 rounded font-bold uppercase text-xs">Send Blast</button>
+            <textarea name="body" class="w-full h-40 p-2 border border-stone-300 rounded mb-4" placeholder="Newsletter content..." required></textarea>
+            <button type="submit" class="w-full bg-amber-700 text-white py-2 rounded font-bold uppercase text-xs">Send Blast</button>
         </form>
     </div>
 </div>

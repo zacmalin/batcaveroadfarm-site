@@ -15,13 +15,13 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 
 <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
     <div>
-        <h1 class="text-xl font-bold font-serif text-stone-800">Inventory Counts</h1>
+        <h1 class="text-xl font-bold text-stone-800">Inventory Counts</h1>
         <p class="text-xs text-stone-500">Type the count you see on the shelf. It saves when you leave the box; on a phone, − and + save right away.</p>
         <?php if (isset($pdo) && (require_once __DIR__ . '/../../includes/stock.php') && bcrf_stock_ready($pdo)): ?>
         <p class="text-xs text-stone-500 mt-1">Quick count for items kept in one place. For counts by location, moves, spoilage and history, open <a class="underline font-bold" href="/admin/stock.php">Stock</a>.</p>
         <?php endif; ?>
     </div>
-    <span class="text-[10px] font-mono text-stone-500 bg-stone-100 border px-2 py-1 rounded">
+    <span class="text-[10px] text-stone-500 bg-stone-100 border border-stone-200 px-2 py-1 rounded">
         <?= array_sum(array_map('count', $grouped)) ?> active items &bull; <?= count($grouped) ?> categories
     </span>
 </div>
@@ -30,9 +30,9 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
     <?= ui_empty('📦', 'No active inventory items', 'Products marked active in the catalog show up here for quick counts.', ['Open catalog', '?view=schema&table=inventory']) ?>
 <?php else: ?>
 
-<div class="bg-white border rounded-xl shadow-xs overflow-hidden">
+<div class="bg-white border border-stone-200 rounded-xl shadow-sm overflow-hidden">
     <table class="ui-cards w-full text-xs text-left" data-admin-list data-list-name-col="1">
-        <thead class="bg-stone-900 text-stone-100 uppercase tracking-widest text-[9px] font-bold sticky top-0 z-10">
+        <thead class="bg-stone-50 border-b border-stone-200 text-stone-500 uppercase tracking-widest text-[9px] font-bold sticky top-0 z-10">
             <tr>
                 <th class="p-3 w-12"></th>
                 <th class="p-3">Name</th>
@@ -68,9 +68,9 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
                     <?php if (!empty($item['image_url'])): ?>
                         <img src="<?= $h($item['image_url']) ?>" alt="" data-fallback loading="lazy"
                              class="w-10 h-10 rounded object-cover border bg-stone-100">
-                        <div class="w-10 h-10 rounded border bg-stone-100 hidden items-center justify-center text-stone-300 text-base">📦</div>
+                        <div class="w-10 h-10 rounded border border-stone-200 bg-stone-100 hidden items-center justify-center text-stone-300 text-base">📦</div>
                     <?php else: ?>
-                        <div class="w-10 h-10 rounded border bg-stone-100 flex items-center justify-center text-stone-300 text-base">📦</div>
+                        <div class="w-10 h-10 rounded border border-stone-200 bg-stone-100 flex items-center justify-center text-stone-300 text-base">📦</div>
                     <?php endif; ?>
                 </td>
 
@@ -79,11 +79,11 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
                     <span id="inv-badge-<?= $id ?>" class="ml-1 <?= $low ? '' : 'hidden' ?>"><?= ui_chip('low') ?></span>
                 </td>
 
-                <td class="p-3 font-mono text-stone-500 text-[11px]"><?= $h($size_label) ?></td>
+                <td class="p-3 text-stone-500 text-[11px]"><?= $h($size_label) ?></td>
 
-                <td class="p-3 font-mono text-stone-600 text-right"><?= ui_money($item['price']) ?></td>
+                <td class="p-3 text-stone-600 text-right"><?= ui_money($item['price']) ?></td>
 
-                <td class="p-3 text-center font-mono font-bold <?= $low ? 'text-red-600' : 'text-stone-700' ?>" id="qty-display-<?= $id ?>"><?= $qty ?></td>
+                <td class="p-3 text-center font-bold <?= $low ? 'text-red-600' : 'text-stone-700' ?>" id="qty-display-<?= $id ?>"><?= $qty ?></td>
 
                 <td class="p-3 text-center" data-cell="wide">
                     <div class="flex items-center gap-1 md:justify-center">
@@ -92,7 +92,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
                         <input type="number" step="0.01" min="0" inputmode="decimal"
                                id="inv-input-<?= $id ?>"
                                aria-label="Count for <?= $h($item['name']) ?>"
-                               class="inv-input w-full md:w-20 h-11 md:h-auto p-1 border rounded-lg md:rounded font-mono text-center bg-stone-50 outline-none"
+                               class="inv-input w-full md:w-20 h-11 md:h-auto p-1 border rounded-lg md:rounded text-center bg-stone-50 outline-none"
                                data-original="<?= $qty ?>" value="<?= $qty ?>"
                                data-field="stock_quantity" data-id="<?= $id ?>">
                         <button type="button" data-step="1" data-for="<?= $id ?>" aria-label="One more <?= $h($item['name']) ?>"
@@ -100,7 +100,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
                     </div>
                 </td>
 
-                <td class="p-3 font-mono text-stone-500 text-center"><?= $min ?></td>
+                <td class="p-3 text-stone-500 text-center"><?= $min ?></td>
 
                 <td class="p-3 text-center" data-cell="actions">
                     <button type="button" data-label-item="<?= $id ?>" data-label-name="<?= $h($item['name']) ?>"
@@ -121,8 +121,8 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto">
         <div class="flex justify-between items-center px-4 md:px-6 py-4 border-b">
             <div>
-                <h3 id="labelModalTitle" class="font-bold text-stone-800 font-serif text-lg">Print Product Label</h3>
-                <p id="labelItemName" class="text-xs text-stone-500 font-mono mt-0.5"></p>
+                <h3 id="labelModalTitle" class="font-bold text-stone-800 text-lg">Print Product Label</h3>
+                <p id="labelItemName" class="text-xs text-stone-500 mt-0.5"></p>
             </div>
             <button type="button" data-label-close aria-label="Close"
                 class="w-10 h-10 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 text-2xl font-bold leading-none">&times;</button>
@@ -135,20 +135,20 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
                 <div>
                     <label for="labelCopies" class="block font-bold text-stone-600 mb-1">Number of Copies</label>
                     <input type="number" id="labelCopies" min="1" max="20" value="1" inputmode="numeric"
-                        class="w-full p-2 border rounded bg-stone-50 font-mono outline-none">
+                        class="w-full p-2 border border-stone-300 rounded bg-stone-50 outline-none">
                 </div>
                 <div>
                     <label for="labelStartPos" class="block font-bold text-stone-600 mb-1">
                         Start Position <span class="font-normal text-stone-400 ml-1">(for partially used sheets)</span>
                     </label>
                     <input type="number" id="labelStartPos" min="1" max="20" value="1" inputmode="numeric"
-                        class="w-full p-2 border rounded bg-stone-50 font-mono outline-none">
+                        class="w-full p-2 border border-stone-300 rounded bg-stone-50 outline-none">
                 </div>
                 <div>
                     <label for="labelBestBy" class="block font-bold text-stone-600 mb-1">
                         Best By Date <span class="font-normal text-stone-400 ml-1">(optional)</span>
                     </label>
-                    <input type="date" id="labelBestBy" class="w-full p-2 border rounded bg-stone-50 font-mono outline-none">
+                    <input type="date" id="labelBestBy" class="w-full p-2 border border-stone-300 rounded bg-stone-50 outline-none">
                 </div>
             </div>
 
@@ -195,10 +195,10 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
             <p class="text-[11px] text-stone-500 mb-2">Food labels must list ingredients by weight, the ingredient there is most of first. Use ▲ ▼ to set the order, then Save order. Tap Details on an ingredient to record its allergens and sub-ingredients (shared by every product that uses it).</p>
             <p id="labelIngWarn" class="hidden mb-2 p-2 rounded border border-amber-300 bg-amber-50 text-amber-900 text-[11px] font-semibold">This order hasn't been set yet (it's alphabetical). Put the heaviest ingredient first and tap Save.</p>
             <p id="labelAllergenWarn" class="hidden mb-2 p-2 rounded border border-red-300 bg-red-50 text-red-800 text-[11px] font-semibold"></p>
-            <ol id="labelIngList" class="border rounded bg-stone-50 px-3 max-h-96 overflow-y-auto"></ol>
+            <ol id="labelIngList" class="border border-stone-200 rounded bg-stone-50 px-3 max-h-96 overflow-y-auto"></ol>
             <p id="labelIngEmpty" class="hidden text-[11px] text-stone-500 py-2">No ingredients linked. The label will show the product name as its only ingredient.</p>
             <div class="flex gap-2 mt-2">
-                <select id="labelIngAdd" aria-label="Add an ingredient" class="flex-1 min-w-0 p-2 border rounded bg-white"></select>
+                <select id="labelIngAdd" aria-label="Add an ingredient" class="flex-1 min-w-0 p-2 border border-stone-300 rounded bg-white"></select>
                 <button type="button" id="labelIngAddBtn" class="<?= ui_btn('secondary') ?>">Add</button>
             </div>
             <div class="flex items-center gap-3 mt-2">

@@ -92,12 +92,12 @@ $eventLabels = ['purchase' => 'Purchases', 'begin_checkout' => 'Started checkout
     <form method="POST" action="/admin/admin.php?view=search_analytics">
       <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
       <input type="hidden" name="google_reports_action" value="refresh">
-      <button type="submit" class="bg-stone-900 text-white font-bold px-4 py-2 rounded hover:bg-stone-700">↻ Refresh now</button>
+      <button type="submit" class="bg-amber-700 text-white font-bold px-4 py-2 rounded hover:bg-amber-800">↻ Refresh now</button>
     </form>
   </div>
 
   <!-- ── LISTINGS HUB ── -->
-  <section class="bg-white border rounded-lg p-4 space-y-4" aria-labelledby="hubTitle">
+  <section class="bg-white border border-stone-200 rounded-lg p-4 space-y-4" aria-labelledby="hubTitle">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <h2 id="hubTitle" class="font-bold text-stone-800 text-base">Listings</h2>
       <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold <?= $openNow['open'] ? 'bg-green-100 text-green-800' : 'bg-stone-200 text-stone-700' ?>">
@@ -111,7 +111,7 @@ $eventLabels = ['purchase' => 'Purchases', 'begin_checkout' => 'Started checkout
 
     <div class="grid gap-3 md:grid-cols-3">
       <?php foreach ($hub as [$group, $login, $links]): ?>
-      <div class="border rounded-lg p-3 bg-stone-50">
+      <div class="border border-stone-200 rounded-lg p-3 bg-stone-50">
         <div class="flex items-baseline justify-between gap-2 mb-2">
           <h3 class="font-bold text-stone-800 text-sm"><?= $h($group) ?></h3>
           <span class="text-[10px] text-stone-500">Sign in: <?= $h($login) ?></span>
@@ -150,7 +150,7 @@ $eventLabels = ['purchase' => 'Purchases', 'begin_checkout' => 'Started checkout
   <?php endif; endforeach; ?>
 
   <!-- ── SEARCH CONSOLE ── -->
-  <section class="bg-white border rounded-lg p-4 space-y-4">
+  <section class="bg-white border border-stone-200 rounded-lg p-4 space-y-4">
     <div class="flex justify-between items-baseline flex-wrap gap-2">
       <h2 class="font-bold text-stone-800 text-base">Google Search</h2>
       <?php if ($gsc): ?><span class="text-xs text-stone-500"><?= $h($fmtRange($gsc['range']['cur'])) ?> (Search Console runs ~3 days behind)</span><?php endif; ?>
@@ -163,7 +163,7 @@ $eventLabels = ['purchase' => 'Purchases', 'begin_checkout' => 'Started checkout
                         ['Impressions', $n($gsc['total']['impressions']), $delta($gsc['total']['impressions'], $gsc['prev']['impressions'])],
                         ['Click rate', $pct($gsc['total']['ctr']), $delta($gsc['total']['ctr'] * 100, $gsc['prev']['ctr'] * 100, false, true)],
                         ['Avg. position', $pos($gsc['total']['position']), $delta($gsc['total']['position'], $gsc['prev']['position'], true, true)]] as [$l, $v, $d]): ?>
-        <div class="border rounded p-3 bg-stone-50"><div class="text-[11px] uppercase tracking-wide text-stone-500"><?= $l ?></div>
+        <div class="border border-stone-200 rounded p-3 bg-stone-50"><div class="text-[11px] uppercase tracking-wide text-stone-500"><?= $l ?></div>
           <div class="text-xl font-bold text-stone-800"><?= $v ?></div><div class="text-xs"><?= $d ?> vs prior 28 days</div></div>
         <?php endforeach; ?>
       </div>
@@ -208,7 +208,7 @@ $eventLabels = ['purchase' => 'Purchases', 'begin_checkout' => 'Started checkout
   </section>
 
   <!-- ── GOOGLE ANALYTICS ── -->
-  <section class="bg-white border rounded-lg p-4 space-y-4">
+  <section class="bg-white border border-stone-200 rounded-lg p-4 space-y-4">
     <div class="flex justify-between items-baseline flex-wrap gap-2">
       <h2 class="font-bold text-stone-800 text-base">Website visits (Google Analytics)</h2>
       <?php if ($ga): ?><span class="text-xs text-stone-500"><?= $h($fmtRange($ga['range']['cur'])) ?> · staff visits excluded</span><?php endif; ?>
@@ -221,7 +221,7 @@ $eventLabels = ['purchase' => 'Purchases', 'begin_checkout' => 'Started checkout
                         ['Visits', $n($ga['total']['sessions'] ?? 0), $delta($ga['total']['sessions'] ?? 0, $ga['prev']['sessions'] ?? 0)],
                         ['Key events', $n($ga['total']['keyEvents'] ?? 0), $delta($ga['total']['keyEvents'] ?? 0, $ga['prev']['keyEvents'] ?? 0)],
                         ['Online sales', '$' . number_format((float)($ga['total']['purchaseRevenue'] ?? 0), 2), $delta($ga['total']['purchaseRevenue'] ?? 0, $ga['prev']['purchaseRevenue'] ?? 0)]] as [$l, $v, $d]): ?>
-        <div class="border rounded p-3 bg-stone-50"><div class="text-[11px] uppercase tracking-wide text-stone-500"><?= $l ?></div>
+        <div class="border border-stone-200 rounded p-3 bg-stone-50"><div class="text-[11px] uppercase tracking-wide text-stone-500"><?= $l ?></div>
           <div class="text-xl font-bold text-stone-800"><?= $v ?></div><div class="text-xs"><?= $d ?> vs prior 28 days</div></div>
         <?php endforeach; ?>
       </div>

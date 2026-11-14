@@ -26,7 +26,7 @@ $__found = bcrf_extras_search($pdo, $__q, 30);
     <p class="text-sm text-stone-600">Give one person more than their role, like a Shopkeep who also writes the blog. They keep everything their role has. Owners already have everything, and Staff logins are time clock only, so neither is listed.</p>
 
     <!-- Who has extras -->
-    <div class="bg-white border rounded p-5 shadow-xs">
+    <div class="bg-white border border-stone-200 rounded p-5 shadow-sm">
         <h2 class="font-bold text-stone-700 text-sm mb-2">Has extras</h2>
         <?php if (!$__people): ?>
             <p class="text-stone-500">No one has extras yet.</p>
@@ -43,7 +43,7 @@ $__found = bcrf_extras_search($pdo, $__q, 30);
     </div>
 
     <!-- Find a person -->
-    <div class="bg-white border rounded p-5 shadow-xs">
+    <div class="bg-white border border-stone-200 rounded p-5 shadow-sm">
         <form method="GET" action="/admin/admin.php" class="flex flex-wrap gap-2 items-end">
             <input type="hidden" name="view" value="permissions">
             <input type="hidden" name="tab" value="person">
@@ -81,15 +81,15 @@ $__found = bcrf_extras_search($pdo, $__q, 30);
         <input type="hidden" name="save_permissions_matrix" value="1">
         <input type="hidden" name="extras_user_id" value="<?= (int)$__person['id'] ?>">
 
-        <div class="bg-white border rounded p-5 shadow-xs">
+        <div class="bg-white border border-stone-200 rounded p-5 shadow-sm">
             <h2 class="font-bold text-stone-800 text-base"><?= $__h($__name($__person)) ?> <span class="text-stone-500 font-normal">· <?= $__h(bcrf_role_label($__role)) ?></span></h2>
             <p class="mt-1 text-stone-600">Greyed ticks come from the <?= $__h(bcrf_role_label($__role)) ?> role (change those on the By role tab). Tick anything extra for this one person.
             Blog posts, recipes and animal pages given here as extras need review: they can save drafts and send them to you, but only an Owner or Manager can publish.</p>
         </div>
 
         <?php foreach (bcrf_permission_sections() as $sec): ?>
-        <div class="bg-white border rounded shadow-xs overflow-hidden">
-            <div class="bg-stone-900 text-stone-100 px-5 py-3 flex items-center gap-2">
+        <div class="bg-white border border-stone-200 rounded shadow-sm overflow-hidden">
+            <div class="bg-stone-50 text-stone-800 border-b border-stone-200 px-5 py-3 flex items-center gap-2">
                 <span class="text-base"><?= $sec['icon'] ?></span>
                 <h2 class="font-bold uppercase tracking-widest text-[10px]"><?= $__h($sec['label']) ?></h2>
             </div>
@@ -120,8 +120,8 @@ $__found = bcrf_extras_search($pdo, $__q, 30);
                 <tr class="<?= $itype === 'admin_only' ? 'opacity-50 bg-stone-50' : 'hover:bg-stone-50' ?>">
                     <td class="px-4 py-2.5 font-bold text-stone-700">
                         <span class="mr-1"><?= $iicon ?></span><?= $__h($ilabel) ?>
-                        <?php if ($itype === 'admin_only'): ?><span class="ml-1 text-[9px] font-mono text-stone-400">owner only</span><?php endif; ?>
-                        <?php if ($review): ?><span class="ml-1 text-[9px] font-mono text-amber-700">edit as extra = drafts need review</span><?php endif; ?>
+                        <?php if ($itype === 'admin_only'): ?><span class="ml-1 text-[9px] text-stone-400">owner only</span><?php endif; ?>
+                        <?php if ($review): ?><span class="ml-1 text-[9px] text-amber-700">edit as extra = drafts need review</span><?php endif; ?>
                     </td>
                     <td class="px-4 py-2.5 text-center">
                         <?php if ($itype === 'admin_only'): ?>
@@ -154,12 +154,12 @@ $__found = bcrf_extras_search($pdo, $__q, 30);
             <?php if (!empty($__x['view']) || !empty($__x['table'])): ?>
             <button type="submit" name="extras_clear" value="1"
                 data-confirm="Take away every extra from <?= $__h($__name($__person)) ?>? They keep what their role gives them." data-confirm-label="Remove extras"
-                class="border font-mono font-bold uppercase tracking-wider py-2.5 px-5 rounded text-red-700 border-red-200 hover:bg-red-50 transition">
+                class="border font-bold uppercase tracking-wider py-2.5 px-5 rounded text-red-700 border-red-200 hover:bg-red-50 transition">
                 Remove all extras
             </button>
             <?php endif; ?>
             <button type="submit"
-                class="bg-stone-950 text-white font-mono font-bold uppercase tracking-wider py-2.5 px-8 rounded hover:bg-stone-800 transition shadow-xs">
+                class="bg-stone-950 text-white font-bold uppercase tracking-wider py-2.5 px-8 rounded hover:bg-amber-800 transition shadow-sm">
                 Save extras →
             </button>
         </div>

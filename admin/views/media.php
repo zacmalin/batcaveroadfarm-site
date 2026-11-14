@@ -23,20 +23,20 @@ $displayed_images = ($active_folder === '_all')
     : array_values(array_filter($vault_images, fn($i) => $i['folder'] === $active_folder));
 ?>
 
-<h1 class="text-2xl font-serif font-black mb-6">Image Pipeline &amp; Media Vault</h1>
+<h1 class="text-2xl font-bold text-stone-800 mb-6">Media Library</h1>
 
 <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
 
     <!-- ── GD PROCESSING FORM ── -->
-    <div class="bg-white border rounded p-6 shadow-xs self-start">
-        <h3 class="font-serif font-black text-sm uppercase tracking-wide border-b pb-2 mb-4 text-stone-800">GD Processing Parameters</h3>
+    <div class="bg-white border border-stone-200 rounded p-6 shadow-sm self-start">
+        <h3 class="font-semibold text-base border-b pb-2 mb-4 text-stone-800">Image settings</h3>
         <form method="POST" enctype="multipart/form-data" class="space-y-4 font-sans text-xs">
             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
             <input type="hidden" name="execute_image_processing" value="1">
 
             <div>
                 <label class="block font-bold text-stone-600 mb-1">Target Subfolder</label>
-                <select name="upload_subdirectory_target" class="w-full p-2 border bg-white rounded font-mono text-xxs">
+                <select name="upload_subdirectory_target" class="w-full p-2 border border-stone-300 bg-white rounded text-xxs">
                     <option value="/">/img/ (Root)</option>
                     <option value="/stand/">/img/stand/ (Farm Stand)</option>
                     <option value="/blog/">/img/blog/ (Journal)</option>
@@ -47,18 +47,18 @@ $displayed_images = ($active_folder === '_all')
                 </select>
             </div>
 
-            <div class="border p-3 rounded bg-stone-50 space-y-3">
+            <div class="border border-stone-200 p-3 rounded bg-stone-50 space-y-3">
                 <div>
                     <label class="block font-bold text-stone-500 mb-0.5">Method A: Upload File</label>
                     <!-- Fix 9: accept restricts browser picker to images -->
                     <input type="file" name="image_source_file" id="gdSourceFile" accept="image/*"
-                        class="w-full text-xxs text-stone-500 bg-white border p-1 rounded">
+                        class="w-full text-xxs text-stone-500 bg-white border border-stone-300 p-1 rounded">
                 </div>
-                <div class="text-center font-bold font-mono text-stone-300 text-[9px] uppercase tracking-widest">&mdash; OR &mdash;</div>
+                <div class="text-center font-bold text-stone-300 text-[9px] uppercase tracking-widest">&mdash; OR &mdash;</div>
                 <div>
                     <label class="block font-bold text-stone-500 mb-0.5">Method B: Remote HTTPS URL</label>
                     <input type="url" name="image_source_url" id="gdSourceUrl"
-                        class="w-full p-2 border bg-white rounded text-xxs placeholder-stone-300"
+                        class="w-full p-2 border border-stone-300 bg-white rounded text-xxs placeholder-stone-300"
                         placeholder="https://example.com/image.jpg">
                 </div>
             </div>
@@ -68,7 +68,7 @@ $displayed_images = ($active_folder === '_all')
                     <label class="block font-bold text-stone-600 mb-1">Output Filename</label>
                     <!-- Fix 4: hint that only safe chars are kept -->
                     <input type="text" name="output_filename_override" id="gdOutputName"
-                        class="w-full p-2 border bg-stone-50 rounded font-mono"
+                        class="w-full p-2 border border-stone-300 bg-stone-50 rounded"
                         placeholder="e.g., miniature-donkey" maxlength="80"
                         autocomplete="off" autocapitalize="off" spellcheck="false"
                         title="Letters, numbers, hyphens, underscores only">
@@ -77,7 +77,7 @@ $displayed_images = ($active_folder === '_all')
                 <div>
                     <label class="block font-bold text-stone-600 mb-1">Scale Width (px)</label>
                     <input type="number" name="resize_dimension_width" min="1" max="8000"
-                        class="w-full p-2 border font-mono bg-stone-50 rounded"
+                        class="w-full p-2 border border-stone-300 bg-stone-50 rounded"
                         placeholder="Original width">
                 </div>
             </div>
@@ -85,7 +85,7 @@ $displayed_images = ($active_folder === '_all')
             <div class="grid grid-cols-2 gap-2">
                 <div>
                     <label class="block font-bold text-stone-600 mb-1">Output Format</label>
-                    <select name="format_conversion_mode" class="w-full p-2 border bg-white rounded font-bold text-stone-800">
+                    <select name="format_conversion_mode" class="w-full p-2 border border-stone-300 bg-white rounded font-bold text-stone-800">
                         <option value="webp">WebP</option>
                         <option value="jpg">JPG</option>
                         <option value="png">PNG</option>
@@ -94,7 +94,7 @@ $displayed_images = ($active_folder === '_all')
                 <div>
                     <label class="block font-bold text-stone-600 mb-1">Quality (10–100)</label>
                     <input type="number" name="compression_quality_scale" min="10" max="100" value="80"
-                        class="w-full p-2 border font-mono bg-stone-50 rounded">
+                        class="w-full p-2 border border-stone-300 bg-stone-50 rounded">
                 </div>
             </div>
 
@@ -104,19 +104,19 @@ $displayed_images = ($active_folder === '_all')
             </label>
 
             <button type="submit"
-                class="w-full bg-stone-950 text-white font-mono font-bold uppercase tracking-wider py-3 rounded text-center text-xs hover:bg-stone-800 transition">
+                class="w-full bg-amber-700 text-white font-semibold py-3 rounded text-center text-sm hover:bg-amber-800 transition">
                 Process &amp; Save Image →
             </button>
         </form>
     </div>
 
     <!-- ── MEDIA VAULT PICKER ── -->
-    <div class="xl:col-span-2 bg-white border rounded p-6 shadow-xs flex flex-col gap-4">
+    <div class="xl:col-span-2 bg-white border border-stone-200 rounded p-6 shadow-sm flex flex-col gap-4">
 
         <!-- Header + count -->
         <div class="flex justify-between items-center border-b pb-3">
-            <h3 class="font-serif font-black text-sm uppercase tracking-wide text-stone-800">Media Vault</h3>
-            <span class="font-mono text-xxs text-stone-400 font-bold">
+            <h3 class="font-semibold text-base text-stone-800">Media Vault</h3>
+            <span class="text-xxs text-stone-400 font-bold">
                 <?= count($displayed_images) ?> image<?= count($displayed_images) !== 1 ? 's' : '' ?>
                 <?= $vault_scan_capped ? '<span class="text-amber-600 ml-1">(capped at ' . $vault_cap . ')</span>' : '' ?>
             </span>
@@ -124,7 +124,7 @@ $displayed_images = ($active_folder === '_all')
 
         <!-- Fix 7: folder filter tabs -->
         <?php if (!empty($vault_folders)): ?>
-        <div class="flex flex-wrap gap-1.5 font-mono text-[10px] font-bold uppercase tracking-wider">
+        <div class="flex flex-wrap gap-1.5 text-[10px] font-bold uppercase tracking-wider">
             <?php
             $all_folders   = array_merge(['_all'], $vault_folders);
             $folder_labels = ['_all' => 'All', '_root' => 'Root', 'recipies' => 'Recipes'];
@@ -134,7 +134,7 @@ $displayed_images = ($active_folder === '_all')
                 $count_f   = $f === '_all' ? count($vault_images) : count(array_filter($vault_images, fn($i) => $i['folder'] === $f));
             ?>
                 <a href="?view=media&folder=<?= urlencode($f) ?>"
-                    class="px-2.5 py-1 rounded border transition <?= $is_active ? 'bg-stone-900 text-white border-stone-900' : 'bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-200' ?>">
+                    class="px-2.5 py-1 rounded border transition <?= $is_active ? 'bg-amber-700 text-white border-amber-700' : 'bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-200' ?>">
                     <?= htmlspecialchars($label) ?> <span class="opacity-60">(<?= $count_f ?>)</span>
                 </a>
             <?php endforeach; ?>
@@ -144,7 +144,7 @@ $displayed_images = ($active_folder === '_all')
         <!-- Image grid -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-h-[58vh] overflow-y-auto p-0.5">
             <?php if (empty($displayed_images)): ?>
-                <p class="text-xs italic text-stone-400 py-12 col-span-4 text-center border border-dashed rounded">
+                <p class="text-xs italic text-stone-400 py-12 col-span-4 text-center border border-stone-200 border-dashed rounded">
                     No images found<?= $active_folder !== '_all' ? ' in this folder' : '' ?>.
                 </p>
             <?php endif; ?>
@@ -157,15 +157,15 @@ $displayed_images = ($active_folder === '_all')
                     loading="lazy"
                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                 <!-- Fallback if image fails to load -->
-                <div class="w-full h-24 border bg-stone-100 rounded hidden items-center justify-center text-stone-300 text-2xl">🖼</div>
+                <div class="w-full h-24 border border-stone-200 bg-stone-100 rounded hidden items-center justify-center text-stone-300 text-2xl">🖼</div>
 
                 <!-- Fix 8: filename + file size -->
                 <div class="mt-1.5 space-y-0.5">
-                    <div class="text-[9px] font-mono text-stone-500 truncate font-semibold select-all"
+                    <div class="text-[9px] text-stone-500 truncate font-semibold select-all"
                         title="<?= htmlspecialchars(full_img_url($img['url'], $site_base), ENT_QUOTES) ?>">
                         <?= htmlspecialchars(full_img_url($img['url'], $site_base), ENT_QUOTES) ?>
                     </div>
-                    <div class="text-[9px] font-mono text-stone-400"><?= fmt_filesize($img['size']) ?></div>
+                    <div class="text-[9px] text-stone-400"><?= fmt_filesize($img['size']) ?></div>
                 </div>
 
                 <!-- Fix 1: ENT_QUOTES on onclick attribute value -->
@@ -182,18 +182,18 @@ $displayed_images = ($active_folder === '_all')
                     <input type="hidden" name="rotate_image_path" value="<?= htmlspecialchars($img['url'], ENT_QUOTES) ?>">
                     <input type="hidden" name="rotate_return_folder" value="<?= htmlspecialchars($active_folder, ENT_QUOTES) ?>">
                     <button type="submit" name="rotate_direction" value="left" title="Rotate left 90° and save"
-                        class="flex-1 text-xs leading-none bg-stone-100 hover:bg-stone-900 hover:text-white border py-1 rounded transition text-stone-700">&#8634;</button>
+                        class="flex-1 text-xs leading-none bg-stone-100 hover:bg-stone-900 hover:text-white border border-stone-200 py-1 rounded transition text-stone-700">&#8634;</button>
                     <button type="submit" name="rotate_direction" value="180" title="Rotate 180° and save"
-                        class="flex-1 text-[9px] font-bold leading-none bg-stone-100 hover:bg-stone-900 hover:text-white border py-1 rounded transition text-stone-700">180&deg;</button>
+                        class="flex-1 text-[9px] font-bold leading-none bg-stone-100 hover:bg-stone-900 hover:text-white border border-stone-200 py-1 rounded transition text-stone-700">180&deg;</button>
                     <button type="submit" name="rotate_direction" value="right" title="Rotate right 90° and save"
-                        class="flex-1 text-xs leading-none bg-stone-100 hover:bg-stone-900 hover:text-white border py-1 rounded transition text-stone-700">&#8635;</button>
+                        class="flex-1 text-xs leading-none bg-stone-100 hover:bg-stone-900 hover:text-white border border-stone-200 py-1 rounded transition text-stone-700">&#8635;</button>
                 </form>
             </div>
             <?php endforeach; ?>
         </div>
 
         <?php if ($vault_scan_capped): ?>
-        <p class="text-xxs font-mono text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2 rounded">
+        <p class="text-xxs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2 rounded">
             ⚠️ Vault display capped at <?= $vault_cap ?> images. Use the folder filter to browse subfolders individually.
         </p>
         <?php endif; ?>
@@ -231,11 +231,11 @@ $displayed_images = ($active_folder === '_all')
         navigator.clipboard.writeText(url).then(() => {
             const orig = btn.textContent;
             btn.textContent = "Copied ✓";
-            btn.classList.add('bg-stone-900', 'text-white');
+            btn.classList.add('bg-amber-700', 'text-white');
             btn.classList.remove('bg-stone-100', 'text-stone-700');
             setTimeout(() => {
                 btn.textContent = orig;
-                btn.classList.remove('bg-stone-900', 'text-white');
+                btn.classList.remove('bg-amber-700', 'text-white');
                 btn.classList.add('bg-stone-100', 'text-stone-700');
             }, 2000);
         }).catch(() => {

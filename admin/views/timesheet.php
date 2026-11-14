@@ -335,22 +335,22 @@ $preset_labels = [
 ?>
 
 <div class="flex justify-between items-center mb-6 print:hidden">
-    <h1 class="text-2xl font-serif font-black text-stone-800">Staff Timesheet</h1>
+    <h1 class="text-2xl font-bold text-stone-800">Staff Timesheet</h1>
     <button onclick="openPrint()"
-        class="border font-mono font-bold uppercase text-[10px] tracking-wider px-4 py-2 rounded text-stone-600 hover:bg-stone-900 hover:text-white transition">
+        class="border border-stone-200 font-bold uppercase text-[10px] tracking-wider px-4 py-2 rounded text-stone-600 hover:bg-stone-900 hover:text-white transition">
         🖨 Print / Export
     </button>
 </div>
 
 <!-- ── FILTERS ── -->
-<form method="GET" action="/admin/admin.php" class="bg-white border rounded p-4 shadow-xs mb-6 print:hidden">
+<form method="GET" action="/admin/admin.php" class="bg-white border border-stone-200 rounded p-4 shadow-sm mb-6 print:hidden">
     <input type="hidden" name="view" value="timesheet">
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-sans items-end">
 
         <div>
             <label class="block font-bold text-stone-500 uppercase tracking-wider mb-1 text-[10px]">Period</label>
             <select name="preset" onchange="toggleCustomDates(this.value)"
-                class="w-full p-2 border bg-stone-50 rounded font-medium outline-none">
+                class="w-full p-2 border border-stone-300 bg-stone-50 rounded font-medium outline-none">
                 <?php foreach ($preset_labels as $val => $label): ?>
                     <option value="<?= $val ?>" <?= $preset === $val ? 'selected' : '' ?>><?= $label ?></option>
                 <?php endforeach; ?>
@@ -360,17 +360,17 @@ $preset_labels = [
         <div id="customFrom" <?= $preset !== 'custom' ? 'style="display:none"' : '' ?>>
             <label class="block font-bold text-stone-500 uppercase tracking-wider mb-1 text-[10px]">From</label>
             <input type="date" name="date_from" value="<?= htmlspecialchars($ts_date_from, ENT_QUOTES) ?>"
-                class="w-full p-2 border bg-stone-50 rounded font-mono outline-none">
+                class="w-full p-2 border bg-stone-50 rounded outline-none">
         </div>
         <div id="customTo" <?= $preset !== 'custom' ? 'style="display:none"' : '' ?>>
             <label class="block font-bold text-stone-500 uppercase tracking-wider mb-1 text-[10px]">To</label>
             <input type="date" name="date_to" value="<?= htmlspecialchars($ts_date_to, ENT_QUOTES) ?>"
-                class="w-full p-2 border bg-stone-50 rounded font-mono outline-none">
+                class="w-full p-2 border bg-stone-50 rounded outline-none">
         </div>
 
         <div>
             <label class="block font-bold text-stone-500 uppercase tracking-wider mb-1 text-[10px]">Staff</label>
-            <select name="user_id" class="w-full p-2 border bg-stone-50 rounded font-medium outline-none">
+            <select name="user_id" class="w-full p-2 border border-stone-300 bg-stone-50 rounded font-medium outline-none">
                 <option value="0">All Staff</option>
                 <?php foreach ($ts_staff as $s): ?>
                     <option value="<?= (int)$s['id'] ?>" <?= $ts_filter_user === (int)$s['id'] ? 'selected' : '' ?>>
@@ -381,12 +381,12 @@ $preset_labels = [
         </div>
 
         <div class="flex gap-2">
-            <button type="submit" class="flex-1 bg-stone-900 text-white font-mono font-bold uppercase tracking-wider py-2 rounded text-[10px]">Apply</button>
-            <a href="/admin/admin.php?view=timesheet" class="flex-1 border py-2 bg-stone-100 rounded font-bold text-stone-600 text-center uppercase tracking-wider font-mono text-[10px]">Reset</a>
+            <button type="submit" class="flex-1 bg-amber-700 text-white font-bold uppercase tracking-wider py-2 rounded text-[10px]">Apply</button>
+            <a href="/admin/admin.php?view=timesheet" class="flex-1 border border-stone-200 py-2 bg-stone-100 rounded font-bold text-stone-600 text-center uppercase tracking-wider text-[10px]">Reset</a>
         </div>
     </div>
 
-    <div class="mt-3 text-xxs font-mono text-stone-400">
+    <div class="mt-3 text-xxs text-stone-400">
         <?= htmlspecialchars(date('M d, Y', strtotime($ts_date_from))) ?>
         — <?= htmlspecialchars(date('M d, Y', strtotime($ts_date_to))) ?>
         &bull; <?= count($ts_shifts) ?> shifts
@@ -395,7 +395,7 @@ $preset_labels = [
 </form>
 
 <?php if (empty($ts_shifts)): ?>
-    <div class="bg-white border rounded p-10 text-center text-stone-400 italic text-sm shadow-xs">
+    <div class="bg-white border border-stone-200 rounded p-10 text-center text-stone-400 italic text-sm shadow-sm">
         No shift logs found for this period. Try a different date range.
     </div>
 <?php else: ?>
@@ -403,10 +403,10 @@ $preset_labels = [
 <!-- ── SUMMARY CARDS ── -->
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
     <?php foreach ($ts_summary as $uid => $info): ?>
-    <div class="bg-white border rounded p-4 shadow-xs <?= $info['active'] ? 'border-emerald-300' : '' ?>">
+    <div class="bg-white border border-stone-200 rounded p-4 shadow-sm <?= $info['active'] ? 'border-emerald-300' : '' ?>">
         <div class="font-bold text-stone-800 text-sm truncate"><?= htmlspecialchars($info['name']) ?></div>
-        <div class="text-xxs text-stone-400 font-mono uppercase tracking-wider mb-2"><?= htmlspecialchars($info['role']) ?></div>
-        <div class="text-2xl font-black font-mono text-stone-900"><?= fmt_ts_duration($info['seconds']) ?></div>
+        <div class="text-xxs text-stone-400 uppercase tracking-wider mb-2"><?= htmlspecialchars($info['role']) ?></div>
+        <div class="text-2xl font-black text-stone-900"><?= fmt_ts_duration($info['seconds']) ?></div>
         <div class="text-xxs text-stone-500 mt-0.5"><?= $info['shifts'] ?> shift<?= $info['shifts'] !== 1 ? 's' : '' ?></div>
         <?php if ($info['active']): ?>
             <div class="mt-2 text-[9px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded inline-block animate-pulse">Active now</div>
@@ -414,26 +414,26 @@ $preset_labels = [
     </div>
     <?php endforeach; ?>
     <?php if (count($ts_summary) > 1): ?>
-    <div class="bg-stone-900 text-stone-100 border border-stone-800 rounded p-4 shadow-xs">
+    <div class="bg-stone-900 text-stone-100 border border-stone-800 rounded p-4 shadow-sm">
         <div class="font-bold text-stone-300 text-sm">All Staff</div>
-        <div class="text-xxs text-stone-500 font-mono uppercase tracking-wider mb-2">Combined</div>
-        <div class="text-2xl font-black font-mono text-white"><?= fmt_ts_duration($total_seconds) ?></div>
+        <div class="text-xxs text-stone-500 uppercase tracking-wider mb-2">Combined</div>
+        <div class="text-2xl font-black text-white"><?= fmt_ts_duration($total_seconds) ?></div>
         <div class="text-xxs text-stone-400 mt-0.5"><?= count($ts_shifts) ?> shifts total</div>
     </div>
     <?php endif; ?>
 </div>
 
 <!-- ── SHIFT LOG ── -->
-<div class="bg-white border rounded shadow-xs overflow-hidden">
+<div class="bg-white border border-stone-200 rounded shadow-sm overflow-hidden">
     <div class="px-5 py-3 border-b bg-stone-50 flex justify-between items-center">
         <h3 class="font-bold text-stone-800 uppercase text-xs tracking-wider">Shift Log</h3>
-        <span class="font-mono text-xxs text-stone-400">
+        <span class="text-xxs text-stone-400">
             <?= htmlspecialchars(date('M d, Y', strtotime($ts_date_from))) ?> — <?= htmlspecialchars(date('M d, Y', strtotime($ts_date_to))) ?>
         </span>
     </div>
     <div class="overflow-x-auto">
         <table class="w-full text-xs text-left">
-            <thead class="bg-stone-900 text-stone-100 uppercase tracking-widest text-[9px] font-bold">
+            <thead class="bg-stone-50 border-b border-stone-200 text-stone-500 uppercase tracking-widest text-[9px] font-bold">
                 <tr>
                     <th class="p-3">Staff Member</th>
                     <th class="p-3">Clock In</th>
@@ -454,7 +454,7 @@ $preset_labels = [
                     $name    = htmlspecialchars(trim($shift['first_name'] . ' ' . $shift['last_name']));
 
                     if ($prev_uid !== null && $prev_uid !== $uid && isset($ts_summary[$prev_uid])): ?>
-                    <tr class="bg-stone-100 border-t-2 border-stone-300 font-bold text-[10px] font-mono">
+                    <tr class="bg-stone-100 border-t-2 border-stone-300 font-bold text-[10px]">
                         <td class="p-2 text-stone-500 uppercase tracking-wider" colspan="3">Subtotal</td>
                         <td class="p-2 text-stone-800 font-black"><?= fmt_ts_duration($ts_summary[$prev_uid]['seconds']) ?></td>
                         <td colspan="2" class="print:hidden"></td>
@@ -463,27 +463,27 @@ $preset_labels = [
                     $prev_uid = $uid; ?>
                 <tr class="hover:bg-stone-50 <?= !$out_ts ? 'bg-emerald-50/40' : '' ?>">
                     <td class="p-3 font-bold text-stone-800"><?= $name ?></td>
-                    <td class="p-3 font-mono text-stone-600 whitespace-nowrap"><?= date('M d, g:i A', $in_ts) ?></td>
-                    <td class="p-3 font-mono text-stone-600 whitespace-nowrap">
+                    <td class="p-3 text-stone-600 whitespace-nowrap"><?= date('M d, g:i A', $in_ts) ?></td>
+                    <td class="p-3 text-stone-600 whitespace-nowrap">
                         <?= $out_ts ? date('M d, g:i A', $out_ts) : '<span class="text-[9px] font-black uppercase text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">Active</span>' ?>
                     </td>
-                    <td class="p-3 font-mono font-bold <?= !$out_ts ? 'text-emerald-700' : 'text-stone-700' ?>">
+                    <td class="p-3 font-bold <?= !$out_ts ? 'text-emerald-700' : 'text-stone-700' ?>">
                         <?= $dur_sec ? fmt_ts_duration($dur_sec) : '—' ?>
                     </td>
-                    <td class="p-3 font-mono text-stone-400 text-[10px] print:hidden"><?= htmlspecialchars($shift['ip_address'] ?? '') ?></td>
+                    <td class="p-3 text-stone-400 text-[10px] print:hidden"><?= htmlspecialchars($shift['ip_address'] ?? '') ?></td>
                     <td class="p-3 text-stone-500 max-w-xs truncate"><?= htmlspecialchars($shift['notes']) ?></td>
                 </tr>
                 <?php endforeach; ?>
 
                 <?php if ($prev_uid && isset($ts_summary[$prev_uid])): ?>
-                <tr class="bg-stone-100 border-t-2 border-stone-300 font-bold text-[10px] font-mono">
+                <tr class="bg-stone-100 border-t-2 border-stone-300 font-bold text-[10px]">
                     <td class="p-2 text-stone-500 uppercase tracking-wider" colspan="3">Subtotal</td>
                     <td class="p-2 text-stone-800 font-black"><?= fmt_ts_duration($ts_summary[$prev_uid]['seconds']) ?></td>
                     <td colspan="2" class="print:hidden"></td>
                 </tr>
                 <?php endif; ?>
                 <?php if (count($ts_summary) > 1): ?>
-                <tr class="bg-stone-900 text-stone-100 font-black text-xs font-mono">
+                <tr class="bg-stone-100 text-stone-800 border-t-2 border-stone-300 font-black text-xs">
                     <td class="p-3 uppercase tracking-wider" colspan="3">Grand Total</td>
                     <td class="p-3"><?= fmt_ts_duration($total_seconds) ?></td>
                     <td colspan="2" class="print:hidden"></td>

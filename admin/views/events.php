@@ -113,7 +113,7 @@ $curRec = (string)($edit['recurrence'] ?? 'none');
   <h2 class="font-semibold text-stone-700 mb-3">All events (<?= count($rows) ?>)</h2>
   <div class="overflow-x-auto">
     <table class="w-full text-sm bg-white border border-stone-200 rounded-lg overflow-hidden" data-admin-list data-list-name-col="0" data-list-date-col="1">
-      <thead class="bg-stone-800 text-stone-100 text-xs uppercase tracking-wide">
+      <thead class="bg-stone-50 border-b border-stone-200 text-stone-500 text-xs uppercase tracking-wide">
         <tr><th class="text-left p-2">Title</th><th class="text-left p-2">When</th><th class="text-left p-2">Recurs</th><th class="text-left p-2">Status</th><th class="p-2">Actions</th></tr>
       </thead>
       <tbody>
