@@ -38,6 +38,17 @@ if (!hasTableAccess($current_role, $target_table, 'edit')) {
     exit;
 }
 
+// Per-person extra (Nov 14, 2026): drafts only. Something live on the website is the Owner's or Manager's to delete.
+if (is_file(__DIR__ . '/../../includes/staff_extras.php')) {
+    require_once __DIR__ . '/../../includes/staff_extras.php';
+    if (bcrf_needs_review((string)$current_role, (string)$target_table) && bcrf_review_row_live($pdo, (string)$target_table, (int)$del_id)) {
+        $_SESSION['toast_msg']  = 'This one is live on the website, so an Owner or Manager has to delete it.';
+        $_SESSION['toast_type'] = 'error';
+        header("Location: /admin/admin.php?view=schema&table=" . urlencode($target_table));
+        exit;
+    }
+}
+
 
 // ── PRE-DELETE REFERENCE CHECK ────────────────────────────────────────────────
 // Map of tables and the columns in OTHER tables that reference them

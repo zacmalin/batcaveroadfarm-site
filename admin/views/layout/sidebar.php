@@ -128,7 +128,8 @@ $_sections = [
         ['label'=>'Users & Roles',    'short'=>'Users','icon'=>'🔐','tabs'=>[
             ['Staff',       '?view=schema&table=users',     'table', 'users'],       // staff accounts (Farm OS Phase 0, C-02)
             ['Customers',   '?view=schema&table=customers', 'table', 'customers'],   // public site accounts
-            ['Permissions', '?view=permissions',            'view',  'permissions'],
+            ['By role',     '?view=permissions',            'view',  'permissions'],   // Permissions
+            ['By person',   '?view=permissions&tab=person', 'view',  'permissions'],   // extras for one staff member (Nov 14, 2026)
             ['Two-step',    '/admin/two_step.php',          'view',  'two_step'],
             ['PIN sign-in', '/admin/pin_settings.php',      'pinrole', ''],      // PINs + shared devices (Nov 13, 2026)
         ]],
@@ -182,7 +183,7 @@ $_active = function(string $href) use ($_tv, $_tt): bool {
     parse_str(parse_url($href, PHP_URL_QUERY) ?: '', $p);
     $v = $p['view'] ?? ''; $t = $p['table'] ?? '';
     // Social Queue has a Pinterest tab on the same view (?view=social&tab=pinterest, Nov 2026)
-    if ($v === 'social') return $_tv === 'social' && (string)($p['tab'] ?? '') === (string)($_GET['tab'] ?? '');
+    if ($v === 'social' || $v === 'permissions') return $_tv === $v && (string)($p['tab'] ?? '') === (string)($_GET['tab'] ?? '');   // + Permissions › By person (Nov 14)
     return $v === 'schema' ? ($_tv === 'schema' && $_tt === $t) : ($_tv === $v && $v !== '');
 };
 

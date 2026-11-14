@@ -11,7 +11,7 @@ check_admin();
 require_once __DIR__ . '/../includes/pin_auth.php';   // a PIN session may open this page (Nov 13, 2026)
 bcrf_pin_page_check();
 require_once __DIR__ . '/includes/permission_checks.php';
-if (($_SESSION['user_role'] ?? '') === 'Media') { http_response_code(403); exit('Media accounts cannot use the gate.'); }
+if (function_exists('bcrf_content_role_blocked') ? bcrf_content_role_blocked(['pos', 'passes']) : ($_SESSION['user_role'] ?? '') === 'Media') { http_response_code(403); exit('Content accounts cannot use the gate.'); }   // unless that person has it as an extra (Nov 14, 2026)
 require_permission([['view', 'pos'], ['view', 'passes']]);
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/queue.php';

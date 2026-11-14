@@ -49,12 +49,22 @@ $admin_view_registry = [
 
 $GLOBALS['admin_view_registry'] = $admin_view_registry;   // stay global even if this file is ever loaded from inside a function
 
+// Per-person extras (Nov 14, 2026; migration 0064): a page or table an Owner gave one person on top of their role.
+// The logic lives in includes/staff_extras.php so it can change without re-uploading this file.
+if (!function_exists('bcrf_extra_view') && is_file(dirname(__DIR__, 2) . '/includes/staff_extras.php')) {
+    require_once dirname(__DIR__, 2) . '/includes/staff_extras.php';
+}
+
 // ── HAS TABLE ACCESS ──────────────────────────────────────────────────────────
 if (!function_exists('hasTableAccess')) {
-    function hasTableAccess(string $role, string $tableName, string $action = 'view'): bool {
+    // $withExtras = false: the role alone, without the signed-in person's extras (used to tell the two apart).
+    function hasTableAccess(string $role, string $tableName, string $action = 'view', bool $withExtras = true): bool {
         global $pdo;
 
         if ($role === 'administrator') return true;
+
+        // Per-person extra (also lifts the role blocks below for that one person)
+        if ($withExtras && function_exists('bcrf_extra_table') && bcrf_extra_table($role, $tableName, $action)) return true;
 
         // Hard-coded role denials
         if ($role === 'Shopkeep' && in_array($tableName, ['users', 'blog_posts', 'newsletter'])) return false;
@@ -74,7 +84,7 @@ if (!function_exists('hasTableAccess')) {
 
 // ── HAS VIEW ACCESS ───────────────────────────────────────────────────────────
 if (!function_exists('hasViewAccess')) {
-    function hasViewAccess(string $role, string $viewName): bool {
+    function hasViewAccess(string $role, string $viewName, bool $withExtras = true): bool {
         global $pdo, $admin_view_registry;
 
         // Administrators always have full access
@@ -84,6 +94,9 @@ if (!function_exists('hasViewAccess')) {
         if (isset($admin_view_registry[$viewName]) && $admin_view_registry[$viewName]['admin_only']) {
             return false;
         }
+
+        // Per-person extra (Owner-only views above can never be extras)
+        if ($withExtras && function_exists('bcrf_extra_view') && bcrf_extra_view($role, $viewName)) return true;
 
         // DB-driven check
         try {

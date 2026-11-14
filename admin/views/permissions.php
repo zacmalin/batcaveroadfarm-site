@@ -10,6 +10,13 @@ require_once dirname(__DIR__, 2) . '/includes/permission_sections.php';
 require_once dirname(__DIR__, 2) . '/includes/roles.php';   // display names (Nov 13, 2026)
 $permission_sections = bcrf_permission_sections();
 
+// By person tab (Nov 14, 2026): extras for one staff member on top of their role (admin/views/permissions_person.php)
+if (($_GET['tab'] ?? '') === 'person') {
+    echo '<h1 class="text-2xl font-serif font-black mb-6">Access Permissions: by person</h1>';
+    require __DIR__ . '/permissions_person.php';
+    return;
+}
+
 $inspect_role   = $_GET['inspect_role'] ?? '';
 $matrix_fetched = [];
 $view_perms     = [];

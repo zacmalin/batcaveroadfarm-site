@@ -4,7 +4,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
 require_once '../config.php';
 check_admin();
 require_once __DIR__ . '/includes/permission_checks.php';   // audit #8: same Permissions Matrix rules as the console
-if (($_SESSION['user_role'] ?? '') === 'Media') { http_response_code(403); exit('Media accounts cannot use the register.'); }
+if (function_exists('bcrf_content_role_blocked') ? bcrf_content_role_blocked(['pos']) : ($_SESSION['user_role'] ?? '') === 'Media') { http_response_code(403); exit('Content accounts cannot use the register.'); }   // unless that person has it as an extra (Nov 14, 2026)
 require_permission([['view', 'pos']]);
 require_once __DIR__ . '/includes/audit.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');   // farm time zone setting (Phase 0, C-03)
@@ -47,7 +47,7 @@ if (empty($_SESSION['csrf_token'])) {
 
 $current_user_id = (int)$_SESSION['user_id'];
 $current_role    = $_SESSION['user_role'] ?? 'user';
-if ($current_role === 'Media') {
+if ($current_role === 'Media' && (!function_exists('bcrf_content_role_blocked') || bcrf_content_role_blocked(['pos']))) {
     die("<div class='p-6 text-red-700 font-mono text-xs'>Security Exception: Access Blocked for [ Media ].</div>");
 }
 

@@ -42,6 +42,24 @@ try {
         throw new RuntimeException("No valid fields submitted.");
     }
 
+    // ── REVIEW: public content edited only thanks to a per-person extra (Nov 14, 2026; includes/staff_extras.php) ──
+    // They can save drafts and send them for review, but not publish, schedule, or change what is already live.
+    $__review = false; $__sendReview = false;
+    if (is_file(dirname(__DIR__, 2) . '/includes/staff_extras.php')) {
+        require_once dirname(__DIR__, 2) . '/includes/staff_extras.php';
+        $__review = bcrf_needs_review((string)$current_role, (string)$target_table);
+    }
+    if ($__review) {
+        if ($id && bcrf_review_row_live($pdo, (string)$target_table, (int)$id)) {
+            throw new RuntimeException('This one is live on the website, so an Owner or Manager has to change it');
+        }
+        $__sendReview = ($_POST['post_status'] ?? '') === 'published';
+        $_POST['post_status'] = 'draft';                         // never published from here
+        unset($_POST['social_share']);
+        unset($fields['status'], $fields['is_active']);          // only the Save Draft / Publish buttons set these
+        if (array_key_exists('publish_at', $fields)) $fields['publish_at'] = null;   // a schedule would publish it unreviewed
+    }
+
     // Auto-generate slugs
     if (!function_exists('createSlug')) {
         function createSlug(string $str): string {
@@ -417,7 +435,13 @@ try {
         $__socialWarn = ' The social post was not queued: ' . $e->getMessage();
     }
 
-    $_SESSION['toast_msg']  = "Record saved successfully." . $__socialWarn;
+    // Sent for review (Nov 14): bell alert to Owners and Managers
+    if ($__sendReview && $record_id) {
+        $__who = trim((string)($_SESSION['user_name'] ?? '')) ?: 'A staff member';
+        bcrf_review_request($pdo, (string)$target_table, (int)$record_id, erp_audit_label($fields), $__who);
+    }
+
+    $_SESSION['toast_msg']  = ($__sendReview ? "Saved as a draft and sent for review. An Owner or Manager will publish it." : "Record saved successfully.") . $__socialWarn;
     $_SESSION['toast_type'] = $__socialWarn === '' ? 'success' : 'warning';
     $_SESSION['autosave_clear'] = $__draftKey;   // the save worked: drop this form's device draft
 

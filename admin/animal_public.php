@@ -21,6 +21,10 @@ if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_byt
 $csrf = $_SESSION['csrf_token'];
 $uid = (int)($_SESSION['user_id'] ?? 0) ?: null;
 $canEdit = hasTableAccess((string)($_SESSION['user_role'] ?? ''), 'animals', 'edit');
+// Animals edit given to one person as an extra (Nov 14, 2026): they can work on pages that are off the website and send
+// them for review; an Owner or Manager puts them on (or takes them off) the website and changes live pages.
+require_once __DIR__ . '/../includes/staff_extras.php';
+$needsReview = bcrf_needs_review((string)($_SESSION['user_role'] ?? ''), 'animals');
 $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
 
 if (!bcrf_public_ready($pdo)) {
@@ -43,6 +47,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         if (!$canEdit) throw new BcrfAnimalError('You can look at animals but not change them.');
         $a = bcrf_animal_get($pdo, $id);
         if (!$a) throw new BcrfAnimalError('That animal is not on the roster.');
+        if ($needsReview && (int)$a['is_active'] === 1) throw new BcrfAnimalError($a['name'] . ' is on the website, so an Owner or Manager has to change its page.');
+        if ($needsReview && $act === 'publish') {
+            $who = trim((string)($_SESSION['user_name'] ?? '')) ?: 'A staff member';
+            bcrf_review_request($pdo, 'animals', $id, (string)$a['name'], $who);
+            $_SESSION[$key] = ['ok', $a['name'] . ' was sent for review. An Owner or Manager will put it on the website.'];
+            header('Location: ' . $back); exit;
+        }
         $pid = (int)($_POST['photo_id'] ?? 0);
         $audit = fn(string $what) => function_exists('erp_audit') ? erp_audit($pdo, 'update', 'animals', $id, 'Public page: ' . $what) : null;
         if ($act === 'save') {

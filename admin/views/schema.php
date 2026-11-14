@@ -1639,7 +1639,10 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
 
             <?php
             // ── SOCIAL COMPOSER (recipes + blog + animals) — approve caption at publish time ──
-            if (in_array($target_table, ['blog_posts', 'recipes', 'animals'], true)):
+            // Not for someone who edits this only as a per-person extra: the Owner or Manager who publishes shares it (Nov 14).
+            if (!function_exists('bcrf_needs_review') && is_file(dirname(__DIR__, 2) . '/includes/staff_extras.php')) require_once dirname(__DIR__, 2) . '/includes/staff_extras.php';
+            if (in_array($target_table, ['blog_posts', 'recipes', 'animals'], true)
+                && !(function_exists('bcrf_needs_review') && bcrf_needs_review((string)$current_role, (string)$target_table))):
                 $__social_file = dirname(__DIR__, 2) . '/includes/social.php';
                 if (file_exists($__social_file)) require_once $__social_file;
                 $__social_type   = ['recipes' => 'recipe', 'animals' => 'animal'][$target_table] ?? 'blog';
@@ -1722,6 +1725,18 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                     <span class="text-xxs font-mono text-stone-400 font-bold uppercase tracking-wider">
                         Current: <?= $status_label ?>
                     </span>
+                    <?php
+                    // Per-person extra (Nov 14, 2026; includes/staff_extras.php): drafts only, sent to an Owner or Manager to publish.
+                    if (!function_exists('bcrf_needs_review') && is_file(dirname(__DIR__, 2) . '/includes/staff_extras.php')) require_once dirname(__DIR__, 2) . '/includes/staff_extras.php';
+                    $__review = function_exists('bcrf_needs_review') && bcrf_needs_review((string)$current_role, (string)$target_table);
+                    $__reviewLive = $__review && $current_status === 'published' && !empty($edit_data['id']);
+                    ?>
+                    <?php if ($__review): ?>
+                    <div class="w-full rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
+                        <?= $__reviewLive ? 'This one is live on the website, so an Owner or Manager has to change it.'
+                                          : 'You can save drafts. When it’s ready, tap <strong>Send for review</strong> and an Owner or Manager will publish it.' ?>
+                    </div>
+                    <?php endif; ?>
                     <?php if ($__bible_ready): ?>
                     <div class="w-full rounded border border-amber-200 bg-amber-50 p-2 text-xs text-stone-700">
                         <input type="hidden" name="in_house_present" value="1">
@@ -1747,14 +1762,16 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                         </button>
                         <?php endif; ?>
                         <!-- name="post_status" means the clicked button's value is submitted -->
+                        <?php if (!$__reviewLive): ?>
                         <button type="submit" name="post_status" value="draft"
                             class="border-2 border-yellow-400 text-yellow-800 bg-yellow-50 font-mono font-bold uppercase tracking-wider py-2 px-5 rounded hover:bg-yellow-100 transition text-xs">
                             💾 Save Draft
                         </button>
                         <button type="submit" name="post_status" value="published"
                             class="bg-emerald-700 text-white font-mono font-bold uppercase tracking-wider py-2 px-5 rounded hover:bg-emerald-900 transition shadow-xs text-xs">
-                            🚀 Publish
+                            <?= $__review ? '📨 Send for review' : '🚀 Publish' ?>
                         </button>
+                        <?php endif; ?>
                     </div>
                 <?php else: ?>
                     <!-- Matches the Farm OS primary button (.btn.primary in assets/register.css): brown, left-aligned -->

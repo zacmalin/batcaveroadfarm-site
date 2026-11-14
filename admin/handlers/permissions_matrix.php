@@ -10,6 +10,25 @@ try {
         header('Location: /admin/admin.php?view=permissions'); exit;
     }
 
+    // By person tab (Nov 14, 2026): extras for one staff member (includes/staff_extras.php)
+    if (isset($_POST['extras_user_id'])) {
+        require_once dirname(__DIR__, 2) . '/includes/staff_extras.php';
+        $__uid = (int)$_POST['extras_user_id'];
+        $__p = bcrf_extras_person($pdo, $__uid);
+        if (!$__p) throw new RuntimeException('Pick a staff member.');
+        $__nm = trim($__p['first_name'] . ' ' . $__p['last_name']);
+        $__clear = !empty($_POST['extras_clear']);
+        [$n_pages, $n_view, $n_edit] = bcrf_extras_save($pdo, $__uid,
+            $__clear ? [] : (array)($_POST['view_permissions_block'] ?? []), $__clear ? [] : (array)($_POST['perm_node'] ?? []),
+            (int)($_SESSION['user_id'] ?? 0) ?: null);
+        erp_audit($pdo, 'update', 'staff_access_extras', $__uid, $__clear ? "Removed all extra access for {$__nm}"
+            : "Extra access for {$__nm}: {$n_pages} pages, view {$n_view} / edit {$n_edit} tables");
+        $_SESSION['toast_msg']  = $__clear ? "Extras removed for {$__nm}." : "Extras saved for {$__nm}.";
+        $_SESSION['toast_type'] = 'success';
+        header('Location: /admin/admin.php?view=permissions&tab=person&person=' . $__uid);
+        exit;
+    }
+
     $selected_role = $_POST['target_matrix_role'] ?? '';
     if (empty($selected_role)) throw new RuntimeException("No role specified.");
 
@@ -29,6 +48,10 @@ try {
     error_log('[ERP] Permissions matrix save failed: ' . $e->getMessage());
     $_SESSION['toast_msg']  = "Save error: " . $e->getMessage();
     $_SESSION['toast_type'] = 'error';
+    if (isset($_POST['extras_user_id'])) {
+        header('Location: /admin/admin.php?view=permissions&tab=person&person=' . (int)$_POST['extras_user_id']);
+        exit;
+    }
 }
 
 header("Location: /admin/admin.php?view=permissions&inspect_role=" . urlencode($_POST['target_matrix_role'] ?? ''));

@@ -28,7 +28,7 @@ if ($current_role !== 'administrator') {
     }
 
     // POS gate
-    if ($target_view === 'pos' && $current_role === 'Media') {
+    if ($target_view === 'pos' && $current_role === 'Media' && !(function_exists('bcrf_extra_view') && bcrf_extra_view('Media', 'pos'))) {   // unless that person has the register as an extra (Nov 14, 2026)
         die("<div class='p-6 text-red-700 font-mono text-xs'>Security Exception: Role [ Media ] is blocked from POS access.</div>");
     }
 }

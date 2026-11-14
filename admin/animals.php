@@ -29,6 +29,7 @@ if (is_file(__DIR__ . '/../includes/animal_breeding.php')) require_once __DIR__ 
 if (is_file(__DIR__ . '/../includes/animal_expenses.php')) require_once __DIR__ . '/../includes/animal_expenses.php';   // slice 7
 if (is_file(__DIR__ . '/../includes/incidents.php')) require_once __DIR__ . '/../includes/incidents.php';   // slice 8
 if (is_file(__DIR__ . '/../includes/animal_public.php')) require_once __DIR__ . '/../includes/animal_public.php';   // slice 9
+if (is_file(__DIR__ . '/../includes/staff_extras.php')) require_once __DIR__ . '/../includes/staff_extras.php';     // per-person extras: review first (Nov 14)
 require_once __DIR__ . '/../includes/admin_shell.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -498,7 +499,10 @@ if ($id) {
     <div class="flex flex-wrap items-center gap-2 mb-2">
       <h2 class="text-base font-semibold text-stone-800 flex-1"><?= $live ? 'On the website' : 'Not on the website' ?></h2>
       <a class="<?= $btnSec ?>" href="<?= $h($pageUrl) ?>" target="_blank" rel="noopener"><?= $live ? 'View page' : 'Preview' ?></a>
-      <?php if ($canEdit && !$gone): ?>
+      <?php $pubReview = function_exists('bcrf_needs_review') && bcrf_needs_review((string)($_SESSION['user_role'] ?? ''), 'animals');   // extra access: review first (Nov 14) ?>
+      <?php if ($canEdit && !$gone && $pubReview && !$live): ?>
+      <form method="POST" action="animal_public.php"><?= $phidden ?><input type="hidden" name="act" value="publish"><button class="<?= $btnMain ?>">Send for review</button></form>
+      <?php elseif ($canEdit && !$gone && !$pubReview): ?>
       <form method="POST" action="animal_public.php"><?= $phidden ?><input type="hidden" name="act" value="<?= $live ? 'unpublish' : 'publish' ?>">
         <button class="<?= $live ? $btnSec : $btnMain ?>"<?= $live ? ' data-confirm="Take ' . $h($a['name']) . '\'s page off the website?"' : '' ?>><?= $live ? 'Take off the website' : 'Put on the website' ?></button></form>
       <?php endif; ?>
@@ -507,6 +511,7 @@ if ($id) {
     <?php elseif ($missing): ?><p class="text-sm text-amber-800">Still missing: <?= $h(implode(', ', $missing)) ?>.<?= $live ? '' : ' You can put it on the website anyway.' ?></p>
     <?php else: ?><p class="text-sm text-green-700">The page has everything.</p><?php endif; ?>
     <p class="text-xs text-stone-500 mt-1">Only what's on this tab, plus its name, species and breed, goes on the website. Health, weights, costs and incidents never do.</p>
+    <?php if (!empty($pubReview)): ?><p class="text-xs text-amber-800 mt-1"><?= $live ? 'This page is live, so an Owner or Manager has to change it.' : 'When it looks ready, tap Send for review. An Owner or Manager puts it on the website.' ?></p><?php endif; ?>
   </div>
 
   <form method="POST" action="animal_public.php" class="<?= $card ?>"><?= $phidden ?><input type="hidden" name="act" value="save">
