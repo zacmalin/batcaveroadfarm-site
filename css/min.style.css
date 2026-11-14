@@ -407,3 +407,16 @@ nav.open .hamburger-label .hl-close{display:inline}
 .ctaDiv,body>footer{content-visibility:auto;overflow-clip-margin:60px;contain-intrinsic-size:auto 900px}
 /* wheat emoji: fixed line box so web fonts loading later don't move it (CLS) */
 .hero-deco{line-height:1;font-style:normal;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+/* website weather (Nov 14 2026): homepage line, Plan Your Visit forecast, "Closed today for weather" banner */
+.wx-line{margin-top:12px;padding-top:10px;border-top:1px dashed rgba(91,58,26,.35)}
+.wx-note{font-style:italic}
+.wx-more{display:inline-block;margin-top:2px;font-weight:600;white-space:nowrap}
+.wx-emoji{font-style:normal;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.wx-days{list-style:none;margin:0 0 8px;padding:0}
+.wx-day{display:flex;gap:10px;align-items:flex-start;padding:6px 0;font-family:'Lora',serif;color:var(--brown-mid);line-height:1.4}
+.wx-day+.wx-day{border-top:1px dashed rgba(91,58,26,.3)}
+.wx-day .wx-emoji{font-size:1.6rem;line-height:1.2}
+.wx-closed{font-size:.85em;font-style:italic}
+.visit-info-block .wx-src{font-size:.82rem;font-style:italic}
+.site-weather-closed{background:#8A3324;border-bottom:2px solid #D9A441;color:#F7F1E3;text-align:center;font-family:'Lora',serif;font-size:1rem;line-height:1.45;padding:12px 16px}
+.site-weather-closed strong{font-family:'Young Serif','Lora',serif;font-weight:400;margin-right:4px}

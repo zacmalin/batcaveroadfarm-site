@@ -18,6 +18,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // 
  *   site_hours($scope)  -> [0..6 => ['closed'=>bool, 'blocks'=>[['open'=>'HH:MM:SS','close'=>'HH:MM:SS'], ...]]]
  *   site_open_status($scope='general') -> ['open'=>bool, 'label'=>string, 'detail'=>string]
  *   site_is_open($scope='general')     -> bool
+ *   site_weather_closed_note()         -> note while "Closed today for weather" is on, else ''
  *
  * Admin / raw (no inheritance resolution):
  *   site_all_settings(), site_all_contacts(), site_all_scopes(), site_hours_raw($scope)
@@ -251,6 +252,7 @@ function site_open_status(string $scope = 'general'): array {
     $dow  = (int)$now->format('w');   // 0=Sun .. 6=Sat (matches schema)
     $nowT = $now->format('H:i:s');
     $week = site_hours($scope);
+    if (site_weather_closed_note() !== '') $week[$dow]['blocks'] = [];   // staff switched on "Closed today for weather"
 
     foreach ($week[$dow]['blocks'] as $b) {
         if ($nowT >= $b['open'] && $nowT < $b['close']) {
@@ -271,6 +273,20 @@ function site_open_status(string $scope = 'general'): array {
         }
     }
     return ['open' => false, 'label' => 'Closed', 'detail' => ''];
+}
+
+/**
+ * "Closed today for weather" (Nov 14, 2026): the note to show while staff have switched it on for today
+ * (Weather day page), else ''. The switch is saved for one farm date, so it's off again by itself the next day.
+ */
+function site_weather_closed_note(): string {
+    $date = trim((string)site_setting('wx_closed_date'));
+    if ($date === '') return '';
+    try { $today = (new DateTime('now', new DateTimeZone(site_setting('timezone', 'America/New_York'))))->format('Y-m-d'); }
+    catch (Throwable $e) { $today = date('Y-m-d'); }
+    if ($date !== $today) return '';
+    $note = trim((string)site_setting('wx_closed_note'));
+    return $note !== '' ? $note : 'Stay safe, and come see us another day!';
 }
 
 /** Boolean convenience wrapper. */

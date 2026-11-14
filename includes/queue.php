@@ -255,6 +255,7 @@ function bcrf_runner_tasks(): array {
         'fetch_social_reports'   => ['admin/cron/fetch_social_reports.php',   ['at' => '06:20']],
         'check_stock_alerts'     => ['admin/handlers/check_stock_alerts.php', ['at' => '08:00']],
         'check_social_token'     => ['admin/cron/check_social_token.php',     ['at' => '08:05']],
+        'fetch_weather'          => ['admin/cron/fetch_weather.php',          ['every' => 30]],     // Nov 14: website weather line + forecast
     ];
 }
 

@@ -63,6 +63,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
                 <p><a rel="noopener" target="_blank" href="https://maps.google.com/?q=4132 Bat Cave Road, Old Fort, North Carolina, 28762">4132 Bat Cave Road<br>Old Fort, NC 28762</a></p>
                 <p><a href="tel:<?= htmlspecialchars(site_tel('general'), ENT_QUOTES) ?>"><?= htmlspecialchars(site_phone_display('general')) ?></a></p>
               </div>
+              <?php require_once __DIR__ . '/../includes/weather_forecast.php'; echo bcrf_wx_forecast_html(); // Nov 14 2026: 3-day NWS forecast, saved by cron ?>
             </section>
 
             <?php if (!empty($visitTypes)): ?>

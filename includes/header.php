@@ -23,6 +23,11 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // 
             $bcrfHoursJs[] = ($__wk[$__d]['closed'] || !$__b) ? null : [substr($__b['open'], 0, 5), substr($__b['close'], 0, 5)];
         }
     }
+    // "Closed today for weather" switch (Weather day page, Nov 14 2026): banner below, and today has no hours for the live pill.
+    $bcrfWxClosed = function_exists('site_weather_closed_note') ? site_weather_closed_note() : '';
+    if ($bcrfWxClosed !== '' && $bcrfHoursJs) {
+        try { $bcrfHoursJs[(int)(new DateTime('now', new DateTimeZone($bcrfTz)))->format('w')] = null; } catch (Throwable $e) {}
+    }
 ?>
     </head>
     <body class="<?= $bcrfTheme !== '' ? 'theme-' . htmlspecialchars($bcrfTheme) : '' ?>"<?= function_exists('bcrf_ga_body_attrs') ? bcrf_ga_body_attrs((string)($gaEvent ?? ''), (string)($gaForm ?? '')) : '' ?>>
@@ -43,6 +48,9 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // 
             <?= htmlspecialchars($__annText) ?>
             <button type="button" id="announcement-dismiss" class="site-announcement-dismiss" aria-label="Dismiss announcement">×</button>
         </div>
+<?php endif; ?>
+<?php if ($bcrfWxClosed !== ''): ?>
+        <div class="site-weather-closed" role="status"><strong>Closed today for weather.</strong> <?= htmlspecialchars($bcrfWxClosed) ?></div>
 <?php endif; ?>
     	<header>
             <div class="header-inner">

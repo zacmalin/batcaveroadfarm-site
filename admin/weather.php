@@ -4,6 +4,9 @@
 //                                    done for each one
 //   POST weather.php  act=call      email everyone on the day not told yet; optionally close the day to new bookings
 //                     act=outcome   rescheduled / refunded / credit / cancelled / open, with a note
+//                     act=site_closed_on / site_closed_off   the website's "Closed today for weather" banner (Nov 14, 2026):
+//                                    a manual switch for today only (site_settings wx_closed_date + wx_closed_note; read by
+//                                    site_weather_closed_note() in includes/site_info.php). Off again by itself tomorrow.
 // Permission: Bookings or Private Events to look; calling a day off and outcomes need an Owner or Manager.
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
@@ -15,6 +18,7 @@ require_once __DIR__ . '/../includes/queue.php';
 require_once __DIR__ . '/../includes/booking.php';
 require_once __DIR__ . '/../includes/event_quotes.php';
 require_once __DIR__ . '/../includes/weather_days.php';
+require_once __DIR__ . '/../includes/site_info.php';
 require_once __DIR__ . '/../includes/admin_shell.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -55,6 +59,19 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             if ($r['no_email']) $bits[] = 'No email for ' . implode(', ', $r['no_email']) . ': call them.';
             if ($r['failed']) $bits[] = 'Didn\'t send to ' . implode(', ', $r['failed']) . '. Press Send again to retry.';
             $_SESSION['w_flash'] = [$r['failed'] ? 'err' : 'ok', implode(' ', $bits)];
+        } elseif ($act === 'site_closed_on' || $act === 'site_closed_off') {
+            $on = $act === 'site_closed_on';
+            $note = trim(str_replace("\r", '', strip_tags((string)($_POST['site_note'] ?? ''))));
+            $note = mb_substr(preg_replace('/\s+/', ' ', $note), 0, 300);
+            $save = $pdo->prepare("INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
+            $save->execute(['wx_closed_date', $on ? $today : '']);
+            if ($on) $save->execute(['wx_closed_note', $note]);
+            [$aT, $aId, $aName, $aIp] = bcrf_audit_actor();
+            bcrf_audit_event($pdo, ['actor_type' => $aT, 'actor_id' => $aId, 'actor_label' => $aName, 'ip' => $aIp,
+                'action' => $on ? 'weather_closed_on' : 'weather_closed_off', 'object_type' => 'site_settings', 'object_id' => 'wx_closed_date',
+                'object_label' => 'Website: closed today for weather', 'after' => ['date' => $on ? $today : '', 'note' => $note]]);
+            header('X-LiteSpeed-Purge: *');   // cached public pages pick up the banner right away
+            $_SESSION['w_flash'] = ['ok', $on ? 'The website now says you\'re closed today for weather.' : 'The closed-for-weather notice is off.'];
         } elseif ($act === 'outcome') {
             bcrf_weather_set_outcome($pdo, (int)($_POST['item_id'] ?? 0), (string)($_POST['outcome'] ?? ''), (string)($_POST['note'] ?? ''), $uid);
             $_SESSION['w_flash'] = ['ok', 'Saved.'];
@@ -68,6 +85,17 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $_SESSION['w_flash'] = ['err', 'Could not do that. Try again.'];
     }
     header('Location: ' . $back); exit;
+}
+
+/** The banner message used last time, or the standard one. */
+function bcrf_wx_last_note(PDO $pdo): string {
+    try {
+        $st = $pdo->prepare("SELECT setting_value FROM site_settings WHERE setting_key = 'wx_closed_note'");
+        $st->execute();
+        $v = trim((string)$st->fetchColumn());
+        if ($v !== '') return $v;
+    } catch (Throwable $e) {}
+    return "Stay safe, and come see us another day!";
 }
 
 $flash = $_SESSION['w_flash'] ?? null; unset($_SESSION['w_flash']);
@@ -96,6 +124,32 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
   <h1 class="text-2xl font-bold text-stone-800 mb-1">Weather day</h1>
   <p class="text-sm text-stone-500 mb-4">Call off a day: email every group booking and party on it at once, and close it to new bookings. Then note what you did for each one.</p>
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
+
+  <?php $siteNote = function_exists('site_weather_closed_note') ? site_weather_closed_note() : ''; ?>
+  <div class="<?= $card ?>">
+    <h3 class="text-base font-semibold text-stone-800 mb-1">Website: closed today for weather</h3>
+    <?php if ($siteNote !== ''): ?>
+      <?= bcrf_shell_notice('warning', 'ON: every page of the website shows "Closed today for weather. ' . $siteNote . '" and the header says Closed. It turns off by itself at midnight.') ?>
+      <?php if ($mgr): ?>
+      <form method="POST" action="weather.php" class="mt-3">
+        <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="date" value="<?= $h($date) ?>">
+        <button name="act" value="site_closed_off" class="<?= $btnSec ?>">Turn it off (we're open after all)</button>
+      </form>
+      <?php endif; ?>
+    <?php else: ?>
+      <p class="text-sm text-stone-600 mb-3">Off. Turn it on to show a banner on every page of the website and set the header to Closed, for today only (<?= $h(date('l, M j')) ?>). It doesn't email anyone; use the section below for that.</p>
+      <?php if ($mgr): ?>
+      <form method="POST" action="weather.php" class="space-y-3">
+        <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="date" value="<?= $h($date) ?>">
+        <div><label for="w_site_note" class="<?= $label ?>">Banner message <span class="font-normal text-stone-400">shown after "Closed today for weather."</span></label>
+          <input id="w_site_note" name="site_note" maxlength="300" class="<?= $input ?>" value="<?= $h(bcrf_wx_last_note($pdo)) ?>"></div>
+        <button name="act" value="site_closed_on" class="<?= $btnMain ?>" data-confirm="Show &quot;Closed today for weather&quot; on the website for today?">Show "Closed today" on the website</button>
+      </form>
+      <?php else: ?>
+      <p class="text-sm text-stone-500">Only an Owner or Manager can turn this on.</p>
+      <?php endif; ?>
+    <?php endif; ?>
+  </div>
 
   <form method="GET" action="weather.php" class="flex flex-wrap gap-2 items-end mb-4">
     <div><label for="w_date" class="<?= $label ?>">Day</label><input id="w_date" type="date" name="date" value="<?= $h($date) ?>" class="<?= $input ?>"></div>

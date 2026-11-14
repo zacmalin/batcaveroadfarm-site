@@ -150,6 +150,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.ph
                         $homeHours = site_hours_summary('general');
                         ?>
                         <p><?= htmlspecialchars($homeHours['open_days'] ?? 'Tuesday – Sunday') ?><br><?= htmlspecialchars($homeHours['open_time'] ?? '10:00 AM – 4:00 PM') ?><?php if (!empty($homeHours['closed_phrase'])): ?><br><?= htmlspecialchars($homeHours['closed_phrase']) ?><?php endif; ?></p>
+                        <?php require_once __DIR__ . '/includes/weather_forecast.php'; echo bcrf_wx_home_html(); // Nov 14 2026: saved NWS forecast, no JS ?>
                     </div>
                     <div class="info-tile reveal">
                         <div class="icon" aria-hidden="true">📍</div>
