@@ -1,13 +1,14 @@
 <?php
 // includes/staff_prefs.php — per-person settings saved on the staff account, not the device (Nov 15, 2026; migration 0068).
 // First use: the phone bottom-bar shortcuts (admin/assets/admin-nav.js), so any phone you sign in on has your setup.
+// Nov 15, 2026: also 'list_sort', the Sort pick on each admin list (includes/list_sort.php).
 //   bcrf_staff_prefs_ready($pdo)                        table exists (migration 0068 run)
 //   bcrf_staff_pref_get($pdo, $uid, $key)               decoded value, or null when nothing is saved
 //   bcrf_staff_pref_set($pdo, $uid, $key, $value)       save (null removes it = back to the defaults)
 //   bcrf_nav_shortcuts_clean($list)                     up to 4 distinct menu ids, safe characters only
 if (!function_exists('bcrf_staff_prefs_ready')) {
 
-function bcrf_staff_pref_keys(): array { return ['nav_shortcuts']; }
+function bcrf_staff_pref_keys(): array { return ['nav_shortcuts', 'list_sort']; }   // list_sort: each list's Sort pick (includes/list_sort.php)
 
 function bcrf_staff_prefs_ready(PDO $pdo): bool {
     static $ready = false;   // only "yes" is remembered, so a table made later in the same run is still found (Nov 15, 2026)

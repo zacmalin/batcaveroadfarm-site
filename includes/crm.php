@@ -137,7 +137,7 @@ function bcrf_crm_get(PDO $pdo, int $id): ?array {
 function bcrf_crm_name(array $c): string { return trim(($c['first_name'] ?? '') . ' ' . ($c['last_name'] ?? '')) ?: (string)($c['email'] ?? 'Customer'); }
 
 /** Customers matching a search (name, email or phone), not merged away. Newest first when $q is blank. */
-function bcrf_crm_search(PDO $pdo, string $q, int $limit = 50): array {
+function bcrf_crm_search(PDO $pdo, string $q, int $limit = 50, string $order = ''): array {   // $order: a fixed ORDER BY from the list's Sort box (Nov 15, 2026), never user text
     $q = trim($q);
     $sql = "SELECT c.*, h.name AS household_name FROM customers c LEFT JOIN households h ON h.id = c.household_id WHERE c.merged_into_id IS NULL";
     $args = [];
@@ -149,7 +149,7 @@ function bcrf_crm_search(PDO $pdo, string $q, int $limit = 50): array {
         if (strlen($digits) >= 4) { $sql .= " OR REGEXP_REPLACE(COALESCE(c.phone_number, ''), '[^0-9]', '') LIKE ?"; $args[] = '%' . $digits . '%'; }
         $sql .= ")";
     }
-    $sql .= " ORDER BY " . ($q !== '' ? "c.last_name, c.first_name" : "c.id DESC") . " LIMIT " . max(1, min(200, $limit));
+    $sql .= " ORDER BY " . ($order !== '' ? $order : ($q !== '' ? "c.last_name, c.first_name" : "c.id DESC")) . " LIMIT " . max(1, min(200, $limit));
     $st = $pdo->prepare($sql);
     $st->execute($args);
     return $st->fetchAll(PDO::FETCH_ASSOC);

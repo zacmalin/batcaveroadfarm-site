@@ -16,6 +16,7 @@ require_once __DIR__ . '/../includes/queue.php';
 require_once __DIR__ . '/../includes/booking.php';
 require_once __DIR__ . '/../includes/event_quotes.php';
 require_once __DIR__ . '/../includes/admin_shell.php';
+require_once __DIR__ . '/../includes/list_sort.php';      // Sort box on the list (Nov 15, 2026)
 require_once __DIR__ . '/../includes/record_tools.php';   // Call / Text / Email buttons (Nov 14, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -331,6 +332,12 @@ foreach ($rows as $r) {
     if ($b && !in_array($r['status'], ['cancelled', 'declined', 'archived', 'no_show'], true)) { $owed += max(0, $b['status']['balance']); $depDue += $b['status']['deposit_left']; }
 }
 
+$sortOpts = ['default' => ['Date, soonest first'], 'date_desc' => ['Date, latest first', fn($r) => $r['date'] === '' ? null : $r['date'] . ' ' . $r['time'], 'desc'],
+             'az' => ['Name A to Z', 'name', 'asc'], 'guests' => ['Most guests first', 'guests', 'desc'],
+             'owed' => ['Most still to pay', fn($r) => ($b = $badges[$r['type']][$r['id']] ?? null) ? max(0, (int)$b['status']['balance']) : 0, 'desc']];
+$sort = bcrf_list_sort_pick($pdo, 'quotes', $sortOpts);
+$rows = bcrf_list_sort_rows($rows, $sortOpts, $sort);
+
 bcrf_shell_open('Quotes & payments', ['toast' => $toast]);
 ?>
   <h1 class="text-2xl font-bold text-stone-800 mb-1">Quotes &amp; payments</h1>
@@ -341,6 +348,8 @@ bcrf_shell_open('Quotes & payments', ['toast' => $toast]);
       <a href="?kind=<?= $k ?>&amp;show=<?= $show ?>" class="px-3 py-2 rounded-lg border <?= $kind === $k ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-600 border-stone-200' ?>"><?= $v ?></a>
     <?php endforeach; ?>
     <a href="?kind=<?= $kind ?>&amp;show=<?= $show === 'open' ? 'all' : 'open' ?>" class="px-3 py-2 rounded-lg border bg-white text-stone-600 border-stone-200"><?= $show === 'open' ? 'Include cancelled and past 60 days' : 'Upcoming only' ?></a>
+    <form method="GET" action="quotes.php" class="flex gap-2 items-center"><input type="hidden" name="kind" value="<?= $h($kind) ?>"><input type="hidden" name="show" value="<?= $h($show) ?>">
+      <?= bcrf_list_sort_select($sortOpts, $sort, ['class' => $input]) ?><button type="submit" class="<?= $btnSec ?>">Sort</button></form>
   </div>
   <div class="grid grid-cols-2 gap-2 mb-4">
     <div class="bg-white border border-stone-200 rounded-lg p-3"><div class="text-xs text-stone-500">Still to collect</div><div class="text-lg font-bold text-stone-800"><?= $h($m($owed)) ?></div></div>

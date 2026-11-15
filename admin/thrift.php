@@ -13,6 +13,7 @@ require_permission([['table', 'inventory', 'edit']]);
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/thrift.php';
 require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
+require_once __DIR__ . '/../includes/list_sort.php';     // Sort box on the list (Nov 15, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -134,11 +135,17 @@ $f = [
     'source' => isset(bcrf_thrift_sources()[$_GET['source'] ?? '']) ? $_GET['source'] : null,
 ];
 $rows = bcrf_thrift_list($pdo, $f);
+$sortOpts = ['default' => ['Newest first'], 'oldest' => ['Oldest first', 'thrift_intake_at', 'asc'],
+             'az' => ['Name A to Z', 'name', 'asc'], 'za' => ['Name Z to A', 'name', 'desc'],
+             'price_lo' => ['Price low to high', 'price', 'asc'], 'price_hi' => ['Price high to low', 'price', 'desc']];
+$sort = bcrf_list_sort_pick($pdo, 'thrift', $sortOpts);
+$rows = bcrf_list_sort_rows($rows, $sortOpts, $sort);
 echo '<h1>Thrift</h1>';
 if ($flash) echo bcrf_shell_flash($flash);
 echo '<form class="rform" method="GET" action="thrift.php"><input type="search" name="q" value="', $h($f['q']), '" placeholder="Title or SKU" aria-label="Search">',
      $sel('status', ['available' => 'For sale', 'sold' => 'Sold', 'all' => 'All', 'returned' => 'Returned', 'withdrawn' => 'Withdrawn'], $f['status']),
      $sel('source', bcrf_thrift_sources(), $f['source'] ?? '', 'All sources'),
+     bcrf_list_sort_select($sortOpts, $sort),
      '<button class="btn sm" type="submit">Show</button><a class="btn sm primary" href="thrift.php?new=1">Intake</a></form>';
 if (!$rows) echo '<p class="card muted">No thrift items match. <a href="thrift.php?new=1">Take one in</a>.</p>';
 else {

@@ -29,6 +29,7 @@ require_once __DIR__ . '/../includes/task_notify.php';
 require_once __DIR__ . '/../includes/event_tasks.php';
 require_once __DIR__ . '/../includes/admin_shell.php';
 require_once __DIR__ . '/../includes/record_tools.php';   // record links, task kinds, CSV (Nov 14, 2026)
+require_once __DIR__ . '/../includes/list_sort.php';      // Sort box on Everyone's tasks (Nov 15, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -816,6 +817,14 @@ if ($tab === 'all') {
     foreach (['from', 'to'] as $k) if ($f[$k] !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $f[$k])) $f[$k] = '';
     if ($f['status'] === 'open' && $f['to'] === '' && !isset($_GET['to']) && $f['related'] === '') $f['to'] = bcrf_tasks_add_days($today, 7);
     $list = bcrf_tasks_list($pdo, $f);
+    $dueKey = fn($t) => $t['due_date'] ? $t['due_date'] . ' ' . ($t['due_time'] ?: '99') : null;   // no date goes last
+    $sortOpts = ['default' => ['Due date'], 'due_late' => ['Due date, latest first', $dueKey, 'desc'],
+                 'priority' => ['Most urgent first', fn($t) => ['urgent' => 4, 'high' => 3, 'normal' => 2, 'low' => 1][$t['priority'] ?? ''] ?? 2, 'desc'],
+                 'az' => ['Title A to Z', 'title', 'asc'], 'za' => ['Title Z to A', 'title', 'desc'],
+                 'who' => ['By person', fn($t) => bcrf_tasks_who($t), 'asc'],
+                 'newest' => ['Newest first', 'id', 'desc'], 'oldest' => ['Oldest first', 'id', 'asc']];
+    $sort = bcrf_list_sort_pick($pdo, 'tasks_all', $sortOpts);
+    $list = bcrf_list_sort_rows($list, $sortOpts, $sort);
     $open('Everyone', 'all', 'max-w-4xl');
     ?>
   <div class="flex flex-wrap items-end justify-between gap-2 mb-3">
@@ -833,7 +842,8 @@ if ($tab === 'all') {
     <div><label for="a_w" class="<?= $label ?>">Who</label><select id="a_w" name="who" class="<?= $input ?>"><option value="">Everyone</option><?= $whoOptions($f['who']) ?></select></div>
     <div><label for="a_f" class="<?= $label ?>">Due from</label><input id="a_f" type="date" name="from" value="<?= $h($f['from']) ?>" class="<?= $input ?>"></div>
     <div><label for="a_t" class="<?= $label ?>">to</label><input id="a_t" type="date" name="to" value="<?= $h($f['to']) ?>" class="<?= $input ?>"></div>
-    <div class="sm:col-span-6"><button type="submit" class="<?= $btnSec ?>">Show</button></div>
+    <div class="sm:col-span-2"><label for="a_sort" class="<?= $label ?>">Sort</label><?= bcrf_list_sort_select($sortOpts, $sort, ['id' => 'a_sort', 'class' => $input]) ?></div>
+    <div class="sm:col-span-4"><button type="submit" class="<?= $btnSec ?>">Show</button></div>
   </form>
   <div class="space-y-2">
     <?php foreach ($list as $t) echo $row($t, true); ?>

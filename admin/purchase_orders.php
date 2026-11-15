@@ -14,6 +14,7 @@ require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/purchasing.php';
 require_once __DIR__ . '/../includes/documents.php';   // invoice / quote papers (Nov 14, 2026)
 require_once __DIR__ . '/../includes/admin_shell.php';
+require_once __DIR__ . '/../includes/list_sort.php';     // Sort box on the list (Nov 15, 2026)
 require_once __DIR__ . '/../includes/record_tools.php';   // Changes list (Nov 14, 2026)   // shared Farm OS shell (Nov 11, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -220,12 +221,18 @@ $f = [
     'status' => in_array($_GET['status'] ?? '', ['open', 'draft', 'ordered', 'partial', 'received', 'cancelled', 'all'], true) ? $_GET['status'] : 'open',
     'vendor_id' => (int)($_GET['vendor'] ?? 0) ?: null,
 ];
-$rows = bcrf_po_list($pdo, $f);
+$rows = bcrf_po_list($pdo, $f, 200);
+$sortOpts = ['default' => ['By status, then expected date'], 'newest' => ['Newest first', 'id', 'desc'], 'oldest' => ['Oldest first', 'id', 'asc'],
+             'expected' => ['Expected soonest', 'expected_date', 'asc'], 'vendor' => ['Vendor A to Z', 'vendor_name', 'asc'],
+             'total_hi' => ['Total high to low', 'ordered_cents', 'desc'], 'total_lo' => ['Total low to high', 'ordered_cents', 'asc']];
+$sort = bcrf_list_sort_pick($pdo, 'purchase_orders', $sortOpts);
+$rows = bcrf_list_sort_rows($rows, $sortOpts, $sort);
 echo '<h1>Purchase orders</h1>';
 if ($flash) echo bcrf_shell_flash($flash);
 echo '<form class="rform" method="GET" action="purchase_orders.php"><input type="search" name="q" value="', $h($f['q']), '" placeholder="Ref, vendor, note" aria-label="Search">',
      $sel('status', ['open' => 'Open', 'draft' => 'Draft', 'ordered' => 'Ordered', 'partial' => 'Partial', 'received' => 'Received', 'cancelled' => 'Cancelled', 'all' => 'All'], $f['status']),
      $sel('vendor', $vendors, $f['vendor_id'] ?? '', 'All vendors'),
+     bcrf_list_sort_select($sortOpts, $sort),
      '<button class="btn sm" type="submit">Show</button><a class="btn sm primary" href="purchase_orders.php?new=1">New order</a></form>';
 if (!$rows) echo '<p class="card muted">No orders match. <a href="purchase_orders.php?new=1">Create one</a>.</p>';
 else {

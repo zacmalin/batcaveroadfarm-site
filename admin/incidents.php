@@ -16,6 +16,7 @@ require_once __DIR__ . '/../includes/queue.php';
 require_once __DIR__ . '/../includes/incidents.php';
 require_once __DIR__ . '/../includes/admin_shell.php';
 require_once __DIR__ . '/../includes/record_tools.php';   // Download CSV on the list (Nov 14, 2026)
+require_once __DIR__ . '/../includes/list_sort.php';      // Sort box on the list (Nov 15, 2026)
 if (is_file(__DIR__ . '/../includes/animals.php')) require_once __DIR__ . '/../includes/animals.php';
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
@@ -309,6 +310,11 @@ $status = (string)($_GET['status'] ?? 'open');
 if (!in_array($status, ['open', 'closed', 'all'], true)) $status = 'open';
 $type = (string)($_GET['type'] ?? '');
 $rows = bcrf_incident_list($pdo, ['status' => $status === 'all' ? '' : $status, 'type' => $type]);
+$sortOpts = ['default' => ['Newest first'], 'oldest' => ['Oldest first', 'happened_at', 'asc'],
+             'severity' => ['Most serious first', fn($i) => ['serious' => 3, 'moderate' => 2, 'minor' => 1][$i['severity']] ?? 0, 'desc'],
+             'kind' => ['By kind', fn($i) => BCRF_INCIDENT_TYPES[$i['type']] ?? (string)$i['type'], 'asc']];
+$sort = bcrf_list_sort_pick($pdo, 'incidents', $sortOpts);
+$rows = bcrf_list_sort_rows($rows, $sortOpts, $sort);
 bcrf_shell_open('Incidents', ['toast' => $toast, 'width' => 'max-w-4xl']);
 echo '<div class="flex flex-wrap items-center justify-between gap-2 mb-3"><h1 class="text-2xl font-bold text-stone-800">Incidents</h1>',
      '<a class="', $btnMain, '" href="incidents.php?new=1">Report an incident</a></div>';
@@ -318,6 +324,7 @@ if ($error) echo bcrf_shell_notice('err', $error); ?>
       <?php foreach (['open' => 'Open', 'closed' => 'Closed', 'all' => 'All'] as $k => $v): ?><option value="<?= $k ?>"<?= $status === $k ? ' selected' : '' ?>><?= $v ?></option><?php endforeach; ?></select></div>
     <div><label class="<?= $label ?>" for="f_ty">Kind</label><select id="f_ty" name="type" class="<?= $input ?>"><option value="">Every kind</option>
       <?php foreach (BCRF_INCIDENT_TYPES as $k => $v): ?><option value="<?= $k ?>"<?= $type === $k ? ' selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?></select></div>
+    <div><label class="<?= $label ?>" for="f_sort">Sort</label><?= bcrf_list_sort_select($sortOpts, $sort, ['id' => 'f_sort', 'class' => $input]) ?></div>
     <button class="<?= $btnSec ?>">Show</button>
     <?= bcrf_csv_link_html('incidents', ['status' => $status, 'type' => $type]) ?>
   </form>

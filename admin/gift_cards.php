@@ -16,6 +16,7 @@ require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/queue.php';
 require_once __DIR__ . '/../includes/gift_cards.php';
 require_once __DIR__ . '/../includes/admin_shell.php';
+require_once __DIR__ . '/../includes/list_sort.php';      // Sort box on the list (Nov 15, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -245,6 +246,11 @@ if (isset($_GET['id'])) {
 $f = ['q' => trim((string)($_GET['q'] ?? '')), 'status' => in_array($_GET['status'] ?? '', ['open', 'active', 'pending', 'void', 'all'], true) ? $_GET['status'] : 'open',
       'source' => isset($sources[$_GET['source'] ?? '']) ? $_GET['source'] : ''];
 $rows = bcrf_gc_list($pdo, $f);   // status 'all' = no filter
+$sortOpts = ['default' => ['Newest first'], 'oldest' => ['Oldest first', 'id', 'asc'],
+             'bal_hi' => ['Balance high to low', 'balance_cents', 'desc'], 'bal_lo' => ['Balance low to high', 'balance_cents', 'asc'],
+             'name' => ['Name A to Z', fn($r) => trim((string)($r['recipient_name'] ?: $r['recipient_email'] ?: $r['purchaser_name'] ?: '')), 'asc']];
+$sort = bcrf_list_sort_pick($pdo, 'gift_cards', $sortOpts);
+$rows = bcrf_list_sort_rows($rows, $sortOpts, $sort);
 $liab = bcrf_gc_liability($pdo);
 bcrf_shell_open('Gift Cards', ['toast' => $toast, 'width' => 'max-w-3xl']);
 ?>
@@ -287,6 +293,7 @@ bcrf_shell_open('Gift Cards', ['toast' => $toast, 'width' => 'max-w-3xl']);
       <select id="gsrc" name="source" class="<?= $input ?>"><option value="">Anywhere</option>
         <?php foreach ($sources as $k => $v): ?><option value="<?= $k ?>"<?= $f['source'] === $k ? ' selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?>
       </select></div>
+    <div class="w-36"><label class="<?= $label ?>" for="gsort">Sort</label><?= bcrf_list_sort_select($sortOpts, $sort, ['id' => 'gsort', 'class' => $input]) ?></div>
     <button type="submit" class="<?= $btnSec ?>">Show</button>
   </form>
 

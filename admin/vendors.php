@@ -19,6 +19,7 @@ require_once __DIR__ . '/../includes/admin_shell.php';
 require_once __DIR__ . '/../includes/admin_switch.php';   // Active switch on the list (Nov 14, 2026)
 require_once __DIR__ . '/../includes/record_tools.php';    // notes, tasks, changes (Nov 14, 2026)
 require_once __DIR__ . '/../includes/documents.php';       // papers: insurance certificate, W-9, contracts (Nov 14, 2026)
+require_once __DIR__ . '/../includes/list_sort.php';       // Sort box on the list (Nov 15, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -113,6 +114,9 @@ $vIcon = function (string $k): string {
 if (!$editing) {
     $f = ['q' => trim((string)($_GET['q'] ?? '')), 'status' => in_array($_GET['status'] ?? '', ['active', 'off', 'all'], true) ? $_GET['status'] : 'active'];
     $rows = bcrf_vendor_list($pdo, $f);
+    $sortOpts = ['default' => ['Name A to Z'], 'za' => ['Name Z to A', 'name', 'desc'], 'newest' => ['Newest first', 'id', 'desc'], 'oldest' => ['Oldest first', 'id', 'asc']];
+    $sort = bcrf_list_sort_pick($pdo, 'vendors', $sortOpts);
+    $rows = bcrf_list_sort_rows($rows, $sortOpts, $sort);
     bcrf_shell_open('Vendors', ['toast' => $toast, 'width' => 'max-w-3xl']);
     ?>
   <div class="flex flex-wrap items-end justify-between gap-3 mb-1">
@@ -128,6 +132,7 @@ if (!$editing) {
       <input id="vq" type="search" name="q" value="<?= $h($f['q']) ?>" placeholder="Name, contact, account #" class="<?= $input ?>">
     </div>
     <div class="w-32"><label class="<?= $label ?>" for="vs">Show</label><?= str_replace('<select ', '<select id="vs" ', $sel('status', ['active' => 'Active', 'off' => 'Inactive', 'all' => 'All'], $f['status'])) ?></div>
+    <div class="w-36"><label class="<?= $label ?>" for="vsort">Sort</label><?= bcrf_list_sort_select($sortOpts, $sort, ['id' => 'vsort', 'class' => $input]) ?></div>
     <button type="submit" class="<?= $btnSec ?>">Show</button>
   </form>
 

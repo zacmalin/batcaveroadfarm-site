@@ -14,6 +14,7 @@ require_permission([['table', 'recipes']]);
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/kitchen_versions.php';
 require_once __DIR__ . '/../includes/admin_shell.php';
+require_once __DIR__ . '/../includes/list_sort.php';      // Sort box on the list (Nov 15, 2026)
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 $csrf = $_SESSION['csrf_token'];
@@ -121,12 +122,23 @@ if ($id) {
 }
 
 $rows = bcrf_kitchen_products($pdo);
+$kpTodo = fn($r) => ($r['recipe_id'] && $r['approved_type'] && $r['shelf_life_days'] && $r['net_qty'] !== '') ? 1 : 0;
+$sortOpts = ['default' => ['On sale first, A to Z'], 'az' => ['Name A to Z', 'name', 'asc'], 'za' => ['Name Z to A', 'name', 'desc'],
+             'todo' => ['Needs setup first', $kpTodo, 'asc'], 'price_lo' => ['Price low to high', 'price', 'asc'], 'price_hi' => ['Price high to low', 'price', 'desc']];
+$sort = bcrf_list_sort_pick($pdo, 'kitchen_products', $sortOpts);
+$rows = bcrf_list_sort_rows($rows, $sortOpts, $sort);
 $linkable = $canEdit ? bcrf_kitchen_linkable_products($pdo) : [];
 bcrf_shell_open('Kitchen products', ['toast' => $toast, 'width' => 'max-w-4xl']);
 echo '<h1 class="text-2xl font-bold text-stone-800 mb-1">Kitchen products</h1>';
 echo '<p class="text-sm text-stone-500 mb-4">Products made in the kitchen and the recipe behind each: how many units a batch makes, how long it keeps, and whether NCDA&amp;CS has confirmed the product type. Products marked "Kitchen good (made here)" in Storefront › Products show here.</p>';
 if ($error) echo bcrf_shell_notice('err', $error);
 ?>
+  <?php if (count($rows) > 1): ?>
+  <form method="GET" action="kitchen_products.php" class="flex flex-wrap gap-2 items-end mb-3">
+    <div><label class="<?= $label ?>" for="kpsort">Sort</label><?= bcrf_list_sort_select($sortOpts, $sort, ['id' => 'kpsort', 'class' => $input]) ?></div>
+    <button type="submit" class="<?= $btnSec ?>">Sort</button>
+  </form>
+  <?php endif; ?>
   <div class="<?= $card ?>">
     <?php if (!$rows): ?><p class="text-sm text-stone-500">No kitchen products yet. Set a product's type to "Kitchen good (made here)" in Storefront › Products, or link one below.</p><?php else: ?>
     <ul class="divide-y divide-stone-100">

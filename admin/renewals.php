@@ -18,6 +18,7 @@ require_once __DIR__ . '/../includes/tasks.php';
 require_once __DIR__ . '/../includes/renewals.php';
 require_once __DIR__ . '/../includes/record_tools.php';
 require_once __DIR__ . '/../includes/admin_shell.php';
+require_once __DIR__ . '/../includes/list_sort.php';      // Sort box on the list (Nov 15, 2026)
 date_default_timezone_set(bcrf_renewals_tz()->getName());
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -90,6 +91,13 @@ if (!isset($_GET['id']) && !isset($_GET['new'])) {
     $show = in_array($_GET['show'] ?? '', ['finished', 'deleted'], true) ? (string)$_GET['show'] : 'upcoming';
     $q = trim((string)($_GET['q'] ?? ''));
     $rows = bcrf_renewal_list($pdo, $show, $q);
+    $sortOpts = ['default' => [$show === 'upcoming' ? 'Due soonest' : ($show === 'deleted' ? 'Last deleted first' : 'Latest date first')],
+                 'date_asc' => ['Date, soonest first', 'renews_on', 'asc'], 'date_desc' => ['Date, latest first', 'renews_on', 'desc'],
+                 'az' => ['Name A to Z', 'title', 'asc'], 'za' => ['Name Z to A', 'title', 'desc'],
+                 'cost_hi' => ['Cost high to low', 'cost_cents', 'desc'], 'cost_lo' => ['Cost low to high', 'cost_cents', 'asc'],
+                 'kind' => ['By kind', fn($r) => BCRF_RENEWAL_CATEGORIES[$r['category']] ?? '', 'asc']];
+    $sort = bcrf_list_sort_pick($pdo, 'renewals', $sortOpts);
+    $rows = bcrf_list_sort_rows($rows, $sortOpts, $sort);
     bcrf_shell_open('Renewals', ['toast' => $toast, 'width' => 'max-w-3xl']);
     ?>
   <div class="flex flex-wrap items-end justify-between gap-3 mb-1">
@@ -108,6 +116,7 @@ if (!isset($_GET['id']) && !isset($_GET['new'])) {
     <input type="hidden" name="show" value="<?= $h($show) ?>">
     <div class="flex-1 min-w-[12rem]"><label for="rq" class="<?= $label ?>">Search</label>
       <input id="rq" type="search" name="q" value="<?= $h($q) ?>" placeholder="Name, provider, account, notes" class="<?= $input ?>"></div>
+    <div class="w-36"><label for="rsort" class="<?= $label ?>">Sort</label><?= bcrf_list_sort_select($sortOpts, $sort, ['id' => 'rsort', 'class' => $input]) ?></div>
     <button type="submit" class="<?= $btnSec ?>">Search</button>
   </form>
 

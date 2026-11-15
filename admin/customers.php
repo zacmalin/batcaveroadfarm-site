@@ -24,6 +24,7 @@ require_once __DIR__ . '/../includes/crm.php';
 require_once __DIR__ . '/../includes/email_prefs.php';
 require_once __DIR__ . '/../includes/admin_shell.php';
 require_once __DIR__ . '/../includes/record_tools.php';   // Call/Text/Email, notes, tasks, changes, CSV (Nov 14, 2026)
+require_once __DIR__ . '/../includes/list_sort.php';      // Sort box on the list (Nov 15, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -339,7 +340,11 @@ if (!empty($_GET['dupes'])) {
 
 // ── FIND ──
 $q = trim((string)($_GET['q'] ?? ''));
-$list = bcrf_crm_search($pdo, $q, 60);
+$sortOpts = ['newest' => ['Newest first', 'id', 'desc', 'c.id DESC'], 'oldest' => ['Oldest first', 'id', 'asc', 'c.id ASC'],
+             'az' => ['Last name A to Z', null, 'asc', 'c.last_name, c.first_name, c.id'], 'za' => ['Last name Z to A', null, 'desc', 'c.last_name DESC, c.first_name DESC, c.id DESC'],
+             'first' => ['First name A to Z', null, 'asc', 'c.first_name, c.last_name, c.id']];
+$sort = bcrf_list_sort_pick($pdo, 'customers', $sortOpts);
+$list = bcrf_crm_search($pdo, $q, 60, bcrf_list_sort_sql($sortOpts, $sort, 'c.id DESC'));
 bcrf_shell_open('Customers', ['toast' => $toast, 'width' => 'max-w-4xl']);
 echo '<h1 class="text-2xl font-bold text-stone-800 mb-1">Customers</h1>', $tabs('find');
 if ($error) echo bcrf_shell_notice('err', $error);
@@ -347,6 +352,7 @@ if ($sync['linked']) echo '<p class="text-xs text-stone-500 mb-2">Linked ', $syn
 ?>
   <form method="GET" action="customers.php" class="flex flex-wrap gap-2 mb-4">
     <input name="q" value="<?= $h($q) ?>" placeholder="Name, email or phone" aria-label="Search customers" class="<?= $input ?> flex-1 min-w-48">
+    <?= bcrf_list_sort_select($sortOpts, $sort, ['class' => $input . ' sm:w-auto']) ?>
     <button class="<?= $btnMain ?> shrink-0">Search</button>
     <?= bcrf_csv_link_html('customers', ['q' => $q]) ?>
   </form>
@@ -362,7 +368,7 @@ if ($sync['linked']) echo '<p class="text-xs text-stone-500 mb-2">Linked ', $syn
       <?php endforeach; ?>
     </ul>
   </div>
-  <?php if ($q === ''): ?><p class="text-xs text-stone-500">Newest 60 shown. Search to find anyone else.</p><?php endif; ?>
+  <?php if ($q === '' && count($list) >= 60): ?><p class="text-xs text-stone-500">First 60 shown (<?= $h(strtolower($sortOpts[$sort][0])) ?>). Search to find anyone else.</p><?php endif; ?>
   <?php endif; ?>
 <?php
 bcrf_shell_close();

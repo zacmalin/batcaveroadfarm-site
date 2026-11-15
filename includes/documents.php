@@ -315,6 +315,7 @@ function bcrf_doc_list(PDO $pdo, array $f = [], int $limit = 100): array {
         $w[] = $or . ')';
     }
     $order = $show === 'expiring' ? 'd.expires_on, d.id' : 'COALESCE(d.doc_date, DATE(d.created_at)) DESC, d.id DESC';
+    if (!empty($f['order']) && is_string($f['order'])) $order = $f['order'];   // a fixed ORDER BY from the list's Sort box (Nov 15, 2026), never user text
     $st = $pdo->prepare(bcrf_doc_select() . ' WHERE ' . implode(' AND ', $w) . ' ORDER BY ' . $order . ' LIMIT ' . max(1, min(5000, $limit)));
     $st->execute($a);
     return $st->fetchAll(PDO::FETCH_ASSOC);

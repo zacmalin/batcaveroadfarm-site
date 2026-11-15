@@ -17,6 +17,7 @@
 //  - Fresh pages after Back (Nov 15, 2026): phones keep old pages in memory, so going Back after a save showed
 //    the list as it was before. Any save (form POST or background switch) is noted for this tab, and a page
 //    brought back from memory that is older than the last save reloads itself. Page scripts: bcrfMarkChanged().
+//  - select[data-sort-auto]: the Sort box on lists (Nov 15, 2026; includes/list_sort.php) reloads the list when changed.
 (function () {
     'use strict';
 
@@ -387,6 +388,14 @@
         var t = 0;
         try { t = Number(sessionStorage.getItem('bcrf-changed-at')) || 0; } catch (err) {}
         if (t > LOADED_AT) window.location.reload();
+    });
+
+    // ── Sort boxes on lists (Nov 15, 2026; includes/list_sort.php) ─────────
+    // Picking a sort reloads the list right away; the Show button still works without script.
+    document.addEventListener('change', function (e) {
+        var s = e.target;
+        if (!s || !s.matches || !s.matches('select[data-sort-auto]') || !s.form) return;
+        if (typeof s.form.requestSubmit === 'function') s.form.requestSubmit(); else s.form.submit();
     });
 
     function init() {

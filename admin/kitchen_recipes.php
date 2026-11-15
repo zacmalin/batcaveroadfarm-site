@@ -17,6 +17,7 @@ require_permission([['table', 'recipes']]);
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/kitchen_versions.php';
 require_once __DIR__ . '/../includes/admin_shell.php';
+require_once __DIR__ . '/../includes/list_sort.php';      // Sort box on the list (Nov 15, 2026)
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 $csrf = $_SESSION['csrf_token'];
@@ -212,6 +213,10 @@ if ($id) {
 
 $q = trim(mb_substr((string)($_GET['q'] ?? ''), 0, 60));
 $list = bcrf_kitchen_recipe_list($pdo, $q);
+$sortOpts = ['default' => ['Name A to Z'], 'za' => ['Name Z to A', 'title', 'desc'],
+             'todo' => ['Needs work first', fn($r) => $r['ready'] ? 1 : 0, 'asc'], 'ready' => ['Ready first', fn($r) => $r['ready'] ? 1 : 0, 'desc']];
+$sort = bcrf_list_sort_pick($pdo, 'kitchen_recipes', $sortOpts);
+$list = bcrf_list_sort_rows($list, $sortOpts, $sort);
 $ready = count(array_filter($list, fn($r) => $r['ready']));
 bcrf_shell_open('Recipe label check', ['toast' => $toast, 'width' => 'max-w-4xl']);
 echo '<h1 class="text-2xl font-bold text-stone-800 mb-1">Recipe label check</h1>';
@@ -220,6 +225,7 @@ if ($error) echo bcrf_shell_notice('err', $error);
 ?>
   <form method="GET" class="<?= $card ?> flex flex-wrap gap-3 items-end">
     <div class="flex-1 min-w-48"><label class="<?= $label ?>" for="rq">Search</label><input id="rq" name="q" value="<?= $h($q) ?>" class="<?= $input ?>" placeholder="Recipe name"></div>
+    <div><label class="<?= $label ?>" for="rsort">Sort</label><?= bcrf_list_sort_select($sortOpts, $sort, ['id' => 'rsort', 'class' => $input]) ?></div>
     <button class="<?= $btnSec ?>">Show</button>
   </form>
   <div class="<?= $card ?>">

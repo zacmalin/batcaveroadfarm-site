@@ -19,6 +19,7 @@ require_once __DIR__ . '/../includes/event_quotes.php';
 require_once __DIR__ . '/../includes/crm.php';
 require_once __DIR__ . '/../includes/admin_shell.php';
 require_once __DIR__ . '/../includes/record_tools.php';   // Call/Text/Email/Map, notes, tasks, changes (Nov 14, 2026)
+require_once __DIR__ . '/../includes/list_sort.php';      // Sort box on the list (Nov 15, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -175,13 +176,17 @@ if ($id || isset($_GET['new'])) {
 
 $q = trim((string)($_GET['q'] ?? ''));
 $orgs = bcrf_crm_orgs($pdo, $q);
+$sortOpts = ['default' => ['Name A to Z'], 'za' => ['Name Z to A', 'name', 'desc'], 'newest' => ['Newest first', 'id', 'desc'], 'oldest' => ['Oldest first', 'id', 'asc'],
+             'bookings' => ['Most bookings', 'n_bookings', 'desc'], 'parties' => ['Most parties', 'n_parties', 'desc'], 'kind' => ['By kind', fn($o) => BCRF_CRM_ORG_KINDS[$o['kind']] ?? '', 'asc']];
+$sort = bcrf_list_sort_pick($pdo, 'organizations', $sortOpts);
+$orgs = bcrf_list_sort_rows($orgs, $sortOpts, $sort);
 bcrf_shell_open('Organizations', ['toast' => $toast, 'width' => 'max-w-4xl']);
 echo '<h1 class="text-2xl font-bold text-stone-800 mb-1">Customers</h1>', $tabs();
 if ($error) echo bcrf_shell_notice('err', $error);
 ?>
   <div class="flex flex-wrap gap-2 mb-4">
-    <form method="GET" action="organizations.php" class="flex gap-2 flex-1 min-w-48">
-      <input name="q" value="<?= $h($q) ?>" placeholder="Search organizations" aria-label="Search organizations" class="<?= $input ?>"><button class="<?= $btnSec ?> shrink-0">Search</button></form>
+    <form method="GET" action="organizations.php" class="flex flex-wrap gap-2 flex-1 min-w-48">
+      <input name="q" value="<?= $h($q) ?>" placeholder="Search organizations" aria-label="Search organizations" class="<?= $input ?> flex-1 min-w-48"><?= bcrf_list_sort_select($sortOpts, $sort, ['class' => $input . ' sm:w-auto']) ?><button class="<?= $btnSec ?> shrink-0">Search</button></form>
     <a href="organizations.php?new=1" class="<?= $btnMain ?>">Add organization</a>
   </div>
   <?php if (!$orgs): ?><p class="text-sm text-stone-500"><?= $q !== '' ? 'Nothing matches that.' : 'No organizations yet. Add the schools, troops and churches that book with you.' ?></p><?php else: ?>

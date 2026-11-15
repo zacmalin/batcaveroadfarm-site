@@ -19,6 +19,7 @@ require_once __DIR__ . '/../includes/documents.php';
 require_once __DIR__ . '/../includes/record_tools.php';   // flash keys, CSV link (Nov 14, 2026)
 if (is_file(__DIR__ . '/../includes/vendors.php')) require_once __DIR__ . '/../includes/vendors.php';
 require_once __DIR__ . '/../includes/admin_shell.php';
+require_once __DIR__ . '/../includes/list_sort.php';      // Sort box on the list (Nov 15, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -240,7 +241,15 @@ $from = $valid($_GET['from'] ?? null) ? (string)$_GET['from'] : '';
 $to = $valid($_GET['to'] ?? null) ? (string)$_GET['to'] : '';
 $missing = $canStock ? bcrf_doc_receives_missing($pdo, 50) : [];
 $inboxN = $canStock ? count(bcrf_doc_list($pdo, ['show' => 'inbox'], 500)) : 0;
-$rows = $show === 'missing' ? [] : bcrf_doc_list($pdo, ['show' => $show, 'q' => $q, 'from' => $from, 'to' => $to], 100);
+$docDate = 'COALESCE(d.doc_date, DATE(d.created_at))';
+$sortOpts = ['default' => [$show === 'expiring' ? 'Runs out soonest' : 'Newest first'],
+             'oldest' => ['Oldest first', null, 'asc', "$docDate ASC, d.id ASC"],
+             'added' => ['Last added first', null, 'desc', 'd.id DESC'],
+             'amount_hi' => ['Amount high to low', null, 'desc', 'd.total_cents IS NULL, d.total_cents DESC, d.id DESC'],
+             'amount_lo' => ['Amount low to high', null, 'asc', 'd.total_cents IS NULL, d.total_cents ASC, d.id DESC'],
+             'vendor' => ['Vendor A to Z', null, 'asc', "COALESCE(v.name, d.vendor_name, '') = '', COALESCE(v.name, d.vendor_name), $docDate DESC, d.id DESC"]];
+$sort = bcrf_list_sort_pick($pdo, 'documents', $sortOpts);
+$rows = $show === 'missing' ? [] : bcrf_doc_list($pdo, ['show' => $show, 'q' => $q, 'from' => $from, 'to' => $to, 'order' => bcrf_list_sort_sql($sortOpts, $sort, '')], 100);
 
 bcrf_shell_open('Invoices & receipts', ['width' => 'max-w-4xl']);
 echo '<h1 class="text-2xl font-bold text-stone-800 mb-3">Invoices &amp; receipts</h1>';
@@ -284,6 +293,7 @@ echo bcrf_shell_flash($flash);
     <div class="flex-1 min-w-48"><label class="<?= $label ?>" for="dq">Find</label><input id="dq" name="q" value="<?= $h($q) ?>" class="<?= $input ?>" placeholder="Vendor, invoice #, note or amount"></div>
     <div><label class="<?= $label ?>" for="df">From</label><input id="df" name="from" type="date" value="<?= $h($from) ?>" class="<?= $input ?>"></div>
     <div><label class="<?= $label ?>" for="dt">To</label><input id="dt" name="to" type="date" value="<?= $h($to) ?>" class="<?= $input ?>"></div>
+    <div><label class="<?= $label ?>" for="dsort">Sort</label><?= bcrf_list_sort_select($sortOpts, $sort, ['id' => 'dsort', 'class' => $input]) ?></div>
     <button class="<?= $btnSec ?>">Show</button>
     <?= bcrf_csv_link_html('documents', ['show' => $show === 'all' ? '' : $show, 'q' => $q, 'from' => $from, 'to' => $to]) ?>
   </form>
@@ -301,7 +311,7 @@ echo bcrf_shell_flash($flash);
       </li>
       <?php endforeach; ?>
     </ul>
-    <?php if (count($rows) >= 100): ?><p class="text-xs text-stone-500 mt-2">Showing the newest 100. Use Find or the dates to narrow it down.</p><?php endif; ?>
+    <?php if (count($rows) >= 100): ?><p class="text-xs text-stone-500 mt-2">Showing the first 100 (<?= $h(strtolower($sortOpts[$sort][0])) ?>). Use Find or the dates to narrow it down.</p><?php endif; ?>
     <?php endif; ?>
   </div>
   <?php endif; ?>

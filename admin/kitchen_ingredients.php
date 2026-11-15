@@ -14,6 +14,7 @@ require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/kitchen.php';
 require_once __DIR__ . '/../includes/kitchen_batches.php';   // stock product link (slice 3, migration 0053)
 require_once __DIR__ . '/../includes/admin_shell.php';
+require_once __DIR__ . '/../includes/list_sort.php';      // Sort box on the list (Nov 15, 2026)
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 $csrf = $_SESSION['csrf_token'];
@@ -174,6 +175,10 @@ if ($id) {
 $show = in_array($_GET['show'] ?? '', ['attention', 'unchecked', 'all'], true) ? $_GET['show'] : 'attention';
 $q = trim(mb_substr((string)($_GET['q'] ?? ''), 0, 60));
 $rows = bcrf_kitchen_ingredient_list($pdo, $q !== '' ? 'all' : $show, $q);
+$sortOpts = ['default' => ['Name A to Z'], 'za' => ['Name Z to A', 'singular_name', 'desc'],
+             'used' => ['In the most recipes', fn($r) => count($r['used_in']), 'desc'], 'newest' => ['Newest added', 'id', 'desc']];
+$sort = bcrf_list_sort_pick($pdo, 'kitchen_ingredients', $sortOpts);
+$rows = bcrf_list_sort_rows($rows, $sortOpts, $sort);
 $counts = ['attention' => count(bcrf_kitchen_ingredient_list($pdo, 'attention')), 'unchecked' => count(bcrf_kitchen_ingredient_list($pdo, 'unchecked'))];
 bcrf_shell_open('Ingredient label details', ['toast' => $toast, 'width' => 'max-w-4xl']);
 echo '<h1 class="text-2xl font-bold text-stone-800 mb-1">Ingredient label details</h1>';
@@ -186,6 +191,7 @@ if ($error) echo bcrf_shell_notice('err', $error);
       <option value="unchecked"<?= $show === 'unchecked' ? ' selected' : '' ?>>Allergens not checked (<?= $counts['unchecked'] ?>)</option>
       <option value="all"<?= $show === 'all' ? ' selected' : '' ?>>All ingredients</option></select></div>
     <div class="flex-1 min-w-48"><label class="<?= $label ?>" for="kq">Search</label><input id="kq" name="q" value="<?= $h($q) ?>" class="<?= $input ?>" placeholder="Name"></div>
+    <div><label class="<?= $label ?>" for="ksort">Sort</label><?= bcrf_list_sort_select($sortOpts, $sort, ['id' => 'ksort', 'class' => $input]) ?></div>
     <button class="<?= $btnSec ?>">Show</button>
   </form>
   <?php if (!$rows): ?>

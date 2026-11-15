@@ -10,6 +10,7 @@
 // Nov 15, 2026: the list shows all products by default (a product saved with On turned off used to vanish from it);
 //   new type "In-house supply" (feed, bedding: stocked, never sold); "Animal feed" box ties a product to Animal care's feed list;
 //   photo box gets Pick from vault / Upload to vault (admin/assets/product-photo.js; folders from bcrf_image_folders()).
+// Nov 15, 2026: Sort box on the list (includes/list_sort.php; your pick is remembered on your account).
 // Permission: edit on the inventory table (Permissions Matrix). Plain forms; the photo buttons are the only script (strict CSP, C-09).
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
@@ -24,6 +25,7 @@ require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell
 require_once __DIR__ . '/../includes/admin_switch.php';
 require_once __DIR__ . '/../includes/record_tools.php';   // tasks and changes on each product (Nov 14, 2026)
 require_once __DIR__ . '/includes/image_names.php';      // vault folders for the photo box (Nov 15, 2026)
+require_once __DIR__ . '/../includes/list_sort.php';     // Sort box on the list (Nov 15, 2026)
 if (is_file(__DIR__ . '/../includes/animal_care.php')) require_once __DIR__ . '/../includes/animal_care.php';
 $feedReady = function_exists('bcrf_care_ready') && bcrf_care_ready($pdo);
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
@@ -112,12 +114,20 @@ if (!$editing) {
           'type' => isset(bcrf_product_types()[$_GET['type'] ?? ''] ) || ($_GET['type'] ?? '') === 'admission' ? $_GET['type'] : null,
           'status' => in_array($_GET['status'] ?? '', ['active', 'off', 'all'], true) ? $_GET['status'] : 'all'];
     $rows = bcrf_product_list($pdo, $f);
+    $stockOf = fn($r) => (int)$r['track_inventory'] ? (float)$r['stock_quantity'] : null;   // not-stocked items go last
+    $sortOpts = ['default' => ['By category'], 'az' => ['Name A to Z', 'name', 'asc'], 'za' => ['Name Z to A', 'name', 'desc'],
+                 'newest' => ['Newest first', 'id', 'desc'], 'oldest' => ['Oldest first', 'id', 'asc'],
+                 'price_lo' => ['Price low to high', 'price', 'asc'], 'price_hi' => ['Price high to low', 'price', 'desc'],
+                 'stock_lo' => ['Stock low to high', $stockOf, 'asc'], 'stock_hi' => ['Stock high to low', $stockOf, 'desc']];
+    $sort = bcrf_list_sort_pick($pdo, 'products', $sortOpts);
+    $rows = bcrf_list_sort_rows($rows, $sortOpts, $sort);
     echo '<h1>Products</h1>';
     if ($flash) echo bcrf_shell_flash($flash);
     echo '<form class="rform" method="GET" action="products.php"><input type="search" name="q" value="', $h($f['q']), '" placeholder="Name or SKU (scan)" aria-label="Search">',
          $sel('cat', $cats, $f['category_id'], 'All categories', ['aria-label' => 'Category']),
          $sel('type', bcrf_product_types() + ['admission' => 'Admission'], $f['type'], 'All types', ['aria-label' => 'Type']),
          $sel('status', ['all' => 'On and off', 'active' => 'On only', 'off' => 'Turned off only'], $f['status'], '', ['aria-label' => 'Status']),
+         bcrf_list_sort_select($sortOpts, $sort),
          '<button class="btn sm" type="submit">Show</button><a class="btn sm primary" href="products.php?new=1">Add a product</a></form>';
     if (!$rows) echo '<p class="card muted">No products match.</p>';
     else {
