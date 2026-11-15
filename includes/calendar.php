@@ -269,14 +269,14 @@ function bcrf_cal_due_dates(PDO $pdo, string $from, string $to, string $role): a
 }
 
 /**
- * Monthly, every-3-months and yearly chores beyond the days already made (tasks exist only horizon_days ahead), shown as
- * planned on the Tasks layer. Same who-sees-what rule as tasks. Daily and weekly chores are left out: they'd fill every day.
+ * Every repeating chore beyond the days already made (tasks exist only horizon_days ahead), shown as planned on the Tasks
+ * layer, so the calendar keeps showing daily feeding etc. past next week. Same who-sees-what rule as tasks.
  */
 function bcrf_cal_planned_chores(PDO $pdo, string $from, string $to, array $viewer): array {
     if (!function_exists('bcrf_rec_falls_on') || !function_exists('bcrf_tasks_ready') || !bcrf_tasks_ready($pdo)) return [];
     $items = [];
     try {
-        $rows = $pdo->query("SELECT * FROM task_recurrences WHERE active = 1 AND freq IN ('monthly', 'quarterly', 'yearly')")->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $pdo->query("SELECT * FROM task_recurrences WHERE active = 1")->fetchAll(PDO::FETCH_ASSOC);   // every repeat (Nov 15, 2026: daily and weekly too)
     } catch (Throwable $e) { return []; }
     $today = bcrf_cal_today();
     foreach ($rows as $r) {
@@ -288,11 +288,10 @@ function bcrf_cal_planned_chores(PDO $pdo, string $from, string $to, array $view
         $made = (string)($r['generated_through'] ?? '');
         $lo = max($from, $today, $made !== '' ? (new DateTimeImmutable($made))->modify('+1 day')->format('Y-m-d') : $today);
         if ($lo > $to) continue;
-        $md = max(1, min(31, (int)$r['month_day']));
-        // Only the one day a month it could fall on is checked.
-        for ($m = (new DateTimeImmutable(substr($lo, 0, 8) . '01')); $m->format('Y-m-d') <= $to; $m = $m->modify('+1 month')) {
-            $d = $m->format('Y-m-') . sprintf('%02d', min($md, (int)$m->format('t')));
-            if ($d < $lo || $d > $to || !bcrf_rec_falls_on($pdo, $r, $d)) continue;
+        // Day by day past the tasks already made (at most 400 days, so a long phone-feed range stays quick).
+        for ($day = new DateTimeImmutable($lo), $n = 0; $day->format('Y-m-d') <= $to && $n < 400; $day = $day->modify('+1 day'), $n++) {
+            $d = $day->format('Y-m-d');
+            if (!bcrf_rec_falls_on($pdo, $r, $d)) continue;
             $time = function_exists('bcrf_rec_due_time') ? bcrf_rec_due_time($pdo, $r, $d) : null;
             $who = !empty($r['assignee_user_id']) ? bcrf_cal_person($pdo, (int)$r['assignee_user_id']) : (!empty($r['assignee_role']) ? (string)$r['assignee_role'] : 'Anyone');
             $items[] = bcrf_cal_item('tasks', 'chore-' . $r['id'] . '-' . $d, (string)$r['title'], $d . ($time ? ' ' . $time : ''), null,

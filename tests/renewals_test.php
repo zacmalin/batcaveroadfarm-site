@@ -59,6 +59,7 @@ $ok(!bcrf_rec_falls_on($pdo, $pdo->query("SELECT * FROM task_recurrences WHERE s
     && bcrf_rec_falls_on($pdo, $pdo->query("SELECT * FROM task_recurrences WHERE seed_key = 'notion_dmarc_weekly'")->fetch(PDO::FETCH_ASSOC), '2026-11-30'), 'weekly DMARC stops after Dec 7');
 $pdo->exec("DELETE FROM renewals");   // the checks below start from an empty list
 $pdo->exec("DELETE FROM task_recurrences WHERE seed_key LIKE 'notion\\_%'");
+$pdo->exec("UPDATE task_recurrences SET active = 0");   // starter chores (daily feeding) would show as planned on every day; the checks below add their own
 $ok(bcrf_renewals_can('administrator') && bcrf_renewals_can('moderator') && !bcrf_renewals_can('Staff') && !bcrf_renewals_can('Shopkeep') && !bcrf_renewals_can('user'), 'Owners and Managers only');
 $ok(in_array('renewals', bcrf_cal_layers_for('moderator'), true) && !in_array('renewals', bcrf_cal_layers_for('Staff'), true), 'calendar layer follows the view');
 $ok(isset(bcrf_record_kinds()['renewal']) && bcrf_record_can('renewal', 'moderator') && !bcrf_record_can('renewal', 'Staff'), 'renewal is a record kind (notes, tasks, changes)');

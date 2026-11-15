@@ -24,6 +24,7 @@ require $root . '/includes/migrations.php';
 [$built, $log] = bcrf_migrations_run_pending($pdo, null);
 if (!$built) { fwrite(STDERR, "Migrations failed:\n" . implode("\n", $log) . "\n"); exit(2); }
 $pdo->exec("DELETE FROM task_recurrences WHERE seed_key LIKE 'notion\\_%'"); $pdo->exec("DELETE FROM renewals");   // 0070 adds the farm's own renewals and chores; these checks start without them
+$pdo->exec("UPDATE task_recurrences SET active = 0");   // starter chores (daily feeding) would show as planned on every day; the checks below add their own
 require $root . '/admin/includes/permission_checks.php';
 require $root . '/includes/queue.php';
 require $root . '/admin/includes/audit.php';
@@ -176,6 +177,15 @@ bcrf_cal_feed_delete($pdo, 2);
 $ok(bcrf_cal_feed_owner($pdo, $tok2) === null && bcrf_cal_feed_get($pdo, 2) === null, 'turned off');
 $tg = bcrf_cal_feed_reset($pdo, 3);
 $ok(bcrf_cal_feed_owner($pdo, $tg) === null, 'disabled staff member\'s link doesn\'t work');
+
+// Daily chores keep showing past the week their tasks are made for (Nov 15, 2026)
+$t0 = bcrf_cal_today(); $made = (new DateTimeImmutable($t0))->modify('+6 days')->format('Y-m-d');
+$pdo->prepare("INSERT INTO task_recurrences (title, priority, freq, interval_n, open_days_only, due_anchor, due_time, start_date, horizon_days, generated_through, active, created_at)
+               VALUES ('Daily feed check', 'normal', 'daily', 1, 0, 'time', '07:00:00', ?, 7, ?, 1, UTC_TIMESTAMP())")->execute([$t0, $made]);
+$far = (new DateTimeImmutable($t0))->modify('+30 days')->format('Y-m-d');
+$daily = array_values(array_filter(bcrf_cal_items($pdo, $t0, $far, ['tasks'], ['user_id' => 1, 'role' => 'administrator', 'manager' => true]), fn($i) => $i['title'] === 'Daily feed check'));
+$ok(count($daily) === 24 && substr($daily[0]['date'], 0, 10) === (new DateTimeImmutable($made))->modify('+1 day')->format('Y-m-d'), 'daily chore planned on every day after its tasks run out');
+$pdo->exec("UPDATE task_recurrences SET active = 0 WHERE title = 'Daily feed check'");
 
 echo $fails ? "\n$fails of $n checks FAILED\n" : "All $n calendar checks passed\n";
 exit($fails ? 1 : 0);
