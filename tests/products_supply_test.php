@@ -77,7 +77,7 @@ $ok(bcrf_product_emoji('kitchen_good', 'Sourdough Loaf') === '🍞', 'bread gets
 $ok(bcrf_product_emoji('produce', 'Eggplant') === '🥬', 'eggplant is not an egg');
 $ok(bcrf_product_emoji('supply', 'Sweet Feed 50 lb') === '🌾' && bcrf_product_emoji('supply', 'Pine shavings') === '🌾', 'in-house supplies get wheat');
 $ok(bcrf_product_emoji('admission', 'Farm admission') === '🎟️' && bcrf_product_emoji('nope', 'Thing') === '📦', 'type fallback and unknown fallback');
-$ok(str_contains($src, 'class="pthumb"') && str_contains($src, 'loading="lazy"') && str_contains($src, 'data-fallback'), 'list shows a lazy thumbnail with emoji fallback');
+$ok(str_contains($src, 'class="pthumb"') && str_contains($src, 'loading="lazy"') && str_contains($src, 'data-fallback') && str_contains($src, 'class="pside"'), 'list shows a lazy thumbnail with emoji fallback');
 
 echo "$n checks, $fails failed\n";
 exit($fails ? 1 : 0);

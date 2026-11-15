@@ -132,11 +132,13 @@ if (!$editing) {
             $thumb = '<span class="pthumb">' . ($hasPic ? '<img src="' . $h($r['image_url']) . '" alt="" width="44" height="44" loading="lazy" decoding="async" data-fallback>' : '') . $emo . '</span>';
             echo '<div class="lrow ui-swrow', $on ? '' : ' is-off', '" data-switch-row><a class="cardlink ui-swmain" href="products.php?id=', (int)$r['id'], '">', $thumb, '<div class="pthumb-txt"><b>', $h($r['name']), '</b>',
                  '<br><small class="muted">', $h($r['cat']), ' · ', $h(bcrf_product_type_label($r['product_type'])), $r['sku'] ? ' · ' . $h($r['sku']) : '',
-                 ' · ' . $h($r['tax_name'] ?: 'General tax'), '</small></div><div class="r"><b>', $h($priceTxt), '</b><br><small class="muted">',
-                 (int)$r['track_inventory'] ? $h($q3($r['stock_quantity'])) . ' on hand' : 'not stocked', '</small></div></a>',
+                 ' · ' . $h($r['tax_name'] ?: 'General tax'), '</small></div></a>',
+                 // Price + count share a column with the switch: side by side on wide screens, stacked above it on phones (Nov 15, 2026)
+                 '<div class="pside"><a class="cardlink r" href="products.php?id=', (int)$r['id'], '" tabindex="-1"><b>', $h($priceTxt), '</b><br><small class="muted">',
+                 (int)$r['track_inventory'] ? $h($q3($r['stock_quantity'])) . ' on hand' : 'not stocked', '</small></a>',
                  bcrf_switch(['action' => 'products.php', 'csrf' => $csrf, 'fields' => ['act' => 'active', 'id' => (int)$r['id'], 'back' => $backQs],
                               'on' => $on, 'label' => $r['name'] . ($r['product_type'] === 'supply' ? ' in use' : ' on sale')]),
-                 '</div>';
+                 '</div></div>';
         }
         echo '</div><p class="muted">', count($rows), ' product', count($rows) === 1 ? '' : 's', '. Nothing is deleted: flip a product\'s switch off to take it off the register and website. In-house supplies never go on either; their switch just means still in use.</p>';
     }

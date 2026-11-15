@@ -177,3 +177,7 @@ dialog.ui-modal::backdrop{background:transparent;overflow:hidden;overscroll-beha
 .pthumb-e{font-size:1.45rem;line-height:1;display:flex;align-items:center;justify-content:center}
 .pthumb-e.hidden{display:none}
 .ui-swmain > .pthumb-txt{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+.pside{display:flex;align-items:center;gap:.75rem;flex:0 0 auto}
+.pside .r{text-align:right;white-space:nowrap;line-height:1.35}
+[data-switch-row].is-off > .pside .r{opacity:.55}
+@media (max-width:640px){.pside{flex-direction:column;align-items:flex-end;gap:0}}
