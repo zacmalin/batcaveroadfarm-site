@@ -139,13 +139,33 @@ foreach (array_keys($_catalog) as $_cid) {
     if (!in_array($_cid, $_defaults, true)) $_defaults[] = $_cid;
 }
 
+// Your own shortcuts, saved on your account (Nov 15, 2026; includes/staff_prefs.php, migration 0068, saved by admin/nav_prefs.php).
+$_prefs_ready = false; $_saved_pins = null;
+try {
+    require_once dirname(__DIR__, 3) . '/includes/staff_prefs.php';
+    if (isset($pdo) && $pdo instanceof PDO && bcrf_staff_prefs_ready($pdo)) {
+        $_prefs_ready = true;
+        $_sv = bcrf_staff_pref_get($pdo, (int)($current_user_id ?? 0), 'nav_shortcuts');
+        if (is_array($_sv)) $_saved_pins = array_values(array_filter(bcrf_nav_shortcuts_clean($_sv), fn($id) => isset($_catalog[$id])));
+    }
+} catch (Throwable $e) { error_log('[sidebar] shortcuts: ' . $e->getMessage()); }
+$_bar = $_saved_pins ?: $_defaults;
+if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+
 $_nav_data = [
     'sections'       => array_keys($_nav),
     'currentSection' => $_cur_section,
     'catalog'        => $_catalog,
     'defaults'       => $_defaults,
     'userKey'        => (string)($current_user_id ?? ''),
+    'prefsReady'     => $_prefs_ready,
+    'saved'          => $_saved_pins,
+    'prefsUrl'       => '/admin/nav_prefs.php',
+    'csrf'           => (string)($_SESSION['csrf_token'] ?? ''),
 ];
+// Badge markup shared by the bottom bar and the More sheet: big, ringed, top-right corner (Nov 15, 2026).
+$_badge = fn(int $n): string => $n > 0
+    ? '<span class="nav-badge" aria-label="' . $n . ' need attention">' . ($n > 99 ? '99+' : $n) . '</span>' : '';
 ?>
 
 <!-- Shell styles: /admin/assets/admin-shell.css (moved out of this file Nov 11, 2026, so strict-policy pages can use it) -->
@@ -234,9 +254,9 @@ $_nav_data = [
 <nav id="navBottomBar" aria-label="Shortcuts"
      class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-stone-900 border-t border-stone-700 print:hidden nav-safe-bottom">
   <div id="navBarSlots" class="nav-bar">
-    <?php foreach ($_defaults as $_cid): $_c = $_catalog[$_cid]; ?>
-    <a href="<?= $_h($_c['href']) ?>" data-sc-slot="<?= $_h($_cid) ?>" class="nav-slot<?= $_c['active'] ? ' is-active' : '' ?>">
-      <span class="nav-slot-icon"><?= $_c['icon'] ?><?php if ($_c['badge'] > 0): ?><span class="nav-badge"><?= (int)$_c['badge'] ?></span><?php endif; ?></span>
+    <?php foreach ($_bar as $_cid): $_c = $_catalog[$_cid]; ?>
+    <a href="<?= $_h($_c['href']) ?>" data-sc-slot="<?= $_h($_cid) ?>" class="nav-slot<?= $_c['active'] ? ' is-active' : '' ?><?= $_c['badge'] > 0 ? ' has-badge' : '' ?>">
+      <span class="nav-slot-icon"><?= $_c['icon'] ?><?= $_badge((int)$_c['badge']) ?></span>
       <span class="nav-slot-label"><?= $_h($_c['short']) ?></span>
     </a>
     <?php endforeach; ?>
@@ -283,8 +303,8 @@ $_nav_data = [
       </a>
       <?php endif; ?>
       <?php if (isset($_catalog['notifications'])): ?>
-      <a href="/admin/notifications.php" data-sc-id="notifications" class="nav-tile<?= $_catalog['notifications']['active'] ? ' is-current' : '' ?>">
-        <span class="nav-tile-icon">🔔<?php if ($_bell > 0): ?><span class="nav-badge"><?= (int)$_bell ?></span><?php endif; ?></span><span>Notifications</span>
+      <a href="/admin/notifications.php" data-sc-id="notifications" class="nav-tile<?= $_catalog['notifications']['active'] ? ' is-current' : '' ?><?= $_bell > 0 ? ' has-badge' : '' ?>">
+        <span class="nav-tile-icon">🔔</span><span>Notifications</span><?= $_badge((int)$_bell) ?>
       </a>
       <?php endif; ?>
     </div>
@@ -295,9 +315,9 @@ $_nav_data = [
       <div class="text-[10px] font-black uppercase tracking-widest text-stone-500 mb-2"><?= $_sec['icon'] ?> <?= $_h($_sec['label']) ?></div>
       <div class="grid grid-cols-3 gap-2">
         <?php foreach ($_sec['items'] as $_item): ?>
-        <a href="<?= $_h($_item['href']) ?>" data-sc-id="<?= $_h($_item['id']) ?>" class="nav-tile<?= $_item['active'] ? ' is-current' : '' ?>">
-          <span class="nav-tile-icon"><?= $_item['icon'] ?><?php if ($_item['badge'] > 0): ?><span class="nav-badge"><?= (int)$_item['badge'] ?></span><?php endif; ?></span>
-          <span><?= $_h($_item['label']) ?></span>
+        <a href="<?= $_h($_item['href']) ?>" data-sc-id="<?= $_h($_item['id']) ?>" class="nav-tile<?= $_item['active'] ? ' is-current' : '' ?><?= $_item['badge'] > 0 ? ' has-badge' : '' ?>">
+          <span class="nav-tile-icon"><?= $_item['icon'] ?></span>
+          <span><?= $_h($_item['label']) ?></span><?= $_badge((int)$_item['badge']) ?>
         </a>
         <?php endforeach; ?>
       </div>
@@ -323,4 +343,4 @@ $_nav_data = [
 <?php endif; ?>
 
 <script type="application/json" id="navData"><?= json_encode($_nav_data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
-<script src="/admin/assets/admin-nav.js?v=20261113a"></script>
+<script src="/admin/assets/admin-nav.js?v=20261115a"></script>

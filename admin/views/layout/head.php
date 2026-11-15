@@ -155,5 +155,5 @@ document.addEventListener('keydown', function(e) {
 <link rel="stylesheet" href="/admin/assets/admin-ui.css?v=20261114d">
 <script defer src="/admin/assets/admin-ui.js?v=20261114b"></script>
 <!-- Shell chrome (sidebar rail, phone bar, More sheet, tabs) — moved out of sidebar.php Nov 11, 2026 -->
-<link rel="stylesheet" href="/admin/assets/admin-shell.css?v=20261113a">
+<link rel="stylesheet" href="/admin/assets/admin-shell.css?v=20261115a">
 

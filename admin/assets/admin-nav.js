@@ -1,7 +1,9 @@
 // admin/assets/admin-nav.js
 // Farm OS navigation (02 — Navigation & UX, Nov 5 2026). External file, no inline handlers (CSP).
 // - Sidebar: accordion sections + icon-rail collapse (tablet 768–1199px defaults to the rail)
-// - Phone (<768px): bottom bar with up to 4 shortcuts + More sheet; shortcuts editable, saved on this device
+// - Phone (<768px): bottom bar with up to 4 shortcuts + More sheet; shortcuts editable, saved on your account
+//   (Nov 15, 2026: admin/nav_prefs.php, migration 0068) so every phone you sign in on has them. A setup saved on
+//   this phone before then is moved to your account the first time. Until 0068 is run they stay on the phone.
 // - Page tabs for grouped tools are moved to the top of <main>
 (function () {
     'use strict';
@@ -18,7 +20,8 @@
     };
     var COLL_KEY = 'bcf_sidebar_collapsed';
     var SECT_KEY = 'bcf_sidebar_open';
-    var SC_KEY   = 'bcf_shortcuts_v1:' + (D.userKey || '');
+    var SC_KEY   = 'bcf_shortcuts_v1:' + (D.userKey || '');        // on-phone setup (before Nov 15, 2026 / before 0068)
+    var SC_PEND  = 'bcf_shortcuts_pending:' + (D.userKey || '');   // a change the account didn't take yet (offline)
     var MAX_PINS = 4;
 
     // ── Sidebar collapse (icon rail) ────────────────────────────────────────
@@ -73,12 +76,47 @@
         });
         return out;
     }
-    function currentPins() {
-        var s = store.get(SC_KEY);
+    function localPins(key) {
+        var s = store.get(key || SC_KEY);
         if (s) {
-            try { var p = validIds(JSON.parse(s)); if (p.length) return p; } catch (e) {}
+            try { return validIds(JSON.parse(s)); } catch (e) {}
         }
-        return validIds(D.defaults);
+        return [];
+    }
+    function currentPins() {
+        if (D.prefsReady) {
+            var a = validIds(D.saved);
+            if (a.length) return a;
+        }
+        var p = localPins();
+        return p.length ? p : validIds(D.defaults);
+    }
+    // Save to the account; on failure keep a copy on this phone so nothing is lost.
+    function saveAccount(list, done) {
+        if (!D.prefsReady || !D.prefsUrl || !window.fetch) { done(false); return; }
+        fetch(D.prefsUrl, {
+            method: 'POST', credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': D.csrf || '' },
+            body: JSON.stringify({ shortcuts: list })
+        }).then(function (r) { return r.json().catch(function () { return {}; }); })
+          .then(function (j) { done(!!(j && j.ok)); })
+          .catch(function () { done(false); });
+    }
+    // One-time move: a setup saved on this phone before Nov 15, 2026 goes to the account if the account has none.
+    // A change that failed to save earlier (no signal) is sent again and wins.
+    if (D.prefsReady) {
+        var pend = store.get(SC_PEND), legacy = localPins();
+        if (pend !== null) {
+            var pl = localPins(SC_PEND);
+            D.saved = pl;
+            saveAccount(pl, function (ok) { if (ok) store.del(SC_PEND); });
+            store.del(SC_KEY);
+        } else if (D.saved && D.saved.length) {
+            store.del(SC_KEY);
+        } else if (legacy.length) {
+            D.saved = legacy;
+            saveAccount(legacy, function (ok) { if (ok) store.del(SC_KEY); });
+        }
     }
     var slots   = document.getElementById('navBarSlots');
     var moreBtn = document.getElementById('navMoreBtn');
@@ -98,8 +136,10 @@
             if (it.badge) {
                 var b = document.createElement('span');
                 b.className = 'nav-badge';
-                b.textContent = it.badge;
+                b.textContent = it.badge > 99 ? '99+' : it.badge;
+                b.setAttribute('aria-label', it.badge + ' need attention');
                 ic.appendChild(b);
+                a.classList.add('has-badge');
             }
             var lb = document.createElement('span');
             lb.className = 'nav-slot-label';
@@ -144,11 +184,23 @@
         sheet.classList.remove('is-editing');
         if (editBtn) editBtn.textContent = 'Edit shortcuts';
         if (resetBtn) resetBtn.classList.add('hidden');
-        if (save) {
-            if (draft.length) store.set(SC_KEY, JSON.stringify(draft)); else store.del(SC_KEY);
-            renderBar();
-        }
         if (hint) { hint.textContent = ''; hint.classList.add('hidden'); }
+        if (save) {
+            var list = draft.slice();
+            if (D.prefsReady) {
+                D.saved = list;
+                renderBar();
+                store.del(SC_KEY);
+                saveAccount(list, function (ok) {
+                    if (ok) { store.del(SC_PEND); return; }
+                    store.set(SC_PEND, JSON.stringify(list));
+                    setHint('Saved on this phone for now. It will copy to your account next time a page opens with signal.');
+                });
+            } else {
+                if (list.length) store.set(SC_KEY, JSON.stringify(list)); else store.del(SC_KEY);
+                renderBar();
+            }
+        }
     }
     function openSheet() {
         if (!sheet) return;
