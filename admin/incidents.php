@@ -145,7 +145,7 @@ $fields = function (array $d, bool $isNew) use ($h, $input, $label, $animals, $p
       <?php for ($n = 0; $n < 3; $n++): ?>
       <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-2<?= $n ? ' pt-2 border-t border-stone-100' : '' ?>">
         <input name="person_name[]" maxlength="120" aria-label="Visitor <?= $n + 1 ?> name" placeholder="Name" value="<?= $h(($d['person_name'] ?? [])[$n] ?? '') ?>" class="<?= $input ?>">
-        <input name="person_phone[]" maxlength="30" inputmode="tel" aria-label="Visitor <?= $n + 1 ?> phone" placeholder="Phone" value="<?= $h(($d['person_phone'] ?? [])[$n] ?? '') ?>" class="<?= $input ?>">
+        <input type="tel" name="person_phone[]" maxlength="30" aria-label="Visitor <?= $n + 1 ?> phone" placeholder="Phone" value="<?= $h(($d['person_phone'] ?? [])[$n] ?? '') ?>" class="<?= $input ?>">
         <input name="person_email[]" maxlength="190" type="email" aria-label="Visitor <?= $n + 1 ?> email" placeholder="Email" value="<?= $h(($d['person_email'] ?? [])[$n] ?? '') ?>" class="<?= $input ?>">
         <input name="person_note[]" maxlength="255" aria-label="Visitor <?= $n + 1 ?> note" placeholder="e.g. hurt, age 6; parent" value="<?= $h(($d['person_note'] ?? [])[$n] ?? '') ?>" class="<?= $input ?>">
       </div>
@@ -248,7 +248,7 @@ if ($id) {
     <details class="mt-2"><summary class="cursor-pointer text-sm text-amber-800 underline">Add a visitor</summary>
       <form method="POST" action="<?= $h($url($id)) ?>" class="grid grid-cols-1 sm:grid-cols-4 gap-2 mt-2"><?= $hidden ?><input type="hidden" name="act" value="person"><input type="hidden" name="id" value="<?= $id ?>">
         <input name="name" maxlength="120" required aria-label="Name" placeholder="Name" class="<?= $input ?>">
-        <input name="phone" maxlength="30" inputmode="tel" aria-label="Phone" placeholder="Phone" class="<?= $input ?>">
+        <input type="tel" name="phone" maxlength="30" aria-label="Phone" placeholder="Phone" class="<?= $input ?>">
         <input name="email" maxlength="190" type="email" aria-label="Email" placeholder="Email" class="<?= $input ?>">
         <input name="note" maxlength="255" aria-label="Note" placeholder="e.g. parent" class="<?= $input ?>">
         <div class="sm:col-span-4"><button class="<?= $btnSec ?>">Add visitor</button></div>

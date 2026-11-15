@@ -99,5 +99,6 @@ if ($t && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 <?php endif; ?>
 </main>
 <script src="assets/waiver-pad.js?v=1"></script>
+<script defer src="/js/min.phone.js?v=<?= bcrf_asset_v('/js/min.phone.js') ?>"></script>
 </body>
 </html>

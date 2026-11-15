@@ -34,6 +34,7 @@ const parts = [
   { file: 'js/min.theme.js',     isolate: true  },
   { file: 'js/min.newtab.js',    isolate: true  },   // new-tab link warning (Nov 11, 2026)
   { file: 'js/min.formcheck.js', isolate: true  },   // form error text after interaction (Nov 15, 2026)
+  { file: 'js/min.phone.js',     isolate: true  },   // phone boxes format as (828) 555-0100 (Nov 15, 2026)
 ];
 
 let src = '';

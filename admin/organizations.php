@@ -102,7 +102,7 @@ if ($id || isset($_GET['new'])) {
       <div><label class="<?= $label ?>" for="on">Name</label><input id="on" name="name" maxlength="160" required value="<?= $h($o['name'] ?? '') ?>" class="<?= $input ?>"></div>
       <div><label class="<?= $label ?>" for="ok">Kind</label><select id="ok" name="kind" class="<?= $input ?>"><?php foreach (BCRF_CRM_ORG_KINDS as $k => $v): ?><option value="<?= $k ?>" <?= ($o['kind'] ?? 'school') === $k ? 'selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?></select></div>
       <div><label class="<?= $label ?>" for="oe">Main email</label><input id="oe" name="email" type="email" value="<?= $h($o['email'] ?? '') ?>" class="<?= $input ?>"></div>
-      <div><label class="<?= $label ?>" for="op">Phone</label><input id="op" name="phone" maxlength="30" value="<?= $h($o['phone'] ?? '') ?>" class="<?= $input ?>"></div>
+      <div><label class="<?= $label ?>" for="op">Phone</label><input id="op" type="tel" name="phone" maxlength="30" autocomplete="off" value="<?= $h($o['phone'] ?? '') ?>" class="<?= $input ?>"></div>
       <div class="sm:col-span-2"><label class="<?= $label ?>" for="oa">Address</label><input id="oa" name="address" maxlength="255" value="<?= $h($o['address'] ?? '') ?>" class="<?= $input ?>"></div>
       <div class="sm:col-span-2"><label class="<?= $label ?>" for="ono">Pinned note <span class="font-normal text-stone-400">staff only, always on top. Dated notes go in Notes below.</span></label><textarea id="ono" name="notes" rows="3" class="<?= $input ?>"><?= $h($o['notes'] ?? '') ?></textarea></div>
     </div>

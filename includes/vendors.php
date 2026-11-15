@@ -4,6 +4,7 @@
 //   bcrf_vendor_list / get / save
 //   bcrf_vendors_has_web($pdo) — website + address columns exist (migration 0065, Nov 14, 2026)
 //   bcrf_vendor_web_url / bcrf_vendor_tel / bcrf_vendor_map_url — links for the Call, Open and Map buttons
+//   bcrf_vendor_phone_pretty / bcrf_vendor_web_label — how the list's contact buttons read (Nov 15, 2026)
 //   bcrf_product_set_cost — set avg_cost_cents and append product_cost_history
 //   bcrf_product_apply_receive_cost — moving-average update used by receiving (slice 2.2+)
 declare(strict_types=1);
@@ -43,17 +44,37 @@ function bcrf_vendor_web_url(string $raw): string {
     return $u;
 }
 
-/** tel: link target: digits and a leading +, '' when there are fewer than 7 digits. */
+/** tel: link target: digits and a leading +, '' when there are fewer than 7 digits.
+ *  An extension ("x12", "ext. 12") is dialled after a pause: "828-555-0100 x12" -> "8285550100,12". */
 function bcrf_vendor_tel(?string $phone): string {
-    $d = preg_replace('/[^0-9+]/', '', (string)$phone);
+    $parts = preg_split('/\s*(?:x|ext\.?|extension)\s*/i', (string)$phone, 2);
+    $d = preg_replace('/[^0-9+]/', '', $parts[0]);
     $d = ($d !== '' && $d[0] === '+' ? '+' : '') . str_replace('+', '', $d);
-    return strlen(ltrim($d, '+')) >= 7 ? $d : '';
+    if (strlen(ltrim($d, '+')) < 7) return '';
+    $ext = isset($parts[1]) ? preg_replace('/\D/', '', $parts[1]) : '';
+    return $ext !== '' ? $d . ',' . $ext : $d;
 }
 
 /** Google Maps search link for an address (opens the Maps app on iPhone and Android). */
 function bcrf_vendor_map_url(?string $address): string {
     $a = trim(preg_replace('/\s+/', ' ', (string)$address));
     return $a === '' ? '' : 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode($a);
+}
+
+/** US numbers shown as (828) 555-0100; anything else (extensions, +44 …) exactly as saved. */
+function bcrf_vendor_phone_pretty(?string $phone): string {
+    $s = trim((string)$phone);
+    if ($s === '' || preg_match('/[a-z]/i', $s)) return $s;
+    $d = preg_replace('/\D/', '', $s);
+    if (strlen($d) === 11 && $d[0] === '1') $d = substr($d, 1);
+    elseif ($s[0] === '+') return $s;
+    return strlen($d) === 10 ? '(' . substr($d, 0, 3) . ') ' . substr($d, 3, 3) . '-' . substr($d, 6) : $s;
+}
+
+/** "https://www.tractorsupply.com/store/x" -> "tractorsupply.com" for the Website button. */
+function bcrf_vendor_web_label(string $url): string {
+    $host = strtolower((string)parse_url($url, PHP_URL_HOST));
+    return preg_replace('/^www\./', '', $host);
 }
 
 function bcrf_vendor_list(PDO $pdo, array $f = []): array {
@@ -66,7 +87,8 @@ function bcrf_vendor_list(PDO $pdo, array $f = []): array {
         $q = '%' . $f['q'] . '%';
         array_push($a, $q, $q, $q, $q);
     }
-    $st = $pdo->prepare('SELECT id, name, contact_name, email, phone, account_number, payment_terms, is_active
+    $web = bcrf_vendors_has_web($pdo) ? ', website, address' : '';
+    $st = $pdo->prepare('SELECT id, name, contact_name, email, phone' . $web . ', account_number, payment_terms, is_active
                          FROM vendors WHERE ' . implode(' AND ', $w) . ' ORDER BY name LIMIT 500');
     $st->execute($a);
     return $st->fetchAll(PDO::FETCH_ASSOC);

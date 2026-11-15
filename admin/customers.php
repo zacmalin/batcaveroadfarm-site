@@ -199,7 +199,7 @@ if ($id) {
         <div><label class="<?= $label ?>" for="fn">First name</label><input id="fn" name="first_name" maxlength="50" value="<?= $h($c['first_name']) ?>" class="<?= $input ?>"></div>
         <div><label class="<?= $label ?>" for="ln">Last name</label><input id="ln" name="last_name" maxlength="50" value="<?= $h($c['last_name']) ?>" class="<?= $input ?>"></div>
       </div>
-      <label class="<?= $label ?>" for="ph">Phone</label><input id="ph" name="phone" maxlength="20" value="<?= $h($c['phone_number']) ?>" class="<?= $input ?> mb-2">
+      <label class="<?= $label ?>" for="ph">Phone</label><input id="ph" type="tel" name="phone" maxlength="20" autocomplete="off" value="<?= $h($c['phone_number']) ?>" class="<?= $input ?> mb-2">
       <label class="<?= $label ?>" for="sn">Pinned note <span class="font-normal text-stone-400">always on top, never shown to the customer. Dated notes go in Notes below.</span></label><textarea id="sn" name="staff_notes" rows="3" class="<?= $input ?> mb-2"><?= $h($c['staff_notes']) ?></textarea>
       <button class="<?= $btnSec ?>">Save</button>
     </form>

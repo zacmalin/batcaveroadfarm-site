@@ -679,5 +679,6 @@ $boot = [
 <script src="/js/qrcode.min.js"></script>
 <script src="assets/manager-pin.js?v=<?= bcrf_asset_v('/admin/assets/manager-pin.js') ?>"></script>
 <script src="assets/register.js?v=12"></script>
+<script defer src="/js/min.phone.js?v=<?= bcrf_asset_v('/js/min.phone.js') ?>"></script>
 </body>
 </html>

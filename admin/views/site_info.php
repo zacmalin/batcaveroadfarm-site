@@ -140,7 +140,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
                 <div class="py-2 border-b border-stone-100 last:border-0">
                     <label class="<?= $labelCls ?>"><?= htmlspecialchars($c['label'] ?: ucfirst($c['slot'])) ?></label>
                     <div class="flex items-center gap-3">
-                        <input class="<?= $inputCls ?>" name="contact[<?= (int)$c['id'] ?>][value]" value="<?= htmlspecialchars((string)$c['value'], ENT_QUOTES) ?>" placeholder="<?= $isGen ? '(828) ...' : 'leave blank if same as general' ?>">
+                        <input class="<?= $inputCls ?>" type="tel" name="contact[<?= (int)$c['id'] ?>][value]" value="<?= htmlspecialchars((string)$c['value'], ENT_QUOTES) ?>" placeholder="<?= $isGen ? '(828) ...' : 'leave blank if same as general' ?>">
                         <?php if (!$isGen): ?>
                             <label class="flex items-center gap-1 text-[11px] text-stone-500 whitespace-nowrap">
                                 <input type="checkbox" name="contact[<?= (int)$c['id'] ?>][inherit]" value="1" <?= (int)$c['inherit_general'] === 1 ? 'checked' : '' ?>> same as general

@@ -6,6 +6,8 @@
 // Nov 14, 2026: Website and Address boxes (migration 0065), with Call / Open / Map buttons next to Phone, Website and Address.
 // Nov 14, 2026 (later): Email button, Papers (insurance certificate, W-9, contracts with an expiry date; includes/documents.php),
 // dated notes, linked tasks and a Changes list (includes/record_tools.php).
+// Nov 15, 2026: list rows are contact cards (Call with the number, Email, Website, Map buttons; ui-c* in admin-ui.css),
+// the editor buttons got the same icons, and phone boxes format as (828) 555-0100 (js/min.phone.js).
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
 check_admin();
@@ -96,6 +98,17 @@ $sel = function (string $name, array $opts, $cur) use ($h, $input) {
 $toast = ($flash && $flash[0] === 'ok') ? $flash : null;
 $error = ($flash && $flash[0] === 'err') ? $flash[1] : '';
 
+// Small line icons for the contact buttons (inline SVG: no extra file, allowed by the strict CSP).
+$vIcon = function (string $k): string {
+    $p = [
+        'phone' => '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>',
+        'mail'  => '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>',
+        'web'   => '<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+        'map'   => '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>',
+    ][$k] ?? '';
+    return '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' . $p . '</svg>';
+};
+
 // ── LIST ──────────────────────────────────────────────────────────────────────
 if (!$editing) {
     $f = ['q' => trim((string)($_GET['q'] ?? '')), 'status' => in_array($_GET['status'] ?? '', ['active', 'off', 'all'], true) ? $_GET['status'] : 'active'];
@@ -125,17 +138,29 @@ if (!$editing) {
   <?php else: ?>
     <div class="space-y-2">
       <?php foreach ($rows as $r):
-          $meta = trim(($r['contact_name'] ?? '') . ' · ' . ($r['phone'] ?? '') . ' · ' . ($r['account_number'] ?? ''), ' ·'); ?>
-      <div class="ui-swrow bg-white border border-stone-200 rounded-lg p-3 shadow-sm<?= (int)$r['is_active'] ? '' : ' is-off' ?>" data-switch-row>
-      <a href="vendors.php?id=<?= (int)$r['id'] ?>" class="flex items-center justify-between gap-3">
-        <div class="min-w-0">
-          <div class="text-base font-semibold text-stone-800 truncate"><?= $h($r['name']) ?></div>
-          <?php if ($meta !== ''): ?><div class="text-xs text-stone-500 mt-0.5 truncate"><?= $h($meta) ?></div><?php endif; ?>
+          $meta = trim(($r['contact_name'] ?? '') . ' · ' . ($r['account_number'] ? 'Acct ' . $r['account_number'] : '') . ' · ' . ($r['payment_terms'] ?? ''), ' ·');
+          $btns = [];
+          $tel = bcrf_vendor_tel($r['phone'] ?? '');
+          if ($tel !== '') $btns[] = ['tel:' . $tel, 'phone', bcrf_vendor_phone_pretty($r['phone']), 'Call ' . $r['name'], false];
+          elseif (trim((string)($r['phone'] ?? '')) !== '') $btns[] = ['', 'phone', (string)$r['phone'], '', false];
+          if (!empty($r['email']) && filter_var((string)$r['email'], FILTER_VALIDATE_EMAIL)) $btns[] = ['mailto:' . $r['email'], 'mail', (string)$r['email'], 'Email ' . $r['name'], false];
+          if (!empty($r['website'])) { try { $u = bcrf_vendor_web_url((string)$r['website']); $btns[] = [$u, 'web', bcrf_vendor_web_label($u), 'Open ' . $r['name'] . ' website in a new tab', true]; } catch (InvalidArgumentException $e) {} }
+          if (!empty($r['address'])) $btns[] = [bcrf_vendor_map_url($r['address']), 'map', 'Map', 'Open ' . $r['name'] . ' address in maps', true]; ?>
+      <div class="ui-swrow ui-crow bg-white border border-stone-200 rounded-lg p-3 shadow-sm<?= (int)$r['is_active'] ? '' : ' is-off' ?>" data-switch-row>
+        <div class="ui-cmain">
+          <a href="vendors.php?id=<?= (int)$r['id'] ?>" class="ui-cname">
+            <span class="ui-cname-t"><?= $h($r['name']) ?></span>
+            <?php if ($meta !== ''): ?><span class="ui-cmeta"><?= $h($meta) ?></span><?php endif; ?>
+          </a>
+          <?php if ($btns): ?>
+          <div class="ui-cbtns">
+            <?php foreach ($btns as [$href, $icon, $text, $aria, $newTab]):
+                if ($href === '') { echo '<span class="ui-cbtn is-plain">', $vIcon($icon), '<span>', $h($text), '</span></span>'; continue; } ?>
+            <a href="<?= $h($href) ?>" class="ui-cbtn" aria-label="<?= $h($aria) ?>"<?= $newTab ? ' target="_blank" rel="noopener noreferrer"' : '' ?>><?= $vIcon($icon) ?><span><?= $h($text) ?></span></a>
+            <?php endforeach; ?>
+          </div>
+          <?php endif; ?>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
-          <?php if (!empty($r['payment_terms'])): ?><span class="text-xs text-stone-500"><?= $h($r['payment_terms']) ?></span><?php endif; ?>
-        </div>
-      </a>
       <?= bcrf_switch(['action' => 'vendors.php', 'csrf' => $csrf, 'fields' => ['act' => 'active', 'id' => (int)$r['id'], 'back' => 'vendors.php' . (($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVER['QUERY_STRING'] : '')],
                        'on' => (int)$r['is_active'] === 1, 'label' => $r['name'] . ' active', 'on_text' => 'Active', 'off_text' => 'Off']) ?>
       </div>
@@ -173,11 +198,11 @@ $telHref = bcrf_vendor_tel($v['phone'] ?? '');
 $webHref = '';
 if ($hasWeb && !empty($v['website'])) { try { $webHref = bcrf_vendor_web_url((string)$v['website']); } catch (InvalidArgumentException $e) { $webHref = ''; } }
 $mapHref = $hasWeb ? bcrf_vendor_map_url($v['address'] ?? '') : '';
-$btnIcon = 'shrink-0 inline-flex items-center justify-center px-3 rounded text-sm font-semibold border border-stone-300 text-stone-700 bg-white hover:bg-stone-100';
-$withBtn = function (string $fieldHtml, string $href, string $text, string $aria, bool $newTab = false) use ($h, $btnIcon) {
+$btnIcon = 'shrink-0 inline-flex items-center justify-center gap-1.5 px-3 rounded text-sm font-semibold border border-stone-300 text-stone-700 bg-white hover:bg-stone-100 ui-cicon';
+$withBtn = function (string $fieldHtml, string $href, string $text, string $aria, bool $newTab = false) use ($h, $btnIcon, $vIcon) {
     if ($href === '') return $fieldHtml;
     // Put the button beside the input, under the same label.
-    $btn = '<a href="' . $h($href) . '" class="' . $btnIcon . '" aria-label="' . $h(trim($aria)) . '"' . ($newTab ? ' target="_blank" rel="noopener noreferrer"' : '') . '>' . $h($text) . '</a>';
+    $btn = '<a href="' . $h($href) . '" class="' . $btnIcon . '" aria-label="' . $h(trim($aria)) . '"' . ($newTab ? ' target="_blank" rel="noopener noreferrer"' : '') . '>' . $vIcon(['Call' => 'phone', 'Email' => 'mail', 'Open' => 'web', 'Map' => 'map'][$text] ?? '') . $h($text) . '</a>';
     $in = strpos($fieldHtml, '<input ');
     $end = strrpos($fieldHtml, '</div>');
     return substr($fieldHtml, 0, $in) . '<div class="flex gap-2 items-stretch">' . substr($fieldHtml, $in, $end - $in) . $btn . '</div></div>';

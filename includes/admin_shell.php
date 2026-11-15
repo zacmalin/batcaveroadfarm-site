@@ -56,7 +56,8 @@ function bcrf_shell_open(string $title, array $opt = []): void {
          '<link rel="stylesheet" href="', $h(bcrf_shell_asset('admin-shell.css')), '">',
          '<link rel="stylesheet" href="', $h(bcrf_shell_asset('admin-ui.css')), '">',
          $legacy ? '<link rel="stylesheet" href="' . $h(bcrf_shell_asset('reports.css')) . '"><link rel="stylesheet" href="' . $h(bcrf_shell_asset('admin-farmos.css')) . '">' : '',
-         '<script defer src="', $h(bcrf_shell_asset('admin-ui.js')), '"></script>';
+         '<script defer src="', $h(bcrf_shell_asset('admin-ui.js')), '"></script>',
+         '<script defer src="/js/min.phone.js?v=', $h(function_exists('bcrf_asset_v') ? bcrf_asset_v('/js/min.phone.js') : '1'), '"></script>';   // phone boxes format as (828) 555-0100 (Nov 15, 2026)
     foreach ((array)($opt['css'] ?? []) as $css) {
         if (preg_match('/^[a-z0-9_-]+\.css$/i', (string)$css)) echo '<link rel="stylesheet" href="', $h(bcrf_shell_asset((string)$css)), '">';
     }

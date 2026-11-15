@@ -14,6 +14,9 @@
 //      data-confirm-danger (red button; also automatic for delete / refund / remove / cancel / end / turn off…).
 //      The tapped button's name/value still go with the form. From page scripts: bcrfConfirm(msg, opts) → Promise<bool>.
 //  - Messages: .ui-toast (success fades after 5 s; errors stay until ✕) and [data-closable] notices get a ✕.
+//  - Fresh pages after Back (Nov 15, 2026): phones keep old pages in memory, so going Back after a save showed
+//    the list as it was before. Any save (form POST or background switch) is noted for this tab, and a page
+//    brought back from memory that is older than the last save reloads itself. Page scripts: bcrfMarkChanged().
 (function () {
     'use strict';
 
@@ -202,6 +205,7 @@
                 b.removeAttribute('aria-busy');
                 if (!j || !j.ok) { switchShow(form, was); toast((j && j.msg) || "Couldn't save. Try again.", true); return; }
                 var now = j.on === null || j.on === undefined ? want : !!j.on;
+                markChanged();
                 switchShow(form, now);
                 toast(j.msg || 'Saved.', false, offerUndo && now !== was ? function () { switchSave(form, was, false); } : null);
             })
@@ -369,6 +373,21 @@
             if (!n.querySelector('[data-toast-close]')) n.appendChild(closeButton());
         });
     }
+
+    // ── Fresh pages after Back ──────────────────────────────────────────────
+    var LOADED_AT = Date.now();
+    function markChanged() { try { sessionStorage.setItem('bcrf-changed-at', String(Date.now())); } catch (e) {} }
+    window.bcrfMarkChanged = markChanged;
+    document.addEventListener('submit', function (e) {
+        var f = e.target;
+        if (f && f.getAttribute && (f.getAttribute('method') || '').toLowerCase() === 'post') markChanged();
+    }, true);
+    window.addEventListener('pageshow', function (e) {
+        if (!e.persisted) return;
+        var t = 0;
+        try { t = Number(sessionStorage.getItem('bcrf-changed-at')) || 0; } catch (err) {}
+        if (t > LOADED_AT) window.location.reload();
+    });
 
     function init() {
         labelTables();

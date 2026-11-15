@@ -31,7 +31,8 @@ $ok(bcrf_vendor_web_url('tractorsupply.com') === 'https://tractorsupply.com', 'b
 $ok(bcrf_vendor_web_url('http://feed.example.com/store') === 'http://feed.example.com/store', 'http kept');
 $ok(bcrf_vendor_web_url('') === '', 'empty website is fine');
 foreach (['javascript:alert(1)', 'ftp://a.com', 'nodot', 'a b.com'] as $bad) $ok($throws(fn() => bcrf_vendor_web_url($bad)), "bad website refused: $bad");
-$ok(bcrf_vendor_tel('(828) 555-1234') === '8285551234' && bcrf_vendor_tel('+1 828.555.1234') === '+18285551234' && bcrf_vendor_tel('n/a') === '', 'tel links');
+$ok(bcrf_vendor_tel('(828) 555-1234') === '8285551234' && bcrf_vendor_tel('+1 828.555.1234') === '+18285551234' && bcrf_vendor_tel('n/a') === ''
+    && bcrf_vendor_tel('828-555-0100 x12') === '8285550100,12' && bcrf_vendor_tel('(828) 555-0100 ext. 7') === '8285550100,7', 'tel links (extension after a pause)');
 $ok(bcrf_vendor_map_url("12 Main St\nOld Fort, NC") === 'https://www.google.com/maps/search/?api=1&query=12%20Main%20St%20Old%20Fort%2C%20NC' && bcrf_vendor_map_url('') === '', 'map link');
 
 // Save
@@ -43,6 +44,15 @@ $v = bcrf_vendor_get($pdo, $id);
 $ok($v['website'] === null && $v['address'] === null && (int)$v['is_active'] === 0 && $v['phone'] === null, 'clearing website and address saves NULL');
 $ok($throws(fn() => bcrf_vendor_save($pdo, $id, ['name' => 'Feed Barn', 'website' => 'not a site'], 1)), 'bad website blocks Save');
 $ok(bcrf_vendor_get($pdo, $id)['name'] === 'Feed Barn', 'vendor unchanged after a refused Save');
+
+// List rows carry what the contact buttons need (Nov 15, 2026), and fresh values right after a Save
+bcrf_vendor_save($pdo, $id, ['name' => 'Feed Barn', 'phone' => '8285550199', 'email' => 'a@feedbarn.example.com', 'website' => 'www.feedbarn.example.com/shop', 'address' => '2 Mill Rd', 'is_active' => 1], 1);
+$row = array_values(array_filter(bcrf_vendor_list($pdo, ['status' => 'all']), fn($r) => (int)$r['id'] === $id))[0] ?? [];
+$ok(($row['phone'] ?? '') === '8285550199' && ($row['website'] ?? '') === 'https://www.feedbarn.example.com/shop' && ($row['address'] ?? '') === '2 Mill Rd' && ($row['email'] ?? '') === 'a@feedbarn.example.com', 'list shows the saved phone, email, website and address');
+$ok(bcrf_vendor_web_label('https://www.feedbarn.example.com/shop') === 'feedbarn.example.com', 'website button label');
+$ok(bcrf_vendor_phone_pretty('8285550199') === '(828) 555-0199' && bcrf_vendor_phone_pretty('+1 828 555 0199') === '(828) 555-0199'
+    && bcrf_vendor_phone_pretty('828-555-0199 x12') === '828-555-0199 x12' && bcrf_vendor_phone_pretty('+44 20 7946 0958') === '+44 20 7946 0958'
+    && bcrf_vendor_phone_pretty('555-0199') === '555-0199' && bcrf_vendor_phone_pretty(null) === '', 'phone shown as (828) 555-0100, others as saved');
 
 echo "$n checks, $fails failed\n";
 exit($fails ? 1 : 0);
