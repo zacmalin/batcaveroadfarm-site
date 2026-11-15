@@ -27,7 +27,7 @@ try {
                 ic.icon AS cat_icon, ic.sort_order AS cat_sort
          FROM inventory i
          JOIN inventory_categories ic ON i.category_id = ic.id
-         WHERE i.is_active = 1
+         WHERE i.is_active = 1 AND i.product_type <> 'supply'
            AND (LOWER(ic.slug) IN ($ph) OR LOWER(ic.name) IN ($ph))$searchSql
          ORDER BY ic.sort_order ASC, ic.name ASC, i.name ASC"
     );
@@ -44,7 +44,7 @@ try {
         "SELECT LOWER(ic.slug) AS s, LOWER(ic.name) AS n, COUNT(*) AS cnt
          FROM inventory i
          JOIN inventory_categories ic ON i.category_id = ic.id
-         WHERE i.is_active = 1
+         WHERE i.is_active = 1 AND i.product_type <> 'supply'
            AND (LOWER(ic.slug) IN ($ph) OR LOWER(ic.name) IN ($ph))
          GROUP BY ic.id"
     );

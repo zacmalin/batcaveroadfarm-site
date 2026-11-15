@@ -12,7 +12,7 @@ if ($id) {
         FROM inventory i
         LEFT JOIN inventory_categories ic ON i.category_id = ic.id
         LEFT JOIN measurement_units u     ON i.size_unit_id = u.id
-        WHERE i.id = ? AND i.is_active = 1");
+        WHERE i.id = ? AND i.is_active = 1 AND i.product_type <> 'supply'");
     $st->execute([$id]);
     $item = $st->fetch(PDO::FETCH_ASSOC);
 }

@@ -3,6 +3,7 @@
 // Shared filename rules for admin image uploads: the quick-upload widget
 // (handlers/quick_upload.php) and the Media Vault pipeline
 // (handlers/image_processing.php) both use these so the two paths match.
+// Nov 15, 2026: bcrf_image_folders() is the one list of upload folders.
 
 if (!function_exists('bcrf_image_basename')) {
 
@@ -37,6 +38,25 @@ if (!function_exists('bcrf_image_basename')) {
             if ($n > 999) { $cand = $base . '-' . uniqid(); break; }
         }
         return $cand . '.' . $ext;
+    }
+
+    /**
+     * The vault folders offered in every "upload to folder" list (Media vault, the console's image widget,
+     * the shared vault picker, the product photo box): folder under /img/ => label. One list, so a new folder
+     * shows up everywhere. recipies keeps its misspelling: existing recipes point at it. (Nov 15, 2026)
+     */
+    function bcrf_image_folders(): array
+    {
+        return [
+            'inventory' => 'Inventory (things we sell)',
+            'supplies'  => 'In-house supplies (feed, bedding)',
+            'stand'     => 'Farm stand',
+            'recipies'  => 'Recipes',
+            'zoo'       => 'Petting zoo',
+            'blog'      => 'Blog',
+            'thrift'    => 'Thrift shop',
+            'social'    => 'Social',
+        ];
     }
 
     /** The Media Vault picker caches its file list in the session; clear it after a new file lands. */

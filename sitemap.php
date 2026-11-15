@@ -82,7 +82,7 @@ foreach ($static as $sp) {
 $__catHas = function (string $where) use ($pdo): bool {
     try {
         return (bool)$pdo->query("SELECT 1 FROM inventory i JOIN inventory_categories ic ON i.category_id = ic.id
-                                   WHERE i.is_active = 1 AND i.stock_quantity > 0 AND ($where) LIMIT 1")->fetchColumn();
+                                   WHERE i.is_active = 1 AND i.stock_quantity > 0 AND i.product_type <> 'supply' AND ($where) LIMIT 1")->fetchColumn();
     } catch (Throwable $e) { return false; }
 };
 if ($__catHas("ic.slug = 'thrift' OR LOWER(ic.name) = 'thrift'"))   addUrl($urls, $base . '/thrift-shop/items/', '', 'weekly', '0.6');

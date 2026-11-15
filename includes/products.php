@@ -18,7 +18,8 @@ require_once __DIR__ . '/stock.php';
 
 function bcrf_product_types(): array {
     return ['retail' => 'Retail item', 'produce' => 'Produce', 'kitchen_good' => 'Kitchen good (made here)',
-            'fee' => 'Fee (no stock, e.g. extra party guest)', 'service' => 'Service (no stock)'];
+            'fee' => 'Fee (no stock, e.g. extra party guest)', 'service' => 'Service (no stock)',
+            'supply' => 'In-house supply (feed, bedding; never sold)'];   // Nov 15, 2026: stocked and received, never on the register or website
 }
 function bcrf_product_type_label(string $t): string {
     return (bcrf_product_types() + ['admission' => 'Admission', 'pass' => 'Annual pass', 'gift_card' => 'Gift card', 'thrift_item' => 'Thrift item'])[$t] ?? $t;
@@ -33,7 +34,7 @@ function bcrf_product_list(PDO $pdo, array $f = []): array {
     if (($f['q'] ?? '') !== '') { $w[] = "(i.name LIKE ? OR i.sku = ?)"; $a[] = '%' . $f['q'] . '%'; $a[] = $f['q']; }
     if (!empty($f['category_id'])) { $w[] = "i.category_id = ?"; $a[] = (int)$f['category_id']; }
     if (!empty($f['type'])) { $w[] = "i.product_type = ?"; $a[] = (string)$f['type']; }
-    $status = $f['status'] ?? 'active';
+    $status = $f['status'] ?? 'all';   // Nov 15, 2026: the list shows everything by default, so a product saved with On turned off doesn't vanish
     if ($status === 'active') $w[] = "i.is_active = 1";
     if ($status === 'off') $w[] = "COALESCE(i.is_active, 0) = 0";
     $st = $pdo->prepare("SELECT i.id, i.name, i.sku, i.price, i.unit, i.pricing_mode, i.product_type, i.track_inventory, i.stock_quantity, i.min_stock_level,
@@ -131,7 +132,7 @@ function bcrf_product_save(PDO $pdo, ?int $id, array $in, ?int $uid): int {
     if ($tax) { $st = $pdo->prepare("SELECT COUNT(*) FROM tax_categories WHERE id = ?"); $st->execute([$tax]); if (!(int)$st->fetchColumn()) $bad('Pick a tax category.'); }
     $v['tax_category_id'] = $tax;
 
-    $track = !empty($in['track_inventory']) && in_array($type, ['retail', 'produce', 'kitchen_good'], true);
+    $track = !empty($in['track_inventory']) && in_array($type, ['retail', 'produce', 'kitchen_good', 'supply'], true);
     $v['track_inventory'] = $track ? 1 : 0;
     $min = $num('min_stock_level');
     if ($min !== null && ($min < 0 || $min > 1000000)) $bad('The minimum must be 0 or more.');

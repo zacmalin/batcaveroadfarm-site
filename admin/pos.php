@@ -74,7 +74,7 @@ try {
                i.image_url, i.stock_quantity, i.sku
         FROM   inventory i
         LEFT JOIN inventory_categories ic ON i.category_id = ic.id
-        WHERE  i.is_active = 1
+        WHERE  i.is_active = 1 AND i.product_type <> 'supply'
         ORDER BY COALESCE(ic.name, i.category) ASC, i.name ASC
     ");
     $all_items = $stmt->fetchAll(PDO::FETCH_ASSOC);

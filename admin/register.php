@@ -83,7 +83,7 @@ if ($api !== '') {
                              FROM inventory i
                              LEFT JOIN inventory_categories ic ON ic.id = i.category_id
                              LEFT JOIN tax_categories tc ON tc.id = i.tax_category_id
-                             WHERE i.is_active = 1
+                             WHERE i.is_active = 1 AND i.product_type <> 'supply'
                              ORDER BY cat_sort, cat, i.name")->fetchAll(PDO::FETCH_ASSOC);
         $here = null;   // slice 8: stock at this register's location
         if (bcrf_stock_ready($pdo)) {

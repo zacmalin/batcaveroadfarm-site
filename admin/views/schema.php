@@ -1534,11 +1534,12 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                             // Default folder follows the table being edited. Recipe photos live in /img/recipies/
                             // (folder name kept as-is: existing recipes already point at it).
                             $__subDefault = ['recipes' => 'recipies', 'blog_posts' => 'blog', 'animals' => 'zoo'][$target_table ?? ''] ?? 'inventory';
-                            $__subLabels  = ['recipies' => 'recipes'];
+                            require_once __DIR__ . '/../includes/image_names.php';
+                            $__subLabels  = bcrf_image_folders();   // one folder list everywhere (Nov 15, 2026)
                             ?>
                             <select id="imgSubfolder_<?= htmlspecialchars($name, ENT_QUOTES) ?>"
                                 class="text-xs border rounded p-1.5 bg-stone-50 font-mono">
-                                <?php foreach (['inventory', 'recipies', 'zoo', 'stand', 'blog', 'thrift'] as $__sf): ?>
+                                <?php foreach (array_keys($__subLabels) as $__sf): ?>
                                 <option value="<?= $__sf ?>"<?= $__sf === $__subDefault ? ' selected' : '' ?>><?= $__subLabels[$__sf] ?? $__sf ?></option>
                                 <?php endforeach; ?>
                             </select>

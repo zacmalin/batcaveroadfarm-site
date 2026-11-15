@@ -127,7 +127,7 @@ if (!function_exists('bcrf_related_products')) {
     {
         $catFilter = "(LOWER(ic.slug) IN ('produce','bakery','baked-goods','pantry') OR LOWER(ic.name) IN ('produce','bakery','baked goods','pantry'))";
         $base      = "FROM inventory i JOIN inventory_categories ic ON i.category_id = ic.id
-                      WHERE i.is_active = 1 AND i.stock_quantity > 0 AND $catFilter";
+                      WHERE i.is_active = 1 AND i.stock_quantity > 0 AND i.product_type <> 'supply' AND $catFilter";
         $picked = [];
         $seen   = [];
         $add = function (array $r) use (&$picked, &$seen, $limit) {

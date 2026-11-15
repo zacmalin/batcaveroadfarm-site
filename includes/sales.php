@@ -335,6 +335,7 @@ function bcrf_sale_complete(PDO $pdo, array $in): array {
             foreach ($ids as $id) {
                 if (!isset($products[$id])) throw new BcrfSaleError('An item in the cart no longer exists. Refresh the register.');
                 if (!(int)$products[$id]['is_active']) throw new BcrfSaleError('"' . $products[$id]['name'] . '" is no longer active. Remove it or turn it back on.');
+                if ((string)$products[$id]['product_type'] === 'supply') throw new BcrfSaleError('"' . $products[$id]['name'] . '" is an in-house supply and can\'t be sold. Remove it from the cart.');
             }
             // Kitchen products need an approved label before they can be sold (Phase 4 exit; includes/kitchen_labels.php).
             if (is_file(__DIR__ . '/kitchen_labels.php')) {

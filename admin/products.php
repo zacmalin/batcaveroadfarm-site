@@ -7,7 +7,10 @@
 //   POST products.php  act=active, id, on=1|0 → the On sale switch on the list (Nov 14, 2026; JSON when ajax=1)
 // Quantities are not edited here (06: never edited directly): new stocked products get a starting quantity; after that use Stock.
 // Nov 14, 2026: a product shows its linked tasks and a Changes list (who changed price, tax, stock settings; includes/record_tools.php).
-// Permission: edit on the inventory table (Permissions Matrix). Plain forms, no script (strict CSP, C-09).
+// Nov 15, 2026: the list shows all products by default (a product saved with On turned off used to vanish from it);
+//   new type "In-house supply" (feed, bedding: stocked, never sold); "Animal feed" box ties a product to Animal care's feed list;
+//   photo box gets Pick from vault / Upload to vault (admin/assets/product-photo.js; folders from bcrf_image_folders()).
+// Permission: edit on the inventory table (Permissions Matrix). Plain forms; the photo buttons are the only script (strict CSP, C-09).
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
 check_admin();
@@ -20,6 +23,9 @@ require_once __DIR__ . '/../includes/products.php';
 require_once __DIR__ . '/../includes/admin_shell.php';   // shared Farm OS shell (Nov 11, 2026)
 require_once __DIR__ . '/../includes/admin_switch.php';
 require_once __DIR__ . '/../includes/record_tools.php';   // tasks and changes on each product (Nov 14, 2026)
+require_once __DIR__ . '/includes/image_names.php';      // vault folders for the photo box (Nov 15, 2026)
+if (is_file(__DIR__ . '/../includes/animal_care.php')) require_once __DIR__ . '/../includes/animal_care.php';
+$feedReady = function_exists('bcrf_care_ready') && bcrf_care_ready($pdo);
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -68,6 +74,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     }
     try {
         $saved = bcrf_product_save($pdo, $id, $_POST, $uid);
+        if ($feedReady && isset($_POST['feed_shown'])) {   // "Animal feed" box: only this product's place in the feed list changes
+            $wasFeed = in_array($saved, bcrf_care_feed_ids($pdo), true);
+            bcrf_care_update_feed_ids($pdo, [$saved], !empty($_POST['is_feed']) ? [$saved] : []);
+            if ($wasFeed !== !empty($_POST['is_feed']) && function_exists('erp_audit')) erp_audit($pdo, 'update', 'site_settings', 0, 'Animal feed products changed (product ' . $saved . ')');
+        }
         $_SESSION['prod_flash'] = ['ok', $id ? 'Saved.' : 'Product added.'];
         header('Location: products.php?id=' . $saved); exit;
     } catch (InvalidArgumentException $e) {
@@ -94,19 +105,19 @@ $sel = function (string $name, array $opts, $cur, string $blank = '', array $att
 };
 $editing = isset($_GET['id']) || isset($_GET['new']);
 
-bcrf_shell_open('Products', ['legacy' => true]);
+bcrf_shell_open('Products', ['legacy' => true, 'js' => $editing ? ['product-photo.js'] : []]);
 
 if (!$editing) {
     $f = ['q' => trim((string)($_GET['q'] ?? '')), 'category_id' => (int)($_GET['cat'] ?? 0) ?: null,
           'type' => isset(bcrf_product_types()[$_GET['type'] ?? ''] ) || ($_GET['type'] ?? '') === 'admission' ? $_GET['type'] : null,
-          'status' => in_array($_GET['status'] ?? '', ['active', 'off', 'all'], true) ? $_GET['status'] : 'active'];
+          'status' => in_array($_GET['status'] ?? '', ['active', 'off', 'all'], true) ? $_GET['status'] : 'all'];
     $rows = bcrf_product_list($pdo, $f);
     echo '<h1>Products</h1>';
     if ($flash) echo bcrf_shell_flash($flash);
     echo '<form class="rform" method="GET" action="products.php"><input type="search" name="q" value="', $h($f['q']), '" placeholder="Name or SKU (scan)" aria-label="Search">',
          $sel('cat', $cats, $f['category_id'], 'All categories', ['aria-label' => 'Category']),
          $sel('type', bcrf_product_types() + ['admission' => 'Admission'], $f['type'], 'All types', ['aria-label' => 'Type']),
-         $sel('status', ['active' => 'On sale', 'off' => 'Turned off', 'all' => 'All'], $f['status'], '', ['aria-label' => 'Status']),
+         $sel('status', ['all' => 'On and off', 'active' => 'On only', 'off' => 'Turned off only'], $f['status'], '', ['aria-label' => 'Status']),
          '<button class="btn sm" type="submit">Show</button><a class="btn sm primary" href="products.php?new=1">Add a product</a></form>';
     if (!$rows) echo '<p class="card muted">No products match.</p>';
     else {
@@ -120,10 +131,10 @@ if (!$editing) {
                  ' · ' . $h($r['tax_name'] ?: 'General tax'), '</small></div><div class="r"><b>', $h($priceTxt), '</b><br><small class="muted">',
                  (int)$r['track_inventory'] ? $h($q3($r['stock_quantity'])) . ' on hand' : 'not stocked', '</small></div></a>',
                  bcrf_switch(['action' => 'products.php', 'csrf' => $csrf, 'fields' => ['act' => 'active', 'id' => (int)$r['id'], 'back' => $backQs],
-                              'on' => $on, 'label' => $r['name'] . ' on sale']),
+                              'on' => $on, 'label' => $r['name'] . ($r['product_type'] === 'supply' ? ' in use' : ' on sale')]),
                  '</div>';
         }
-        echo '</div><p class="muted">', count($rows), ' product', count($rows) === 1 ? '' : 's', '. Nothing is deleted: flip a product\'s switch off to take it off the register and website.</p>';
+        echo '</div><p class="muted">', count($rows), ' product', count($rows) === 1 ? '' : 's', '. Nothing is deleted: flip a product\'s switch off to take it off the register and website. In-house supplies never go on either; their switch just means still in use.</p>';
     }
     echo '</div></main></body></html>'; exit;
 }
@@ -162,7 +173,7 @@ if (bcrf_rewards_override_ready($pdo)) {   // Roost Rewards points (migration 00
 }
 if (!$isAdm) {
     echo '<fieldset class="grp"><legend>Stock</legend>',
-         '<label class="check"><input type="checkbox" name="track_inventory" value="1"', $chk('track_inventory'), '> Count this item\'s stock (retail, produce and kitchen goods)</label>';
+         '<label class="check"><input type="checkbox" name="track_inventory" value="1"', $chk('track_inventory'), '> Count this item\'s stock (retail, produce, kitchen goods and in-house supplies)</label>';
     if (!$p || !(int)$p['track_inventory']) {
         echo '<label>Starting stock <small class="muted">(when you turn counting on; goes to the default location)</small><input type="number" name="starting_stock" value="', $h($typed['starting_stock'] ?? ''), '" min="0" step="any" inputmode="decimal"></label>';
     } else {
@@ -190,12 +201,24 @@ if (bcrf_vendors_ready($pdo)) {
 }
 echo '<fieldset class="grp"><legend>Website and labels</legend>',
      '<label>Description<textarea name="description" rows="3" maxlength="5000">', $val('description'), '</textarea></label>',
-     '<label>Photo address <small class="muted">(https://… or /media/…; copy it from the Media vault)</small><input type="text" name="image_url" value="', $val('image_url'), '" maxlength="255" autocomplete="off"></label>';
-if (!empty($d['image_url']) && preg_match('#^(https://|/)#', (string)$d['image_url'])) echo '<img class="pimg" src="', $val('image_url'), '" alt="">';
+     '<label>Photo address <small class="muted">(https://… or /img/…; or use the vault buttons)</small><input type="text" name="image_url" id="pPhotoUrl" value="', $val('image_url'), '" maxlength="255" autocomplete="off"></label>';
+// Vault buttons (Nov 15, 2026): shown by product-photo.js; the address box above still works without script.
+$photoFolder = ($d['product_type'] ?? '') === 'supply' ? 'supplies' : 'inventory';
+echo '<div class="pphoto" data-pphoto hidden><button type="button" class="btn sm" data-pphoto-pick>Pick from vault</button>',
+     '<label class="btn sm pphoto-up">Upload to vault<input type="file" accept="image/*" data-pphoto-file></label>',
+     '<label class="pphoto-folder">Folder', $sel('photo_folder', bcrf_image_folders(), $photoFolder, '', ['data-pphoto-folder' => '1']), '</label>',
+     '<span class="muted" data-pphoto-msg role="status"></span></div>';
+$hasImg = !empty($d['image_url']) && preg_match('#^(https://|/)#', (string)$d['image_url']);
+echo '<img class="pimg" id="pPhotoPrev"', $hasImg ? ' src="' . $val('image_url') . '"' : ' hidden', ' alt="">';
 echo '<label>Photo description <small class="muted">(for screen readers)</small><input type="text" name="image_alt" value="', $val('image_alt'), '" maxlength="255"></label>',
      '<div class="two"><label>Size<input type="number" name="size_value" value="', $num('size_value'), '" min="0" step="any" inputmode="decimal"></label><label>Size unit', $sel('size_unit_id', $units, $d['size_unit_id'] ?? '', '—'), '</label></div>',
      '<label>Ingredients <small class="muted">(kitchen goods; labels list them heaviest first)</small><textarea name="ingredients" rows="2" maxlength="5000">', $val('ingredients'), '</textarea></label></fieldset>';
-echo '<label class="check"><input type="checkbox" name="is_active" value="1"', $chk('is_active'), '> On sale (shows on the register, and on the website when in stock)</label>',
+if ($feedReady && !$isAdm && !($p && $p['product_type'] === 'gift_card')) {   // tie to Animal care's feed list (Nov 15, 2026)
+    $isFeed = $typed ? !empty($typed['is_feed']) : ($p ? in_array((int)$p['id'], bcrf_care_feed_ids($pdo), true) : false);
+    echo '<input type="hidden" name="feed_shown" value="1"><label class="check"><input type="checkbox" name="is_feed" value="1"', $isFeed ? ' checked' : '',
+         '> Animal feed (offer it when logging a feeding in Animal care; feedings take it out of stock)</label>';
+}
+echo '<label class="check"><input type="checkbox" name="is_active" value="1"', $chk('is_active'), '> On (things we sell: on the register, and on the website when in stock. In-house supplies: still in use; they never go on the register or website)</label>',
      '<div class="rbar"><button class="btn primary" type="submit">', $p ? 'Save' : 'Add product', '</button>',
      $p ? '<a class="btn" href="print_label.php?item_id=' . (int)$p['id'] . '">Print label</a>' : '', '</div></form>';
 if ($p && in_array(($_SESSION['user_role'] ?? ''), ['administrator'], true)) echo '<p class="muted">Other fields: <a href="admin.php?view=schema&amp;table=inventory">Full editor</a> (administrators).</p>';

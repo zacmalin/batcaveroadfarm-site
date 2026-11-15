@@ -149,7 +149,7 @@ async function loadVaultImages(folder) {
         if (tabs && data.folders && data.folders.length > 1) {
             tabs.innerHTML = '';
             [''].concat(data.folders).forEach(function (f) {
-                var label = !f ? 'All' : (f === '_root' ? 'Root' : (f === 'recipies' ? 'Recipes' : f));
+                var label = !f ? 'All' : (f === '_root' ? 'Root' : ((typeof FOLDER_LABELS !== 'undefined' && FOLDER_LABELS[f]) ? FOLDER_LABELS[f].replace(/ \(.*\)$/, '') : f));
                 var btn = document.createElement('button');
                 btn.type = 'button';
                 btn.textContent = label;
@@ -249,7 +249,10 @@ function selectVaultImage(url) {
 // ── QUICK UPLOAD ──────────────────────────────────────────────────────────────
 // Folders offered in the naming dialog (value => label). recipies keeps its
 // historical spelling because existing recipes already point at it.
-var UPLOAD_FOLDERS = [['inventory','inventory'],['recipies','recipes'],['zoo','zoo'],['stand','stand'],['blog','blog'],['thrift','thrift'],['social','social']];
+<?php require_once __DIR__ . '/../../includes/image_names.php'; ?>
+// One folder list for every upload box (admin/includes/image_names.php, Nov 15, 2026).
+var UPLOAD_FOLDERS = <?= json_encode(array_map(fn($k, $v) => [$k, $v], array_keys(bcrf_image_folders()), bcrf_image_folders()), JSON_HEX_TAG | JSON_HEX_AMP) ?>;
+var FOLDER_LABELS = {}; UPLOAD_FOLDERS.forEach(function (f) { FOLDER_LABELS[f[0]] = f[1]; });
 
 // "IMG 2041 (1).JPG" -> "img-2041-1". Mirrors the server rule, plus lowercase and hyphens.
 function bcrfSlugFromFilename(n) {

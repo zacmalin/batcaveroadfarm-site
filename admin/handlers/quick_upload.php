@@ -17,11 +17,11 @@ require_once '../../config.php';
 if (session_status() !== PHP_SESSION_ACTIVE) session_start();   // config.php usually started it already (fix pack O)
 if (empty($_SESSION['user_id'])) jx(false, 'Not authenticated.', [], 401);
 // Fix pack O: staff only. Public customer accounts also have user_id, so check the role.
-if (!in_array($_SESSION['user_role'] ?? '', ['administrator', 'moderator', 'Shopkeep', 'Media'], true)) {
+if (!in_array($_SESSION['user_role'] ?? '', ['administrator', 'moderator', 'Shopkeep', 'Media', 'Staff'], true)) {
     jx(false, 'Staff only.', [], 403);
 }
 require_once __DIR__ . '/../includes/permission_checks.php';   // audit #8: same Permissions Matrix rules as the console
-require_permission([['view', 'media'], ['view', 'site_info']], true);   // vault picker: Image Library + Site Info
+require_permission([['view', 'media'], ['view', 'site_info'], ['table', 'inventory', 'edit']], true);   // vault picker: Image Library + Site Info + product editors (Nov 15, 2026)
 require_once __DIR__ . '/../includes/audit.php';   // fix pack O: audit log
 require_once __DIR__ . '/../includes/image_names.php';   // shared filename rules (rename before upload)
 

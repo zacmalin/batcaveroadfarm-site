@@ -168,7 +168,7 @@ try {
     $si = $pdo->prepare(
         "SELECT i.id, i.name, i.stock_quantity
          FROM inventory i JOIN inventory_categories ic ON i.category_id = ic.id
-         WHERE i.is_active = 1 AND i.stock_quantity > 0
+         WHERE i.is_active = 1 AND i.stock_quantity > 0 AND i.product_type <> 'supply'
            AND (LOWER(ic.slug) IN ($ph) OR LOWER(ic.name) IN ($ph))"
     );
     $si->execute(array_merge($farmKeys, $farmKeys));

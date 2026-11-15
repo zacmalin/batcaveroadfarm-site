@@ -15,7 +15,7 @@ function bcrfStandBoxes(PDO $pdo, array $keys, string $label = '', int $limit = 
     $sql = "SELECT i.*, ic.icon AS category_icon, ic.slug AS category_slug
             FROM inventory i
             JOIN inventory_categories ic ON i.category_id = ic.id
-            WHERE i.is_active = 1 AND i.stock_quantity > 0
+            WHERE i.is_active = 1 AND i.stock_quantity > 0 AND i.product_type <> 'supply'
               AND (LOWER(ic.slug) IN ($ph) OR LOWER(ic.name) IN ($ph))
             ORDER BY i.name ASC
             LIMIT " . (int)$limit;
