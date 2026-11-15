@@ -22,7 +22,8 @@ class BcrfTaskError extends RuntimeException {}
 define('BCRF_TASK_PRIORITIES', ['urgent' => 'Urgent', 'high' => 'High', 'normal' => 'Normal', 'low' => 'Low']);
 define('BCRF_TASK_STATUSES', ['open' => 'To do', 'in_progress' => 'Started', 'done' => 'Done', 'skipped' => 'Skipped', 'cancelled' => 'Cancelled']);
 define('BCRF_TASK_ROLES', ['Staff' => 'Farm staff', 'Shopkeep' => 'Shopkeepers', 'moderator' => 'Managers', 'administrator' => 'Owners']);
-define('BCRF_TASK_FREQS', ['daily' => 'Every day', 'every_n' => 'Every few days', 'weekly' => 'Certain weekdays', 'monthly' => 'Once a month']);
+define('BCRF_TASK_FREQS', ['daily' => 'Every day', 'every_n' => 'Every few days', 'weekly' => 'Certain weekdays', 'monthly' => 'Once a month',
+                            'quarterly' => 'Every 3 months', 'yearly' => 'Once a year']);   // quarterly, yearly: Nov 15, 2026 (counted from the start date's month)
 define('BCRF_TASK_PHOTO_RULES', ['none' => 'No photo', 'optional' => 'Photo if they like', 'required' => 'Photo required']);
 define('BCRF_TASK_PHOTO_MAX', 6);                  // photos per task
 define('BCRF_TASK_PHOTO_BYTES', 15 * 1024 * 1024); // largest upload accepted (it is shrunk before saving)
@@ -121,8 +122,15 @@ function bcrf_rec_falls_on(PDO $pdo, array $r, string $date): bool {
             }
             break;
         case 'monthly':
+        case 'quarterly':
+        case 'yearly':
             $md = max(1, min(31, (int)$r['month_day']));
             if ((int)$d->format('j') !== min($md, (int)$d->format('t'))) return false;
+            if ($r['freq'] !== 'monthly') {   // every 3 or 12 months, counted from the month the chore starts
+                $s0 = new DateTimeImmutable((string)$r['start_date']);
+                $months = ((int)$d->format('Y') - (int)$s0->format('Y')) * 12 + (int)$d->format('n') - (int)$s0->format('n');
+                if ($months % ($r['freq'] === 'yearly' ? 12 : 3) !== 0) return false;
+            }
             break;
         default: return false;
     }
@@ -164,9 +172,18 @@ function bcrf_rec_describe(array $r): string {
             $s = ($n > 1 ? "Every $n weeks on " : 'Every ') . ($wd ? implode(', ', array_map(fn($i) => $names[$i] ?? '?', $wd)) : '(no days picked)');
             break;
         case 'monthly':
+        case 'quarterly':
             $md = (int)$r['month_day'];
             $sfx = ($md % 100 >= 11 && $md % 100 <= 13) ? 'th' : (['th', 'st', 'nd', 'rd'][$md % 10] ?? 'th');
-            $s = 'Monthly on the ' . $md . $sfx;
+            if ($r['freq'] === 'monthly') { $s = 'Monthly on the ' . $md . $sfx; break; }
+            $m0 = (int)date('n', strtotime((string)($r['start_date'] ?? 'now')));
+            $nums = [];
+            for ($i = 0; $i < 4; $i++) $nums[] = (($m0 - 1 + 3 * $i) % 12) + 1;
+            sort($nums);
+            $s = 'Every 3 months on the ' . $md . $sfx . ' (' . implode(', ', array_map(fn($n) => date('M', mktime(0, 0, 0, $n, 1, 2001)), $nums)) . ')';
+            break;
+        case 'yearly':
+            $s = 'Every year on ' . date('M', strtotime((string)($r['start_date'] ?? 'now'))) . ' ' . (int)$r['month_day'];
             break;
         default: $s = 'Every day';
     }
@@ -860,7 +877,7 @@ function bcrf_rec_save(PDO $pdo, array $d, ?int $id = null): int {
         sort($days); $wd = implode(',', $days);
     }
     $md = null;
-    if ($freq === 'monthly') {
+    if (in_array($freq, ['monthly', 'quarterly', 'yearly'], true)) {
         $md = (int)($d['month_day'] ?? 0);
         if ($md < 1 || $md > 31) throw new BcrfTaskError('Pick a day of the month (1 to 31).');
     }

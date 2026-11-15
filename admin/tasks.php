@@ -564,8 +564,9 @@ if ($tab === 'chores') {
           <label class="inline-flex items-center gap-1 px-3 min-h-11 rounded-lg border border-stone-300 bg-white text-sm"><input type="checkbox" name="weekdays[]" value="<?= $i ?>"<?= in_array((string)$i, $wd, true) ? ' checked' : '' ?>> <?= $nm ?></label>
           <?php endforeach; ?>
         </div></div>
-      <div data-freq="monthly"><label for="c_md" class="<?= $label ?>">Day of the month</label>
-        <input id="c_md" name="month_day" type="number" min="1" max="31" value="<?= $h($d['month_day'] ?? '') ?>" class="<?= $input ?> sm:w-32"><span class="text-xs text-stone-500"> 29–31 fall on the last day in shorter months</span></div>
+      <div data-freq="monthly quarterly yearly"><label for="c_md" class="<?= $label ?>">Day of the month</label>
+        <input id="c_md" name="month_day" type="number" min="1" max="31" value="<?= $h($d['month_day'] ?? '') ?>" class="<?= $input ?> sm:w-32"><span class="text-xs text-stone-500"> 29–31 fall on the last day in shorter months</span>
+        <p class="text-xs text-stone-500 mt-1" data-freq="quarterly yearly">Counted from the month of the start date below: a Feb 1 start repeats Feb, May, Aug and Nov (every 3 months) or every Feb (once a year).</p></div>
       <label class="flex items-center gap-2 text-sm text-stone-700 min-h-11"><input type="checkbox" name="open_days_only" value="1"<?= !empty($d['open_days_only']) ? ' checked' : '' ?>> Only on days the farm is open (Hours, and booking blackout dates)</label>
     </fieldset>
     <div class="grid gap-3 sm:grid-cols-2">

@@ -44,6 +44,9 @@
 @source "../../admin/assets/usda-picker.js";
 @source "../../admin/weather.php";
 @source "../../admin/calendar.php";
+@source "../../includes/calendar.php";   /* layer colours (Nov 15, 2026) */
+@source "../../admin/renewals.php";
+@source "../../includes/renewals.php";
 @source "../../admin/party.php";
 @source "../../admin/party_packages.php";
 @source "../../admin/customers.php";

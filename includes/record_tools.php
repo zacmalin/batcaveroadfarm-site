@@ -35,6 +35,7 @@ function bcrf_record_kinds(): array {
         'purchase_order' => ['label' => 'Purchase order', 'need' => [['table', 'inventory', 'edit']], 'audit' => ['purchase_orders'],  'notes' => false],
         'receive'        => ['label' => 'Receive',        'need' => [['table', 'inventory', 'edit']], 'audit' => ['receives'],         'notes' => false],
         'event'          => ['label' => 'Event',          'need' => [['view', 'events']],             'audit' => ['events'],           'notes' => false],
+        'renewal'        => ['label' => 'Renewal',        'need' => [['view', 'renewals']],           'audit' => ['renewals'],         'notes' => true],   // Nov 15, 2026
     ];
 }
 
@@ -78,6 +79,7 @@ function bcrf_record_row(PDO $pdo, string $type, $id): ?array {
         'purchase_order' => "SELECT p.id, CONCAT('PO #', p.id, IF(v.name IS NULL, '', CONCAT(' · ', v.name))) AS name FROM purchase_orders p LEFT JOIN vendors v ON v.id = p.vendor_id WHERE p.id = ?",
         'receive'        => "SELECT r.id, CONCAT('Receive #', r.id, IF(v.name IS NULL, '', CONCAT(' · ', v.name))) AS name, r.business_date AS on_date FROM receives r LEFT JOIN vendors v ON v.id = r.vendor_id WHERE r.id = ?",
         'event'          => "SELECT id, title AS name FROM events WHERE id = ?",
+        'renewal'        => "SELECT id, title AS name, renews_on AS on_date FROM renewals WHERE id = ?",
     ][$type] ?? null;
     if (!$sql) return null;
     try { $st = $pdo->prepare($sql); $st->execute([$id]); $r = $st->fetch(PDO::FETCH_ASSOC); return $r ?: null; }
@@ -98,6 +100,7 @@ function bcrf_record_url(PDO $pdo, string $type, $id): string {
         'customer' => '/admin/customers.php?id=', 'organization' => '/admin/organizations.php?id=', 'vendor' => '/admin/vendors.php?id=',
         'inventory' => '/admin/products.php?id=', 'animal' => '/admin/animals.php?id=', 'event_inquiry' => '/admin/party.php?id=',
         'incident' => '/admin/incidents.php?id=', 'purchase_order' => '/admin/purchase_orders.php?id=', 'receive' => '/admin/receive.php?id=',
+        'renewal' => '/admin/renewals.php?id=',
     ];
     if (isset($simple[$type])) return $simple[$type] . $id;
     if ($type === 'booking') {   // bookings are shown by day on the Bookings screen
@@ -119,7 +122,7 @@ function bcrf_record_label(PDO $pdo, string $type, $id): string {
 /** Which session flash key the page at $back reads ('' when the page shows the shared doc flash itself). */
 function bcrf_record_flash_key(string $back): string {
     $map = ['customers' => 'crm_flash', 'organizations' => 'org_flash', 'vendors' => 'vend_flash', 'animals' => 'an_flash', 'party' => 'party_flash',
-            'products' => 'prod_flash', 'purchase_orders' => 'po_flash', 'receive' => 'recv_flash', 'incidents' => 'inc_flash', 'animal_expenses' => 'ax_flash'];
+            'products' => 'prod_flash', 'purchase_orders' => 'po_flash', 'receive' => 'recv_flash', 'incidents' => 'inc_flash', 'animal_expenses' => 'ax_flash', 'renewals' => 'ren_flash'];
     return preg_match('#^/admin/([a-z_]+)\.php#', $back, $m) ? ($map[$m[1]] ?? '') : '';
 }
 

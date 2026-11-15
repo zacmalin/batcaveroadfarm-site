@@ -9,6 +9,12 @@
 //   orders      purchase orders expected to arrive (deliveries)
 //   interviews  job interviews
 //   closures    booking blackout days and weather days
+//   renewals    "Renewals & due dates" (Nov 15, 2026): renewals (includes/renewals.php, with their repeats), vendor and animal
+//               papers running out, vaccinations due and annual passes ending. Needs the 'renewals' view; each source also
+//               needs its own permission. A renewal's "Renew:" task is left out of the Tasks layer while this one is on.
+// Nov 15, 2026: once-a-month, every-3-months and once-a-year chores also show on the Tasks layer beyond the days already
+// made (as "planned"), so a quarterly check is on the calendar months ahead. Each layer's colours live in BCRF_CAL_LAYERS
+// ('tag' for labels, 'dot' for the month dots) so the dashboard calendar and Team › Calendar look the same.
 // Who sees what: each layer needs the same permission as its own page (bcrf_cal_layers_for). Times are farm-local.
 //   bcrf_cal_items($pdo, $from, $to, $layers, $viewer)   items between two dates (inclusive), sorted
 //   bcrf_cal_feed_*                                      the private ICS feed (one per staff member, secret link)
@@ -16,15 +22,17 @@ if (!function_exists('bcrf_cal_items')) {
 
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';
 require_once __DIR__ . '/parties.php';
+require_once __DIR__ . '/renewals.php';
 
 define('BCRF_CAL_LAYERS', [
-    'parties'    => ['label' => 'Parties',        'perm' => ['view', 'event_inquiries']],
-    'bookings'   => ['label' => 'Group bookings', 'perm' => ['view', 'bookings']],
-    'events'     => ['label' => 'Public events',  'perm' => ['view', 'calendar']],
-    'tasks'      => ['label' => 'Tasks',          'perm' => ['view', 'tasks']],
-    'orders'     => ['label' => 'Deliveries',     'perm' => ['table', 'inventory']],
-    'interviews' => ['label' => 'Interviews',     'perm' => ['view', 'jobs']],
-    'closures'   => ['label' => 'Closed days',    'perm' => ['view', 'calendar']],
+    'parties'    => ['label' => 'Parties',               'perm' => ['view', 'event_inquiries'], 'tag' => 'bg-pink-100 text-pink-800 border-pink-300',       'dot' => 'bg-pink-500'],
+    'bookings'   => ['label' => 'Group bookings',        'perm' => ['view', 'bookings'],        'tag' => 'bg-sky-100 text-sky-800 border-sky-300',          'dot' => 'bg-sky-500'],
+    'events'     => ['label' => 'Public events',         'perm' => ['view', 'calendar'],        'tag' => 'bg-violet-100 text-violet-800 border-violet-300', 'dot' => 'bg-violet-500'],
+    'tasks'      => ['label' => 'Tasks',                 'perm' => ['view', 'tasks'],           'tag' => 'bg-amber-100 text-amber-900 border-amber-300',    'dot' => 'bg-amber-500'],
+    'orders'     => ['label' => 'Deliveries',            'perm' => ['table', 'inventory'],      'tag' => 'bg-teal-100 text-teal-800 border-teal-300',       'dot' => 'bg-teal-500'],
+    'interviews' => ['label' => 'Interviews',            'perm' => ['view', 'jobs'],            'tag' => 'bg-indigo-100 text-indigo-800 border-indigo-300', 'dot' => 'bg-indigo-500'],
+    'closures'   => ['label' => 'Closed days',           'perm' => ['view', 'calendar'],        'tag' => 'bg-stone-200 text-stone-700 border-stone-400',    'dot' => 'bg-stone-500'],
+    'renewals'   => ['label' => 'Renewals & due dates',  'perm' => ['view', 'renewals'],        'tag' => 'bg-red-100 text-red-800 border-red-300',          'dot' => 'bg-red-600'],
 ]);
 
 function bcrf_cal_tz(): DateTimeZone { return new DateTimeZone(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York'); }
@@ -133,6 +141,7 @@ function bcrf_cal_items(PDO $pdo, string $from, string $to, array $layers, array
                 $where .= " AND (assignee_user_id = ? OR (assignee_user_id IS NULL AND (assignee_role IS NULL OR assignee_role = ?)))";
                 $args[] = (int)($viewer['user_id'] ?? 0); $args[] = (string)($viewer['role'] ?? '');
             }
+            if (isset($on['renewals'])) $where .= " AND (related_type IS NULL OR related_type <> 'renewal')";   // the renewal itself shows instead
             $st = $pdo->prepare("SELECT id, title, due_date, due_time, priority, assignee_user_id, assignee_role FROM tasks WHERE $where ORDER BY due_date, due_time, id LIMIT 500");
             $st->execute($args);
             foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $t) {
@@ -142,6 +151,7 @@ function bcrf_cal_items(PDO $pdo, string $from, string $to, array $layers, array
                     $who . ($t['priority'] === 'high' ? ' · high priority' : ''));
             }
         } catch (Throwable $e) {}
+        foreach (bcrf_cal_planned_chores($pdo, $from, $to, $viewer) as $it) $items[] = $it;
     }
 
     if (isset($on['orders'])) {
@@ -186,7 +196,109 @@ function bcrf_cal_items(PDO $pdo, string $from, string $to, array $layers, array
         } catch (Throwable $e) {}
     }
 
+    if (isset($on['renewals'])) foreach (bcrf_cal_due_dates($pdo, $from, $to, (string)($viewer['role'] ?? '')) as $it) $items[] = $it;
+
     usort($items, fn($a, $b) => [$a['date'], $a['all_day'] ? 0 : 1, $a['start'], $a['title']] <=> [$b['date'], $b['all_day'] ? 0 : 1, $b['start'], $b['title']]);
+    return $items;
+}
+
+/** Can $role open view $v / table $t? (Owners always.) */
+function bcrf_cal_role_can(string $role, string $type, string $name, string $action = 'view'): bool {
+    if ($role === 'administrator') return true;
+    if ($role === '' || $role === 'user') return false;
+    return $type === 'view' ? (function_exists('hasViewAccess') && hasViewAccess($role, $name))
+                            : (function_exists('hasTableAccess') && hasTableAccess($role, $name, $action));
+}
+
+/**
+ * "Renewals & due dates": renewals (and their repeats), papers running out, vaccinations due, annual passes ending.
+ * Each source checks its own permission for $role, so the layer never shows something the person couldn't open.
+ */
+function bcrf_cal_due_dates(PDO $pdo, string $from, string $to, string $role): array {
+    $items = [];
+    try {
+        foreach (bcrf_renewals_occurrences($pdo, $from, $to) as [$r, $d]) {
+            $later = $d !== (string)$r['renews_on'];
+            $items[] = bcrf_cal_item('renewals', 'renewal-' . $r['id'] . '-' . $d, (!empty($r['auto_renews']) ? 'Renews: ' : 'Renew: ') . $r['title'], $d, null,
+                '/admin/renewals.php?id=' . (int)$r['id'],
+                implode(' · ', array_filter([$r['provider'] ?? '', bcrf_renewal_money($r['cost_cents'] ?? null), !empty($r['auto_renews']) ? 'renews by itself; check it did' : '', $later ? 'a later renewal' : ''])));
+        }
+    } catch (Throwable $e) {}
+    $vendorPapers = bcrf_cal_role_can($role, 'table', 'inventory', 'edit');
+    $animalPapers = bcrf_cal_role_can($role, 'table', 'animals');
+    if ($vendorPapers || $animalPapers) {
+        try {
+            $types = array_merge($vendorPapers ? ['vendor'] : [], $animalPapers ? ['animal'] : []);
+            $st = $pdo->prepare("SELECT d.id, d.doc_type, d.link_type, d.link_id, d.expires_on, COALESCE(v.name, a.name) AS link_name FROM purchase_docs d
+                                 LEFT JOIN vendors v ON d.link_type = 'vendor' AND v.id = d.link_id LEFT JOIN animals a ON d.link_type = 'animal' AND a.id = d.link_id
+                                 WHERE d.deleted_at IS NULL AND d.expires_on BETWEEN ? AND ? AND d.link_type IN (" . implode(',', array_fill(0, count($types), '?')) . ") ORDER BY d.expires_on, d.id LIMIT 300");
+            $st->execute(array_merge([$from, $to], $types));
+            $names = ['insurance' => 'Insurance certificate', 'w9' => 'W-9', 'contract' => 'Contract', 'vet' => 'Vet record', 'registration' => 'Registration papers'];
+            foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                $items[] = bcrf_cal_item('renewals', 'paper-' . $r['id'], 'Runs out: ' . ($names[$r['doc_type']] ?? 'Paper') . ($r['link_name'] ? ' for ' . $r['link_name'] : ''),
+                    (string)$r['expires_on'], null, '/admin/documents.php?id=' . (int)$r['id'], 'Ask for a new one');
+            }
+        } catch (Throwable $e) {}
+    }
+    if (bcrf_cal_role_can($role, 'view', 'animal_health') && $animalPapers) {
+        try {
+            $st = $pdo->prepare("SELECT v.id, v.animal_id, a.name AS animal_name, v.vaccine, v.next_due FROM animal_vaccinations v JOIN animals a ON a.id = v.animal_id
+                                 WHERE v.next_due BETWEEN ? AND ? AND a.status NOT IN ('sold','transferred','adopted','deceased')
+                                   AND NOT EXISTS (SELECT 1 FROM animal_vaccinations v2 WHERE v2.animal_id = v.animal_id AND v2.vaccine = v.vaccine
+                                                   AND (v2.given_on > v.given_on OR (v2.given_on = v.given_on AND v2.id > v.id)))
+                                 ORDER BY v.next_due, a.name LIMIT 300");
+            $st->execute([$from, $to]);
+            foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                $items[] = bcrf_cal_item('renewals', 'vaccine-' . $r['id'], 'Vaccine due: ' . $r['animal_name'] . ' (' . $r['vaccine'] . ')', (string)$r['next_due'], null,
+                    '/admin/animals.php?id=' . (int)$r['animal_id'] . '&tab=health');
+            }
+        } catch (Throwable $e) {}
+    }
+    if (bcrf_cal_role_can($role, 'view', 'passes')) {
+        try {
+            $st = $pdo->prepare("SELECT valid_until, COUNT(*) AS n, MIN(holder_name) AS who FROM passes WHERE status = 'active' AND valid_until BETWEEN ? AND ? GROUP BY valid_until ORDER BY valid_until");
+            $st->execute([$from, $to]);
+            foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                $n = (int)$r['n'];
+                $items[] = bcrf_cal_item('renewals', 'passes-' . $r['valid_until'], $n === 1 ? 'Annual pass ends: ' . $r['who'] : $n . ' annual passes end', (string)$r['valid_until'], null,
+                    '/admin/admin.php?view=passes', 'Holders get a renewal email before it ends');
+            }
+        } catch (Throwable $e) {}
+    }
+    return $items;
+}
+
+/**
+ * Monthly, every-3-months and yearly chores beyond the days already made (tasks exist only horizon_days ahead), shown as
+ * planned on the Tasks layer. Same who-sees-what rule as tasks. Daily and weekly chores are left out: they'd fill every day.
+ */
+function bcrf_cal_planned_chores(PDO $pdo, string $from, string $to, array $viewer): array {
+    if (!function_exists('bcrf_rec_falls_on') || !function_exists('bcrf_tasks_ready') || !bcrf_tasks_ready($pdo)) return [];
+    $items = [];
+    try {
+        $rows = $pdo->query("SELECT * FROM task_recurrences WHERE active = 1 AND freq IN ('monthly', 'quarterly', 'yearly')")->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Throwable $e) { return []; }
+    $today = bcrf_cal_today();
+    foreach ($rows as $r) {
+        if (empty($viewer['manager'])) {
+            $mine = !empty($r['assignee_user_id']) ? (int)$r['assignee_user_id'] === (int)($viewer['user_id'] ?? 0)
+                  : (empty($r['assignee_role']) || $r['assignee_role'] === (string)($viewer['role'] ?? ''));
+            if (!$mine) continue;
+        }
+        $made = (string)($r['generated_through'] ?? '');
+        $lo = max($from, $today, $made !== '' ? (new DateTimeImmutable($made))->modify('+1 day')->format('Y-m-d') : $today);
+        if ($lo > $to) continue;
+        $md = max(1, min(31, (int)$r['month_day']));
+        // Only the one day a month it could fall on is checked.
+        for ($m = (new DateTimeImmutable(substr($lo, 0, 8) . '01')); $m->format('Y-m-d') <= $to; $m = $m->modify('+1 month')) {
+            $d = $m->format('Y-m-') . sprintf('%02d', min($md, (int)$m->format('t')));
+            if ($d < $lo || $d > $to || !bcrf_rec_falls_on($pdo, $r, $d)) continue;
+            $time = function_exists('bcrf_rec_due_time') ? bcrf_rec_due_time($pdo, $r, $d) : null;
+            $who = !empty($r['assignee_user_id']) ? bcrf_cal_person($pdo, (int)$r['assignee_user_id']) : (!empty($r['assignee_role']) ? (string)$r['assignee_role'] : 'Anyone');
+            $items[] = bcrf_cal_item('tasks', 'chore-' . $r['id'] . '-' . $d, (string)$r['title'], $d . ($time ? ' ' . $time : ''), null,
+                '/admin/tasks.php?tab=chores', $who . ' · planned chore (its task appears ' . (int)$r['horizon_days'] . ' days ahead)');
+        }
+    }
     return $items;
 }
 
@@ -296,7 +408,7 @@ function bcrf_cal_feed_ics(PDO $pdo, array $owner, ?string $today = null): strin
     $from = (new DateTimeImmutable($today))->modify('-14 days')->format('Y-m-d');
     $to = (new DateTimeImmutable($today))->modify('+120 days')->format('Y-m-d');
     $allowed = bcrf_cal_layers_for((string)$owner['role']);
-    $want = ['tasks', 'closures'];
+    $want = ['tasks', 'closures', 'renewals'];   // renewals: only for people with the Renewals view (Nov 15, 2026)
     if (!empty($owner['with_events'])) $want = array_merge($want, ['parties', 'bookings']);
     $layers = array_values(array_intersect($want, $allowed));
     // In the feed, tasks are the person's own (and their role's), even for a manager.

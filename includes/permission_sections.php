@@ -25,6 +25,7 @@ function bcrf_permission_sections(): array {
             ['view', 'tasks',        '✅', 'My Tasks'],
             ['view', 'tasks_manage', '🗂️', 'Manage Tasks, Chores and Checklists'],
             ['view', 'calendar',     '📅', 'Calendar'],
+            ['view', 'renewals',     '🔁', 'Renewals (domain, insurance, licenses; on the calendar)'],
         ]],
         'animals' => ['label' => 'Animals', 'icon' => '🐾', 'items' => [
             ['table', 'animals',         '📋', 'Roster (edit = change animals and public pages)'],

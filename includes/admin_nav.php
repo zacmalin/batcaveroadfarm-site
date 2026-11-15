@@ -96,7 +96,8 @@ function bcrf_admin_nav_sections(): array {
         ['label'=>'Seasonal Themes', 'short'=>'Themes','icon'=>'🎨','tabs'=>[['Seasonal Themes','?view=theme_scheduler','view','theme_scheduler']]],
     ]],
     'team' => ['label'=>'Team','icon'=>'🧑‍🌾','items'=>[
-        ['label'=>'Calendar',   'icon'=>'📅','tabs'=>[['Calendar',  '/admin/calendar.php',            'view', 'calendar']]],      // master calendar + phone feed (Nov 12)
+        ['label'=>'Calendar',   'icon'=>'📅','tabs'=>[['Calendar',  '/admin/calendar.php',            'view', 'calendar'],        // master calendar + phone feed (Nov 12)
+                                                       ['Renewals',  '/admin/renewals.php',            'view', 'renewals']]],      // domain, insurance, licenses (Nov 15, 2026)
         ['label'=>'Tasks',      'icon'=>'✅','tabs'=>[['My tasks',  '/admin/tasks.php?tab=my',        'view', 'tasks'],          // Farm OS Phase 3 (Nov 11)
                                                        ['Everyone',  '/admin/tasks.php?tab=all',       'view', 'tasks_manage'],
                                                        ['Chores',    '/admin/tasks.php?tab=chores',    'view', 'tasks_manage'],
@@ -205,6 +206,7 @@ function bcrf_admin_nav_keywords(): array {
         '?view=media'                               => 'images photos pictures uploads',
         '?view=theme_scheduler'                     => 'holiday seasonal theme',
         '/admin/calendar.php'                       => 'schedule ical feed agenda',
+        '/admin/renewals.php'                       => 'renewal renewals renew expiry expires expiring domain hosting ssl insurance policy license licenses permit subscription due dates',
         '/admin/tasks.php?tab=my'                   => 'todo to do jobs work',
         '/admin/tasks.php?tab=chores'               => 'recurring daily chores',
         '?view=jobs_staff'                          => 'employees team people workers',

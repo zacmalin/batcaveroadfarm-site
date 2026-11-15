@@ -408,8 +408,10 @@ if ($canV('bookings'))         $quick[] = ['📋', "Today's bookings", "$A?view=
 if ($canV('timecard'))         $quick[] = ['⏰', 'Clock in / out',   "$A?view=timecard"];
 if ($canV('tasks'))            $quick[] = ['✅', 'My tasks',         '/admin/tasks.php'];
 
-// ═══ CALENDAR (unchanged) ════════════════════════════════════════════════════
-$cal_bookings = []; $cal_events = [];
+// ═══ CALENDAR (Nov 15, 2026) ════════════════════════════════════════════════
+// Every Team › Calendar layer this person may see (includes/calendar.php: parties, group bookings, public events, tasks,
+// deliveries, interviews, closed days, renewals & due dates), one coloured dot per layer. Tapping a day opens that week
+// on Team › Calendar (or the day's bookings for someone without the Calendar page).
 $cal_first = (isset($_GET['cal']) && preg_match('/^\d{4}-\d{2}$/', (string)$_GET['cal']))
     ? DateTime::createFromFormat('Y-m-d', $_GET['cal'] . '-01') : null;
 if (!$cal_first) $cal_first = new DateTime('first day of this month');
@@ -417,19 +419,23 @@ $cal_first->setTime(0, 0, 0);
 $cal_year = (int)$cal_first->format('Y'); $cal_mon = (int)$cal_first->format('n');
 $cal_days = (int)$cal_first->format('t'); $cal_startDow = (int)$cal_first->format('w');
 $mStart = $cal_first->format('Y-m-01'); $mEnd = $cal_first->format('Y-m-t');
+$cal_layers = []; $cal_dots = [];
 try {
-    $st = $pdo->prepare("SELECT DISTINCT booking_date d FROM bookings WHERE status = 'confirmed' AND booking_date BETWEEN ? AND ?");
-    $st->execute([$mStart, $mEnd]);
-    foreach ($st->fetchAll(PDO::FETCH_COLUMN) as $d) { $cal_bookings[(int)substr($d, 8, 2)] = true; }
-} catch (Throwable $e) {}
-try {
-    $st = $pdo->prepare("SELECT DISTINCT DATE(start_datetime) d FROM events WHERE status = 'published' AND start_datetime BETWEEN ? AND ?");
-    $st->execute([$mStart . ' 00:00:00', $mEnd . ' 23:59:59']);
-    foreach ($st->fetchAll(PDO::FETCH_COLUMN) as $d) { $cal_events[(int)substr($d, 8, 2)] = true; }
-} catch (Throwable $e) {}
+    require_once dirname(__DIR__, 2) . '/includes/tasks.php';
+    require_once dirname(__DIR__, 2) . '/includes/calendar.php';
+    $cal_layers = $role === 'Staff' ? [] : bcrf_cal_layers_for($role);
+    if ($cal_layers) {
+        $cal_viewer = ['user_id' => (int)($_SESSION['user_id'] ?? 0), 'role' => $role, 'manager' => bcrf_tasks_is_manager()];
+        foreach (bcrf_cal_items($pdo, $mStart, $mEnd, $cal_layers, $cal_viewer) as $it) {
+            $cd = (int)substr($it['date'], 8, 2);
+            $cal_dots[$cd][$it['layer']] = ($cal_dots[$cd][$it['layer']] ?? 0) + 1;
+        }
+    }
+} catch (Throwable $e) { error_log('[dashboard] calendar: ' . $e->getMessage()); }
 $cal_prev = (clone $cal_first)->modify('-1 month')->format('Y-m');
 $cal_next = (clone $cal_first)->modify('+1 month')->format('Y-m');
-$showCal  = $canV('bookings') || $canV('events');
+$showCal  = (bool)$cal_layers;
+$cal_full = $canV('calendar');
 $showSales = $canV('pos') || $canV('sales_analytics') || $canV('receipts');
 
 $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
@@ -610,21 +616,22 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
     <div class="grid grid-cols-7 gap-1">
       <?php for ($i = 0; $i < $cal_startDow; $i++): ?><div></div><?php endfor; ?>
       <?php for ($d = 1; $d <= $cal_days; $d++):
-          $ds = sprintf('%04d-%02d-%02d', $cal_year, $cal_mon, $d); $isT = $ds === $today; ?>
-        <a href="<?= $A ?>?view=bookings&day=<?= $ds ?>"
+          $ds = sprintf('%04d-%02d-%02d', $cal_year, $cal_mon, $d); $isT = $ds === $today;
+          $here = $cal_dots[$d] ?? [];
+          $dayHref = $cal_full ? '/admin/calendar.php?view=list&date=' . $ds : ($canV('bookings') ? "$A?view=bookings&day=$ds" : '');
+          $dayLabel = date('M j', strtotime($ds)) . ($here ? ': ' . implode(', ', array_map(fn($l, $n) => $n . ' ' . BCRF_CAL_LAYERS[$l]['label'], array_keys($here), $here)) : ''); ?>
+        <<?= $dayHref !== '' ? 'a href="' . $h($dayHref) . '"' : 'div' ?> aria-label="<?= $h($dayLabel) ?>" title="<?= $h($dayLabel) ?>"
            class="aspect-square flex flex-col items-center justify-center rounded border text-xs transition <?= $isT ? 'border-amber-400 bg-amber-50 font-bold text-amber-800' : 'border-stone-100 hover:bg-stone-50 text-stone-600' ?>">
           <span><?= $d ?></span>
-          <span class="flex gap-0.5 mt-0.5 h-1.5">
-            <?php if (!empty($cal_bookings[$d])): ?><span class="w-1.5 h-1.5 rounded-full bg-green-500"></span><?php endif; ?>
-            <?php if (!empty($cal_events[$d])): ?><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span><?php endif; ?>
+          <span class="flex flex-wrap justify-center gap-0.5 mt-0.5 min-h-1.5 max-w-full px-0.5">
+            <?php foreach (array_keys(BCRF_CAL_LAYERS) as $l): if (empty($here[$l])) continue; ?><span class="w-1.5 h-1.5 rounded-full <?= BCRF_CAL_LAYERS[$l]['dot'] ?>"></span><?php endforeach; ?>
           </span>
-        </a>
+        </<?= $dayHref !== '' ? 'a' : 'div' ?>>
       <?php endfor; ?>
     </div>
-    <div class="flex flex-wrap items-center gap-4 mt-4 text-[10px] text-stone-500">
-      <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500"></span> Bookings</span>
-      <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span> Farm events</span>
-      <span class="ml-auto text-stone-400">Tap a day to manage its bookings</span>
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-4 text-[10px] text-stone-500">
+      <?php foreach ($cal_layers as $l): ?><span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full <?= BCRF_CAL_LAYERS[$l]['dot'] ?>"></span> <?= $h(BCRF_CAL_LAYERS[$l]['label']) ?></span><?php endforeach; ?>
+      <?php if ($cal_full): ?><a href="/admin/calendar.php" class="ml-auto text-amber-800 underline">Open the full calendar</a><?php endif; ?>
     </div>
   </section>
   <?php endif; ?>

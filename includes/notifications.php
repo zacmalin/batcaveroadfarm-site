@@ -17,6 +17,9 @@
 //   applicant         a new job application (last 3 days, not spam)                   → managers
 //   vaccine_due       a vaccination due within 14 days or late, once per due date     → managers
 //   paper_expiring    a vendor or animal paper (insurance, W-9, vet...) runs out within 30 days, once per date → managers
+//   renewal_due       a renewal (domain, insurance, license...) is inside its reminder window, or late (Nov 15, 2026;
+//                     includes/renewals.php) → whoever handles it (Owners, Managers or one person), who is also emailed once
+//                     and gets a "Renew:" task due on the date
 // Rows are made by bcrf_notify() (directly, or by bcrf_notify_sweep(), which admin/cron/reminders.php runs every 15 minutes)
 // and kept 60 days. dedupe_key makes each thing one notification however often the sweep runs.
 // Who sees a row: user_id = you; or no user_id and role = your role; or neither set and you're an Owner or Manager.
@@ -240,6 +243,10 @@ function bcrf_notify_sweep(PDO $pdo): int {
             $added += bcrf_notify($pdo, ['kind' => 'paper_expiring', 'dedupe' => 'paper_expiring:' . $d['id'] . ':' . $d['expires_on'], 'link' => '/admin/documents.php?id=' . (int)$d['id'],
                 'title' => $what . ($past ? ' has run out' : ' runs out soon'), 'body' => ($past ? 'Ran out ' : 'Runs out ') . date('D M j, Y', strtotime((string)$d['expires_on'])) . '. Ask for a new one.']) ? 1 : 0;
         }
+    });
+    $safe(function () use ($pdo, &$added, $farmToday) {   // renewals: bell, email once, and a task (Nov 15, 2026; migration 0069)
+        if (!function_exists('bcrf_renewals_sweep')) require_once __DIR__ . '/renewals.php';
+        $added += bcrf_renewals_sweep($pdo, $farmToday);
     });
     try { $pdo->exec("DELETE FROM notifications WHERE created_at < UTC_TIMESTAMP() - INTERVAL 60 DAY"); $pdo->exec("DELETE r FROM notification_reads r LEFT JOIN notifications n ON n.id = r.notification_id WHERE n.id IS NULL"); }
     catch (Throwable $e) { /* tidy-up only */ }

@@ -39,7 +39,8 @@ $ready = bcrf_notifications_ready($pdo);
 $rows = $ready ? bcrf_notifications_list($pdo, $uid, $role) : [];
 $unread = count(array_filter($rows, fn($r) => !$r['is_read']));
 $icons = ['party_request' => '🎈', 'booking_request' => '🚌', 'online_payment' => '💳', 'deposit_overdue' => '⏰', 'quote_no_reply' => '📞',
-          'reminder_sent' => '✉️', 'task_late' => '✅'];
+          'reminder_sent' => '✉️', 'task_late' => '✅', 'incident' => '🚑', 'low_stock' => '📦', 'applicant' => '📥', 'vaccine_due' => '💉',
+          'paper_expiring' => '📄', 'renewal_due' => '🔁'];
 $when = function (string $utc): string {
     $t = (new DateTimeImmutable($utc, new DateTimeZone('UTC')))->setTimezone(new DateTimeZone(date_default_timezone_get()));
     $today = new DateTimeImmutable('today', new DateTimeZone(date_default_timezone_get()));

@@ -88,12 +88,7 @@ $byDay = [];
 foreach ($items as $it) $byDay[$it['date']][] = $it;
 $feed = $feedReady && $uid > 0 ? bcrf_cal_feed_get($pdo, $uid) : null;
 
-$tag = [   // layer colours (dot and label)
-    'parties' => 'bg-pink-100 text-pink-800 border-pink-300', 'bookings' => 'bg-sky-100 text-sky-800 border-sky-300',
-    'events' => 'bg-violet-100 text-violet-800 border-violet-300', 'tasks' => 'bg-amber-100 text-amber-900 border-amber-300',
-    'orders' => 'bg-teal-100 text-teal-800 border-teal-300', 'interviews' => 'bg-indigo-100 text-indigo-800 border-indigo-300',
-    'closures' => 'bg-stone-200 text-stone-700 border-stone-400',
-];
+$tag = array_map(fn($l) => $l['tag'], BCRF_CAL_LAYERS);   // layer colours (dot and label), shared with the dashboard calendar (Nov 15, 2026)
 $q = function (array $over) use ($view, $date, $layers) {
     $p = array_merge(['view' => $view, 'date' => $date], $over);
     $s = http_build_query(['view' => $p['view'], 'date' => $p['date']]);
@@ -203,7 +198,7 @@ bcrf_shell_open('Calendar', ['toast' => $toast, 'width' => 'max-w-5xl', 'js' => 
         <a href="<?= $h(preg_replace('#^https://#', 'webcal://', $newFeed)) ?>" class="<?= $btnMain ?>">Add to iPhone calendar</a>
         <a href="https://calendar.google.com/calendar/r?cid=<?= $h(rawurlencode(preg_replace('#^https://#', 'webcal://', $newFeed))) ?>" class="<?= $btnSec ?>" rel="noopener">Add to Google Calendar</a>
       </div>
-      <p class="text-xs text-stone-500">Your phone checks for changes every hour or so. It's read-only: changes are made here, not on the phone.</p>
+      <p class="text-xs text-stone-500">Your phone checks for changes every hour or so (Google Calendar can take up to a day). It's read-only: changes are made here, not on the phone. Reminders come from Farm OS (the bell, email and your task list), not from the phone calendar.</p>
     <?php elseif (!$feed): ?>
       <p class="text-sm text-stone-600 mb-3">See your tasks, parties and group bookings in your phone's own calendar app. It updates by itself.</p>
       <form method="POST" action="calendar.php"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
@@ -212,7 +207,7 @@ bcrf_shell_open('Calendar', ['toast' => $toast, 'width' => 'max-w-5xl', 'js' => 
       <p class="text-sm text-stone-600 mb-2">Your phone calendar link is on<?= $feed['last_used_at'] ? ', last checked ' . $h((new DateTimeImmutable($feed['last_used_at'], new DateTimeZone('UTC')))->setTimezone(bcrf_cal_tz())->format('M j, g:i A')) : ' (no phone has used it yet)' ?>. Lost it, or want to add it to another phone? Make a new one; the old one stops working.</p>
       <form method="POST" action="calendar.php" class="mb-3"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="feed_events">
         <input type="hidden" name="on" value="<?= $feed['with_events'] ? '0' : '1' ?>">
-        <p class="text-sm text-stone-700"><?= $feed['with_events'] ? 'It shows your tasks, parties, group bookings and closed days.' : 'It shows your tasks and closed days only.' ?>
+        <p class="text-sm text-stone-700"><?= $feed['with_events'] ? 'It shows your tasks, parties, group bookings and closed days' : 'It shows your tasks and closed days' ?><?= in_array('renewals', $allowed, true) ? ', plus renewals and due dates.' : ($feed['with_events'] ? '.' : ' only.') ?>
           <button class="underline text-amber-800"><?= $feed['with_events'] ? 'Show only my tasks' : 'Add parties and group bookings' ?></button></p>
       </form>
       <form method="POST" action="calendar.php" class="flex flex-wrap gap-2"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
