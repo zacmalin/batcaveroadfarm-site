@@ -448,10 +448,10 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
     <?php endif; ?>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+  <div class="grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-[auto_1fr] gap-4 lg:gap-6">
 
     <!-- ═══ ACTION CENTER ═══ -->
-    <section class="lg:col-span-2 space-y-3" aria-labelledby="acHead">
+    <section class="lg:col-span-2 lg:col-start-1 lg:row-start-1 space-y-3" aria-labelledby="acHead">
       <div class="flex items-center justify-between gap-2">
         <h2 id="acHead" class="text-sm font-black uppercase tracking-widest text-stone-500">Action Center</h2>
         <div class="flex items-center gap-1.5 text-[10px] font-bold">
@@ -501,7 +501,7 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
     </section>
 
     <!-- ═══ TODAY + QUICK ACTIONS + METRICS ═══ -->
-    <div class="space-y-4">
+    <div class="lg:col-start-3 lg:row-start-1 lg:row-span-2 space-y-4">
 
       <?php if ($quick): ?>
       <section aria-label="Quick actions" class="grid grid-cols-2 gap-2">
@@ -592,11 +592,10 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
       </section>
       <?php endif; ?>
     </div>
-  </div>
 
   <?php if ($showCal): ?>
-  <!-- ═══ CALENDAR ═══ -->
-  <section class="<?= $card ?> p-4 md:p-6 mt-6" aria-labelledby="calHead">
+  <!-- ═══ CALENDAR ═══ (left column under the Action Center on wide screens; last on phones) -->
+  <section class="<?= $card ?> p-4 md:p-6 lg:col-span-2 lg:col-start-1 lg:row-start-2 self-start" aria-labelledby="calHead">
     <div class="flex items-center justify-between mb-4">
       <h2 id="calHead" class="text-sm font-bold text-stone-700"><?= $h($cal_first->format('F Y')) ?></h2>
       <div class="flex items-center gap-2">
@@ -629,5 +628,6 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
     </div>
   </section>
   <?php endif; ?>
+  </div>
 </div>
 <script src="/admin/assets/admin-dashboard.js?v=20261105a"></script>
