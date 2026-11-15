@@ -74,22 +74,22 @@
       <button type="button" class="cookie-dismiss" id="cookie-dismiss">Got it</button>
     </div>
 
-    <div id="subscribe-modal" class="sub-modal" hidden role="dialog" aria-modal="true" aria-labelledby="sub-modal-title">
+    <dialog id="subscribe-modal" class="sub-modal" aria-labelledby="sub-modal-title"><!-- native dialog, opened with showModal() by min.subscribe.js (Nov 15, 2026) -->
       <div class="sub-modal-card">
         <button type="button" class="sub-modal-close" id="subscribe-close" aria-label="Close">&times;</button>
         <h2 id="sub-modal-title"><span aria-hidden="true">📬</span> Join our mailing list</h2>
         <p class="sub-modal-lead">Fresh harvests, baked goods, and new baby animals — straight to your inbox. No spam.</p>
         <div class="subscribe-msg" id="subscribe-msg" hidden role="status"></div>
-        <form id="subscribe-form" class="sub-form">
+        <form id="subscribe-form" class="sub-form" method="post" action="<?= bcrf_farm_url() ?>/subscribe.php"><!-- method/action: still works if the script fails -->
           <label for="sub-modal-email">Email address</label>
-          <input id="sub-modal-email" type="email" name="email" required placeholder="name@domain.com" autocomplete="email">
+          <input id="sub-modal-email" type="email" name="email" required placeholder="name@domain.com" autocomplete="email" autocapitalize="none" spellcheck="false">
           <label class="sub-check"><input type="checkbox" name="track_nursery" value="1" checked> <span>New baby animal updates</span></label>
           <label class="sub-check"><input type="checkbox" name="track_inventory" value="1" checked> <span>Fresh harvest &amp; bakery alerts</span></label>
           <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
           <button type="submit" class="cta-btn sub-submit">Subscribe</button>
         </form>
       </div>
-    </div>
+    </dialog>
 
         <!-- Fix pack M: site-wide scripts now load from js/min.site.js (in head.php) -->
 <?php

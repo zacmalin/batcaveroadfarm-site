@@ -219,7 +219,7 @@ $last_receipt = $_SESSION['last_receipt'] ?? null;
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1"><!-- pinch-zoom allowed again (Nov 15, 2026); body touch-action:manipulation still stops double-tap zoom on fast taps -->
     <title>Bat Cave Road Farm — Register</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <!-- ZXing for camera barcode scanning (jsdelivr — more reliable than unpkg) -->

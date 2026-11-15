@@ -45,7 +45,7 @@
 .tier-qty-ctrl{display:flex;align-items:center;border:2px solid #c9923a;border-radius:8px;overflow:hidden;flex-shrink:0}
 .tier-qty-btn{background:#f0ddb8;color:#3b2010;border:none;width:34px;height:34px;font-size:1.1rem;font-weight:bold;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .tier-qty-btn:hover{background:#e8c97a}
-.tier-qty-input{width:40px;height:34px;border:none;border-left:1px solid #c9923a;border-right:1px solid #c9923a;text-align:center;font-family:'Rye',Georgia,serif;font-size:.95rem;color:#3b2010;background:#fffdf7;-moz-appearance:textfield;appearance:textfield}
+.tier-qty-input{width:40px;height:34px;border:none;border-left:1px solid #c9923a;border-right:1px solid #c9923a;text-align:center;font-family:'Rye',Georgia,serif;font-size:1rem;color:#3b2010;background:#fffdf7;-moz-appearance:textfield;appearance:textfield}
 .tier-qty-input::-webkit-inner-spin-button,.tier-qty-input::-webkit-outer-spin-button{-webkit-appearance:none}
 .tier-total-display{margin:14px 0 4px;font-family:'Lora',serif;font-size:.95rem;color:#5c3317}
 .tier-total-display strong{font-family:'Rye',Georgia,serif;font-size:1.1rem;color:#3b2010}
@@ -58,7 +58,7 @@
 .tier-qty-ctrl{display:flex;align-items:center;border:2px solid #c9923a;border-radius:8px;overflow:hidden;flex-shrink:0}
 .tier-qty-btn{background:#f0ddb8;color:#3b2010;border:none;width:34px;height:34px;font-size:1.1rem;font-weight:bold;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .tier-qty-btn:hover{background:#e8c97a}
-.tier-qty-input{width:40px;height:34px;border:none;border-left:1px solid #c9923a;border-right:1px solid #c9923a;text-align:center;font-family:'Rye',Georgia,serif;font-size:.95rem;color:#3b2010;background:#fffdf7;-moz-appearance:textfield;appearance:textfield}
+.tier-qty-input{width:40px;height:34px;border:none;border-left:1px solid #c9923a;border-right:1px solid #c9923a;text-align:center;font-family:'Rye',Georgia,serif;font-size:1rem;color:#3b2010;background:#fffdf7;-moz-appearance:textfield;appearance:textfield}
 .tier-qty-input::-webkit-inner-spin-button,.tier-qty-input::-webkit-outer-spin-button{-webkit-appearance:none}
 .tier-total-display{margin:14px 0 4px;font-family:'Lora',serif;font-size:.95rem;color:#5c3317}
 .tier-total-display strong{font-family:'Rye',Georgia,serif;font-size:1.1rem;color:#3b2010}

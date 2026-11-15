@@ -109,12 +109,12 @@ $errMsg = $errMap[$errKey] ?? '';
                     <span class="ticket-type-price"><?= $priceStr ?></span>
                 </div>
                 <div class="ticket-qty-ctrl">
-                    <button type="button" class="qty-btn" data-qty-btn="dec" data-target="qty_<?= (int)$tt['id'] ?>" aria-label="Decrease">−</button>
+                    <button type="button" class="qty-btn" data-qty-btn="dec" data-target="qty_<?= (int)$tt['id'] ?>" aria-label="One fewer <?= htmlspecialchars($tt['name'], ENT_QUOTES) ?>">−</button>
                     <input type="number" id="qty_<?= (int)$tt['id'] ?>" name="qty[<?= (int)$tt['id'] ?>]"
                            class="ticket-qty-input" value="0" min="0" max="20"
                            data-price="<?= number_format((float)$tt['price'], 2) ?>"
                            aria-label="<?= htmlspecialchars($tt['name']) ?> quantity">
-                    <button type="button" class="qty-btn" data-qty-btn="inc" data-target="qty_<?= (int)$tt['id'] ?>" aria-label="Increase">+</button>
+                    <button type="button" class="qty-btn" data-qty-btn="inc" data-target="qty_<?= (int)$tt['id'] ?>" aria-label="One more <?= htmlspecialchars($tt['name'], ENT_QUOTES) ?>">+</button>
                 </div>
             </div>
             <?php endforeach; ?>

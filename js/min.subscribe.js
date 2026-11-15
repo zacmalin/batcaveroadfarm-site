@@ -1,17 +1,20 @@
-/* Subscribe modal — opens from any [data-subscribe-open]; posts to subscribe.php via fetch (CSP-safe) */
+/* Subscribe modal — opens from any [data-subscribe-open]; posts to subscribe.php via fetch (CSP-safe).
+   Native <dialog> since Nov 15, 2026: showModal() keeps focus inside, Esc closes it, focus returns to the button. */
 (function(){
   var modal,form,msg,lastFocus;
   function open(){
     if(!modal) return;
     lastFocus=document.activeElement;
-    modal.hidden=false; document.body.style.overflow='hidden';
+    if(typeof modal.showModal==='function'){ if(!modal.open){modal.showModal();} } else { modal.setAttribute('open',''); }
     var email=document.getElementById('sub-modal-email'); if(email){email.focus();}
   }
   function close(){
     if(!modal) return;
-    modal.hidden=true; document.body.style.overflow='';
+    if(typeof modal.close==='function'){ if(modal.open){modal.close();} } else { modal.removeAttribute('open'); cleanup(); }
+  }
+  function cleanup(){
     if(msg){msg.hidden=true; msg.textContent=''; msg.className='subscribe-msg';}
-    if(lastFocus&&lastFocus.focus){lastFocus.focus();}
+    if(lastFocus&&lastFocus.focus&&document.activeElement!==lastFocus){lastFocus.focus();}
   }
   function showMsg(text,ok){
     if(!msg) return;
@@ -40,9 +43,11 @@
     msg=document.getElementById('subscribe-msg');
     document.querySelectorAll('[data-subscribe-open]').forEach(function(b){b.addEventListener('click',function(e){e.preventDefault();open();});});
     var x=document.getElementById('subscribe-close'); if(x){x.addEventListener('click',close);}
-    if(modal){modal.addEventListener('click',function(e){if(e.target===modal){close();}});}
+    if(modal){
+      modal.addEventListener('click',function(e){if(e.target===modal){close();}});   // tap on the dim area around the card
+      modal.addEventListener('close',cleanup);                                          // fires for Esc, the X and the timer
+    }
     if(form){form.addEventListener('submit',submit);}
-    document.addEventListener('keydown',function(e){if(e.key==='Escape'&&modal&&!modal.hidden){close();}});
   }
   if(document.readyState!=='loading'){init();}else{document.addEventListener('DOMContentLoaded',init);}
 })();

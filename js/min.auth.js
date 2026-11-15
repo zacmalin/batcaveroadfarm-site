@@ -20,6 +20,7 @@
       var on = p.getAttribute('data-pane') === mode;
       if (on) p.removeAttribute('hidden'); else p.setAttribute('hidden', '');
     });
+    m.setAttribute('aria-labelledby', mode === 'register' ? 'authRegTitle' : 'authLoginTitle');
   }
 
   function open(mode) {
@@ -30,13 +31,16 @@
       return;
     }
     setMode(mode || 'login');
-    m.removeAttribute('hidden');
-    document.addEventListener('keydown', onKey);
+    // Native <dialog> (Nov 15, 2026): showModal() traps focus, closes on Esc, returns focus on close.
+    if (typeof m.showModal === 'function') { if (!m.open) m.showModal(); }
+    else m.setAttribute('open', '');
     var f = m.querySelector('.auth-pane:not([hidden]) input:not([tabindex])');
     if (f) f.focus();
   }
-  function close() { var m = modal(); if (m) m.setAttribute('hidden', ''); document.removeEventListener('keydown', onKey); }
-  function onKey(e) { if (e.key === 'Escape') close(); }
+  function close() {
+    var m = modal(); if (!m) return;
+    if (typeof m.close === 'function') { if (m.open) m.close(); } else m.removeAttribute('open');
+  }
 
   function paneErr(pane, msg) {
     var e = pane.querySelector('.auth-error');
@@ -80,7 +84,7 @@
     });
     m.querySelectorAll('.auth-pane').forEach(function (pane) {
       pane.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') { e.preventDefault(); pane.getAttribute('data-pane') === 'register' ? submitRegister(pane) : submitLogin(pane); }
+        if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); pane.getAttribute('data-pane') === 'register' ? submitRegister(pane) : submitLogin(pane); }
       });
     });
   }

@@ -70,15 +70,15 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
                   </div>
                   <div class="form-group">
                   <label for="name">Your Name<span class="required">*</span></label>
-                  <input type="text" id="name" name="name" placeholder="[First & Last Name]" required>
+                  <input type="text" id="name" name="name" placeholder="[First & Last Name]" required autocomplete="name">
                 </div>
                 <div class="form-group">
                   <label for="email">Email Address<span class="required">*</span></label>
-                  <input type="email" id="email" name="email" placeholder="your@email.com" required>
+                  <input type="email" id="email" name="email" placeholder="your@email.com" required autocomplete="email" autocapitalize="none" spellcheck="false">
                 </div>
                 <div class="form-group">
                   <label for="phone">Phone (optional)</label>
-                  <input type="tel" id="phone" name="phone" placeholder="(111) 111-1111">
+                  <input type="tel" id="phone" name="phone" placeholder="(111) 111-1111" autocomplete="tel">
                 </div>
                 <div class="form-group">
                   <label for="catagory">What can we help you with?<span class="required">*</span></label>
@@ -117,7 +117,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
 <?php if (isset($_GET['sent']) || isset($_GET['error'])):
     $bcrfErr = isset($_GET['error']);
 ?>
-<div class="thanks-modal" id="thanksModal" role="dialog" aria-modal="true" aria-labelledby="thanksTitle">
+<dialog class="thanks-modal" id="thanksModal" aria-labelledby="thanksTitle" open><!-- shows without JS; min.contact-us.js reopens it with showModal() so focus stays inside (Nov 15, 2026) -->
   <div class="thanks-card">
     <button type="button" class="thanks-close" aria-label="Close">&times;</button>
     <div class="thanks-emoji" aria-hidden="true"><?= $bcrfErr ? '🌾' : '🌿' ?></div>
@@ -127,7 +127,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
         : "Thank you for reaching out! We've received your message and will get back to you within 24 hours." ?></p>
     <a class="cta-btn" href="/contact-us/">Close</a>
   </div>
-</div>
+</dialog>
 <?php endif; ?>
 <?php	
 	require('../includes/footer.php');

@@ -75,7 +75,7 @@ require_once './includes/header.php';
                 <form method="POST" class="sub-form">
                     <div class="form-group">
                         <label for="sub-email">Email Address<span class="required">*</span></label>
-                        <input id="sub-email" type="email" name="email" required placeholder="name@domain.com">
+                        <input id="sub-email" type="email" name="email" required placeholder="name@domain.com" autocomplete="email" autocapitalize="none" spellcheck="false">
 
                         <span class="sub-choose">Choose your updates:</span>
                         <label class="sub-check"><input type="checkbox" name="track_nursery" value="1" checked> <span>Nursery &amp; animal updates — be the first to know when new baby animals arrive.</span></label>

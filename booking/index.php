@@ -69,7 +69,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
         <div class="booking-row">
             <div>
                 <label for="customer_name">Your name</label>
-                <input type="text" id="customer_name" name="customer_name" maxlength="120" required>
+                <input type="text" id="customer_name" name="customer_name" maxlength="120" required autocomplete="name">
             </div>
             <!-- Flat rate: single party size input -->
             <div id="party-size-section">
@@ -92,12 +92,13 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
                     <span class="tier-price"><?= $isFree ? 'Free' : '$' . number_format((float)$tier['price'], 2) ?></span>
                 </div>
                 <div class="tier-qty-ctrl">
-                    <button type="button" class="tier-qty-btn" data-tier-dec="tier_<?= (int)$tier['id'] ?>" aria-label="Decrease">−</button>
+                    <button type="button" class="tier-qty-btn" data-tier-dec="tier_<?= (int)$tier['id'] ?>" aria-label="One fewer <?= htmlspecialchars($tier['name'], ENT_QUOTES) ?>">−</button>
                     <input type="number" id="tier_<?= (int)$tier['id'] ?>"
                            name="tier_qty[<?= (int)$tier['id'] ?>]"
-                           class="tier-qty-input" value="0" min="0" max="25"
+                           class="tier-qty-input" value="0" min="0" max="25" inputmode="numeric"
+                           aria-label="How many <?= htmlspecialchars($tier['name'], ENT_QUOTES) ?>"
                            data-price="<?= number_format((float)$tier['price'], 2) ?>">
-                    <button type="button" class="tier-qty-btn" data-tier-inc="tier_<?= (int)$tier['id'] ?>" aria-label="Increase">+</button>
+                    <button type="button" class="tier-qty-btn" data-tier-inc="tier_<?= (int)$tier['id'] ?>" aria-label="One more <?= htmlspecialchars($tier['name'], ENT_QUOTES) ?>">+</button>
                 </div>
             </div>
             <?php endforeach; ?>
@@ -116,11 +117,11 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
         <div class="booking-row">
             <div>
                 <label for="email">Email</label>
-                <input type="email" id="email" name="email" maxlength="190" required>
+                <input type="email" id="email" name="email" maxlength="190" required autocomplete="email" autocapitalize="none" spellcheck="false">
             </div>
             <div>
                 <label for="phone">Phone</label>
-                <input type="tel" id="phone" name="phone" maxlength="40">
+                <input type="tel" id="phone" name="phone" maxlength="40" autocomplete="tel">
             </div>
         </div>
 
