@@ -332,8 +332,28 @@ if ($typeId) {
     $preEnc = (int)($_GET['enc'] ?? 0);
     $enclosures = array_values(array_filter(bcrf_enclosures($pdo), fn($e) => $e['animal_count'] > 0));
     $animals = bcrf_animals_list($pdo);
+    // Quick ticks by species or breed (Nov 15, 2026, admin/assets/care-pick.js): only groups with 2+ animals are offered.
+    // Picking one ticks those boxes on top of what's already ticked; the server still gets plain animals[] ids.
+    $pickKey = fn($s) => mb_strtolower(trim((string)$s));
+    $pickGroups = ['species' => [], 'breed' => []];
+    foreach ($animals as $a) {
+        $sp = $pickKey($a['class_name']);
+        if ($sp !== '') { $pickGroups['species'][$sp]['label'] = $a['class_name']; $pickGroups['species'][$sp]['n'] = ($pickGroups['species'][$sp]['n'] ?? 0) + 1; }
+        if ($pickKey($a['breed_name']) !== '') {
+            $bk = $sp . '|' . $pickKey($a['breed_name']);
+            $pickGroups['breed'][$bk]['label'] = $a['breed_name'];
+            $pickGroups['breed'][$bk]['n'] = ($pickGroups['breed'][$bk]['n'] ?? 0) + 1;
+        }
+    }
+    foreach ($pickGroups as $gk => $list) {
+        $list = array_filter($list, fn($g) => $g['n'] >= 2);
+        uasort($list, fn($x, $y) => strcasecmp($x['label'], $y['label']));
+        $pickGroups[$gk] = $list;
+    }
+    if (!$pickGroups['species'] && !$pickGroups['breed']) $pickGroups = [];
     $feeds = $type['is_feeding'] ? bcrf_care_feed_products($pdo) : [];
-    bcrf_shell_open('Log ' . $type['name'], ['toast' => $toast, 'width' => 'max-w-3xl', 'js' => $feeds ? ['feed-units.js'] : []]);
+    $pageJs = array_merge($feeds ? ['feed-units.js'] : [], $pickGroups ? ['care-pick.js'] : []);
+    bcrf_shell_open('Log ' . $type['name'], ['toast' => $toast, 'width' => 'max-w-3xl', 'js' => $pageJs]);
     echo '<a href="', $oneAnimal ? 'animals.php?id=' . $oneAnimal . '&amp;tab=care' : 'animal_care.php', '" class="text-sm text-amber-800 underline">‹ Back</a>';
     echo '<h1 class="text-2xl font-bold text-stone-800 mt-2 mb-3">', $h($type['name']), '</h1>';
     if ($error) echo bcrf_shell_notice('err', $error);
@@ -346,9 +366,20 @@ if ($typeId) {
         <?php foreach ($enclosures as $e): ?><option value="<?= $e['id'] ?>" <?= $preEnc === $e['id'] ? 'selected' : '' ?>><?= $h($e['name']) ?> (<?= $e['animal_count'] ?>)</option><?php endforeach; ?></select></div>
     <?php endif; ?>
     <fieldset class="mb-3"><legend class="<?= $label ?>"><?= $enclosures ? 'Or these animals' : 'Which animals' ?></legend>
+      <?php if ($pickGroups): ?>
+      <div class="flex gap-2 items-end mb-2" data-care-pick>
+        <div class="flex-1 min-w-0"><label class="<?= $label ?>" for="lg">Tick a whole species or breed</label>
+          <select id="lg" class="<?= $input ?>"><option value="">Pick a group…</option>
+          <?php foreach (['species' => 'Species', 'breed' => 'Breed'] as $gk => $gl): if (!$pickGroups[$gk]) continue; ?>
+            <optgroup label="<?= $gl ?>"><?php foreach ($pickGroups[$gk] as $key => $g): ?><option value="<?= $h($gk . ':' . $key) ?>">All <?= $h($g['label']) ?> (<?= $g['n'] ?>)</option><?php endforeach; ?></optgroup>
+          <?php endforeach; ?></select></div>
+        <button type="button" class="<?= $btnSec ?> shrink-0" data-pick-clear>Untick all</button>
+      </div>
+      <span id="lgh" class="block text-xs text-stone-500 mb-2" aria-live="polite"></span>
+      <?php endif; ?>
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-1 max-h-96 overflow-y-auto border border-stone-200 rounded p-2">
-      <?php foreach ($animals as $a): ?>
-        <label class="flex gap-2 items-center text-sm py-1"><input type="checkbox" name="animals[]" value="<?= (int)$a['id'] ?>" <?= $oneAnimal === (int)$a['id'] ? 'checked' : '' ?>> <?= $h($a['name']) ?></label>
+      <?php foreach ($animals as $a): $sp = $pickKey($a['class_name']); $br = $pickKey($a['breed_name']) !== '' ? $sp . '|' . $pickKey($a['breed_name']) : ''; ?>
+        <label class="flex gap-2 items-center text-sm py-1 min-w-0"><input type="checkbox" name="animals[]" value="<?= (int)$a['id'] ?>" data-species="<?= $h($sp) ?>" data-breed="<?= $h($br) ?>" <?= $oneAnimal === (int)$a['id'] ? 'checked' : '' ?>> <span class="min-w-0"><span class="block truncate"><?= $h($a['name']) ?></span><?php if ($a['breed_name'] || $a['class_name']): ?><span class="block truncate text-xs text-stone-500"><?= $h($a['breed_name'] ?: $a['class_name']) ?></span><?php endif; ?></span></label>
       <?php endforeach; ?>
       </div></fieldset>
     <?php if ($type['is_feeding']): ?>
