@@ -126,7 +126,11 @@ if (!$editing) {
         foreach ($rows as $r) {
             $priceTxt = $r['pricing_mode'] === 'open_price' ? 'open price' : $money($r['price']) . ($r['unit'] !== 'each' ? ' / ' . $r['unit'] : '');
             $on = (int)$r['is_active'] === 1;
-            echo '<div class="lrow ui-swrow', $on ? '' : ' is-off', '" data-switch-row><a class="cardlink ui-swmain" href="products.php?id=', (int)$r['id'], '"><div><b>', $h($r['name']), '</b>',
+            // Thumbnail (Nov 15, 2026): the product photo, or an emoji for its type; a photo that fails to load swaps to the emoji (admin-ui.js data-fallback)
+            $hasPic = (bool)preg_match('#^(https://|/)#', (string)$r['image_url']);
+            $emo = '<span class="pthumb-e' . ($hasPic ? ' hidden' : '') . '" aria-hidden="true">' . bcrf_product_emoji((string)$r['product_type'], (string)$r['name']) . '</span>';
+            $thumb = '<span class="pthumb">' . ($hasPic ? '<img src="' . $h($r['image_url']) . '" alt="" width="44" height="44" loading="lazy" decoding="async" data-fallback>' : '') . $emo . '</span>';
+            echo '<div class="lrow ui-swrow', $on ? '' : ' is-off', '" data-switch-row><a class="cardlink ui-swmain" href="products.php?id=', (int)$r['id'], '">', $thumb, '<div class="pthumb-txt"><b>', $h($r['name']), '</b>',
                  '<br><small class="muted">', $h($r['cat']), ' · ', $h(bcrf_product_type_label($r['product_type'])), $r['sku'] ? ' · ' . $h($r['sku']) : '',
                  ' · ' . $h($r['tax_name'] ?: 'General tax'), '</small></div><div class="r"><b>', $h($priceTxt), '</b><br><small class="muted">',
                  (int)$r['track_inventory'] ? $h($q3($r['stock_quantity'])) . ' on hand' : 'not stocked', '</small></div></a>',

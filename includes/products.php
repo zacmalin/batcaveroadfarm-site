@@ -24,6 +24,22 @@ function bcrf_product_types(): array {
 function bcrf_product_type_label(string $t): string {
     return (bcrf_product_types() + ['admission' => 'Admission', 'pass' => 'Annual pass', 'gift_card' => 'Gift card', 'thrift_item' => 'Thrift item'])[$t] ?? $t;
 }
+/**
+ * Emoji for a product with no photo (Products list thumbnails, Nov 15, 2026).
+ * A few name words win first, in list order (pickles before bread), then the product type.
+ */
+function bcrf_product_emoji(string $type, string $name = ''): string {
+    $n = strtolower($name);
+    foreach (['pickle' => '🥒', 'egg' => '🥚', 'bread' => '🍞', 'loaf' => '🍞', 'sourdough' => '🍞', 'honey' => '🍯',
+              'jam' => '🫙', 'jelly' => '🫙', 'salsa' => '🫙', 'cookie' => '🍪', 'pie' => '🥧', 'muffin' => '🧁',
+              'cake' => '🧁', 'tomato' => '🍅', 'apple' => '🍎', 'pumpkin' => '🎃', 'corn' => '🌽', 'potato' => '🥔',
+              'pepper' => '🌶️', 'flower' => '🌻', 'soap' => '🧼', 'candle' => '🕯️', 'shirt' => '👕', 'tee' => '👕', 'hoodie' => '👕',
+              'hat' => '🧢', 'feed' => '🌾', 'hay' => '🌾', 'straw' => '🌾', 'bedding' => '🌾', 'party' => '🎉'] as $word => $e) {
+        if (preg_match('/\b' . $word . '(s|es)?\b/u', $n)) return $e;
+    }
+    return ['retail' => '🛍️', 'produce' => '🥬', 'kitchen_good' => '🫙', 'fee' => '🧾', 'service' => '🧑‍🌾',
+            'supply' => '🌾', 'admission' => '🎟️', 'pass' => '🪪', 'gift_card' => '🎁', 'thrift_item' => '🏷️'][$type] ?? '📦';
+}
 function bcrf_pricing_modes(): array {
     return ['each' => 'A set price each', 'by_weight' => 'By weight (staff type the weight)', 'open_price' => 'Open price (staff type the price)'];
 }

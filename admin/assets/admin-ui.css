@@ -170,3 +170,10 @@ dialog.ui-modal::backdrop{background:transparent;overflow:hidden;overscroll-beha
 .pv-item img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;background:#e7e5e4}
 .pv-item span{font-size:10px;color:#57534e;padding:3px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pv-card:focus{outline:none}
+
+/* Products list thumbnails: photo or type emoji, fixed 44px box so nothing shifts (admin/products.php, Nov 15, 2026) */
+.pthumb{flex:0 0 44px;width:44px;height:44px;border-radius:.5rem;overflow:hidden;background:#F7F1E3;border:1px solid #e7e5e4;display:flex;align-items:center;justify-content:center}
+.pthumb img{width:44px;height:44px;object-fit:cover;display:block}
+.pthumb-e{font-size:1.45rem;line-height:1;display:flex;align-items:center;justify-content:center}
+.pthumb-e.hidden{display:none}
+.ui-swmain > .pthumb-txt{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
