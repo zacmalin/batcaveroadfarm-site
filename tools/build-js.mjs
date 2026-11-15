@@ -33,6 +33,7 @@ const parts = [
   { file: 'js/min.analytics.js', isolate: true  },
   { file: 'js/min.theme.js',     isolate: true  },
   { file: 'js/min.newtab.js',    isolate: true  },   // new-tab link warning (Nov 11, 2026)
+  { file: 'js/min.formcheck.js', isolate: true  },   // form error text after interaction (Nov 15, 2026)
 ];
 
 let src = '';

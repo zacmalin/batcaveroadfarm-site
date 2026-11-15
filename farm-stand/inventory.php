@@ -103,7 +103,7 @@ require_once '../includes/header.php';
   </div>
 
   <form method="GET" class="stand-search reveal" role="search" aria-label="Search the farm stand">
-    <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Search the stand…" aria-label="Search farm stand items">
+    <input type="search" name="search" enterkeyhint="search" autocapitalize="none" spellcheck="false" value="<?= htmlspecialchars($search) ?>" placeholder="Search the stand…" aria-label="Search farm stand items">
     <select name="category" aria-label="Filter by category">
       <option value="">All categories</option>
       <?php foreach (['produce' => 'Produce', 'bakery' => 'Bakery', 'pantry' => 'Pantry'] as $ckey => $clabel):

@@ -218,11 +218,15 @@
     // ── Confirm box (replaces the browser's confirm() pop-up) ───────────────
     var DANGER = /\b(delete|remove|refund|void|cancel|end|turn off|stop|disconnect|clear|reset|spam|close)\b/i;
     var modal = null, modalDone = null, modalBack = null;
+    // Native <dialog> opened with showModal() (Nov 15, 2026): the browser keeps focus inside, Esc closes it,
+    // and it sits above everything (PIN lock, other sheets). Old browsers fall back to the hand-made trap below.
+    var nativeDlg = typeof HTMLDialogElement === 'function' && 'showModal' in HTMLDialogElement.prototype;
     function modalClose(answer) {
         if (!modal || !modalDone) return;
-        modal.classList.remove('is-on');
-        document.removeEventListener('keydown', modalKeys, true);
         var done = modalDone; modalDone = null;
+        modal.classList.remove('is-on');
+        if (nativeDlg) { if (modal.open) modal.close(); }
+        else document.removeEventListener('keydown', modalKeys, true);
         if (modalBack && modalBack.focus) { try { modalBack.focus({ preventScroll: true }); } catch (e) {} }
         done(answer);
     }
@@ -240,7 +244,7 @@
             if (!document.body) { resolve(window.confirm(message)); return; }
             if (modalDone) modalClose(false);
             if (!modal) {
-                modal = document.createElement('div');
+                modal = document.createElement(nativeDlg ? 'dialog' : 'div');
                 modal.className = 'ui-modal';
                 modal.innerHTML = '<div class="ui-modal-back" data-modal-no></div>'
                     + '<div class="ui-modal-card" role="alertdialog" aria-modal="true" aria-labelledby="uiModalTitle" aria-describedby="uiModalMsg">'
@@ -248,6 +252,7 @@
                     + '<div class="ui-modal-btns"><button type="button" class="ui-modal-no" data-modal-no>Cancel</button>'
                     + '<button type="button" class="ui-modal-yes" data-modal-yes></button></div></div>';
                 document.body.appendChild(modal);
+                if (nativeDlg) modal.addEventListener('close', function () { modalClose(false); });   // Esc
                 modal.addEventListener('click', function (e) {
                     if (e.target.closest('[data-modal-yes]')) modalClose(true);
                     else if (e.target.closest('[data-modal-no]')) modalClose(false);
@@ -263,7 +268,8 @@
             modalDone = resolve;
             modalBack = document.activeElement;
             modal.classList.add('is-on');
-            document.addEventListener('keydown', modalKeys, true);
+            if (nativeDlg) { if (!modal.open) modal.showModal(); }
+            else document.addEventListener('keydown', modalKeys, true);
             (danger ? modal.querySelector('.ui-modal-no') : yes).focus();
         });
     }

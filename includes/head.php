@@ -25,6 +25,9 @@ require_once __DIR__ . '/themes.php';
 $bcrfTheme      = bcrf_active_theme($pdo ?? null);
 $bcrfThemeGlyph = $bcrfTheme !== '' ? bcrf_theme_glyph($bcrfTheme) : '';
 require_once __DIR__ . '/ga.php';   // GA4: staff visits tagged internal, queued lead events (Nov 2026)
+// Instant next page (Nov 15, 2026): point the browser at the prefetch rules (speculation-rules.php).
+// A header, not an inline <script>, so the strict script CSP stays as it is.
+if (!headers_sent()) header('Speculation-Rules: "/speculation-rules.php"');
 ?>
  <!doctype html>
 <html lang="en"<?= bcrf_ga_html_attrs() ?>>

@@ -428,3 +428,12 @@ nav.open .hamburger-label .hl-close{display:inline}
 @media (pointer:coarse){input:is(:not([type]),[type=text],[type=email],[type=tel],[type=search],[type=number],[type=password],[type=url],[type=date]),select,textarea{font-size:max(1rem,1em)!important}}
 /* Windows high-contrast mode drops box-shadow focus rings; give every focused control a real outline there. */
 @media (forced-colors:active){a:focus-visible,button:focus-visible,input:focus,select:focus,textarea:focus,summary:focus-visible,[tabindex]:focus-visible{outline:2px solid Highlight!important;outline-offset:2px}}
+/* Search boxes are type=search (phone keyboard shows a Search key): keep our own box look, not Safari's rounded one. */
+input[type=search]{-webkit-appearance:none;appearance:none}
+/* Soft cross-fade between pages (Chrome, Edge, Safari 18.2+; others just switch). Skipped for people who turn motion off. */
+@media (prefers-reduced-motion:no-preference){@view-transition{navigation:auto}}
+::view-transition-group(root){animation-duration:.22s}
+/* Form errors only after someone has typed or tried to send (js/min.formcheck.js adds the message text under the field). */
+:is(input,select,textarea):is(:user-invalid,.is-user-invalid){border-color:var(--red-barn,#8b2018)!important;background-color:#fdf0ee!important}
+.field-error{display:block;margin:6px 0 0;font-family:'Lora',Georgia,serif;font-size:.88rem;line-height:1.4;color:#7a1a12;font-weight:600}
+.field-error::before{content:"⚠ " / "Error: "}

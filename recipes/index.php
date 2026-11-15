@@ -155,7 +155,7 @@ if ($__li) {
 <div class="content-wrap">
   <?= $backCtx ?>
   <form method="GET" class="recipe-filter reveal" role="search" aria-label="Search recipes">
-    <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Search by recipe title or ingredient…" aria-label="Search recipes">
+    <input type="search" name="search" enterkeyhint="search" autocapitalize="none" spellcheck="false" value="<?= htmlspecialchars($search) ?>" placeholder="Search by recipe title or ingredient…" aria-label="Search recipes">
     <select name="category" aria-label="Filter by category">
       <option value="">All Categories</option>
       <?php foreach ($categories as $cat): if ((int)$cat['recipe_count'] === 0 && $category_id != $cat['id']) continue; ?>

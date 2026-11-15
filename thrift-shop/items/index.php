@@ -68,7 +68,7 @@ if ($__li) {
 
 <div class="content-wrap">
   <form method="GET" class="stand-search reveal" role="search" aria-label="Search thrift finds">
-    <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Search thrift finds…" aria-label="Search thrift finds">
+    <input type="search" name="search" enterkeyhint="search" autocapitalize="none" spellcheck="false" value="<?= htmlspecialchars($search) ?>" placeholder="Search thrift finds…" aria-label="Search thrift finds">
     <button type="submit" class="cta-btn">Search</button>
   </form>
 

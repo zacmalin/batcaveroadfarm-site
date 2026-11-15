@@ -92,7 +92,7 @@ if ($__li) {
 
 <div class="content-wrap">
   <form method="GET" class="journal-search reveal" role="search" aria-label="Search and filter journal">
-    <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Search the journal…" aria-label="Search journal articles">
+    <input type="search" name="search" enterkeyhint="search" autocapitalize="none" spellcheck="false" value="<?= htmlspecialchars($search) ?>" placeholder="Search the journal…" aria-label="Search journal articles">
     <select name="category" aria-label="Filter by category">
       <option value="">All categories</option>
       <?php foreach ($blogCategories as $bcat): if ((int)$bcat['post_count'] === 0 && $category !== $bcat['slug']) continue; ?>

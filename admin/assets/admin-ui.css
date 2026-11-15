@@ -116,6 +116,10 @@ details.ui-expand:not([open]) .ui-expand-open{display:none}
 /* Confirm box (admin-ui.js bcrfConfirm), in place of the browser's own pop-up */
 .ui-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;padding:1rem}
 .ui-modal.is-on{display:flex}
+/* Native <dialog> version (Nov 15, 2026): the dialog is the full-screen layer; undo the browser's dialog box styles. */
+dialog.ui-modal{width:auto;height:auto;max-width:none;max-height:none;margin:0;border:0;background:transparent;color:inherit;overscroll-behavior:contain}
+dialog.ui-modal:not([open]){display:none}
+dialog.ui-modal::backdrop{background:transparent;overflow:hidden;overscroll-behavior:contain}
 .ui-modal-back{position:absolute;inset:0;background:rgba(28,25,23,.6)}
 .ui-modal-card{position:relative;width:100%;max-width:26rem;max-height:85vh;overflow:auto;background:#fff;border-radius:.9rem;box-shadow:0 20px 50px rgba(0,0,0,.35);padding:1.25rem 1.25rem 1rem;color:#292524}
 .ui-modal-title{margin:0 0 .5rem;font-size:17px;font-weight:800;line-height:1.25;color:#3E2A1E}
