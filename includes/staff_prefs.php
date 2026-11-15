@@ -10,8 +10,8 @@ if (!function_exists('bcrf_staff_prefs_ready')) {
 function bcrf_staff_pref_keys(): array { return ['nav_shortcuts']; }
 
 function bcrf_staff_prefs_ready(PDO $pdo): bool {
-    static $ready = null;
-    if ($ready !== null) return $ready;
+    static $ready = false;   // only "yes" is remembered, so a table made later in the same run is still found (Nov 15, 2026)
+    if ($ready) return true;
     try {
         $st = $pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'staff_prefs'");
         $ready = (int)$st->fetchColumn() > 0;

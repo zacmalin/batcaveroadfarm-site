@@ -3,6 +3,8 @@
 //
 //   Morning list   bcrf_task_digest_run(): one email per person with their late tasks and today's, at 6:30 AM farm time
 //                  (admin/cron/task_digest.php). Nobody gets an empty email. Once per farm day per person.
+//                  Owners also get a "Problems" part (Nov 15, 2026): the dashboard Action Center's urgent and today
+//                  alerts (includes/action_center.php), so an Owner with no tasks still hears about them.
 //   Late tasks     bcrf_task_alerts_run(): every 15 minutes (admin/cron/task_alerts.php). A task with a due time that
 //                  is still open task_late_after_min (30) minutes later emails whoever it is for; still open after
 //                  task_escalate_after_min (120) it emails the managers. Each goes out once per task, only between
@@ -143,20 +145,60 @@ function bcrf_task_digest_run(PDO $pdo): array {
         $list = bcrf_task_open_for($pdo, $u, $today);
         $late = array_values(array_filter($list, fn($t) => $t['due_date'] < $today));
         $now  = array_values(array_filter($list, fn($t) => $t['due_date'] === $today));
-        if (!$list) { $res['empty']++; continue; }
+        $probs = (string)$u['role'] === 'administrator' ? bcrf_owner_problems($pdo, $u, $today) : [];
+        if (!$list && !$probs) { $res['empty']++; continue; }
         $html = '<p style="margin:0 0 14px;">Good morning' . ($u['first_name'] ? ', ' . $h($u['first_name']) : '') . '. Here is what is on the list for '
               . $h(date('l, F j', strtotime($today))) . '.</p>';
+        if ($probs) $html .= bcrf_owner_problems_html($probs);
         if ($late) $html .= '<h3 style="margin:16px 0 8px;color:#b91c1c;font-size:15px;">Late · ' . count($late) . '</h3><ul style="padding-left:18px;margin:0;">'
                           . implode('', array_map(fn($t) => bcrf_task_email_line($t, true), $late)) . '</ul>';
         if ($now)  $html .= '<h3 style="margin:16px 0 8px;font-size:15px;">Today · ' . count($now) . '</h3><ul style="padding-left:18px;margin:0;">'
                           . implode('', array_map(fn($t) => bcrf_task_email_line($t, false), $now)) . '</ul>';
         $html .= '<p style="margin:18px 0 0;"><a href="' . $h(bcrf_task_link()) . '" style="color:#7c2d12;font-weight:bold;">Open My tasks</a></p>'
                . '<p style="margin:14px 0 0;color:#a8a29e;font-size:12px;">Turn this email off on My tasks › Email me.</p>';
-        $subject = 'Today: ' . count($list) . ' farm task' . (count($list) === 1 ? '' : 's') . ($late ? ' (' . count($late) . ' late)' : '');
+        $subject = 'Today: ' . ($list ? count($list) . ' farm task' . (count($list) === 1 ? '' : 's') . ($late ? ' (' . count($late) . ' late)' : '') : '')
+                 . ($list && $probs ? ', ' : '') . ($probs ? count($probs) . ' problem' . (count($probs) === 1 ? '' : 's') . ' to look at' : '');
         if (bcrf_task_send((string)$u['email'], $subject, $html)) { $mark->execute([(int)$u['id'], $today]); $res['sent']++; }
         else { $res['failed']++; error_log('[task_notify] morning list to user ' . (int)$u['id'] . ' failed: ' . ($GLOBALS['bcf_mail_last_error'] ?? '')); }
     }
     return $res;
+}
+
+/**
+ * Owners' morning email, "Problems" part (Nov 15, 2026): the urgent and today alerts from the dashboard Action Center
+ * (includes/action_center.php), seen as that Owner: failed jobs, money to match, overdue renewals, papers run out,
+ * bookings waiting, open incidents, late vaccines and so on. FYI alerts, two-step sign-in and tasks are left out
+ * (tasks are already in this email). Empty = nothing to report. Off with the morning list (My tasks › Email me).
+ */
+function bcrf_owner_problems(PDO $pdo, array $u, string $today): array {
+    try {
+        require_once dirname(__DIR__) . '/includes/action_center.php';
+        $was = $_SESSION ?? [];
+        $_SESSION = ['user_id' => (int)$u['id'], 'user_role' => 'administrator', 'user_name' => (string)($u['name'] ?? '')];
+        try { $alerts = bcrf_action_alerts($pdo, 'administrator', ['email' => true, 'today' => $today]); }
+        finally { $_SESSION = $was; }
+        return array_values(array_filter($alerts, fn($a) => in_array($a['priority'], ['urgent', 'today'], true)));
+    } catch (Throwable $e) {
+        error_log('[task_notify] owner problems: ' . $e->getMessage());
+        return [];
+    }
+}
+
+/** The "Problems" block for the morning email: one line per alert, its first few details, and a link. */
+function bcrf_owner_problems_html(array $probs): string {
+    $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
+    $base = function_exists('bcrf_farm_url') ? bcrf_farm_url() : '';
+    $o = '<h3 style="margin:16px 0 8px;color:#8A3324;font-size:15px;">Problems · ' . count($probs) . '</h3><ul style="padding-left:18px;margin:0;">';
+    foreach ($probs as $a) {
+        $act = $a['actions'][0] ?? null;
+        $title = $h(($a['priority'] === 'urgent' ? 'Urgent: ' : '') . $a['title']);
+        $o .= '<li style="margin:0 0 8px;">' . ($act ? '<a href="' . $h($base . $act[1]) . '" style="color:#3E2A1E;font-weight:bold;">' . $title . '</a>' : '<strong>' . $title . '</strong>');
+        $sub = array_slice(array_map('strval', (array)$a['items']), 0, 3);
+        if ($sub) $o .= '<br><span style="color:#57534e;font-size:13px;">' . implode('<br>', array_map($h, $sub)) . '</span>';
+        elseif (($a['detail'] ?? '') !== '') $o .= '<br><span style="color:#57534e;font-size:13px;">' . $h($a['detail']) . '</span>';
+        $o .= '</li>';
+    }
+    return $o . '</ul>';
 }
 
 // ── Late tasks ───────────────────────────────────────────────────────────────────────────────────

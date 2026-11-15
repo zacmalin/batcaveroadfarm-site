@@ -45,14 +45,40 @@ function bcrf_docs_expiry_ready(PDO $pdo): bool {
     catch (Throwable $e) { return $ready[$k] = false; }
 }
 
-/** Papers (vendor / animal) that run out within BCRF_DOC_EXPIRY_WARN_DAYS, or already have, soonest first (no permission filter: the bell uses it). */
+/**
+ * SQL: paper d has been replaced: the same vendor or animal has a newer paper of the same type (not deleted) that runs
+ * out later, or has no expiry and was added later (a W-9 or contract with no end date). "Other" papers only count as
+ * replaced by a later expiry, since two "Other" papers are often different things. (Nov 15, 2026)
+ */
+function bcrf_doc_replaced_sql(): string {
+    return "EXISTS (SELECT 1 FROM purchase_docs n WHERE n.deleted_at IS NULL AND n.id <> d.id AND n.link_type = d.link_type
+                    AND n.link_id = d.link_id AND n.doc_type = d.doc_type
+                    AND (n.expires_on > d.expires_on OR (n.expires_on IS NULL AND d.doc_type <> 'other' AND n.created_at > d.created_at)))";
+}
+
+/** The same rule as bcrf_doc_replaced_sql(), for papers already loaded (one vendor's or animal's list). */
+function bcrf_doc_is_replaced(array $d, array $all): bool {
+    if (empty($d['expires_on'])) return false;
+    foreach ($all as $n) {
+        if ((int)$n['id'] === (int)$d['id'] || !empty($n['deleted_at']) || $n['doc_type'] !== $d['doc_type']
+            || $n['link_type'] !== $d['link_type'] || (int)$n['link_id'] !== (int)$d['link_id']) continue;
+        if (!empty($n['expires_on']) ? $n['expires_on'] > $d['expires_on'] : ($d['doc_type'] !== 'other' && (string)$n['created_at'] > (string)$d['created_at'])) return true;
+    }
+    return false;
+}
+
+/**
+ * Papers (vendor / animal) that run out within BCRF_DOC_EXPIRY_WARN_DAYS, or already have, soonest first (no permission
+ * filter: the bell and the Action Center use it). Nov 15, 2026: no age cutoff (was 60 days past): an out-of-date paper
+ * stays listed until a newer one of the same type is added, or it is deleted.
+ */
 function bcrf_doc_expiring(PDO $pdo, ?string $today = null, int $limit = 100): array {
     if (!bcrf_docs_ready($pdo) || !bcrf_docs_expiry_ready($pdo)) return [];
     $today = $today ?? bcrf_doc_today();
     $until = (new DateTimeImmutable($today))->modify('+' . BCRF_DOC_EXPIRY_WARN_DAYS . ' days')->format('Y-m-d');
     $st = $pdo->prepare(bcrf_doc_select() . " WHERE d.deleted_at IS NULL AND d.link_type IN ('vendor', 'animal') AND d.expires_on IS NOT NULL
-                         AND d.expires_on <= ? AND d.expires_on >= ? - INTERVAL 60 DAY ORDER BY d.expires_on, d.id LIMIT " . max(1, min(500, $limit)));
-    $st->execute([$until, $today]);
+                         AND d.expires_on <= ? AND NOT " . bcrf_doc_replaced_sql() . " ORDER BY d.expires_on, d.id LIMIT " . max(1, min(500, $limit)));
+    $st->execute([$until]);
     return $st->fetchAll(PDO::FETCH_ASSOC);
 }
 
@@ -273,7 +299,7 @@ function bcrf_doc_list(PDO $pdo, array $f = [], int $limit = 100): array {
     if ($show === 'inbox') $w[] = 'd.link_type IS NULL';
     if ($show === 'expense') $w[] = "d.link_type = 'expense'";
     if ($show === 'papers') $w[] = "d.link_type IN ('vendor', 'animal')";
-    if ($show === 'expiring') { $w[] = "d.link_type IN ('vendor', 'animal') AND d.expires_on IS NOT NULL AND d.expires_on <= ?"; $a[] = (new DateTimeImmutable(bcrf_doc_today()))->modify('+' . BCRF_DOC_EXPIRY_WARN_DAYS . ' days')->format('Y-m-d'); }
+    if ($show === 'expiring') { $w[] = "d.link_type IN ('vendor', 'animal') AND d.expires_on IS NOT NULL AND d.expires_on <= ? AND NOT " . bcrf_doc_replaced_sql(); $a[] = (new DateTimeImmutable(bcrf_doc_today()))->modify('+' . BCRF_DOC_EXPIRY_WARN_DAYS . ' days')->format('Y-m-d'); }
     if (!empty($f['vendor_id'])) { $w[] = 'd.vendor_id = ?'; $a[] = (int)$f['vendor_id']; }
     if (!empty($f['from'])) { $w[] = 'COALESCE(d.doc_date, DATE(d.created_at)) >= ?'; $a[] = (string)$f['from']; }
     if (!empty($f['to']))   { $w[] = 'COALESCE(d.doc_date, DATE(d.created_at)) <= ?'; $a[] = (string)$f['to']; }
@@ -657,9 +683,11 @@ function bcrf_doc_box_html(PDO $pdo, string $type, int $id, string $back, string
         $o .= '<ul class="divide-y divide-stone-100 mb-3">';
         foreach ($docs as $d) {
             [$xText, $xSoon] = bcrf_doc_expiry($d);
+            $replaced = $xText !== '' && bcrf_doc_is_replaced($d, $docs);
             $o .= '<li class="py-2 flex gap-3 items-center">' . bcrf_doc_thumb_html($d, 'w-14 h-14')
                 . '<span class="min-w-0"><a class="text-sm underline text-amber-800" href="/admin/documents.php?id=' . (int)$d['id'] . '">' . $e(bcrf_doc_line($d)) . '</a>'
-                . ($xText !== '' && $xSoon ? '<span class="block text-xs font-semibold text-red-700">' . $e(ucfirst($xText)) . '</span>' : '')
+                . ($replaced ? '<span class="block text-xs text-stone-500">Replaced by a newer one</span>'
+                             : ($xText !== '' && $xSoon ? '<span class="block text-xs font-semibold text-red-700">' . $e(ucfirst($xText)) . '</span>' : ''))
                 . '<span class="block text-xs text-stone-500">' . (int)$d['files_n'] . ' page' . ((int)$d['files_n'] === 1 ? '' : 's') . '</span></span></li>';
         }
         $o .= '</ul>';
