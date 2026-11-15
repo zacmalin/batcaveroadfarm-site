@@ -38,17 +38,23 @@
 .nav-slot.is-active .nav-slot-icon{background:#44403c}
 .nav-slot-icon{position:relative;font-size:20px;line-height:1;padding:4px 14px;border-radius:999px}
 .nav-slot-label{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.nav-badge{position:absolute;top:-4px;right:4px;background:#f59e0b;color:#fff;font-size:9px;font-weight:900;line-height:1;padding:2px 4px;border-radius:999px}
+/* Count badges (Nov 15, 2026: bigger, Barn Red with a Cream ring so they read on the dark menu) */
+.nav-badge{position:absolute;top:-7px;right:2px;z-index:1;min-width:20px;height:20px;padding:0 5px;display:inline-flex;align-items:center;justify-content:center;
+           background:#8A3324;color:#fff;font-size:11px;font-weight:900;line-height:1;border-radius:999px;
+           box-shadow:0 0 0 2px #F7F1E3,0 2px 6px rgba(0,0,0,.5);font-variant-numeric:tabular-nums}
+.nav-slot.has-badge{color:#F7F1E3}
 
 /* ── More sheet ── */
 html.nav-sheet-open, html.nav-sheet-open body{overflow:hidden}
 .nav-tile{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:74px;padding:8px 4px;
           border-radius:12px;background:#292524;color:#e7e5e4;font-size:11px;font-weight:700;line-height:1.2;text-align:center;text-decoration:none;border:2px solid transparent}
 .nav-tile .nav-tile-icon{position:relative;font-size:22px;line-height:1}
+.nav-tile > .nav-badge{top:6px;right:6px;min-width:24px;height:24px;font-size:13px;padding:0 6px}
+#navMoreSheet:not(.is-editing) .nav-tile.has-badge{border-color:#D9A441;background:#33291f}
 .nav-tile.is-current{background:#44403c;color:#fff}
 .is-editing .nav-tile{border-style:dashed;border-color:#57534e}
 .is-editing .nav-tile.is-pinned{border-style:solid;border-color:#f59e0b;background:#3a332c}
-.is-editing .nav-tile.is-pinned::after{content:"✓";position:absolute;top:4px;right:6px;color:#f59e0b;font-size:12px;font-weight:900}
+.is-editing .nav-tile.is-pinned::after{content:"✓";position:absolute;top:4px;left:8px;color:#f59e0b;font-size:12px;font-weight:900}
 
 /* ── Page tabs ── */
 .nav-tabs-wrap{margin:0 0 1rem}

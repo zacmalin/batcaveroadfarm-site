@@ -23,3 +23,4 @@ incident_photo.php      # incident photo image endpoint (Farm OS Phase 5 slice 8
 document_file.php       # invoice / receipt file endpoint (Nov 14, 2026)
 export.php              # CSV download endpoint (Nov 14, 2026)
 record_note.php         # saves a dated note, then goes back to the record page (Nov 14, 2026)
+nav_prefs.php           # saves your phone shortcuts on your account (JSON, Nov 15, 2026)
