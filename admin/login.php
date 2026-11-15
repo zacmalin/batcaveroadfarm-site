@@ -127,7 +127,9 @@ ob_end_clean(); // Done with buffering — render the page
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
     <title>Staff Console Login</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <?php // Compiled Tailwind 4.3.5 (tools/admin-css). Falls back to the CDN script only while console.css isn't uploaded yet (Nov 15, 2026).
+    if (is_file(__DIR__ . '/assets/console.css')): ?><link rel="stylesheet" href="/admin/assets/console.css?v=20261115a">
+    <?php else: ?><script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script><?php endif; ?>
 </head>
 <body class="bg-stone-100 min-h-screen flex items-start sm:items-center justify-center px-4 py-10 sm:py-4">
     <div class="bg-white p-6 sm:p-8 rounded-lg shadow-md w-full max-w-sm border border-stone-200">

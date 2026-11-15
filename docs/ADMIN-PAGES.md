@@ -9,7 +9,7 @@ and the tabs for the other pages in the same section. Pages look like the Hiring
 
 | Kind | Where | Shell comes from |
 | --- | --- | --- |
-| **Console view** (most screens) | `admin/views/<name>.php`, registered in `$view_map` in `admin/admin.php` | `admin.php` (Tailwind CDN). Nothing to add. |
+| **Console view** (most screens) | `admin/views/<name>.php`, registered in `$view_map` in `admin/admin.php` | `admin.php` (compiled `admin/assets/console.css`, scans all of admin/ and includes/). Rebuild it after adding classes: `cd tools/admin-css && npm ci && npm run build` (CI fails if stale). |
 | **Standalone page** (its own URL, own POST handling) | `admin/<name>.php` | `bcrf_shell_open()` / `bcrf_shell_close()` from `includes/admin_shell.php` |
 | **Full-screen exception** | register, gate, legacy till, label printing, sign-in | none: listed in `tools/admin-shell-exceptions.txt` |
 

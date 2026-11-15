@@ -1,9 +1,9 @@
 {
   "name": "bcrf-admin-css",
   "private": true,
-  "description": "Builds admin/assets/admin.css (compiled Tailwind for strict-policy admin pages). Run: npm run build",
+  "description": "Builds admin/assets/admin.css (shell pages) and admin/assets/console.css (console, register, login). Run: npm run build",
   "scripts": {
-    "build": "tailwindcss -i input.css -o ../../admin/assets/admin.css --minify"
+    "build": "tailwindcss -i input.css -o ../../admin/assets/admin.css --minify && tailwindcss -i console.css -o ../../admin/assets/console.css --minify"
   },
   "devDependencies": {
     "@tailwindcss/cli": "4.3.5",

@@ -1,0 +1,16 @@
+/* tools/admin-css/console.css — source for admin/assets/console.css (Nov 15, 2026).
+   The console (admin.php and its views), the register (pos.php), staff login and two-step sign-in used to
+   build their styles in the browser from the Tailwind CDN script on every page load. This is the same
+   Tailwind version (4.3.5) compiled once, so those pages no longer depend on jsdelivr.
+   It scans all of admin/ and includes/ (more than needed is harmless: unused classes are just never matched).
+   Classes built from pieces at run time can't be found by a scan, so they are listed in full below.
+   Rebuild:  cd tools/admin-css && npm ci && npm run build   (CI fails if console.css is out of date). */
+@import "tailwindcss" source(none);
+
+@source "../../admin";
+@source "../../includes";
+@source not "../../admin/migrations";
+
+/* Built at run time: pos.php toast colour, nutrition panel showMsg('red'|'amber'|'emerald'). */
+@source inline("bg-emerald-700 bg-red-700");
+@source inline("bg-{red,amber,emerald}-50 text-{red,amber,emerald}-800 border-{red,amber,emerald}-200");

@@ -194,7 +194,9 @@ ob_end_flush();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Two-step sign-in · Farm Console</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <?php // Compiled Tailwind 4.3.5 (tools/admin-css). Falls back to the CDN script only while console.css isn't uploaded yet (Nov 15, 2026).
+    if (is_file(__DIR__ . '/assets/console.css')): ?><link rel="stylesheet" href="/admin/assets/console.css?v=20261115a">
+    <?php else: ?><script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script><?php endif; ?>
     <link rel="stylesheet" href="/admin/assets/admin-ui.css?v=20261115b">
     <script defer src="/admin/assets/admin-ui.js?v=20261115a"></script>
 </head>

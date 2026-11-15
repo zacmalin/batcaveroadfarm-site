@@ -6,7 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#1c1917">
     <title>Bat Cave Road Farm — Farm OS</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <?php // Compiled Tailwind 4.3.5 (tools/admin-css). Falls back to the CDN script only while console.css isn't uploaded yet (Nov 15, 2026).
+    if (is_file(dirname(__DIR__, 2) . '/assets/console.css')): ?><link rel="stylesheet" href="/admin/assets/console.css?v=20261115a">
+    <?php else: ?><script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script><?php endif; ?>
     <style>
         @media print {
             body, html { background: #fff !important; color: #000 !important; width: 3in; height: auto; margin: 0; padding: 10px; }

@@ -221,7 +221,9 @@ $last_receipt = $_SESSION['last_receipt'] ?? null;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1"><!-- pinch-zoom allowed again (Nov 15, 2026); body touch-action:manipulation still stops double-tap zoom on fast taps -->
     <title>Bat Cave Road Farm — Register</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <?php // Compiled Tailwind 4.3.5 (tools/admin-css). Falls back to the CDN script only while console.css isn't uploaded yet (Nov 15, 2026).
+    if (is_file(__DIR__ . '/assets/console.css')): ?><link rel="stylesheet" href="/admin/assets/console.css?v=20261115a">
+    <?php else: ?><script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script><?php endif; ?>
     <!-- ZXing for camera barcode scanning (jsdelivr — more reliable than unpkg) -->
     <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
     <style>
