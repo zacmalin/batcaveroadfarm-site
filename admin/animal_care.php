@@ -6,6 +6,7 @@
 //   GET  animal_care.php?tab=setup             care types, care schedules per species (slice 5) and which products are feed
 //                                              (edit permission)
 //   POST act=log | void | type | feed | sched | type_active (In use switch on Setup, Nov 14, 2026; JSON when ajax=1)
+//        | bags | measure | measure_rm (feed in pounds and scoops, Nov 15, 2026; migration 0071, admin/assets/feed-units.js)
 // Section tabs (Log care, Recent, Setup) come from the sidebar.
 // Permission: table 'animals' view to log care (staff do this from their phones); edit to void entries or change setup.
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
@@ -42,7 +43,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $ret = (int)($_POST['return_animal'] ?? 0);
             if ($ret) $back = 'animals.php?id=' . $ret . '&tab=care';
             $r = bcrf_care_log($pdo, ['type' => $_POST['type'] ?? 0, 'animals' => (array)($_POST['animals'] ?? []), 'enclosure' => $_POST['enclosure'] ?? 0,
-                                      'note' => $_POST['note'] ?? '', 'feed_product' => $_POST['feed_product'] ?? 0, 'feed_qty' => $_POST['feed_qty'] ?? ''], $uid);
+                                      'note' => $_POST['note'] ?? '', 'feed_product' => $_POST['feed_product'] ?? 0, 'feed_qty' => $_POST['feed_qty'] ?? '',
+                                      'feed_unit' => $_POST['feed_unit'] ?? ''], $uid);
             if (function_exists('erp_audit')) erp_audit($pdo, 'create', 'animal_care_logs', $r['id'], 'Care logged for ' . $r['animals'] . ' animal(s)');
             $msg = 'Logged for ' . $r['animals'] . ' animal' . ($r['animals'] > 1 ? 's' : '') . '.';
             $_SESSION['ac_flash'] = $r['stock_note'] ? ['err', $msg . ' ' . $r['stock_note']] : ['ok', $msg];
@@ -80,6 +82,26 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 if (function_exists('erp_audit')) erp_audit($pdo, 'update', 'site_settings', 0, 'Animal feed products changed');
                 $_SESSION['ac_flash'] = ['ok', 'Feed list saved.'];
             }
+        } elseif (in_array($act, ['bags', 'measure', 'measure_rm'], true)) {
+            if (!$canEdit) throw new BcrfCareError('You can log care but not change the setup.');
+            if (!bcrf_feed_units_ready($pdo)) throw new BcrfCareError('Run migration 0071 in Settings › Database first.');
+            $back = 'animal_care.php?tab=setup#units';
+            if ($act === 'bags') {
+                $feedIds = bcrf_care_feed_ids($pdo);
+                foreach ((array)($_POST['bag'] ?? []) as $pid => $lb) if (in_array((int)$pid, $feedIds, true)) bcrf_feed_bag_save($pdo, (int)$pid, $lb);
+                if (function_exists('erp_audit')) erp_audit($pdo, 'update', 'inventory', 0, 'Feed bag weights saved');
+                $_SESSION['ac_flash'] = ['ok', 'Bag weights saved.'];
+            } elseif ($act === 'measure') {
+                $mid = (int)($_POST['measure_id'] ?? 0);
+                $saved = bcrf_feed_measure_save($pdo, $mid, (string)($_POST['name'] ?? ''), $_POST['weight'] ?? '', (string)($_POST['weight_unit'] ?? ''), (int)($_POST['product_id'] ?? 0) ?: null);
+                if (function_exists('erp_audit')) erp_audit($pdo, $mid ? 'update' : 'create', 'animal_feed_measures', $saved, 'Feed scoop ' . trim((string)$_POST['name']));
+                $_SESSION['ac_flash'] = ['ok', $mid ? 'Saved.' : 'Scoop added.'];
+            } else {
+                $mid = (int)($_POST['measure_id'] ?? 0);
+                bcrf_feed_measure_remove($pdo, $mid);
+                if (function_exists('erp_audit')) erp_audit($pdo, 'update', 'animal_feed_measures', $mid, 'Feed scoop removed');
+                $_SESSION['ac_flash'] = ['ok', 'Removed. Past feedings keep what was entered.'];
+            }
         } elseif ($act === 'sched' && function_exists('bcrf_sched_save')) {
             if (!$canEdit) throw new BcrfCareError('You can log care but not change the setup.');
             $back = 'animal_care.php?tab=setup';
@@ -116,7 +138,7 @@ $hidden  = '<input type="hidden" name="csrf_token" value="' . $h($csrf) . '">';
 $tab = (string)($_GET['tab'] ?? '');
 $entryLine = function (array $r) use ($h, $local): string {
     $who = ($r['enclosure_name'] ? $r['enclosure_name'] . ': ' : '') . implode(', ', $r['animals']);
-    $feed = $r['feed_name'] ? ' · ' . bcrf_qtxt((float)$r['feed_qty']) . ' of ' . $r['feed_name'] : '';
+    $feed = $r['feed_name'] ? ' · ' . bcrf_feed_amount_text($r) : '';
     return '<span class="text-sm ' . ($r['voided_at'] ? 'line-through text-stone-500' : 'text-stone-800') . '"><strong>' . $h($r['type_name']) . '</strong>' . $h($feed) . '</span>'
          . '<span class="block text-xs text-stone-500">' . $h($who) . '</span>'
          . '<span class="block text-xs text-stone-500">' . $h($local($r['logged_at'])) . ($r['by_name'] ? ' · ' . $h($r['by_name']) : '') . ($r['note'] ? ' · ' . $h($r['note']) : '')
@@ -224,6 +246,56 @@ if ($tab === 'setup' && $canEdit) {
     </form>
   </div>
 <?php
+    // Feed in pounds and scoops (Nov 15, 2026; migration 0071).
+    if (!bcrf_feed_units_ready($pdo)) {
+        echo bcrf_shell_notice('warning', 'Run migration 0071 in Settings › Database to log feed in pounds and scoops.');
+        bcrf_shell_close(); exit;
+    }
+    $feedRows = bcrf_care_feed_products($pdo);
+    $measures = bcrf_feed_measures($pdo); ?>
+  <div class="<?= $card ?>" id="units">
+    <h2 class="text-base font-semibold text-stone-800 mb-2">Bag weights and scoops</h2>
+    <p class="text-sm text-stone-500 mb-3">Stock and cost are counted in bags. Feedings can be logged in scoops, lb, oz or bags, and the app works out the share of a bag. A feed needs its bag weight for that; it's the same as Size on the product.</p>
+    <?php if ($feedRows): ?>
+    <form method="POST" action="animal_care.php" class="mb-4"><?= $hidden ?><input type="hidden" name="act" value="bags">
+      <ul class="divide-y divide-stone-100 mb-3">
+      <?php foreach ($feedRows as $p): $soldByWeight = bcrf_feed_g((string)$p['unit']) !== null;
+            $bagLb = $p['unit_g'] && !$soldByWeight ? round($p['unit_g'] / 453.59237, 2) : null; ?>
+        <li class="py-2 flex flex-wrap gap-2 items-end">
+          <div class="flex-1 min-w-48 text-sm"><?= $h($p['name']) ?><?php if ((int)$p['track_inventory'] === 1): ?><span class="block text-xs text-stone-500"><?= $h($p['stock_text']) ?> on hand</span><?php endif; ?></div>
+          <?php if ($soldByWeight): ?><span class="text-xs text-stone-500">Counted in <?= $h($p['unit']) ?></span>
+          <?php else: ?><div class="w-32"><label class="<?= $label ?>" for="bw<?= (int)$p['id'] ?>">Bag weight (lb)</label><input id="bw<?= (int)$p['id'] ?>" name="bag[<?= (int)$p['id'] ?>]" type="number" min="0" step="any" inputmode="decimal" value="<?= $bagLb !== null ? $h(bcrf_qtxt($bagLb)) : '' ?>" placeholder="e.g. 50" class="<?= $input ?>"></div><?php endif; ?>
+        </li>
+      <?php endforeach; ?>
+      </ul>
+      <button class="<?= $btnSec ?>">Save bag weights</button>
+    </form>
+    <?php else: ?><p class="text-sm text-stone-500 mb-4">Tick your feed products above first.</p><?php endif; ?>
+    <h3 class="text-sm font-semibold text-stone-800 mb-1">Scoops</h3>
+    <p class="text-xs text-stone-500 mb-2">What a full one weighs. A scoop for every feed shows on all of them; a scoop for one feed only shows on that one (corn and pellets weigh differently).</p>
+    <?php if ($measures): ?>
+    <ul class="divide-y divide-stone-100 mb-3">
+    <?php foreach ($measures as $m): $mid = $m['id']; ?>
+      <li class="py-2"><details><summary class="cursor-pointer text-sm"><strong><?= $h($m['name']) ?></strong> = <?= $h(bcrf_qtxt((float)$m['weight']) . ' ' . $m['weight_unit']) ?> · <?= $m['product_id'] ? $h($m['product_name'] ?? 'one feed') : 'every feed' ?></summary>
+        <form method="POST" action="animal_care.php" class="flex flex-wrap gap-2 items-end mt-2"><?= $hidden ?><input type="hidden" name="act" value="measure"><input type="hidden" name="measure_id" value="<?= $mid ?>">
+          <div class="flex-1 min-w-40"><label class="<?= $label ?>" for="mn<?= $mid ?>">Name</label><input id="mn<?= $mid ?>" name="name" maxlength="40" required value="<?= $h($m['name']) ?>" class="<?= $input ?>"></div>
+          <div class="w-24"><label class="<?= $label ?>" for="mw<?= $mid ?>">Full one weighs</label><input id="mw<?= $mid ?>" name="weight" type="number" min="0" step="any" inputmode="decimal" required value="<?= $h(bcrf_qtxt((float)$m['weight'])) ?>" class="<?= $input ?>"></div>
+          <div class="w-24"><label class="<?= $label ?>" for="mu<?= $mid ?>">Unit</label><select id="mu<?= $mid ?>" name="weight_unit" class="<?= $input ?>"><option value="lb" <?= $m['weight_unit'] === 'lb' ? 'selected' : '' ?>>lb</option><option value="oz" <?= $m['weight_unit'] === 'oz' ? 'selected' : '' ?>>oz</option></select></div>
+          <div class="flex-1 min-w-40"><label class="<?= $label ?>" for="mp<?= $mid ?>">For</label><select id="mp<?= $mid ?>" name="product_id" class="<?= $input ?>"><option value="0">Every feed</option><?php foreach ($feedRows as $p): ?><option value="<?= (int)$p['id'] ?>" <?= $m['product_id'] === (int)$p['id'] ? 'selected' : '' ?>><?= $h($p['name']) ?></option><?php endforeach; ?></select></div>
+          <button class="<?= $btnSec ?>">Save</button></form>
+        <form method="POST" action="animal_care.php" class="mt-2"><?= $hidden ?><input type="hidden" name="act" value="measure_rm"><input type="hidden" name="measure_id" value="<?= $mid ?>">
+          <button class="text-xs text-amber-800 underline" data-confirm="Remove <?= $h($m['name']) ?>? Past feedings keep what was entered.">Remove</button></form></details></li>
+    <?php endforeach; ?>
+    </ul>
+    <?php endif; ?>
+    <form method="POST" action="animal_care.php" class="flex flex-wrap gap-2 items-end"><?= $hidden ?><input type="hidden" name="act" value="measure"><input type="hidden" name="measure_id" value="0">
+      <div class="flex-1 min-w-40"><label class="<?= $label ?>" for="mnn">Add a scoop</label><input id="mnn" name="name" maxlength="40" required placeholder="e.g. Coffee can" class="<?= $input ?>"></div>
+      <div class="w-24"><label class="<?= $label ?>" for="mwn">Full one weighs</label><input id="mwn" name="weight" type="number" min="0" step="any" inputmode="decimal" required placeholder="3" class="<?= $input ?>"></div>
+      <div class="w-24"><label class="<?= $label ?>" for="mun">Unit</label><select id="mun" name="weight_unit" class="<?= $input ?>"><option value="lb">lb</option><option value="oz">oz</option></select></div>
+      <div class="flex-1 min-w-40"><label class="<?= $label ?>" for="mpn">For</label><select id="mpn" name="product_id" class="<?= $input ?>"><option value="0">Every feed</option><?php foreach ($feedRows as $p): ?><option value="<?= (int)$p['id'] ?>"><?= $h($p['name']) ?></option><?php endforeach; ?></select></div>
+      <button class="<?= $btnMain ?>">Add</button></form>
+  </div>
+<?php
     bcrf_shell_close(); exit;
 }
 
@@ -261,7 +333,7 @@ if ($typeId) {
     $enclosures = array_values(array_filter(bcrf_enclosures($pdo), fn($e) => $e['animal_count'] > 0));
     $animals = bcrf_animals_list($pdo);
     $feeds = $type['is_feeding'] ? bcrf_care_feed_products($pdo) : [];
-    bcrf_shell_open('Log ' . $type['name'], ['toast' => $toast, 'width' => 'max-w-3xl']);
+    bcrf_shell_open('Log ' . $type['name'], ['toast' => $toast, 'width' => 'max-w-3xl', 'js' => $feeds ? ['feed-units.js'] : []]);
     echo '<a href="', $oneAnimal ? 'animals.php?id=' . $oneAnimal . '&amp;tab=care' : 'animal_care.php', '" class="text-sm text-amber-800 underline">‹ Back</a>';
     echo '<h1 class="text-2xl font-bold text-stone-800 mt-2 mb-3">', $h($type['name']), '</h1>';
     if ($error) echo bcrf_shell_notice('err', $error);
@@ -282,9 +354,12 @@ if ($typeId) {
     <?php if ($type['is_feeding']): ?>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
       <div><label class="<?= $label ?>" for="lf">Feed (optional)</label><select id="lf" name="feed_product" class="<?= $input ?>"><option value="0">Not recorded</option>
-        <?php foreach ($feeds as $p): ?><option value="<?= (int)$p['id'] ?>"><?= $h($p['name']) ?><?= (int)$p['track_inventory'] === 1 ? ' (' . $h(bcrf_qtxt((float)$p['stock_quantity'])) . ($p['unit'] ? ' ' . $h($p['unit']) : '') . ' on hand)' : '' ?></option><?php endforeach; ?></select>
+        <?php foreach ($feeds as $p): ?><option value="<?= (int)$p['id'] ?>"<?php if ($p['units']): ?> data-units="<?= $h(json_encode(array_map(fn($u) => ['key' => $u['key'], 'label' => $u['label'], 'g' => round($u['g'], 3), 'name' => $u['name']], $p['units']))) ?>" data-unit-g="<?= $h(round((float)$p['unit_g'], 3)) ?>" data-word="<?= $h(bcrf_feed_stock_word($p)) ?>" data-last="<?= $h($p['last_unit']) ?>"<?php endif; ?>><?= $h($p['name']) ?><?= (int)$p['track_inventory'] === 1 ? ' (' . $h($p['stock_text']) . ' on hand)' : '' ?></option><?php endforeach; ?></select>
         <?php if (!$feeds && $canEdit): ?><span class="block text-xs text-stone-500 mt-1">Pick your feed products under <a class="underline text-amber-800" href="animal_care.php?tab=setup">Setup</a>.</span><?php endif; ?></div>
-      <div><label class="<?= $label ?>" for="lq">Amount (in the product's unit)</label><input id="lq" name="feed_qty" inputmode="decimal" class="<?= $input ?>" placeholder="e.g. 2"></div>
+      <div><div class="flex gap-2 items-end">
+        <div class="flex-1"><label class="<?= $label ?>" for="lq">Amount</label><input id="lq" name="feed_qty" inputmode="decimal" class="<?= $input ?>" placeholder="e.g. 2"></div>
+        <div class="flex-1" data-unit-wrap hidden><label class="<?= $label ?>" for="lu">Unit</label><select id="lu" name="feed_unit" class="<?= $input ?>" disabled></select></div>
+      </div><span id="lqh" class="block text-xs text-stone-500 mt-1" aria-live="polite"></span></div>
     </div>
     <?php endif; ?>
     <div class="mb-3"><label class="<?= $label ?>" for="ln">Note (optional)</label><input id="ln" name="note" maxlength="500" class="<?= $input ?>" placeholder="<?= $type['is_feeding'] ? 'e.g. Hazel left half' : 'Anything worth noting' ?>"></div>

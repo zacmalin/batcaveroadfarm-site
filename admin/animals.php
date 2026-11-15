@@ -183,7 +183,7 @@ if ($id) {
     <?php if (!$log): ?><p class="text-sm text-stone-500">Nothing logged yet.</p><?php else: ?>
     <ul class="divide-y divide-stone-100">
       <?php foreach ($log as $r): ?>
-      <li class="py-2 text-sm <?= $r['voided_at'] ? 'line-through text-stone-500' : '' ?>"><strong><?= $h($r['type_name']) ?></strong><?= $r['feed_name'] ? ' · ' . $h(bcrf_qtxt((float)$r['feed_qty']) . ' of ' . $r['feed_name']) : '' ?>
+      <li class="py-2 text-sm <?= $r['voided_at'] ? 'line-through text-stone-500' : '' ?>"><strong><?= $h($r['type_name']) ?></strong><?= $r['feed_name'] ? ' · ' . $h(bcrf_feed_amount_text($r)) : '' ?>
         <span class="block text-xs text-stone-500"><?= $h($local($r['logged_at'], 'M j, g:i A')) ?><?= $r['by_name'] ? ' · ' . $h($r['by_name']) : '' ?><?= $r['enclosure_name'] ? ' · whole ' . $h($r['enclosure_name']) : (count($r['animals']) > 1 ? ' · with ' . $h(implode(', ', array_diff($r['animals'], [$a['name']]))) : '') ?><?= $r['note'] ? ' · ' . $h($r['note']) : '' ?></span></li>
       <?php endforeach; ?>
     </ul>

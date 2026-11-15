@@ -135,7 +135,8 @@ function bcrf_expense_lines(PDO $pdo, string $from, string $to, int $animalId = 
     // Feed
     try {
         [$ua, $ub] = bcrf_expense_utc_bounds($from, $to);
-        $sql = "SELECT l.id, l.logged_at, l.feed_qty, l.feed_cost_cents, i.name AS product FROM animal_care_logs l LEFT JOIN inventory i ON i.id = l.feed_product_id
+        $lbCol = function_exists('bcrf_feed_units_ready') && bcrf_feed_units_ready($pdo) ? 'l.feed_lb' : 'NULL AS feed_lb';   // feed in pounds (0071)
+        $sql = "SELECT l.id, l.logged_at, l.feed_qty, $lbCol, l.feed_cost_cents, i.name AS product FROM animal_care_logs l LEFT JOIN inventory i ON i.id = l.feed_product_id
                  WHERE l.voided_at IS NULL AND l.feed_cost_cents > 0 AND l.logged_at >= ? AND l.logged_at < ?";
         $args = [$ua, $ub];
         if ($animalId) { $sql .= " AND EXISTS (SELECT 1 FROM animal_care_log_animals x WHERE x.log_id = l.id AND x.animal_id = ?)"; $args[] = $animalId; }
@@ -152,7 +153,7 @@ function bcrf_expense_lines(PDO $pdo, string $from, string $to, int $animalId = 
                 $total = (int)$l['feed_cost_cents']; $n = count($animals);
                 $base = intdiv($total, $n); $extra = $total - $base * $n;
                 $date = (new DateTimeImmutable($l['logged_at'], new DateTimeZone('UTC')))->setTimezone($tz)->format('Y-m-d');
-                $qty = rtrim(rtrim((string)$l['feed_qty'], '0'), '.');
+                $qty = $l['feed_lb'] !== null ? bcrf_feed_weight_text((float)$l['feed_lb']) : rtrim(rtrim((string)$l['feed_qty'], '0'), '.');
                 foreach ($animals as $i => $aid) {
                     $share = $base + ($i < $extra ? 1 : 0);
                     if ($animalId && $aid !== $animalId) continue;

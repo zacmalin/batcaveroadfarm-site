@@ -8,6 +8,10 @@
 //              short stock is noted on the ledger instead. The cost is the amount times the product's average cost at
 //              that moment, kept on the entry for animal expenses later.
 //   Voiding    entries are never deleted. Voiding one (with a reason) puts its feed back into stock.
+//   Feed units (Nov 15, 2026; migration 0071) stock and cost stay in the product's own unit (a 50 lb bag), but a feeding
+//              can be entered in lb, oz, bags or a named scoop (animal_feed_measures, e.g. "2 pint scoop" = 4 lb). The
+//              bag weight is the product's Size (size_value + size_unit_id), or its unit when it is sold by lb or oz.
+//              The amount typed is kept (feed_entered_qty/unit) with its weight (feed_lb); feed_qty is the share of a bag.
 // Times are UTC in the database; money is integer cents.
 if (!function_exists('bcrf_care_ready')) {
 
@@ -77,15 +81,181 @@ function bcrf_care_set_feed_ids(PDO $pdo, array $ids): void {
         ->execute([implode(',', $ids)]);
 }
 
-/** The feed products with what's on hand, for the picker. */
+/**
+ * The feed products with what's on hand, for the picker. Each row also has unit_g (grams in one stock unit, or null when
+ * the bag weight isn't set), stock_text ("3 bags + 12 lb"), units (what an amount can be entered in) and last_unit.
+ */
 function bcrf_care_feed_products(PDO $pdo): array {
     $ids = bcrf_care_feed_ids($pdo);
     if (!$ids) return [];
     $in = implode(',', array_fill(0, count($ids), '?'));
-    $hasUnit = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'inventory' AND column_name = 'unit'")->fetchColumn() > 0;
-    $st = $pdo->prepare("SELECT id, name, stock_quantity, track_inventory" . ($hasUnit ? ', unit' : ", '' AS unit") . " FROM inventory WHERE id IN ($in) ORDER BY name");
+    $st = $pdo->prepare("SELECT i.id, i.name, i.stock_quantity, i.track_inventory, i.unit, i.size_value, COALESCE(NULLIF(u.abbreviation, ''), u.name, '') AS size_unit
+                           FROM inventory i LEFT JOIN measurement_units u ON u.id = i.size_unit_id WHERE i.id IN ($in) ORDER BY i.name");
     $st->execute($ids);
-    return $st->fetchAll(PDO::FETCH_ASSOC);
+    $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+    $ready = bcrf_feed_units_ready($pdo);
+    $measures = $ready ? bcrf_feed_measures($pdo) : [];
+    $last = [];
+    if ($ready) {
+        $q = $pdo->prepare("SELECT l.feed_product_id, l.feed_entered_unit FROM animal_care_logs l
+                             JOIN (SELECT feed_product_id, MAX(id) AS id FROM animal_care_logs WHERE feed_product_id IN ($in) AND feed_entered_unit IS NOT NULL GROUP BY feed_product_id) m ON m.id = l.id");
+        $q->execute($ids);
+        foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $r) $last[(int)$r['feed_product_id']] = (string)$r['feed_entered_unit'];
+    }
+    foreach ($rows as &$r) {
+        $r['unit_g'] = $ready ? bcrf_feed_unit_grams($r) : null;
+        $r['stock_text'] = bcrf_feed_stock_text((float)$r['stock_quantity'], $r);
+        $r['units'] = $r['unit_g'] ? bcrf_feed_entry_units($r, $measures) : [];
+        $r['last_unit'] = $last[(int)$r['id']] ?? '';
+    }
+    unset($r);
+    return $rows;
+}
+
+// -- Feed units (Nov 15, 2026; migration 0071) --
+
+function bcrf_feed_units_ready(PDO $pdo): bool {
+    static $cache = [];
+    $k = spl_object_id($pdo);
+    if (isset($cache[$k])) return $cache[$k];
+    try { $pdo->query("SELECT 1 FROM animal_feed_measures LIMIT 0"); $pdo->query("SELECT feed_lb FROM animal_care_logs LIMIT 0"); return $cache[$k] = true; }
+    catch (Throwable $e) { return $cache[$k] = false; }
+}
+
+/** Grams in one of a weight unit ("lb", "Pounds", "oz", "kg", "g"), or null if it isn't a weight. */
+function bcrf_feed_g(string $unit): ?float {
+    $u = strtolower(trim(str_replace('.', '', $unit)));
+    if (strlen($u) > 2 && str_ends_with($u, 's')) $u = substr($u, 0, -1);
+    return ['lb' => 453.59237, 'pound' => 453.59237, 'oz' => 28.349523, 'ounce' => 28.349523, 'kg' => 1000.0, 'kilogram' => 1000.0,
+            'g' => 1.0, 'gram' => 1.0][$u] ?? null;
+}
+
+/** Grams in one stock unit of a product (one bag): its unit when sold by weight, else its Size. Null when unknown. */
+function bcrf_feed_unit_grams(array $p): ?float {
+    $g = bcrf_feed_g((string)($p['unit'] ?? ''));
+    if ($g) return $g;
+    $v = (float)($p['size_value'] ?? 0);
+    $sg = bcrf_feed_g((string)($p['size_unit'] ?? ''));
+    return ($v > 0 && $sg) ? $v * $sg : null;
+}
+
+/** What one stock unit is called: "lb" for a product sold by the pound, otherwise "bag". */
+function bcrf_feed_stock_word(array $p, float $n = 1): string {
+    $u = (string)($p['unit'] ?? '');
+    if (bcrf_feed_g($u)) return $u;
+    return abs($n - 1) < 0.0005 ? 'bag' : 'bags';
+}
+
+/** A weight in lb as words: "6 lb", "6.5 lb", "8 oz" under a pound. */
+function bcrf_feed_weight_text(float $lb): string {
+    if ($lb > 0 && $lb < 1) return bcrf_qtxt(round($lb * 16, 1)) . ' oz';
+    return bcrf_qtxt(round($lb, 2)) . ' lb';
+}
+
+/** Stock on hand as words: "3 bags + 12 lb" when the bag weight is known, else "3 bag" style. */
+function bcrf_feed_stock_text(float $qty, array $p): string {
+    $ug = bcrf_feed_unit_grams($p);
+    $unit = (string)($p['unit'] ?? '');
+    if (!$ug || bcrf_feed_g($unit)) return bcrf_qtxt($qty) . ($unit !== '' && $unit !== 'each' ? ' ' . $unit : '');
+    if ($qty <= 0) return '0 bags';
+    $bags = (int)floor($qty + 0.0005);
+    $restLb = round(($qty - $bags) * $ug / 453.59237, 1);
+    $bagLb = $ug / 453.59237;
+    if ($restLb >= $bagLb - 0.05) { $bags++; $restLb = 0; }
+    $parts = [];
+    if ($bags > 0) $parts[] = $bags . ' ' . ($bags === 1 ? 'bag' : 'bags');
+    if ($restLb > 0) $parts[] = bcrf_feed_weight_text($restLb);
+    return $parts ? implode(' + ', $parts) : '0 bags';
+}
+
+/** Scoops and other measures in use: [id, product_id (null = every feed), product_name, name, weight, weight_unit, g]. */
+function bcrf_feed_measures(PDO $pdo): array {
+    if (!bcrf_feed_units_ready($pdo)) return [];
+    $rows = $pdo->query("SELECT m.id, m.product_id, i.name AS product_name, m.name, m.weight, m.weight_unit FROM animal_feed_measures m
+                           LEFT JOIN inventory i ON i.id = m.product_id WHERE m.active = 1 ORDER BY m.product_id IS NOT NULL, i.name, m.sort_order, m.name")->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($rows as &$r) {
+        $r['id'] = (int)$r['id'];
+        $r['product_id'] = $r['product_id'] !== null ? (int)$r['product_id'] : null;
+        $r['g'] = (float)$r['weight'] * (bcrf_feed_g((string)$r['weight_unit']) ?? 0);
+    }
+    unset($r);
+    return $rows;
+}
+
+/** Add (id 0) or change a measure. $productId null = for every feed. Returns its id. */
+function bcrf_feed_measure_save(PDO $pdo, int $id, string $name, $weight, string $unit, ?int $productId): int {
+    $name = trim(preg_replace('/\s+/', ' ', $name));
+    if ($name === '' || mb_strlen($name) > 40) throw new BcrfCareError('Give the scoop a name (up to 40 characters), like "2 pint scoop".');
+    $w = trim(str_replace(',', '', (string)$weight));
+    if ($w === '' || !is_numeric($w) || (float)$w <= 0 || (float)$w > 1000) throw new BcrfCareError('How much does a full ' . $name . ' weigh? Enter a weight above 0.');
+    if (!in_array($unit, ['lb', 'oz'], true)) throw new BcrfCareError('Pick lb or oz for the weight.');
+    if ($productId) {
+        $st = $pdo->prepare("SELECT COUNT(*) FROM inventory WHERE id = ?"); $st->execute([$productId]);
+        if (!(int)$st->fetchColumn()) throw new BcrfCareError('That feed is no longer a product.');
+    } else $productId = null;
+    $st = $pdo->prepare("SELECT id FROM animal_feed_measures WHERE active = 1 AND name = ? AND id <> ? AND " . ($productId ? 'product_id = ?' : 'product_id IS NULL'));
+    $st->execute($productId ? [$name, $id, $productId] : [$name, $id]);
+    if ($st->fetchColumn()) throw new BcrfCareError('There is already a measure called ' . $name . '.');
+    if ($id) {
+        $pdo->prepare("UPDATE animal_feed_measures SET name = ?, weight = ?, weight_unit = ?, product_id = ? WHERE id = ? AND active = 1")
+            ->execute([$name, round((float)$w, 3), $unit, $productId, $id]);
+        return $id;
+    }
+    $pdo->prepare("INSERT INTO animal_feed_measures (product_id, name, weight, weight_unit, active, sort_order, created_at) VALUES (?, ?, ?, ?, 1, 0, UTC_TIMESTAMP())")
+        ->execute([$productId, $name, round((float)$w, 3), $unit]);
+    return (int)$pdo->lastInsertId();
+}
+
+/** Stop offering a measure. Past feedings keep what was typed, so nothing is lost. */
+function bcrf_feed_measure_remove(PDO $pdo, int $id): void {
+    $pdo->prepare("UPDATE animal_feed_measures SET active = 0 WHERE id = ?")->execute([$id]);
+}
+
+/** The id of the "lb" row in measurement_units, adding one if there isn't any. */
+function bcrf_feed_lb_unit_id(PDO $pdo): int {
+    $id = $pdo->query("SELECT id FROM measurement_units WHERE LOWER(abbreviation) IN ('lb','lbs') OR LOWER(name) IN ('pound','pounds','lb','lbs') ORDER BY id LIMIT 1")->fetchColumn();
+    if ($id) return (int)$id;
+    $pdo->exec("INSERT INTO measurement_units (name, system_type, abbreviation, unit_type) VALUES ('Pound', 'US', 'lb', 'Weight')");
+    return (int)$pdo->lastInsertId();
+}
+
+/** Set a feed's bag weight in lb (the product's Size). Blank clears it. */
+function bcrf_feed_bag_save(PDO $pdo, int $productId, $lb): void {
+    $v = trim(str_replace(',', '', (string)$lb));
+    if ($v === '') { $pdo->prepare("UPDATE inventory SET size_value = NULL, size_unit_id = NULL WHERE id = ?")->execute([$productId]); return; }
+    if (!is_numeric($v) || (float)$v <= 0 || (float)$v > 5000) throw new BcrfCareError('Enter the bag weight in pounds, like 50.');
+    $pdo->prepare("UPDATE inventory SET size_value = ?, size_unit_id = ? WHERE id = ?")->execute([round((float)$v, 2), bcrf_feed_lb_unit_id($pdo), $productId]);
+}
+
+/**
+ * What an amount of this feed can be entered in, for the log form: list of [key, label, g]. Its own scoops first, then
+ * the scoops for every feed, then lb, oz and bags. Keys: "m<id>", "lb", "oz", "bag".
+ */
+function bcrf_feed_entry_units(array $p, array $measures): array {
+    $ug = bcrf_feed_unit_grams($p);
+    if (!$ug) return [];
+    $out = [];
+    foreach ([true, false] as $own) foreach ($measures as $m) {
+        if ($own ? $m['product_id'] !== (int)$p['id'] : $m['product_id'] !== null) continue;
+        if ($m['g'] > 0) $out[] = ['key' => 'm' . $m['id'], 'label' => $m['name'] . ' (' . bcrf_feed_weight_text($m['g'] / 453.59237) . ')', 'g' => $m['g'], 'name' => $m['name']];
+    }
+    $out[] = ['key' => 'lb', 'label' => 'lb', 'g' => 453.59237, 'name' => 'lb'];
+    $out[] = ['key' => 'oz', 'label' => 'oz', 'g' => 28.349523, 'name' => 'oz'];
+    if (!bcrf_feed_g((string)($p['unit'] ?? ''))) $out[] = ['key' => 'bag', 'label' => 'bags (' . bcrf_feed_weight_text($ug / 453.59237) . ' each)', 'g' => $ug, 'name' => 'bag'];
+    return $out;
+}
+
+/** How a feeding reads: "2 × 2 pint scoop (8 lb) of Goat feed", "6 lb of Goat feed", or the old "0.12 of Goat feed". */
+function bcrf_feed_amount_text(array $r): string {
+    $name = (string)($r['feed_name'] ?? '');
+    $eu = (string)($r['feed_entered_unit'] ?? '');
+    $eq = isset($r['feed_entered_qty']) && $r['feed_entered_qty'] !== null ? (float)$r['feed_entered_qty'] : null;
+    $lb = isset($r['feed_lb']) && $r['feed_lb'] !== null ? (float)$r['feed_lb'] : null;
+    if ($eu === '' || $eq === null) return bcrf_qtxt((float)$r['feed_qty']) . ' of ' . $name;
+    if ($eu === 'lb' || $eu === 'oz') $t = bcrf_qtxt($eq) . ' ' . $eu;
+    elseif ($eu === 'bag') $t = bcrf_qtxt($eq) . ' ' . (abs($eq - 1) < 0.0005 ? 'bag' : 'bags') . ($lb !== null ? ' (' . bcrf_feed_weight_text($lb) . ')' : '');
+    else $t = bcrf_qtxt($eq) . ' × ' . $eu . ($lb !== null ? ' (' . bcrf_feed_weight_text($lb) . ')' : '');
+    return $t . ' of ' . $name;
 }
 
 /** Every product, for choosing which ones are feed (name and id only). */
@@ -141,7 +311,8 @@ function bcrf_care_update_feed_ids(PDO $pdo, array $shown, array $ticked): void 
 // ── Logging ─────────────────────────────────────────────────────────────────────────────────────
 
 /**
- * Log care. $in: type (care type id), animals (ids) and/or enclosure (id), note, feed_product, feed_qty.
+ * Log care. $in: type (care type id), animals (ids) and/or enclosure (id), note, feed_product, feed_qty and feed_unit
+ * ("lb", "oz", "bag" or "m<measure id>"; blank = feed_qty is in the product's own unit, as before Nov 15, 2026).
  * Returns ['id' => log id, 'animals' => n, 'stock_note' => text or ''].
  */
 function bcrf_care_log(PDO $pdo, array $in, ?int $uid = null): array {
@@ -166,7 +337,8 @@ function bcrf_care_log(PDO $pdo, array $in, ?int $uid = null): array {
     foreach ($found as $a) if (bcrf_animal_is_leaving((string)$a['status'])) throw new BcrfCareError($a['name'] . ' has left the farm.');
     $note = mb_substr(trim((string)($in['note'] ?? '')), 0, 500);
 
-    $feedId = null; $qty = null; $cost = null;
+    $feedId = null; $qty = null; $cost = null; $exact = null;
+    $enteredQty = null; $enteredUnit = null; $feedLb = null;
     if ($type['is_feeding']) {
         $feedId = (int)($in['feed_product'] ?? 0) ?: null;
         $rawQty = trim(str_replace(',', '', (string)($in['feed_qty'] ?? '')));
@@ -175,6 +347,23 @@ function bcrf_care_log(PDO $pdo, array $in, ?int $uid = null): array {
             if ($rawQty === '' || !is_numeric($rawQty) || (float)$rawQty <= 0) throw new BcrfCareError('How much feed? Enter an amount above 0.');
             $qty = round((float)$rawQty, 3);
             if ($qty > 10000) throw new BcrfCareError('That amount looks wrong (over 10,000).');
+            $exact = $qty;
+            // Feed units (Nov 15, 2026): an amount in lb, oz, bags or a scoop becomes a share of the stock unit (a bag).
+            $unitKey = trim((string)($in['feed_unit'] ?? ''));
+            if ($unitKey !== '' && bcrf_feed_units_ready($pdo)) {
+                $fp = null;
+                foreach (bcrf_care_feed_products($pdo) as $row) if ((int)$row['id'] === $feedId) $fp = $row;
+                if (!$fp || !$fp['unit_g']) throw new BcrfCareError('Set the bag weight for this feed in Animal care › Setup first, or ask a manager to.');
+                $u = null;
+                foreach ($fp['units'] as $cand) if ($cand['key'] === $unitKey) $u = $cand;
+                if (!$u) throw new BcrfCareError('Pick lb, oz, bags or one of the scoops.');
+                $grams = $qty * $u['g'];
+                $exact = $grams / $fp['unit_g'];
+                $qty = max(0.001, round($exact, 3));
+                $enteredQty = round((float)$rawQty, 3);
+                $enteredUnit = mb_substr((string)$u['name'], 0, 40);
+                $feedLb = round($grams / 453.59237, 3);
+            }
         } elseif ($rawQty !== '') {
             throw new BcrfCareError('Pick which feed the amount is for.');
         }
@@ -187,6 +376,8 @@ function bcrf_care_log(PDO $pdo, array $in, ?int $uid = null): array {
         $pdo->prepare("INSERT INTO animal_care_logs (care_type_id, enclosure_id, logged_at, logged_by, note, feed_product_id, feed_qty) VALUES (?, ?, UTC_TIMESTAMP(), ?, ?, ?, ?)")
             ->execute([$type['id'], $enc ?: null, $uid, $note !== '' ? $note : null, $feedId, $qty]);
         $logId = (int)$pdo->lastInsertId();
+        if ($enteredUnit !== null) $pdo->prepare("UPDATE animal_care_logs SET feed_entered_qty = ?, feed_entered_unit = ?, feed_lb = ? WHERE id = ?")
+                                       ->execute([$enteredQty, $enteredUnit, $feedLb, $logId]);
         $add = $pdo->prepare("INSERT INTO animal_care_log_animals (log_id, animal_id) VALUES (?, ?)");
         foreach ($ids as $aid) $add->execute([$logId, $aid]);
         if ($feedId) {
@@ -194,7 +385,7 @@ function bcrf_care_log(PDO $pdo, array $in, ?int $uid = null): array {
             $st->execute([$feedId]);
             $p = $st->fetch(PDO::FETCH_ASSOC);
             if (!$p) throw new BcrfCareError('That feed is no longer a product.');
-            if ($p['avg_cost_cents'] !== null) $cost = (int)round((int)$p['avg_cost_cents'] * $qty);
+            if ($p['avg_cost_cents'] !== null) $cost = (int)round((int)$p['avg_cost_cents'] * $exact);
             $adjId = null;
             if ((int)$p['track_inventory'] === 1 && bcrf_stock_ready($pdo)) {
                 $r = bcrf_stock_move($pdo, $feedId, bcrf_location_default($pdo), -$qty, 'internal_use', 'animal_care', $logId,
