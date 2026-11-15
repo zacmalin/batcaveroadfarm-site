@@ -89,7 +89,7 @@ $ok(str_contains($btn, 'mailto:hazel@x.test'), 'Email button');
 $ok(str_contains($btn, 'google.com/maps') && str_contains($btn, 'Bat+Cave') || str_contains($btn, 'Bat%20Cave'), 'Map button');
 $ok(bcrf_contact_buttons_html('', '', 'x') === '', 'no phone/email → nothing');
 
-// ── Dated notes ──────────────────────────────────────────────────────────────────────────────────
+// ── Dated notes ──────────────────────────────────────────────────────────────────────────────
 $ok(bcrf_record_notes_ready($pdo), 'record_notes table ready (0067 ran twice)');
 $as('Shopkeep');
 $nid = bcrf_record_note_add($pdo, 'vendor', 20, "  Asked for new insurance cert\r\n", 2);
@@ -145,7 +145,7 @@ $ok(str_contains($ch, 'id="changes"') && str_contains($ch, 'Sam Shop') && str_co
 
 // ── Tasks box ────────────────────────────────────────────────────────────────────────────────────
 $pdo->exec("INSERT INTO tasks (title, status, due_date, related_type, related_id, created_at) VALUES
-            ('Call Feed Barn about hay', 'open', CURDATE() - INTERVAL 1 DAY, 'vendor', '20', NOW()),
+            ('Call Feed Barn about hay', 'open', CURDATE() - INTERVAL 3 DAY, 'vendor', '20', NOW()),
             ('Old done one', 'done', CURDATE(), 'vendor', '20', NOW()),
             ('Other vendor', 'open', NULL, 'vendor', '21', NOW())");
 $as('moderator');
@@ -202,7 +202,7 @@ $ok(str_contains(bcrf_doc_link_url('animal', 30), 'tab=papers'), 'animal paper l
 $box = bcrf_doc_box_html($pdo, 'vendor', 20, '/admin/vendors.php?id=20', 'tok');
 $ok(str_contains($box, 'Papers') && str_contains($box, 'expires_on') && str_contains($box, 'Insurance'), 'vendor box: Papers, type, Expires');
 
-// ── Bell ─────────────────────────────────────────────────────────────────────────────────────────
+// ── Bell ─────────────────────────────────────────────────────────────────────────────────────
 $pdo->exec("INSERT INTO incidents (happened_at, type, severity, location, description, created_at) VALUES (NOW(), 'visitor_injury', 'minor', 'Goat pen', 'Scraped knee', UTC_TIMESTAMP())");
 $pdo->exec("INSERT INTO inventory (category, name, is_active, track_inventory, stock_quantity, min_stock_level) VALUES ('Zoo', 'Goat feed cups', 1, 1, 2, 5)");
 $pdo->exec("INSERT INTO animal_vaccinations (animal_id, vaccine, given_on, next_due, created_at) VALUES (30, 'CDT', '2025-11-20', CURDATE() + INTERVAL 5 DAY, NOW())");
@@ -220,7 +220,7 @@ $ok((int)$one("SELECT COUNT(*) FROM notifications WHERE kind = 'paper_expiring' 
 $ok((string)$one("SELECT title FROM notifications WHERE kind = 'paper_expiring'") === 'Insurance certificate for Feed Barn runs out soon', 'paper alert title: ' . $one("SELECT title FROM notifications WHERE kind = 'paper_expiring'"));
 $ok(str_contains((string)$one("SELECT title FROM notifications WHERE kind = 'vaccine_due'"), 'Biscuit: CDT due soon'), 'vaccine alert title');
 
-// ── Search ───────────────────────────────────────────────────────────────────────────────────────
+// ── Search ───────────────────────────────────────────────────────────────────────────────────
 $run = function (string $role, string $q) use ($pdo) {
     $r = bcrf_search($pdo, $q, bcrf_search_can_for($role), ['id' => 0, 'role' => $role]);
     $out = [];
