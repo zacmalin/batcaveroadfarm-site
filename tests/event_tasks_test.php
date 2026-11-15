@@ -20,6 +20,7 @@ $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
 require $root . '/includes/migrations.php';
 [$built, $log] = bcrf_migrations_run_pending($pdo, null);
 if (!$built) { fwrite(STDERR, "Migrations failed:\n" . implode("\n", $log) . "\n"); exit(2); }
+$pdo->exec("DELETE FROM task_recurrences WHERE seed_key LIKE 'notion\\_%'"); $pdo->exec("DELETE FROM renewals");   // 0070 adds the farm's own renewals and chores; these checks start without them
 require $root . '/includes/event_tasks.php';
 
 $fails = 0; $n = 0;

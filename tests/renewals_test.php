@@ -45,6 +45,20 @@ $ok(bcrf_renewals_ready($pdo), 'renewals table exists');
 $ok((int)$one("SELECT can_access FROM view_permissions WHERE role = 'moderator' AND view_name = 'renewals'") === 1, 'Managers get the Renewals view');
 (require $root . '/admin/migrations/0069_renewals.php')($pdo);
 $ok((int)$one("SELECT COUNT(*) FROM view_permissions WHERE view_name = 'renewals'") === 1, 'safe to repeat');
+// 0070: the Notion "Recurring & renewals" list, moved in
+$ok((int)$one("SELECT COUNT(*) FROM renewals WHERE deleted_at IS NULL") === 5, '0070 adds the 5 renewals');
+$ok((string)$one("SELECT renews_on FROM renewals WHERE title = 'Domain: batcaveroadfarm.com'") === '2027-04-29'
+    && (int)$one("SELECT auto_renews FROM renewals WHERE title LIKE 'SSL certificate%'") === 1
+    && (int)$one("SELECT repeat_months FROM renewals WHERE title = 'DMCA designated agent'") === 36, '0070 renewal dates and repeats');
+$ok((int)$one("SELECT COUNT(*) FROM task_recurrences WHERE seed_key LIKE 'notion\\_%'") === 11, '0070 adds the 11 chores');
+(require $root . '/admin/migrations/0070_notion_recurring.php')($pdo);
+$ok((int)$one("SELECT COUNT(*) FROM renewals") === 5 && (int)$one("SELECT COUNT(*) FROM task_recurrences WHERE seed_key LIKE 'notion\\_%'") === 11, '0070 safe to repeat');
+$ok(bcrf_rec_falls_on($pdo, $pdo->query("SELECT * FROM task_recurrences WHERE seed_key = 'notion_a11y_rescan'")->fetch(PDO::FETCH_ASSOC), '2027-05-01')
+    && !bcrf_rec_falls_on($pdo, $pdo->query("SELECT * FROM task_recurrences WHERE seed_key = 'notion_a11y_rescan'")->fetch(PDO::FETCH_ASSOC), '2027-04-01'), 'rescan falls Feb, May, Aug, Nov 1');
+$ok(!bcrf_rec_falls_on($pdo, $pdo->query("SELECT * FROM task_recurrences WHERE seed_key = 'notion_dmarc_weekly'")->fetch(PDO::FETCH_ASSOC), '2026-12-14')
+    && bcrf_rec_falls_on($pdo, $pdo->query("SELECT * FROM task_recurrences WHERE seed_key = 'notion_dmarc_weekly'")->fetch(PDO::FETCH_ASSOC), '2026-11-30'), 'weekly DMARC stops after Dec 7');
+$pdo->exec("DELETE FROM renewals");   // the checks below start from an empty list
+$pdo->exec("DELETE FROM task_recurrences WHERE seed_key LIKE 'notion\\_%'");
 $ok(bcrf_renewals_can('administrator') && bcrf_renewals_can('moderator') && !bcrf_renewals_can('Staff') && !bcrf_renewals_can('Shopkeep') && !bcrf_renewals_can('user'), 'Owners and Managers only');
 $ok(in_array('renewals', bcrf_cal_layers_for('moderator'), true) && !in_array('renewals', bcrf_cal_layers_for('Staff'), true), 'calendar layer follows the view');
 $ok(isset(bcrf_record_kinds()['renewal']) && bcrf_record_can('renewal', 'moderator') && !bcrf_record_can('renewal', 'Staff'), 'renewal is a record kind (notes, tasks, changes)');
