@@ -128,6 +128,7 @@ for ($p = 0; $p < $total_pages; $p++) {
 <head>
     <meta charset="utf-8">
     <title>Labels — <?= $name_esc ?></title>
+    <link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
     <style>
         @page {

@@ -43,6 +43,7 @@ $phone = function_exists('site_phone_display') ? site_phone_display() : '';
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; base-uri 'self'; form-action 'self'">
 <meta name="robots" content="noindex">
 <title>Gift card — <?= $h($farm) ?></title>
+<link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">
 <link rel="stylesheet" href="assets/giftcard.css?v=1">
 <script src="/js/qrcode.min.js" defer></script>
 <script src="assets/giftcard.js?v=1" defer></script>

@@ -25,7 +25,8 @@ function bcrf_shell_asset(string $file): string {
  * Open the page: <head>, sidebar, phone navigation, and <main>.
  * $opt: 'view'  => console view key this page belongs to (optional; tabs are matched by file name anyway)
  *       'toast' => ['ok'|'err'|'warning', 'message'] shown as the console's toast
- *       'width' => Tailwind max-width class for the content column (default 'max-w-5xl')
+ *       'width' => Tailwind max-width class for the content column (default 'max-w-5xl'). Since Nov 15, 2026
+ *                  admin-ui.css lets every page column use the full width, so this no longer narrows the page.
  *       'legacy'=> true for pages built on the register.css class names (card, lrow, btn, stackf…): loads
  *                  reports.css (layout) + admin-farmos.css (Hiring look) and wraps the content in .fos.
  *                  Default width for these is 'max-w-3xl'.
@@ -52,6 +53,7 @@ function bcrf_shell_open(string $title, array $opt = []): void {
          '<meta name="theme-color" content="#1c1917"><meta name="robots" content="noindex">',
          ($opt['strict'] ?? true) ? '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data: https:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">' : '',
          '<title>', $h($title), ' — Farm OS</title>',
+         '<link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">',   // tab icon (Nov 15, 2026)
          '<link rel="stylesheet" href="', $h(bcrf_shell_asset('admin.css')), '">',
          '<link rel="stylesheet" href="', $h(bcrf_shell_asset('admin-shell.css')), '">',
          '<link rel="stylesheet" href="', $h(bcrf_shell_asset('admin-ui.css')), '">',

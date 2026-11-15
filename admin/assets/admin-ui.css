@@ -5,6 +5,11 @@
    stone line as the Farm OS pages. In a layer, so any border-* colour class on the element still wins. */
 @layer base{main *,main ::before,main ::after{border-color:#e7e5e4}}
 
+/* Full-width pages (Nov 15, 2026): every page's content uses the whole width beside the sidebar, so cards, forms and
+   lists line up the same from page to page. Overrides the page column's max-w-* (bcrf_shell_open 'width', console
+   view wrappers). Only the column itself: inputs, modals and pop-ups inside keep their own widths. */
+main > [class*="max-w-"]{max-width:none}
+
 /* Status chip (colors come from ui_chip() in admin/views/layout/ui.php) */
 .ui-chip{display:inline-flex;align-items:center;gap:.25rem;padding:.1rem .5rem;border-radius:999px;font-size:10px;font-weight:700;line-height:1.5;white-space:nowrap;vertical-align:middle}
 
