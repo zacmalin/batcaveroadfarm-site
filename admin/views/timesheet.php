@@ -309,7 +309,7 @@ if (!empty($_GET['print'])) {
     </tbody>
 </table>
 <?php endif; ?>
-<script>window.onload = function(){ window.print(); };</script>
+<script src="/admin/assets/staff-timesheet.js" defer></script>
 </body></html>
     <?php
     exit;
@@ -336,7 +336,7 @@ $preset_labels = [
 
 <div class="flex justify-between items-center mb-6 print:hidden">
     <h1 class="text-2xl font-bold text-stone-800">Staff Timesheet</h1>
-    <button onclick="openPrint()"
+    <button id="staffTimesheetPrint" type="button"
         class="border border-stone-200 font-bold uppercase text-[10px] tracking-wider px-4 py-2 rounded text-stone-600 hover:bg-stone-900 hover:text-white transition">
         🖨 Print / Export
     </button>
@@ -348,8 +348,8 @@ $preset_labels = [
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-sans items-end">
 
         <div>
-            <label class="block font-bold text-stone-500 uppercase tracking-wider mb-1 text-[10px]">Period</label>
-            <select name="preset" onchange="toggleCustomDates(this.value)"
+            <label for="staffTimesheetPreset" class="block font-bold text-stone-500 uppercase tracking-wider mb-1 text-[10px]">Period</label>
+            <select id="staffTimesheetPreset" name="preset"
                 class="w-full p-2 border border-stone-300 bg-stone-50 rounded font-medium outline-none">
                 <?php foreach ($preset_labels as $val => $label): ?>
                     <option value="<?= $val ?>" <?= $preset === $val ? 'selected' : '' ?>><?= $label ?></option>
@@ -358,19 +358,19 @@ $preset_labels = [
         </div>
 
         <div id="customFrom" <?= $preset !== 'custom' ? 'style="display:none"' : '' ?>>
-            <label class="block font-bold text-stone-500 uppercase tracking-wider mb-1 text-[10px]">From</label>
-            <input type="date" name="date_from" value="<?= htmlspecialchars($ts_date_from, ENT_QUOTES) ?>"
+            <label for="staffTimesheetFrom" class="block font-bold text-stone-500 uppercase tracking-wider mb-1 text-[10px]">From</label>
+            <input id="staffTimesheetFrom" type="date" name="date_from" value="<?= htmlspecialchars($ts_date_from, ENT_QUOTES) ?>"
                 class="w-full p-2 border bg-stone-50 rounded outline-none">
         </div>
         <div id="customTo" <?= $preset !== 'custom' ? 'style="display:none"' : '' ?>>
-            <label class="block font-bold text-stone-500 uppercase tracking-wider mb-1 text-[10px]">To</label>
-            <input type="date" name="date_to" value="<?= htmlspecialchars($ts_date_to, ENT_QUOTES) ?>"
+            <label for="staffTimesheetTo" class="block font-bold text-stone-500 uppercase tracking-wider mb-1 text-[10px]">To</label>
+            <input id="staffTimesheetTo" type="date" name="date_to" value="<?= htmlspecialchars($ts_date_to, ENT_QUOTES) ?>"
                 class="w-full p-2 border bg-stone-50 rounded outline-none">
         </div>
 
         <div>
-            <label class="block font-bold text-stone-500 uppercase tracking-wider mb-1 text-[10px]">Staff</label>
-            <select name="user_id" class="w-full p-2 border border-stone-300 bg-stone-50 rounded font-medium outline-none">
+            <label for="staffTimesheetUser" class="block font-bold text-stone-500 uppercase tracking-wider mb-1 text-[10px]">Staff</label>
+            <select id="staffTimesheetUser" name="user_id" class="w-full p-2 border border-stone-300 bg-stone-50 rounded font-medium outline-none">
                 <option value="0">All Staff</option>
                 <?php foreach ($ts_staff as $s): ?>
                     <option value="<?= (int)$s['id'] ?>" <?= $ts_filter_user === (int)$s['id'] ? 'selected' : '' ?>>
@@ -495,18 +495,4 @@ $preset_labels = [
 </div>
 <?php endif; ?>
 
-<script>
-function openPrint() {
-    // Open the same URL with &print=1 — timesheet view renders print layout when this is set
-    const params = new URLSearchParams(window.location.search);
-    params.set('view',  'timesheet');
-    params.set('print', '1');
-    window.open('/admin/admin.php?' + params.toString(), '_blank');
-}
-
-function toggleCustomDates(val) {
-    const show = val === 'custom';
-    document.getElementById('customFrom').style.display = show ? '' : 'none';
-    document.getElementById('customTo').style.display   = show ? '' : 'none';
-}
-</script>
+<script src="/admin/assets/staff-timesheet.js" defer></script>
