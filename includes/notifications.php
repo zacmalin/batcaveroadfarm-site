@@ -66,13 +66,18 @@ function bcrf_notify_visible(int $uid, string $role): array {
     return ["(n.user_id = ? OR (n.user_id IS NULL AND (n.role = ? OR (n.role IS NULL AND ? = 1))))", [$uid, $role, $mgr]];
 }
 
+/** Filter alerts whose underlying work is already resolved. */
+function bcrf_notify_active_sql(): string {
+    return " AND NOT (n.kind = 'incident' AND EXISTS (SELECT 1 FROM incidents i WHERE n.dedupe_key = CONCAT('incident:', i.id) AND i.status = 'closed')) AND NOT (n.kind = 'task_late' AND EXISTS (SELECT 1 FROM tasks t WHERE n.dedupe_key = CONCAT('task_late:', t.id) AND t.status IN ('done', 'skipped', 'cancelled')))";
+}
+
 /** How many unread notifications this person has (0 before migration 0063). */
 function bcrf_notifications_unread(PDO $pdo, int $uid, string $role): int {
     if ($uid <= 0 || !bcrf_notifications_ready($pdo)) return 0;
     [$w, $a] = bcrf_notify_visible($uid, $role);
     try {
         $st = $pdo->prepare("SELECT COUNT(*) FROM notifications n LEFT JOIN notification_reads r ON r.notification_id = n.id AND r.user_id = ?
-                             WHERE $w AND r.notification_id IS NULL AND n.created_at >= UTC_TIMESTAMP() - INTERVAL 60 DAY");
+                             WHERE $w AND r.notification_id IS NULL AND n.created_at >= UTC_TIMESTAMP() - INTERVAL 60 DAY" . bcrf_notify_active_sql());
         $st->execute(array_merge([$uid], $a));
         return (int)$st->fetchColumn();
     } catch (Throwable $e) { return 0; }
@@ -84,7 +89,7 @@ function bcrf_notifications_list(PDO $pdo, int $uid, string $role, int $limit = 
     [$w, $a] = bcrf_notify_visible($uid, $role);
     $st = $pdo->prepare("SELECT n.*, (r.notification_id IS NOT NULL) AS is_read FROM notifications n
                          LEFT JOIN notification_reads r ON r.notification_id = n.id AND r.user_id = ?
-                         WHERE $w AND n.created_at >= UTC_TIMESTAMP() - INTERVAL 60 DAY
+                         WHERE $w AND n.created_at >= UTC_TIMESTAMP() - INTERVAL 60 DAY " . bcrf_notify_active_sql() . "
                          ORDER BY n.created_at DESC, n.id DESC LIMIT " . max(1, min(200, $limit)));
     $st->execute(array_merge([$uid], $a));
     $rows = $st->fetchAll(PDO::FETCH_ASSOC);
@@ -198,7 +203,7 @@ function bcrf_notify_sweep(PDO $pdo): int {
     $farmToday = (new DateTimeImmutable('now', new DateTimeZone(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York')))->format('Y-m-d');
     $safe(function () use ($pdo, &$added) {   // new incident reports (Nov 14, 2026)
         if (!defined('BCRF_INCIDENT_TYPES') && is_file(__DIR__ . '/incidents.php')) require_once __DIR__ . '/incidents.php';
-        foreach ($pdo->query("SELECT id, type, severity, location, happened_at FROM incidents WHERE created_at >= UTC_TIMESTAMP() - INTERVAL 3 DAY ORDER BY id LIMIT 50") as $r) {
+        foreach ($pdo->query("SELECT id, type, severity, location, happened_at FROM incidents WHERE status != 'closed' AND created_at >= UTC_TIMESTAMP() - INTERVAL 3 DAY ORDER BY id LIMIT 50") as $r) {
             $kind = defined('BCRF_INCIDENT_TYPES') ? (BCRF_INCIDENT_TYPES[$r['type']] ?? $r['type']) : $r['type'];
             $sev = defined('BCRF_INCIDENT_SEVERITY') ? (BCRF_INCIDENT_SEVERITY[$r['severity']] ?? $r['severity']) : $r['severity'];
             $added += bcrf_notify($pdo, ['kind' => 'incident', 'dedupe' => 'incident:' . $r['id'], 'link' => '/admin/incidents.php?id=' . (int)$r['id'],
