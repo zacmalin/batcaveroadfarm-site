@@ -263,7 +263,7 @@ function bcrf_incident_make_task(PDO $pdo, int $id, string $dueDate = ''): ?int 
     $what = BCRF_INCIDENT_TYPES[$i['type']] . ($i['injury'] ? ' (' . strtolower(BCRF_INCIDENT_INJURIES[$i['injury']]) . ')' : '');
     $tid = bcrf_task_create($pdo, [
         'title' => 'Follow up on incident #' . $id . ': ' . $what,
-        'description' => 'Read the report, check on the people and animals involved, note what was done, and close it when it is settled: /admin/incidents.php?id=' . $id,
+        'description' => 'Read the linked incident report, check on the people and animals involved, note what was done, and close it when it is settled.',
         'priority' => $i['severity'] === 'serious' ? 'urgent' : 'high',
         'due_date' => $dueDate,
         'who' => 'role:administrator',
