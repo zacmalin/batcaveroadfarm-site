@@ -157,7 +157,7 @@ document.addEventListener('keydown', function(e) {
 <script defer src="/admin/assets/admin-list.js?v=20260615b"></script>
 <!-- Shared UI kit (02 Navigation & UX): chips, phone card tables, common behaviours -->
 <link rel="stylesheet" href="/admin/assets/admin-ui.css?v=20261115d">
-<script defer src="/admin/assets/admin-ui.js?v=20261115c"></script>
+<script defer src="/admin/assets/admin-ui.js?v=20261116a"></script>
 <!-- Phone boxes format as (828) 555-0100 while typing (Nov 15, 2026; same file as the public site) -->
 <script defer src="/js/min.phone.js?v=20261115a"></script>
 <!-- Shell chrome (sidebar rail, phone bar, More sheet, tabs) — moved out of sidebar.php Nov 11, 2026 -->
