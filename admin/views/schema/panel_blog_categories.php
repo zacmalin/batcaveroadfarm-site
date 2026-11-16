@@ -18,13 +18,13 @@
                             <button type="button" onclick="toggleAddCategoryForm('blog')"
                                 class="border text-stone-500 text-[10px] font-bold px-2 py-1 rounded hover:bg-stone-100">Cancel</button>
                         </div>
-                        <div id="categoriesCheckboxList_blog" role="group" aria-labelledby="categoryHeading_blog" style="grid-template-columns:repeat(auto-fit,minmax(125px,1fr))" class="grid gap-2 p-3 border rounded bg-stone-50 max-h-28 overflow-y-auto">
+                        <div id="categoriesCheckboxList_blog" role="group" aria-labelledby="categoryHeading_blog" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))" class="grid gap-2 p-3 border rounded bg-stone-50 max-h-28 overflow-y-auto">
                             <?php foreach (($all_blog_categories ?? []) as $ct): ?>
-                            <label class="flex items-center space-x-2 text-xxs font-medium cursor-pointer">
-                                <input type="checkbox" name="categories_matrix[]"
+                            <label class="flex items-center gap-2 text-xxs font-medium cursor-pointer" style="min-width:0;">
+                                <input type="checkbox" style="flex-shrink:0;" name="categories_matrix[]"
                                     value="<?= (int)$ct['id'] ?>"
                                     <?= in_array($ct['id'], $active_cat_ids ?? []) ? 'checked' : '' ?>>
-                                <span><?= htmlspecialchars($ct['name']) ?></span>
+                                <span style="min-width:0;overflow-wrap:anywhere;"><?= htmlspecialchars($ct['name']) ?></span>
                             </label>
                             <?php endforeach; ?>
                         </div>
