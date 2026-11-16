@@ -106,5 +106,45 @@ $ok(array_column(bcrf_feed_measures($pdo), 'name') === ['6 fl oz scoop', 'Corn c
 $ok($one("SELECT feed_entered_unit FROM animal_care_logs WHERE feed_entered_unit = '2 pint scoop' LIMIT 1") === '2 pint scoop', 'past feedings keep the scoop name');
 $ok(bcrf_feed_weight_text(0.25) === '4 oz' && bcrf_feed_weight_text(6.5) === '6.5 lb', 'weight words');
 
+// -- End to end (Nov 16, 2026, outside review): ledger, short and empty stock, void, expenses agree --
+require_once $root . '/includes/animal_expenses.php';
+$ledger = fn(int $logId) => $pdo->query("SELECT a.* FROM inventory_adjustments a JOIN animal_care_logs l ON l.stock_adjustment_id = a.id WHERE l.id = " . $logId)->fetch();
+$st = $pdo->prepare($ins);
+$st->execute(['Goat chow, 25 lb bag', 0.1, 'each', 2000]); $chow = (int)$pdo->lastInsertId();   // 0.1 bag = 2.5 lb on hand
+bcrf_care_set_feed_ids($pdo, array_merge(bcrf_care_feed_ids($pdo), [$chow]));
+bcrf_feed_bag_save($pdo, $chow, '25');
+$r = bcrf_care_log($pdo, ['type' => $feeding, 'animals' => [$hazel, $clover], 'feed_product' => $chow, 'feed_qty' => '1', 'feed_unit' => 'lb'], 1);
+$row = $pdo->query("SELECT * FROM animal_care_logs WHERE id = " . (int)$r['id'])->fetch();
+$adj = $ledger((int)$r['id']);
+$ok((float)$row['feed_qty'] === 0.04 && $adj && (float)$adj['quantity_change'] === -0.04 && $adj['reason'] === 'internal_use' && $adj['source_type'] === 'animal_care', 'partial bag: ledger row = -0.04 bag, internal use, from animal care');
+$ok((float)$adj['quantity_before'] === 0.1 && (float)$adj['quantity_after'] === 0.06 && (float)$one("SELECT stock_quantity FROM inventory WHERE id = ?", [$chow]) === 0.06, 'ledger before/after match the product');
+$ok((int)$row['feed_cost_cents'] === 80 && $r['stock_note'] === '', '1 lb of a $20, 25 lb bag = 80 cents, no stock warning');
+$r = bcrf_care_log($pdo, ['type' => $feeding, 'animals' => [$hazel], 'feed_product' => $chow, 'feed_qty' => '5', 'feed_unit' => 'lb'], 1);
+$adj = $ledger((int)$r['id']);
+$ok((float)$one("SELECT stock_quantity FROM inventory WHERE id = ?", [$chow]) === 0.0, 'more than on hand: stock stops at 0, never negative');
+$ok($adj && (float)$adj['quantity_change'] === -0.06 && str_contains((string)$adj['note'], 'short by 0.14'), 'ledger takes only what was there and notes the 0.14 bag short');
+$ok(str_contains($r['stock_note'], 'short by 0.14') && (int)$one("SELECT feed_cost_cents FROM animal_care_logs WHERE id = ?", [$r['id']]) === 400, 'feeding still saved, staff told to count it; cost is what was fed (5 lb = $4)');
+$shortLog = (int)$r['id'];
+$r = bcrf_care_log($pdo, ['type' => $feeding, 'animals' => [$hazel], 'feed_product' => $chow, 'feed_qty' => '1', 'feed_unit' => 'lb'], 1);
+$ok((float)$one("SELECT stock_quantity FROM inventory WHERE id = ?", [$chow]) === 0.0 && str_contains($r['stock_note'], 'short by 0.04'), 'empty stock: saved, stays 0, short noted');
+bcrf_care_void($pdo, $shortLog, 'typo', 1);
+$ok((float)$one("SELECT stock_quantity FROM inventory WHERE id = ?", [$chow]) === 0.06, 'void of a short feeding puts back only what really came out (0.06), not 0.2');
+$ok((int)$one("SELECT COUNT(*) FROM animal_care_logs WHERE id = ? AND voided_at IS NOT NULL", [$shortLog]) === 1, 'voided entry kept on file');
+$throws(fn() => bcrf_care_void($pdo, $shortLog, 'again', 1), 'voiding twice refused (stock not put back twice)', 'already');
+$ok((float)$one("SELECT stock_quantity FROM inventory WHERE id = ?", [$chow]) === 0.06, 'stock unchanged after the refused second void');
+// Stock on hand = sum of the ledger, for every feed.
+foreach ([$pellets, $corn, $minerals, $chow] as $pid) {
+    $start = (float)$one("SELECT quantity_before FROM inventory_adjustments WHERE product_id = ? ORDER BY id LIMIT 1", [$pid]);
+    $sum = (float)$one("SELECT COALESCE(SUM(quantity_change), 0) FROM inventory_adjustments WHERE product_id = ?", [$pid]);
+    $ok(abs($start + $sum - (float)$one("SELECT stock_quantity FROM inventory WHERE id = ?", [$pid])) < 0.0005, "product $pid: first count + ledger = stock on hand");
+}
+// Animal expenses: the Feed total equals the un-voided feed costs, split across animals to the cent.
+$lines = bcrf_expense_lines($pdo, '2000-01-01', '2100-01-01');
+$feedSum = array_sum(array_map(fn($l) => $l['cents'], array_filter($lines, fn($l) => $l['source'] === 'feed')));
+$ok($feedSum === (int)$one("SELECT COALESCE(SUM(feed_cost_cents), 0) FROM animal_care_logs WHERE voided_at IS NULL"), "expense Feed total ($feedSum cents) = un-voided feed costs");
+$first = (int)$one("SELECT MIN(id) FROM animal_care_logs");
+$split = array_filter($lines, fn($l) => $l['source'] === 'feed' && $l['ref'] === 'care log ' . $first);
+$ok(array_sum(array_column($split, 'cents')) === 296 && count($split) === 2, 'shared feeding split across 2 animals adds back to 296');
+
 echo ($fails ? "$fails of $n FAILED" : "All $n checks passed") . "\n";
 exit($fails ? 1 : 0);

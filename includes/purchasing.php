@@ -52,7 +52,8 @@ function bcrf_po_list(PDO $pdo, array $f = [], int $limit = 80): array {
                          FROM purchase_orders po
                          JOIN vendors v ON v.id = po.vendor_id"
                          . ($w ? ' WHERE ' . implode(' AND ', $w) : '')
-                         . ' ORDER BY FIELD(po.status, \'draft\',\'ordered\',\'partial\',\'received\',\'cancelled\'), po.expected_date IS NULL, po.expected_date, po.id DESC
+                         . ' ORDER BY ' . (!empty($f['order']) && is_string($f['order']) ? $f['order']   // a fixed ORDER BY from the list's Sort box (Nov 16, 2026), never user text
+                             : 'FIELD(po.status, \'draft\',\'ordered\',\'partial\',\'received\',\'cancelled\'), po.expected_date IS NULL, po.expected_date, po.id DESC') . '
                          LIMIT ' . max(1, min(200, $limit)));
     $st->execute($a);
     return $st->fetchAll(PDO::FETCH_ASSOC);

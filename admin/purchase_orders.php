@@ -221,11 +221,12 @@ $f = [
     'status' => in_array($_GET['status'] ?? '', ['open', 'draft', 'ordered', 'partial', 'received', 'cancelled', 'all'], true) ? $_GET['status'] : 'open',
     'vendor_id' => (int)($_GET['vendor'] ?? 0) ?: null,
 ];
-$rows = bcrf_po_list($pdo, $f, 200);
-$sortOpts = ['default' => ['By status, then expected date'], 'newest' => ['Newest first', 'id', 'desc'], 'oldest' => ['Oldest first', 'id', 'asc'],
-             'expected' => ['Expected soonest', 'expected_date', 'asc'], 'vendor' => ['Vendor A to Z', 'vendor_name', 'asc'],
-             'total_hi' => ['Total high to low', 'ordered_cents', 'desc'], 'total_lo' => ['Total low to high', 'ordered_cents', 'asc']];
+// The 4th item is the same order in SQL, so the 200-order cap keeps the right orders (Nov 16, 2026).
+$sortOpts = ['default' => ['By status, then expected date'], 'newest' => ['Newest first', 'id', 'desc', 'po.id DESC'], 'oldest' => ['Oldest first', 'id', 'asc', 'po.id'],
+             'expected' => ['Expected soonest', 'expected_date', 'asc', 'po.expected_date IS NULL, po.expected_date, po.id DESC'], 'vendor' => ['Vendor A to Z', 'vendor_name', 'asc', 'v.name, po.id DESC'],
+             'total_hi' => ['Total high to low', 'ordered_cents', 'desc', 'ordered_cents DESC, po.id DESC'], 'total_lo' => ['Total low to high', 'ordered_cents', 'asc', 'ordered_cents, po.id DESC']];
 $sort = bcrf_list_sort_pick($pdo, 'purchase_orders', $sortOpts);
+$rows = bcrf_po_list($pdo, $f + ['order' => bcrf_list_sort_sql($sortOpts, $sort, '')], 200);
 $rows = bcrf_list_sort_rows($rows, $sortOpts, $sort);
 echo '<h1>Purchase orders</h1>';
 if ($flash) echo bcrf_shell_flash($flash);

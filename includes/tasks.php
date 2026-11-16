@@ -364,7 +364,7 @@ function bcrf_tasks_list(PDO $pdo, array $f = [], int $limit = 300): array {
     if (($q = trim((string)($f['q'] ?? ''))) !== '') { $w[] = '(t.title LIKE ? OR t.description LIKE ?)'; $a[] = "%$q%"; $a[] = "%$q%"; }
     if (preg_match('/^([a-z_]{2,20}):(\d{1,10})$/', (string)($f['related'] ?? ''), $rm)) { $w[] = 't.related_type = ? AND t.related_id = ?'; $a[] = $rm[1]; $a[] = $rm[2]; }   // one record's tasks (an event's checklist, a vendor, an animal…)
     $st = $pdo->prepare(bcrf_tasks_select() . ($w ? ' WHERE ' . implode(' AND ', $w) : '')
-        . " ORDER BY t.due_date IS NULL, t.due_date " . ($s === 'open' ? 'ASC' : 'DESC') . ", t.due_time, t.id LIMIT " . max(1, min(2000, $limit)));
+        . " ORDER BY " . (!empty($f['order']) && is_string($f['order']) ? $f['order'] : "t.due_date IS NULL, t.due_date " . ($s === 'open' ? 'ASC' : 'DESC') . ", t.due_time, t.id") . " LIMIT " . max(1, min(2000, $limit)));   // a fixed ORDER BY from the list's Sort box (Nov 16, 2026), never user text
     $st->execute($a);
     return array_map('bcrf_tasks_decode', $st->fetchAll(PDO::FETCH_ASSOC));
 }

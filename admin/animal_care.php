@@ -42,9 +42,22 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         if ($act === 'log') {
             $ret = (int)($_POST['return_animal'] ?? 0);
             if ($ret) $back = 'animals.php?id=' . $ret . '&tab=care';
+            // One-time form key (Nov 16, 2026): a double tap or a resend on a slow connection can't log the feeding (and draw the
+            // feed from stock) twice. PHP holds the session lock for the whole request, so a second copy waits and then sees the key.
+            $once = (string)($_POST['once'] ?? '');
+            if (!preg_match('/^[a-f0-9]{16,64}$/', $once)) $once = '';
+            if ($once !== '' && isset($_SESSION['care_once'][$once])) {
+                $_SESSION['ac_flash'] = ['ok', 'Already logged. That form was sent twice, so it was saved once.'];
+                header('Location: ' . $back); exit;
+            }
             $r = bcrf_care_log($pdo, ['type' => $_POST['type'] ?? 0, 'animals' => (array)($_POST['animals'] ?? []), 'enclosure' => $_POST['enclosure'] ?? 0,
                                       'note' => $_POST['note'] ?? '', 'feed_product' => $_POST['feed_product'] ?? 0, 'feed_qty' => $_POST['feed_qty'] ?? '',
                                       'feed_unit' => $_POST['feed_unit'] ?? ''], $uid);
+            if ($once !== '') {
+                $seen = (array)($_SESSION['care_once'] ?? []);
+                $seen[$once] = time();
+                $_SESSION['care_once'] = array_slice($seen, -30, null, true);
+            }
             if (function_exists('erp_audit')) erp_audit($pdo, 'create', 'animal_care_logs', $r['id'], 'Care logged for ' . $r['animals'] . ' animal(s)');
             $msg = 'Logged for ' . $r['animals'] . ' animal' . ($r['animals'] > 1 ? 's' : '') . '.';
             $_SESSION['ac_flash'] = $r['stock_note'] ? ['err', $msg . ' ' . $r['stock_note']] : ['ok', $msg];
@@ -352,13 +365,13 @@ if ($typeId) {
     }
     if (!$pickGroups['species'] && !$pickGroups['breed']) $pickGroups = [];
     $feeds = $type['is_feeding'] ? bcrf_care_feed_products($pdo) : [];
-    $pageJs = array_merge($feeds ? ['feed-units.js'] : [], $pickGroups ? ['care-pick.js'] : []);
+    $pageJs = array_merge($feeds ? ['feed-units.js'] : [], ['care-pick.js']);   // care-pick.js also keeps the "for N animals" count on the button
     bcrf_shell_open('Log ' . $type['name'], ['toast' => $toast, 'width' => 'max-w-3xl', 'js' => $pageJs]);
     echo '<a href="', $oneAnimal ? 'animals.php?id=' . $oneAnimal . '&amp;tab=care' : 'animal_care.php', '" class="text-sm text-amber-800 underline">‹ Back</a>';
     echo '<h1 class="text-2xl font-bold text-stone-800 mt-2 mb-3">', $h($type['name']), '</h1>';
     if ($error) echo bcrf_shell_notice('err', $error);
     if (!$animals) { echo bcrf_shell_notice('warning', 'No animals on the roster yet.'); bcrf_shell_close(); exit; } ?>
-  <form method="POST" action="animal_care.php" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="log"><input type="hidden" name="type" value="<?= $type['id'] ?>">
+  <form method="POST" action="animal_care.php" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="log"><input type="hidden" name="once" value="<?= bin2hex(random_bytes(16)) ?>"><input type="hidden" name="type" value="<?= $type['id'] ?>">
     <?php if ($oneAnimal): ?><input type="hidden" name="return_animal" value="<?= $oneAnimal ?>"><?php endif; ?>
     <?php if ($enclosures): ?>
     <div class="mb-3"><label class="<?= $label ?>" for="le">Everyone in an enclosure</label>
@@ -379,7 +392,7 @@ if ($typeId) {
       <?php endif; ?>
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-1 max-h-96 overflow-y-auto border border-stone-200 rounded p-2">
       <?php foreach ($animals as $a): $sp = $pickKey($a['class_name']); $br = $pickKey($a['breed_name']) !== '' ? $sp . '|' . $pickKey($a['breed_name']) : ''; ?>
-        <label class="flex gap-2 items-center text-sm py-1 min-w-0"><input type="checkbox" name="animals[]" value="<?= (int)$a['id'] ?>" data-species="<?= $h($sp) ?>" data-breed="<?= $h($br) ?>" <?= $oneAnimal === (int)$a['id'] ? 'checked' : '' ?>> <span class="min-w-0"><span class="block truncate"><?= $h($a['name']) ?></span><?php if ($a['breed_name'] || $a['class_name']): ?><span class="block truncate text-xs text-stone-500"><?= $h($a['breed_name'] ?: $a['class_name']) ?></span><?php endif; ?></span></label>
+        <label class="flex gap-2 items-center text-sm py-1 min-w-0"><input type="checkbox" name="animals[]" value="<?= (int)$a['id'] ?>" data-enc="<?= (int)$a['enclosure_id'] ?>" data-species="<?= $h($sp) ?>" data-breed="<?= $h($br) ?>" <?= $oneAnimal === (int)$a['id'] ? 'checked' : '' ?>> <span class="min-w-0"><span class="block truncate"><?= $h($a['name']) ?></span><?php if ($a['breed_name'] || $a['class_name']): ?><span class="block truncate text-xs text-stone-500"><?= $h($a['breed_name'] ?: $a['class_name']) ?></span><?php endif; ?></span></label>
       <?php endforeach; ?>
       </div></fieldset>
     <?php if ($type['is_feeding']): ?>
@@ -394,7 +407,7 @@ if ($typeId) {
     </div>
     <?php endif; ?>
     <div class="mb-3"><label class="<?= $label ?>" for="ln">Note (optional)</label><input id="ln" name="note" maxlength="500" class="<?= $input ?>" placeholder="<?= $type['is_feeding'] ? 'e.g. Hazel left half' : 'Anything worth noting' ?>"></div>
-    <button class="<?= $btnMain ?> w-full sm:w-auto">Log <?= $h(strtolower($type['name'])) ?></button>
+    <button class="<?= $btnMain ?> w-full sm:w-auto" data-care-save data-what="Log <?= $h(strtolower($type['name'])) ?>">Log <?= $h(strtolower($type['name'])) ?></button>
   </form>
 <?php
     bcrf_shell_close(); exit;

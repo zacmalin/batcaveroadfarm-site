@@ -3,23 +3,41 @@
 // Each animal checkbox carries data-species and data-breed keys; picking a group in #lg ticks every match
 // (on top of what's already ticked), then the box goes back to "Pick a group…". "Untick all" clears every box.
 // The status line (#lgh) says how many are ticked. Strict CSP: no inline script or styles.
+// Nov 16, 2026: the Log button always says how many animals it will log for ("Log feeding for 7 animals"),
+// counting the ticked boxes plus everyone in the picked enclosure (data-enc), each animal once.
 (function () {
     'use strict';
-    var wrap = document.querySelector('[data-care-pick]');
+    var save = document.querySelector('[data-care-save]');
+    var form = save ? save.form : null;
+    if (!form) return;
+    var boxes = Array.prototype.slice.call(form.querySelectorAll('input[name="animals[]"]'));
+    var encSel = form.querySelector('select[name="enclosure"]');
+    var wrap = form.querySelector('[data-care-pick]');
     var pick = document.getElementById('lg');
     var hint = document.getElementById('lgh');
-    if (!wrap || !pick) return;
-    var form = pick.form;
-    var boxes = Array.prototype.slice.call(form.querySelectorAll('input[name="animals[]"]'));
-    var clear = wrap.querySelector('[data-pick-clear]');
+    var clear = wrap ? wrap.querySelector('[data-pick-clear]') : null;
+    var what = save.getAttribute('data-what') || save.textContent;
 
+    function ticked() { return boxes.filter(function (b) { return b.checked; }).length; }
+    function total() {
+        var enc = encSel ? encSel.value : '0';
+        var n = 0;
+        boxes.forEach(function (b) { if (b.checked || (enc !== '0' && b.getAttribute('data-enc') === enc)) n++; });
+        return n;
+    }
+    function button() {
+        var n = total();
+        save.textContent = n ? what + ' for ' + n + ' animal' + (n === 1 ? '' : 's') : what;
+    }
     function say(lead) {
-        var n = boxes.filter(function (b) { return b.checked; }).length;
-        var total = n === 0 ? 'None ticked.' : n + ' ticked in all.';
-        if (hint) hint.textContent = lead ? lead + ' ' + total : (n ? total : '');
+        button();
+        if (!hint) return;
+        var n = ticked();
+        var t = n === 0 ? 'None ticked.' : n + ' ticked in all.';
+        hint.textContent = lead ? lead + ' ' + t : (n ? t : '');
     }
 
-    pick.addEventListener('change', function () {
+    if (pick) pick.addEventListener('change', function () {
         var v = pick.value;
         if (!v) return;
         var kind = v.slice(0, v.indexOf(':'));
@@ -40,4 +58,6 @@
     });
 
     boxes.forEach(function (b) { b.addEventListener('change', function () { say(''); }); });
+    if (encSel) encSel.addEventListener('change', button);
+    button();
 })();

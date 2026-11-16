@@ -75,7 +75,7 @@ function bcrf_thrift_list(PDO $pdo, array $f = [], int $limit = 200): array {
                                 COALESCE(ic.name, i.category, 'Thrift') AS cat
                          FROM inventory i LEFT JOIN inventory_categories ic ON ic.id = i.category_id
                          WHERE " . implode(' AND ', $w) . "
-                         ORDER BY i.thrift_intake_at DESC, i.id DESC LIMIT " . max(1, min(500, $limit)));
+                         ORDER BY " . (!empty($f['order']) && is_string($f['order']) ? $f['order'] : 'i.thrift_intake_at DESC, i.id DESC') . " LIMIT " . max(1, min(500, $limit)));   // a fixed ORDER BY from the list's Sort box (Nov 16, 2026), never user text
     $st->execute($a);
     return $st->fetchAll(PDO::FETCH_ASSOC);
 }

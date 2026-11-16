@@ -79,5 +79,12 @@ $ok(bcrf_product_emoji('supply', 'Sweet Feed 50 lb') === '🌾' && bcrf_product_
 $ok(bcrf_product_emoji('admission', 'Farm admission') === '🎟️' && bcrf_product_emoji('nope', 'Thing') === '📦', 'type fallback and unknown fallback');
 $ok(str_contains($src, 'class="pthumb"') && str_contains($src, 'loading="lazy"') && str_contains($src, 'data-fallback') && str_contains($src, 'class="pside"'), 'list shows a lazy thumbnail with emoji fallback');
 
+// Vault endpoints (Nov 16, 2026, outside review): the list can't walk out of /img/, uploads only go to known or existing folders.
+$gv = file_get_contents($root . '/admin/handlers/get_vault_images.php');
+$qu = file_get_contents($root . '/admin/handlers/quick_upload.php');
+$ok(str_contains($gv, "\$folder_filter = preg_replace('/[^a-zA-Z0-9_\\-]/', ''") && !str_contains($gv, "\$folder_filter = trim(\$_GET['folder'] ?? '');"), 'vault list: folder is one plain name (no ../)');
+$ok(str_contains($qu, 'isset(bcrf_image_folders()[$subfolder])') && strpos($qu, 'isset(bcrf_image_folders()[$subfolder])') < strpos($qu, 'mkdir('), 'upload: unknown folder refused before any folder is made');
+$ok(str_contains($qu, "require_permission([['view', 'media'], ['view', 'site_info'], ['table', 'inventory', 'edit']], true)") && str_contains($gv, "['table', 'inventory', 'edit']"), 'vault: still needs Media, Site Info or product editing');
+
 echo "$n checks, $fails failed\n";
 exit($fails ? 1 : 0);

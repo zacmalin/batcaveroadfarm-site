@@ -335,7 +335,7 @@ function bcrf_incident_list(PDO $pdo, array $f = [], int $limit = 200): array {
                                 (SELECT GROUP_CONCAT(an.name ORDER BY an.name SEPARATOR ', ') FROM incident_animals ia JOIN animals an ON an.id = ia.animal_id WHERE ia.incident_id = i.id) AS animal_names,
                                 (SELECT COUNT(*) FROM incident_people p WHERE p.incident_id = i.id) AS people_count
                          FROM incidents i LEFT JOIN users u ON u.id = i.created_by"
-                       . ($w ? ' WHERE ' . implode(' AND ', $w) : '') . " ORDER BY i.happened_at DESC, i.id DESC LIMIT " . max(1, min(1000, $limit)));
+                       . ($w ? ' WHERE ' . implode(' AND ', $w) : '') . " ORDER BY " . (!empty($f['order']) && is_string($f['order']) ? $f['order'] : 'i.happened_at DESC, i.id DESC') . " LIMIT " . max(1, min(1000, $limit)));   // a fixed ORDER BY from the list's Sort box (Nov 16, 2026), never user text
     $st->execute($a);
     return $st->fetchAll(PDO::FETCH_ASSOC);
 }

@@ -134,11 +134,12 @@ $f = [
     'status' => in_array($_GET['status'] ?? '', ['available', 'sold', 'all', 'returned', 'withdrawn'], true) ? $_GET['status'] : 'available',
     'source' => isset(bcrf_thrift_sources()[$_GET['source'] ?? '']) ? $_GET['source'] : null,
 ];
-$rows = bcrf_thrift_list($pdo, $f);
-$sortOpts = ['default' => ['Newest first'], 'oldest' => ['Oldest first', 'thrift_intake_at', 'asc'],
-             'az' => ['Name A to Z', 'name', 'asc'], 'za' => ['Name Z to A', 'name', 'desc'],
-             'price_lo' => ['Price low to high', 'price', 'asc'], 'price_hi' => ['Price high to low', 'price', 'desc']];
+// The 4th item is the same order in SQL, so the 200-item cap keeps the right items (Nov 16, 2026).
+$sortOpts = ['default' => ['Newest first'], 'oldest' => ['Oldest first', 'thrift_intake_at', 'asc', 'i.thrift_intake_at IS NULL, i.thrift_intake_at, i.id'],
+             'az' => ['Name A to Z', 'name', 'asc', 'i.name, i.id DESC'], 'za' => ['Name Z to A', 'name', 'desc', 'i.name DESC, i.id DESC'],
+             'price_lo' => ['Price low to high', 'price', 'asc', 'i.price IS NULL, i.price, i.id DESC'], 'price_hi' => ['Price high to low', 'price', 'desc', 'i.price IS NULL, i.price DESC, i.id DESC']];
 $sort = bcrf_list_sort_pick($pdo, 'thrift', $sortOpts);
+$rows = bcrf_thrift_list($pdo, $f + ['order' => bcrf_list_sort_sql($sortOpts, $sort, '')]);
 $rows = bcrf_list_sort_rows($rows, $sortOpts, $sort);
 echo '<h1>Thrift</h1>';
 if ($flash) echo bcrf_shell_flash($flash);

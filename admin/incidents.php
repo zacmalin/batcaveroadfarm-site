@@ -309,11 +309,13 @@ if ($id) {
 $status = (string)($_GET['status'] ?? 'open');
 if (!in_array($status, ['open', 'closed', 'all'], true)) $status = 'open';
 $type = (string)($_GET['type'] ?? '');
-$rows = bcrf_incident_list($pdo, ['status' => $status === 'all' ? '' : $status, 'type' => $type]);
-$sortOpts = ['default' => ['Newest first'], 'oldest' => ['Oldest first', 'happened_at', 'asc'],
-             'severity' => ['Most serious first', fn($i) => ['serious' => 3, 'moderate' => 2, 'minor' => 1][$i['severity']] ?? 0, 'desc'],
-             'kind' => ['By kind', fn($i) => BCRF_INCIDENT_TYPES[$i['type']] ?? (string)$i['type'], 'asc']];
+// The 4th item is the same order in SQL, so the 200-row cap keeps the right incidents (Nov 16, 2026).
+$sortOpts = ['default' => ['Newest first'], 'oldest' => ['Oldest first', 'happened_at', 'asc', 'i.happened_at, i.id'],
+             'severity' => ['Most serious first', fn($i) => ['serious' => 3, 'moderate' => 2, 'minor' => 1][$i['severity']] ?? 0, 'desc',
+                            "CASE i.severity WHEN 'serious' THEN 3 WHEN 'moderate' THEN 2 WHEN 'minor' THEN 1 ELSE 0 END DESC, i.happened_at DESC, i.id DESC"],
+             'kind' => ['By kind', fn($i) => BCRF_INCIDENT_TYPES[$i['type']] ?? (string)$i['type'], 'asc', 'i.type, i.happened_at DESC, i.id DESC']];
 $sort = bcrf_list_sort_pick($pdo, 'incidents', $sortOpts);
+$rows = bcrf_incident_list($pdo, ['status' => $status === 'all' ? '' : $status, 'type' => $type, 'order' => bcrf_list_sort_sql($sortOpts, $sort, '')]);
 $rows = bcrf_list_sort_rows($rows, $sortOpts, $sort);
 bcrf_shell_open('Incidents', ['toast' => $toast, 'width' => 'max-w-4xl']);
 echo '<div class="flex flex-wrap items-center justify-between gap-2 mb-3"><h1 class="text-2xl font-bold text-stone-800">Incidents</h1>',

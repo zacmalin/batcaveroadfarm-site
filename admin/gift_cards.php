@@ -245,11 +245,13 @@ if (isset($_GET['id'])) {
 // ── LIST ──
 $f = ['q' => trim((string)($_GET['q'] ?? '')), 'status' => in_array($_GET['status'] ?? '', ['open', 'active', 'pending', 'void', 'all'], true) ? $_GET['status'] : 'open',
       'source' => isset($sources[$_GET['source'] ?? '']) ? $_GET['source'] : ''];
-$rows = bcrf_gc_list($pdo, $f);   // status 'all' = no filter
-$sortOpts = ['default' => ['Newest first'], 'oldest' => ['Oldest first', 'id', 'asc'],
-             'bal_hi' => ['Balance high to low', 'balance_cents', 'desc'], 'bal_lo' => ['Balance low to high', 'balance_cents', 'asc'],
-             'name' => ['Name A to Z', fn($r) => trim((string)($r['recipient_name'] ?: $r['recipient_email'] ?: $r['purchaser_name'] ?: '')), 'asc']];
+// The 4th item is the same order in SQL, so the 200-card cap keeps the right cards (Nov 16, 2026).
+$gcName = "COALESCE(NULLIF(TRIM(recipient_name), ''), NULLIF(TRIM(recipient_email), ''), NULLIF(TRIM(purchaser_name), ''))";
+$sortOpts = ['default' => ['Newest first'], 'oldest' => ['Oldest first', 'id', 'asc', 'id'],
+             'bal_hi' => ['Balance high to low', 'balance_cents', 'desc', 'balance_cents DESC, id DESC'], 'bal_lo' => ['Balance low to high', 'balance_cents', 'asc', 'balance_cents, id DESC'],
+             'name' => ['Name A to Z', fn($r) => trim((string)($r['recipient_name'] ?: $r['recipient_email'] ?: $r['purchaser_name'] ?: '')), 'asc', "$gcName IS NULL, $gcName, id DESC"]];
 $sort = bcrf_list_sort_pick($pdo, 'gift_cards', $sortOpts);
+$rows = bcrf_gc_list($pdo, $f + ['order' => bcrf_list_sort_sql($sortOpts, $sort, '')]);   // status 'all' = no filter
 $rows = bcrf_list_sort_rows($rows, $sortOpts, $sort);
 $liab = bcrf_gc_liability($pdo);
 bcrf_shell_open('Gift Cards', ['toast' => $toast, 'width' => 'max-w-3xl']);

@@ -816,14 +816,16 @@ if ($tab === 'all') {
     if (!preg_match('/^([a-z_]{2,20}):\d{1,10}$/', $f['related'], $rm) || !isset(bcrf_record_kinds()[$rm[1]])) $f['related'] = '';
     foreach (['from', 'to'] as $k) if ($f[$k] !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $f[$k])) $f[$k] = '';
     if ($f['status'] === 'open' && $f['to'] === '' && !isset($_GET['to']) && $f['related'] === '') $f['to'] = bcrf_tasks_add_days($today, 7);
-    $list = bcrf_tasks_list($pdo, $f);
     $dueKey = fn($t) => $t['due_date'] ? $t['due_date'] . ' ' . ($t['due_time'] ?: '99') : null;   // no date goes last
-    $sortOpts = ['default' => ['Due date'], 'due_late' => ['Due date, latest first', $dueKey, 'desc'],
-                 'priority' => ['Most urgent first', fn($t) => ['urgent' => 4, 'high' => 3, 'normal' => 2, 'low' => 1][$t['priority'] ?? ''] ?? 2, 'desc'],
-                 'az' => ['Title A to Z', 'title', 'asc'], 'za' => ['Title Z to A', 'title', 'desc'],
+    // The 4th item is the same order in SQL, so the 300-row cap keeps the right tasks (Nov 16, 2026).
+    $sortOpts = ['default' => ['Due date'], 'due_late' => ['Due date, latest first', $dueKey, 'desc', 't.due_date IS NULL, t.due_date DESC, t.due_time DESC, t.id'],
+                 'priority' => ['Most urgent first', fn($t) => ['urgent' => 4, 'high' => 3, 'normal' => 2, 'low' => 1][$t['priority'] ?? ''] ?? 2, 'desc',
+                                "CASE t.priority WHEN 'urgent' THEN 4 WHEN 'high' THEN 3 WHEN 'low' THEN 1 ELSE 2 END DESC, t.due_date IS NULL, t.due_date, t.id"],
+                 'az' => ['Title A to Z', 'title', 'asc', 't.title, t.id'], 'za' => ['Title Z to A', 'title', 'desc', 't.title DESC, t.id'],
                  'who' => ['By person', fn($t) => bcrf_tasks_who($t), 'asc'],
-                 'newest' => ['Newest first', 'id', 'desc'], 'oldest' => ['Oldest first', 'id', 'asc']];
+                 'newest' => ['Newest first', 'id', 'desc', 't.id DESC'], 'oldest' => ['Oldest first', 'id', 'asc', 't.id']];
     $sort = bcrf_list_sort_pick($pdo, 'tasks_all', $sortOpts);
+    $list = bcrf_tasks_list($pdo, $f + ['order' => bcrf_list_sort_sql($sortOpts, $sort, '')]);
     $list = bcrf_list_sort_rows($list, $sortOpts, $sort);
     $open('Everyone', 'all', 'max-w-4xl');
     ?>

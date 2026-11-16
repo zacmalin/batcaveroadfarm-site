@@ -32,6 +32,11 @@ date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'Am
 
 $subfolder = trim($_POST['subfolder'] ?? 'inventory');
 $subfolder = preg_replace('/[^a-zA-Z0-9_\-]/', '', $subfolder) ?: 'inventory';
+// Nov 16, 2026: only a vault folder (bcrf_image_folders) or one that already exists under /img/. Nobody can make new
+// folders by sending a made-up name, and the files still never overwrite (bcrf_image_free_name adds -2, -3 ...).
+if (!isset(bcrf_image_folders()[$subfolder]) && !is_dir(rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/img/' . $subfolder)) {
+    jx(false, 'Pick one of the vault folders.');
+}
 
 $source = null;
 

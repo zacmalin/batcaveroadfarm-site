@@ -76,5 +76,39 @@ $_GET = [];
 $o2 = ['default' => ['By kind'], 'young' => ['Youngest', 'dob', 'desc']];
 $ok(bcrf_list_sort_pick($pdo, 'animals', $o2) === 'default', 'a saved pick the list no longer offers falls back to the first');
 
+// Capped lists sort in SQL (Nov 16, 2026): with more rows than the cap, the Sort box must pick WHICH rows show,
+// not just shuffle the newest N. Each list function takes a fixed 'order'; every ORDER BY the pages use must run.
+foreach (['gift_cards', 'thrift', 'incidents', 'purchasing', 'tasks'] as $inc) require_once $root . '/includes/' . $inc . '.php';
+$runs = function (callable $f, string $what) use ($ok) { try { $f(); $ok(true, $what); } catch (Throwable $e) { $ok(false, $what . ': ' . $e->getMessage()); } };
+$gcName = "COALESCE(NULLIF(TRIM(recipient_name), ''), NULLIF(TRIM(recipient_email), ''), NULLIF(TRIM(purchaser_name), ''))";
+foreach (['id', 'balance_cents DESC, id DESC', 'balance_cents, id DESC', "$gcName IS NULL, $gcName, id DESC"] as $sql)
+    $runs(fn() => bcrf_gc_list($pdo, ['status' => 'all', 'order' => $sql], 5), "gift cards ORDER BY $sql");
+foreach (['i.thrift_intake_at IS NULL, i.thrift_intake_at, i.id', 'i.name, i.id DESC', 'i.name DESC, i.id DESC', 'i.price IS NULL, i.price, i.id DESC', 'i.price IS NULL, i.price DESC, i.id DESC'] as $sql)
+    $runs(fn() => bcrf_thrift_list($pdo, ['status' => 'all', 'order' => $sql], 5), "thrift ORDER BY $sql");
+foreach (['i.happened_at, i.id', "CASE i.severity WHEN 'serious' THEN 3 WHEN 'moderate' THEN 2 WHEN 'minor' THEN 1 ELSE 0 END DESC, i.happened_at DESC, i.id DESC", 'i.type, i.happened_at DESC, i.id DESC'] as $sql)
+    $runs(fn() => bcrf_incident_list($pdo, ['order' => $sql], 5), "incidents ORDER BY $sql");
+foreach (['po.id DESC', 'po.id', 'po.expected_date IS NULL, po.expected_date, po.id DESC', 'v.name, po.id DESC', 'ordered_cents DESC, po.id DESC', 'ordered_cents, po.id DESC'] as $sql)
+    $runs(fn() => bcrf_po_list($pdo, ['status' => 'all', 'order' => $sql], 5), "orders ORDER BY $sql");
+foreach (['t.due_date IS NULL, t.due_date DESC, t.due_time DESC, t.id', "CASE t.priority WHEN 'urgent' THEN 4 WHEN 'high' THEN 3 WHEN 'low' THEN 1 ELSE 2 END DESC, t.due_date IS NULL, t.due_date, t.id", 't.title, t.id', 't.title DESC, t.id', 't.id DESC', 't.id'] as $sql)
+    $runs(fn() => bcrf_tasks_list($pdo, ['status' => 'all', 'order' => $sql], 5), "tasks ORDER BY $sql");
+// The page files carry the same ORDER BYs (keep this list and theirs in step).
+foreach (['admin/gift_cards.php' => ["'id']", "'balance_cents DESC, id DESC'", '"$gcName IS NULL, $gcName, id DESC"'], 'admin/thrift.php' => ["'i.name, i.id DESC'", "'i.price IS NULL, i.price DESC, i.id DESC'"],
+          'admin/incidents.php' => ["'i.happened_at, i.id'", "'i.type, i.happened_at DESC, i.id DESC'"], 'admin/purchase_orders.php' => ["'v.name, po.id DESC'", "'ordered_cents, po.id DESC'"],
+          'admin/tasks.php' => ["'t.title DESC, t.id'", "'t.id DESC'"]] as $file => $needles) {
+    $src = file_get_contents($root . '/' . $file);
+    $ok(array_filter($needles, fn($x) => !str_contains($src, $x)) === [] && str_contains($src, "'order' => bcrf_list_sort_sql("), "$file passes its Sort box's ORDER BY to the list");
+}
+// Thrift: 4 items, cap 2. "Oldest first" must show the 2 oldest, not the oldest of the 2 newest.
+$pdo->exec("INSERT INTO inventory (category, name, price, stock_quantity, product_type, pricing_mode, unit, track_inventory, is_active, thrift_status, thrift_intake_at) VALUES
+            ('Merchandise', 'Lamp', 5, 1, 'thrift_item', 'each', 'each', 1, 1, 'available', '2026-01-01 10:00:00'),
+            ('Merchandise', 'Bowl', 3, 1, 'thrift_item', 'each', 'each', 1, 1, 'available', '2026-02-01 10:00:00'),
+            ('Merchandise', 'Chair', 20, 1, 'thrift_item', 'each', 'each', 1, 1, 'available', '2026-03-01 10:00:00'),
+            ('Merchandise', 'Vase', 8, 1, 'thrift_item', 'each', 'each', 1, 1, 'available', '2026-04-01 10:00:00')");
+$names = fn(array $r) => array_column($r, 'name');
+$ok($names(bcrf_thrift_list($pdo, ['status' => 'all'], 2)) === ['Vase', 'Chair'], 'thrift default: 2 newest');
+$ok($names(bcrf_thrift_list($pdo, ['status' => 'all', 'order' => 'i.thrift_intake_at IS NULL, i.thrift_intake_at, i.id'], 2)) === ['Lamp', 'Bowl'], 'thrift oldest first: the 2 oldest');
+$ok($names(bcrf_thrift_list($pdo, ['status' => 'all', 'order' => 'i.price IS NULL, i.price DESC, i.id DESC'], 2)) === ['Chair', 'Vase'], 'thrift price high: the 2 dearest');
+$ok($names(bcrf_thrift_list($pdo, ['status' => 'all', 'order' => 'i.name, i.id DESC'], 2)) === ['Bowl', 'Chair'], 'thrift A to Z: first 2 by name');
+
 echo $fails ? "$fails of $n checks failed\n" : "All $n checks passed\n";
 exit($fails ? 1 : 0);

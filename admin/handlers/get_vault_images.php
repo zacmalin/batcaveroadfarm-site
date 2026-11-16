@@ -18,7 +18,8 @@ if (empty($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['adm
 require_once __DIR__ . '/../includes/permission_checks.php';   // audit #8: same Permissions Matrix rules as the console
 require_permission([['view', 'media'], ['view', 'site_info'], ['table', 'inventory', 'edit']], true);   // vault picker: Image Library + Site Info + product editors (Nov 15, 2026)
 
-$folder_filter = trim($_GET['folder'] ?? '');
+// One folder name only (Nov 16, 2026): "../" or a path used to let the list walk out of /img/.
+$folder_filter = preg_replace('/[^a-zA-Z0-9_\-]/', '', trim((string)($_GET['folder'] ?? '')));
 $site_base     = (bcrf_farm_url());
 $img_root      = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/img/';
 $exts          = ['jpg', 'jpeg', 'png', 'webp', 'gif'];

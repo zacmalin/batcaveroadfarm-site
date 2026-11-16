@@ -314,7 +314,7 @@ function bcrf_gc_list(PDO $pdo, array $f = [], int $limit = 200): array {
     if (in_array($f['status'] ?? '', ['active', 'pending', 'void'], true)) { $w[] = 'status = ?'; $a[] = $f['status']; }
     if (($f['status'] ?? '') === 'open') $w[] = "status = 'active' AND balance_cents > 0";
     if (in_array($f['source'] ?? '', ['pos', 'online', 'manual'], true)) { $w[] = 'source = ?'; $a[] = $f['source']; }
-    $st = $pdo->prepare("SELECT * FROM gift_cards" . ($w ? ' WHERE ' . implode(' AND ', $w) : '') . " ORDER BY id DESC LIMIT " . (int)$limit);
+    $st = $pdo->prepare("SELECT * FROM gift_cards" . ($w ? ' WHERE ' . implode(' AND ', $w) : '') . " ORDER BY " . (!empty($f['order']) && is_string($f['order']) ? $f['order'] : 'id DESC') . " LIMIT " . (int)$limit);   // a fixed ORDER BY from the list's Sort box (Nov 16, 2026), never user text
     $st->execute($a);
     return array_map('bcrf_gc_row', $st->fetchAll(PDO::FETCH_ASSOC));
 }
