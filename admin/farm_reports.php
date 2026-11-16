@@ -274,10 +274,10 @@ if ($r === 'month') {
 if ($r === 'log') {
     $log = bcrf_rpt_log($pdo, $from, $to);
     echo '<h1>Refunds, voids & discounts</h1><p><b>', $h(bcrf_farm_name()), '</b> · ', $h(date('M j', strtotime($from))), $from !== $to ? ' – ' . $h(date('M j, Y', strtotime($to))) : ', ' . $h(date('Y', strtotime($from))), '</p>';
-    echo '<form class="rform noprint" method="GET" action="farm_reports.php"><input type="hidden" name="r" value="log">',
+    echo '<div class="rbar noprint range-toolbar"><form class="rform" method="GET" action="farm_reports.php"><input type="hidden" name="r" value="log">',
          '<input type="date" name="from" value="', $h($from), '" aria-label="From"><span>to</span><input type="date" name="to" value="', $h($to), '" aria-label="To">',
          '<button class="btn sm" type="submit">Show</button></form>';
-    echo '<p class="rbar noprint"><button type="button" class="btn sm" id="btnPrint">Print</button>', $csvLink(['r' => 'log', 'from' => $from, 'to' => $to, 'csv' => 1]), '</p>';
+    echo '<div class="range-actions"><button type="button" class="btn sm" id="btnPrint">Print</button>', $csvLink(['r' => 'log', 'from' => $from, 'to' => $to, 'csv' => 1]), '</div></div>';
     if (!$log) echo '<p class="muted">None in this period.</p>';
     else {
         $sum = [];
@@ -343,10 +343,10 @@ if ($r === 'visitors') {
 if ($r === 'margin') {
     $mg = bcrf_rpt_margin($pdo, $from, $to);
     echo '<h1>Margin</h1><p><b>', $h(bcrf_farm_name()), '</b> · ', $h(date('M j', strtotime($from))), $from !== $to ? ' – ' . $h(date('M j, Y', strtotime($to))) : ', ' . $h(date('Y', strtotime($from))), '</p>';
-    echo '<form class="rform noprint" method="GET" action="farm_reports.php"><input type="hidden" name="r" value="margin">',
+    echo '<div class="rbar noprint range-toolbar"><form class="rform" method="GET" action="farm_reports.php"><input type="hidden" name="r" value="margin">',
          '<input type="date" name="from" value="', $h($from), '" aria-label="From"><span>to</span><input type="date" name="to" value="', $h($to), '" aria-label="To">',
          '<button class="btn sm" type="submit">Show</button></form>';
-    echo '<p class="rbar noprint"><button type="button" class="btn sm" id="btnPrint">Print</button>', $csvLink(['r' => 'margin', 'from' => $from, 'to' => $to, 'csv' => 1]), '</p>';
+    echo '<div class="range-actions"><button type="button" class="btn sm" id="btnPrint">Print</button>', $csvLink(['r' => 'margin', 'from' => $from, 'to' => $to, 'csv' => 1]), '</div></div>';
     echo '<p class="muted">Revenue is sale lines after discounts, before tax. Cost uses the unit cost snapshotted on each line at sale time (not the live average). Lines with no cost are shown separately so they do not inflate margin.</p>';
     echo '<h2>Totals</h2><table class="rt">',
          $row('Revenue <small class="muted">(with known cost)</small>', $m($mg['revenue'] - $mg['revenue_no_cost'])),
