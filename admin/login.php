@@ -159,7 +159,7 @@ ob_end_clean(); // Done with buffering — render the page
                         class="w-full px-3 py-3 pr-16 border border-stone-300 rounded-md text-base outline-none bg-stone-50 focus:ring-2 focus:ring-stone-500">
                     <button type="button" class="absolute inset-y-0 right-0 px-3 text-sm font-semibold text-stone-600"
                         aria-controls="password" aria-label="Show password"
-                        onclick="var f=document.getElementById('password'),s=f.type==='password';f.type=s?'text':'password';this.textContent=s?'Hide':'Show';this.setAttribute('aria-label',s?'Hide password':'Show password')">Show</button>
+                        id="staffPasswordToggle" aria-pressed="false">Show</button>
                 </div>
             </div>
             <button type="submit"
@@ -169,5 +169,6 @@ ob_end_clean(); // Done with buffering — render the page
         </form>
         <p class="text-center mt-5"><a href="/account/forgot.php?staff=1" class="text-sm text-stone-600 underline">Forgot password?</a></p>
     </div>
+    <script src="/admin/assets/staff-login.js" defer></script>
 </body>
 </html>
