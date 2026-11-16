@@ -46,7 +46,7 @@
 
                     <script type="application/json" id="pairingRecipeData"><?= json_encode(array_values(array_filter(array_map(function ($pr) use ($cur_recipe_id) {
                             return ($cur_recipe_id && (int)$pr['id'] === $cur_recipe_id) ? null : ['id' => (int)$pr['id'], 'title' => $pr['title']];
-                        }, $all_pair_recipes))), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ? ?></script>
+                        }, $all_pair_recipes))), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
                     <script src="/admin/assets/recipe-pairings.js" defer></script>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4" id="schemaFieldGrid">
