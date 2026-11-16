@@ -183,22 +183,22 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
         <form method="POST" action="/admin/admin.php?view=site_info" class="px-5 pb-5 pt-1">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
             <input type="hidden" name="site_info_action" value="socials">
-            <div id="siSocialRows" class="space-y-2">
+            <div id="siSocialRows" data-next-index="<?= count($socials ?? []) ?>" class="space-y-2">
                 <?php foreach ($socials as $i => $s): ?>
                     <div class="si-social-row border border-stone-200 rounded-lg p-3 space-y-2">
                         <div class="flex items-center gap-2">
-                            <div id="imgPreview_soc<?= $i ?>" class="<?= !empty($s['image']) ? '' : 'hidden' ?> w-11 h-11 border rounded overflow-hidden bg-stone-100 shrink-0">
-                                <img src="<?= htmlspecialchars((string)$s['image'], ENT_QUOTES) ?>" alt="" class="w-full h-full object-contain" onerror="this.closest('div').style.display='none'">
+                            <div id="imgPreview_soc<?= $i ?>" data-social-preview class="<?= !empty($s['image']) ? '' : 'hidden' ?> w-11 h-11 border rounded overflow-hidden bg-stone-100 shrink-0">
+                                <img src="<?= htmlspecialchars((string)$s['image'], ENT_QUOTES) ?>" alt="" class="w-full h-full object-contain" data-social-preview-image>
                             </div>
                             <input class="<?= $inputCls ?> flex-1 min-w-[110px]" name="social[<?= $i ?>][name]" value="<?= htmlspecialchars((string)$s['name'], ENT_QUOTES) ?>" placeholder="Instagram">
                             <input class="<?= $inputCls ?> flex-1 min-w-[150px]" name="social[<?= $i ?>][url]" value="<?= htmlspecialchars((string)$s['url'], ENT_QUOTES) ?>" placeholder="https://...">
                             <button type="button" class="si-social-del text-stone-400 hover:text-red-600 text-xl leading-none px-1 shrink-0" title="Remove">&times;</button>
                         </div>
                         <div class="flex items-center gap-2">
-                            <input type="text" id="imgUrl_soc<?= $i ?>" name="social[<?= $i ?>][image]" value="<?= htmlspecialchars((string)$s['image'], ENT_QUOTES) ?>" class="<?= $inputCls ?> flex-1" placeholder="/img/social/icon.svg" oninput="updateImgPreview('soc<?= $i ?>')">
-                            <button type="button" onclick="openVaultPicker('soc<?= $i ?>')" class="shrink-0 border border-stone-300 px-3 py-2 rounded text-xs font-semibold bg-stone-50 hover:bg-stone-900 hover:text-white transition whitespace-nowrap">📁 Vault</button>
+                            <input type="text" id="imgUrl_soc<?= $i ?>" name="social[<?= $i ?>][image]" value="<?= htmlspecialchars((string)$s['image'], ENT_QUOTES) ?>" class="<?= $inputCls ?> flex-1" placeholder="/img/social/icon.svg" data-social-image-url>
+                            <button type="button" data-social-vault class="shrink-0 border border-stone-300 px-3 py-2 rounded text-xs font-semibold bg-stone-50 hover:bg-stone-900 hover:text-white transition whitespace-nowrap">📁 Vault</button>
                             <label class="shrink-0 border border-stone-300 px-3 py-2 rounded text-xs font-semibold bg-stone-50 hover:bg-stone-900 hover:text-white transition whitespace-nowrap cursor-pointer">⬆ Upload
-                                <input type="file" accept="image/*" class="hidden" data-folder="social" onchange="quickUploadImage(this,'soc<?= $i ?>')">
+                                <input type="file" accept="image/*" class="hidden" data-folder="social" data-social-image-upload>
                             </label>
                             <span id="imgProgress_soc<?= $i ?>" class="hidden text-xs text-stone-500 animate-pulse">Uploading...</span>
                         </div>
@@ -208,18 +208,18 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
             <template id="siSocialTpl">
                 <div class="si-social-row border border-stone-200 rounded-lg p-3 space-y-2">
                     <div class="flex items-center gap-2">
-                        <div id="imgPreview_soc__I__" class="hidden w-11 h-11 border border-stone-200 rounded overflow-hidden bg-stone-100 shrink-0">
-                            <img src="" alt="" class="w-full h-full object-contain" onerror="this.closest('div').style.display='none'">
+                        <div id="imgPreview_soc__I__" data-social-preview class="hidden w-11 h-11 border border-stone-200 rounded overflow-hidden bg-stone-100 shrink-0">
+                            <img src="" alt="" class="w-full h-full object-contain" data-social-preview-image>
                         </div>
                         <input class="<?= $inputCls ?> flex-1 min-w-[110px]" name="social[__I__][name]" value="" placeholder="Instagram">
                         <input class="<?= $inputCls ?> flex-1 min-w-[150px]" name="social[__I__][url]" value="" placeholder="https://...">
                         <button type="button" class="si-social-del text-stone-400 hover:text-red-600 text-xl leading-none px-1 shrink-0" title="Remove">&times;</button>
                     </div>
                     <div class="flex items-center gap-2">
-                        <input type="text" id="imgUrl_soc__I__" name="social[__I__][image]" value="" class="<?= $inputCls ?> flex-1" placeholder="/img/social/icon.svg" oninput="updateImgPreview('soc__I__')">
-                        <button type="button" onclick="openVaultPicker('soc__I__')" class="shrink-0 border border-stone-300 px-3 py-2 rounded text-xs font-semibold bg-stone-50 hover:bg-stone-900 hover:text-white transition whitespace-nowrap">📁 Vault</button>
+                        <input type="text" id="imgUrl_soc__I__" name="social[__I__][image]" value="" class="<?= $inputCls ?> flex-1" placeholder="/img/social/icon.svg" data-social-image-url>
+                        <button type="button" data-social-vault class="shrink-0 border border-stone-300 px-3 py-2 rounded text-xs font-semibold bg-stone-50 hover:bg-stone-900 hover:text-white transition whitespace-nowrap">📁 Vault</button>
                         <label class="shrink-0 border border-stone-300 px-3 py-2 rounded text-xs font-semibold bg-stone-50 hover:bg-stone-900 hover:text-white transition whitespace-nowrap cursor-pointer">⬆ Upload
-                            <input type="file" accept="image/*" class="hidden" data-folder="social" onchange="quickUploadImage(this,'soc__I__')">
+                            <input type="file" accept="image/*" class="hidden" data-folder="social" data-social-image-upload>
                         </label>
                         <span id="imgProgress_soc__I__" class="hidden text-xs text-stone-500 animate-pulse">Uploading...</span>
                     </div>
@@ -293,38 +293,5 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
 
 <?php require_once __DIR__ . '/layout/vault_picker.php'; ?>
 
-<script>
-(function () {
-    // Reveal/hide each area's custom day editor based on its "same as general" checkbox.
-    document.querySelectorAll('[data-scope-toggle]').forEach(function (cb) {
-        var ed = document.getElementById('hours-' + cb.dataset.scopeToggle);
-        function sync() { if (ed) ed.style.display = cb.checked ? 'none' : 'block'; }
-        cb.addEventListener('change', sync);
-        sync();
-    });
-
-    // Social links: add / remove rows. The per-row image widget (preview, Vault,
-    // Upload) is wired by inline handlers from the shared vault picker partial.
-    var rows = document.getElementById('siSocialRows');
-    var tpl  = document.getElementById('siSocialTpl');
-    var addB = document.getElementById('siSocialAdd');
-    var nextIdx = <?= count($socials ?? []) ?>;
-    if (rows) {
-        rows.addEventListener('click', function (e) {
-            var del = e.target.closest('.si-social-del');
-            if (del) { var row = del.closest('.si-social-row'); if (row) row.remove(); }
-        });
-    }
-    if (addB && tpl && rows) {
-        addB.addEventListener('click', function () {
-            var wrap = document.createElement('div');
-            wrap.innerHTML = tpl.innerHTML.replace(/__I__/g, String(nextIdx++)).trim();
-            var node = wrap.firstElementChild;
-            rows.appendChild(node);
-            var nameInp = node.querySelector('input[name$="[name]"]');
-            if (nameInp) nameInp.focus();
-        });
-    }
-})();
-</script>
+<script src="/admin/assets/site-info-social.js" defer></script>
 <?php endif; ?>
