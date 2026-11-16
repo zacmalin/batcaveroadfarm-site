@@ -1195,12 +1195,12 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
 
 
 <!-- ── BLOG POST PREVIEW MODAL ── -->
-<div id="blogPreviewModal"
+<div id="blogPreviewModal" role="dialog" aria-modal="true" aria-labelledby="blogPreviewTitle"
     class="fixed inset-0 bg-stone-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg shadow-2xl w-full max-w-3xl flex flex-col" style="max-height:90vh;">
+    <div class="bg-white rounded-lg shadow-2xl w-full max-w-3xl flex flex-col" style="max-height:90dvh;">
         <div class="flex justify-between items-center px-5 py-3 border-b bg-stone-50 rounded-t-lg shrink-0">
             <span id="blogPreviewTitle" class="font-bold text-stone-800 text-sm truncate max-w-lg"></span>
-            <button type="button" onclick="closeBlogPreview()"
+            <button type="button" id="blogPreviewClose" onclick="closeBlogPreview()"
                 class="text-[10px] font-bold uppercase tracking-wider font-mono border border-stone-200 px-3 py-1.5 rounded hover:bg-stone-900 hover:text-white transition shrink-0">
                 Close ✕
             </button>
@@ -1209,7 +1209,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
             <iframe id="blogPreviewFrame"
                 srcdoc=""
                 class="w-full h-full border-0"
-                style="min-height:520px;"
+                style="min-height:min(520px,65dvh);" title="Blog post preview"
                 sandbox="allow-same-origin">
             </iframe>
         </div>
@@ -2177,6 +2177,7 @@ function makeRiCombo(idx, ref, label){
         document.getElementById('blogPreviewFrame').srcdoc      = preview;
         document.getElementById('blogPreviewModal').classList.remove('hidden');
         document.body.style.overflow = 'hidden';
+        document.getElementById('blogPreviewClose')?.focus();
     }
 
     function closeBlogPreview() {
