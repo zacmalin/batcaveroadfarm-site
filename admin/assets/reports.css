@@ -6,6 +6,14 @@
 .rbar{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin:.5rem 0}
 .rbar .btn{min-width:0}
 .rform{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin:0}
+/* Keep report date-range filters usable on narrow phones without horizontal page overflow. */
+@media(max-width:520px){
+  .rform{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.45rem}
+  .rform input[type=date]{width:100%;min-width:0;box-sizing:border-box}
+  .rform:has(input[name=from]) span{display:none}
+  .rform:has(input[name=from]) button{grid-column:1/-1}
+  .rform:not(:has(input[name=from])){display:flex}
+}
 .rform input{font:inherit;min-height:38px;padding:.3rem .5rem;border:1px solid var(--line);border-radius:10px;background:#fff}
 .rt tr.th td{font-size:.8em;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.03em}
 .rt.grid td{padding:.3rem .35rem}
