@@ -62,6 +62,18 @@ function bcrf_sales_line_disc_ready(PDO $pdo): bool {
     return $ready;
 }
 
+if (!function_exists('bcrf_customers_ready')) {
+/** Customer accounts table exists (migration 0006). */
+function bcrf_customers_ready(PDO $pdo): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    try { $ready = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'customers'")->fetchColumn() === 1; }
+    catch (Throwable $e) { $ready = false; }
+    return $ready;
+}
+
+}
+
 /** Active tax categories, id => row. */
 function bcrf_tax_categories(PDO $pdo): array {
     $out = [];
