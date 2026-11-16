@@ -26,7 +26,7 @@ $_GET['tab'] = $tab;   // the Settings › Payments & Register section tabs mark
 $section = (string)($_GET['section'] ?? '');
 $ready = bcrf_sales_ready($pdo);
 $flash = $_SESSION['pay_flash'] ?? null; unset($_SESSION['pay_flash']);
-$go    = function (string $type, string $msg) use ($tab) { $_SESSION['pay_flash'] = [$type, $msg]; header('Location: /admin/payment_settings.php?tab=' . $tab . ($section !== '' ? '&section=' . rawurlencode($section) : '')); exit; };
+$go    = function (string $type, string $msg) use ($tab, $section) { $_SESSION['pay_flash'] = [$type, $msg]; header('Location: /admin/payment_settings.php?tab=' . $tab . ($section !== '' ? '&section=' . rawurlencode($section) : '')); exit; };
 
 // ── Save ─────────────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
