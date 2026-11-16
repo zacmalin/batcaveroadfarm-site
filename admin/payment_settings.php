@@ -105,7 +105,7 @@ $methodNotes = [
 <?php if ($flash) echo bcrf_shell_flash($flash); ?>
 
 <?php if ($tab === 'methods'): ?>
-<details class="pay-accordion" <?= $section === '' || $section === 'apps' ? 'open' : '' ?>>
+<details name="payment-sections" class="pay-accordion" <?= $section === '' || $section === 'apps' ? 'open' : '' ?>>
 <summary>The farm's payment apps</summary>
 <form method="POST" action="?tab=methods&amp;section=apps" class="card">
   <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
@@ -117,20 +117,20 @@ $methodNotes = [
 </form>
 </details>
 <?php $act = bcrf_tenders_active($pdo); $pos = array_flip(array_keys($act)); $n = count($act); ?>
-<details class="pay-accordion" <?= $section === 'types' ? 'open' : '' ?>>
+<details name="payment-sections" class="pay-accordion" <?= $section === 'types' ? 'open' : '' ?>>
 <summary>Payment types on the register</summary>
 <div class="card">
   <p class="muted" style="margin:0">Each switch saves as soon as you tap it. Turning one off only hides it for new sales; past sales and refunds still work.<br>None of these are connected to a payment company: the register records them, it doesn't verify them.</p>
   <?php foreach (bcrf_tenders() as $code => $label): $isOn = isset($act[$code]); ?>
     <div class="mrow trow ui-swrow<?= $isOn ? '' : ' is-off' ?>" data-switch-row>
       <span class="ui-swmain"><span><b><?= $h($label) ?></b><br><small class="muted"><?= $h($methodNotes[$code] ?? '') ?></small></span></span>
-      <?= bcrf_switch(['action' => '/admin/payment_settings.php?tab=methods', 'csrf' => $csrf, 'fields' => ['form' => 'tender', 'code' => $code],
+      <?= bcrf_switch(['action' => '/admin/payment_settings.php?tab=methods&section=types', 'csrf' => $csrf, 'fields' => ['form' => 'tender', 'code' => $code],
                        'on' => $isOn, 'label' => $label . ' on the register']) ?>
     </div>
   <?php endforeach; ?>
 </div>
 </details>
-<details class="pay-accordion" <?= $section === 'order' ? 'open' : '' ?>>
+<details name="payment-sections" class="pay-accordion" <?= $section === 'order' ? 'open' : '' ?>>
 <summary>Button order</summary>
 <form method="POST" action="?tab=methods&amp;section=order" class="card">
   <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
