@@ -96,6 +96,17 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 break;
             case 'set':
                 $a = (string)($_POST['to'] ?? '');
+                // List shortcuts must not bypass the task's completion screen or required evidence.
+                if (!empty($_POST['quick_done'])) {
+                    if ($a !== 'done') throw new BcrfTaskError('Invalid quick action.');
+                    $quickTask = bcrf_task_get($pdo, $id);
+                    if (!bcrf_tasks_can_see($quickTask)) throw new BcrfTaskError('That task is not yours.');
+                    if ($quickTask['checklist'] || !empty($quickTask['form']) || ($quickTask['photo_rule'] ?? 'none') !== 'none'
+                        || !empty($quickTask['followup_unticked']) || !empty($quickTask['followup_of'])
+                        || ($quickTask['related_type'] ?? '') === 'animal') {
+                        throw new BcrfTaskError('Open this task to complete its required steps.');
+                    }
+                }
                 // Photos first (finishing a photo-required task needs one saved), then the status change.
                 $added = 0;
                 if ($v2 && in_array($a, ['done', 'photo'], true) && !empty($_FILES['photos']['name']) && is_array($_FILES['photos']['name'])) {
@@ -256,7 +267,7 @@ $open = function (string $title, string $tab, string $width = 'max-w-3xl') use (
 };
 
 /** One task as a row in a list. */
-$row = function (array $t, bool $showDate = false) use ($h, $card, $prioChip, $statusChip, $dayLabel): string {
+$row = function (array $t, bool $showDate = false) use ($h, $card, $prioChip, $statusChip, $dayLabel, $hidden): string {
     $total = count($t['checklist']);
     $closed = in_array($t['status'], ['done', 'skipped', 'cancelled'], true);
     $bits = [];
@@ -267,17 +278,35 @@ $row = function (array $t, bool $showDate = false) use ($h, $card, $prioChip, $s
     if (($t['photo_rule'] ?? 'none') === 'required') $bits[] = '📷 photo';
     if (!empty($t['form'])) $bits[] = count($t['form']) . ' question' . (count($t['form']) === 1 ? '' : 's');
     if (!empty($t['followup_of'])) $bits[] = '⚑ follow-up';
-    $s = '<a href="tasks.php?id=' . (int)$t['id'] . '" class="' . $card . ' flex items-center gap-3 p-3 min-h-16 hover:border-stone-400' . ($closed ? ' opacity-70' : '') . '">';
+    $quick = !$closed && !$t['checklist'] && empty($t['form']) && ($t['photo_rule'] ?? 'none') === 'none'
+        && empty($t['followup_unticked']) && empty($t['followup_of']) && ($t['related_type'] ?? '') !== 'animal';
+    $s = '<div class="' . $card . ' flex items-center gap-2 p-2' . ($closed ? ' opacity-70' : '') . '">';
+    $s .= '<a href="tasks.php?id=' . (int)$t['id'] . '" class="flex flex-1 min-w-0 items-center gap-3 p-1 min-h-11 rounded hover:bg-stone-50">';
     $s .= '<span class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-base ' . ($closed ? 'bg-emerald-100' : ($t['overdue'] ? 'bg-red-100' : 'bg-stone-100')) . '" aria-hidden="true">'
         . ($t['status'] === 'done' ? '✓' : ($t['status'] === 'skipped' ? '↷' : ($t['status'] === 'cancelled' ? '✕' : ($t['overdue'] ? '!' : '○')))) . '</span>';
     $s .= '<span class="flex-1 min-w-0"><span class="flex flex-wrap items-center gap-1.5">';
     $s .= '<span class="text-sm font-bold text-stone-900' . ($closed ? ' line-through decoration-stone-400' : '') . '">' . $h($t['title']) . '</span>';
-    if ($t['overdue']) $s .= '<span class="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-100 text-red-800">Late</span>';
-    if ($prioChip[$t['priority']] ?? '') $s .= '<span class="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded ' . $prioChip[$t['priority']] . '">' . $h(BCRF_TASK_PRIORITIES[$t['priority']]) . '</span>';
-    if ($t['status'] === 'in_progress') $s .= '<span class="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded ' . $statusChip['in_progress'] . '">Started</span>';
-    $s .= '</span><span class="block text-xs text-stone-500 mt-0.5">' . $h(implode(' · ', $bits)) . '</span></span>';
+    if ($t['overdue']) $s .= '<span class="text-xs font-bold px-2 py-0.5 rounded bg-red-100 text-red-800">Overdue</span>';
+    if ($prioChip[$t['priority']] ?? '') $s .= '<span class="text-xs font-bold px-2 py-0.5 rounded ' . $prioChip[$t['priority']] . '">' . $h(BCRF_TASK_PRIORITIES[$t['priority']]) . '</span>';
+    if ($t['status'] === 'in_progress') $s .= '<span class="text-xs font-bold px-2 py-0.5 rounded ' . $statusChip['in_progress'] . '">Started</span>';
+    $due = $dayLabel($t['due_date']);
+    $s .= '</span><span class="block text-xs text-stone-600 mt-1"><strong>' . $h($due) . '</strong>';
+    if ($t['due_time']) $s .= ' at ' . $h(bcrf_tasks_fmt_time($t['due_time']));
+    $s .= ' · ' . $h(bcrf_tasks_who($t));
+    if ($t['recurrence_id']) $s .= ' · Chore';
+    if (($t['photo_rule'] ?? 'none') === 'required') $s .= ' · Photo required';
+    if (!empty($t['form'])) $s .= ' · ' . count($t['form']) . ' questions';
+    if (!empty($t['followup_of'])) $s .= ' · Follow-up';
+    $s .= '</span></span>';
     if ($total) $s .= '<span class="shrink-0 text-xs font-bold ' . ($t['checked'] === $total ? 'text-emerald-700' : 'text-stone-500') . '">' . $t['checked'] . '/' . $total . '</span>';
-    return $s . '</a>';
+    $s .= '</a>';
+    if ($quick) {
+        $s .= '<form method="POST" action="tasks.php" class="shrink-0">' . $hidden('set', (int)$t['id'])
+            . '<input type="hidden" name="to" value="done"><input type="hidden" name="quick_done" value="1">'
+            . '<input type="hidden" name="back" value="tasks.php">'
+            . '<button type="submit" class="min-h-11 px-3 rounded-lg border border-stone-300 text-emerald-800 bg-white hover:bg-stone-50 text-sm font-semibold" aria-label="Complete ' . $h($t['title']) . '">Done</button></form>';
+    }
+    return $s . '</div>';
 };
 
 $notFound = function (string $what) use ($open) {
@@ -849,7 +878,7 @@ if ($tab === 'all') {
   </form>
   <div class="space-y-2">
     <?php foreach ($list as $t) echo $row($t, true); ?>
-    <?php if (!$list): ?><p class="<?= $card ?> p-4 text-sm text-stone-500">Nothing matches.</p><?php endif; ?>
+    <?php if (!$list): ?><p class="<?= $card ?> p-4 text-sm text-stone-500">Nothing matches. <a href="tasks.php?tab=all" class="underline text-amber-800">Clear filters</a>.</p><?php endif; ?>
   </div>
   <?php if (count($list) >= 300): ?><p class="text-xs text-stone-500 mt-2">Showing the first 300. Narrow the dates to see more.</p><?php endif; ?>
     <?php
