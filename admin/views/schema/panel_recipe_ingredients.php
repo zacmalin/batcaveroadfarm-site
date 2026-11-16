@@ -15,21 +15,21 @@
                         <div id="ingredientsDynamicWrapper" class="space-y-2 border p-3 rounded bg-stone-50">
                             <?php foreach ($ri_data as $idx => $ri_row): ?>
                             <div class="dynamic-ingredient-row text-xs space-y-1.5 pb-2 border-b border-stone-200 last:border-0">
-                                <div class="flex items-center space-x-2">
+                                <div class="flex flex-wrap items-center gap-2">
                                     <span class="text-[10px] font-black text-stone-400 w-5 shrink-0 text-right"><?= $idx + 1 ?>.</span>
                                     <?php $ri_pick = $ri_resolve($ri_row); ?>
-                                    <div class="ri-combo relative flex-1">
+                                    <div class="ri-combo relative flex-1" style="min-width:min(100%,180px)">
                                         <input type="hidden" name="recipe_ingredients_block[<?= $idx ?>][ref]" value="<?= htmlspecialchars($ri_pick['ref'], ENT_QUOTES) ?>">
-                                        <input type="text" class="ri-search p-1 border bg-white rounded w-full" autocomplete="off" placeholder="Type an ingredient or recipe…" value="<?= htmlspecialchars($ri_pick['label'], ENT_QUOTES) ?>">
+                                        <input type="text" class="ri-search p-1 border bg-white rounded w-full" aria-label="Ingredient or sub-recipe" autocomplete="off" placeholder="Type an ingredient or recipe…" value="<?= htmlspecialchars($ri_pick['label'], ENT_QUOTES) ?>">
                                         <div class="ri-dropdown" style="display:none"></div>
                                     </div>
                                     <input type="text" inputmode="decimal"
                                         name="recipe_ingredients_block[<?= $idx ?>][quantity]"
                                         value="<?= htmlspecialchars(formatQtyForDisplay((float)$ri_row['quantity']), ENT_QUOTES) ?>"
-                                        placeholder="e.g. 1/4"
+                                        placeholder="e.g. 1/4" aria-label="Ingredient quantity"
                                         onblur="this.value = parseFractionJS(this.value)"
                                         class="w-20 p-1 border bg-white rounded font-mono text-center">
-                                    <select name="recipe_ingredients_block[<?= $idx ?>][unit_id]" class="p-1 border bg-white rounded w-28">
+                                    <select name="recipe_ingredients_block[<?= $idx ?>][unit_id]" class="p-1 border bg-white rounded w-28" aria-label="Ingredient unit">
                                         <?php foreach ($all_units as $u): ?>
                                             <option value="<?= (int)$u['id'] ?>" <?= $ri_row['unit_id'] == $u['id'] ? 'selected' : '' ?>>
                                                 <?= htmlspecialchars($u['name']) ?>
@@ -37,13 +37,13 @@
                                         <?php endforeach; ?>
                                     </select>
                                     <button type="button" onclick="this.closest('.dynamic-ingredient-row').remove()"
-                                        class="text-red-600 font-bold px-1 hover:text-red-900 shrink-0">✕</button>
+                                        class="text-red-600 font-bold px-1 hover:text-red-900 shrink-0" aria-label="Remove ingredient">✕</button>
                                 </div>
                                 <div class="flex items-center space-x-2 pl-7">
                                     <input type="text" maxlength="120"
                                         name="recipe_ingredients_block[<?= $idx ?>][notes]"
                                         value="<?= htmlspecialchars($ri_row['notes'] ?? '', ENT_QUOTES) ?>"
-                                        placeholder="Preparation note e.g. finely chopped (optional)"
+                                        placeholder="Preparation note e.g. finely chopped (optional)" aria-label="Ingredient preparation note"
                                         class="w-full p-1 border bg-white rounded text-stone-500 italic text-[11px]">
                                 </div>
                             </div>

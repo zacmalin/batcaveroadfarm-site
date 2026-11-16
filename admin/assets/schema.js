@@ -174,9 +174,9 @@ function initRiCombo(combo){
     search.addEventListener('blur', ()=>{ setTimeout(()=>{ close(); if(!hidden.value) search.value=''; }, 160); });
 }
 function makeRiCombo(idx, ref, label){
-    const wrap=document.createElement('div'); wrap.className='ri-combo relative flex-1';
+    const wrap=document.createElement('div'); wrap.className='ri-combo relative flex-1'; wrap.style.minWidth='min(100%,180px)';
     const h=document.createElement('input'); h.type='hidden'; h.name=`recipe_ingredients_block[${idx}][ref]`; h.value=ref||'';
-    const s=document.createElement('input'); s.type='text'; s.className='ri-search p-1 border bg-white rounded w-full'; s.autocomplete='off'; s.placeholder='Type an ingredient or recipe…'; s.value=label||'';
+    const s=document.createElement('input'); s.type='text'; s.className='ri-search p-1 border bg-white rounded w-full'; s.autocomplete='off'; s.placeholder='Type an ingredient or recipe…'; s.setAttribute('aria-label','Ingredient or sub-recipe'); s.value=label||'';
     const d=document.createElement('div'); d.className='ri-dropdown'; d.style.display='none';
     wrap.append(h,s,d);
     return wrap;
@@ -195,7 +195,7 @@ function makeRiCombo(idx, ref, label){
 
         // Top line: row number + ingredient + qty + unit + remove
         const topLine = document.createElement('div');
-        topLine.className = 'flex items-center space-x-2';
+        topLine.className = 'flex flex-wrap items-center gap-2';
 
         const numLabel = document.createElement('span');
         numLabel.className   = 'text-[10px] font-black text-stone-400 w-5 shrink-0 text-right';
@@ -208,6 +208,7 @@ function makeRiCombo(idx, ref, label){
         qtyInput.inputMode   = 'decimal';
         qtyInput.name        = `recipe_ingredients_block[${n}][quantity]`;
         qtyInput.placeholder = 'e.g. 1/4';
+        qtyInput.setAttribute('aria-label', 'Ingredient quantity');
         qtyInput.className   = 'w-20 p-1 border bg-white rounded font-mono text-center';
         qtyInput.addEventListener('blur', function() {
             this.value = parseFractionJS(this.value);
@@ -215,10 +216,12 @@ function makeRiCombo(idx, ref, label){
 
         const unitSelect = buildSelect(`recipe_ingredients_block[${n}][unit_id]`, unitOptions);
         unitSelect.className = 'p-1 border bg-white rounded w-28';
+        unitSelect.setAttribute('aria-label', 'Ingredient unit');
 
         const removeBtn = document.createElement('button');
         removeBtn.type        = 'button';
         removeBtn.textContent = '✕';
+        removeBtn.setAttribute('aria-label', 'Remove ingredient');
         removeBtn.className   = 'text-red-600 font-bold px-1 hover:text-red-900 shrink-0';
         removeBtn.onclick     = () => row.remove();
 
@@ -233,6 +236,7 @@ function makeRiCombo(idx, ref, label){
         notesInput.maxLength   = 120;
         notesInput.name        = `recipe_ingredients_block[${n}][notes]`;
         notesInput.placeholder = 'Preparation note e.g. finely chopped (optional)';
+        notesInput.setAttribute('aria-label', 'Ingredient preparation note');
         notesInput.className   = 'w-full p-1 border bg-white rounded text-stone-500 italic text-[11px]';
         notesLine.appendChild(notesInput);
 
