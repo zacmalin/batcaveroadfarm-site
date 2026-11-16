@@ -59,8 +59,10 @@ if ($id) {
     <?php foreach (bcrf_bible_multipliers() as $k => $lbl): $on = (float)$k === $mult; ?>
       <a href="kitchen_bible.php?id=<?= $r['id'] ?>&amp;x=<?= $h($k) ?>" class="px-3 py-1.5 rounded text-sm border <?= $on ? 'bg-amber-700 border-amber-700 text-white font-semibold' : 'border-stone-300 text-stone-700 bg-white hover:bg-stone-100' ?>"<?= $on ? ' aria-current="true"' : '' ?>><?= $h($lbl) ?></a>
     <?php endforeach; ?>
-    <button type="button" onclick="window.print()" class="<?= $btnSec ?> ml-auto">🖨️ Print</button>
+    <button type="button" id="recipeBiblePrint" class="<?= $btnSec ?> ml-auto">🖨️ Print</button>
   </div>
+
+  <script src="/admin/assets/recipe-bible.js" defer></script>
 
   <div class="<?= $card ?>">
     <h2 class="text-base font-semibold text-stone-800 mb-1">Ingredients<?= $mult != 1.0 ? ' · ' . $h(bcrf_bible_multipliers()[rtrim(rtrim(number_format($mult, 1, '.', ''), '0'), '.')] ?? '') : '' ?></h2>
