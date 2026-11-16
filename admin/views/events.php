@@ -54,7 +54,7 @@ $curRec = (string)($edit['recurrence'] ?? 'none');
       </div>
       <div>
         <label for="ev-recurrence" class="block text-xs font-semibold text-stone-600 mb-1">Recurrence</label>
-        <select id="ev-recurrence" id="ev-recurrence" name="recurrence" class="w-full p-2 border border-stone-300 rounded bg-stone-50">
+        <select id="ev-recurrence" name="recurrence" class="w-full p-2 border border-stone-300 rounded bg-stone-50">
           <?php foreach (['none'=>'One-time','range'=>'Date range (season)','weekly'=>'Weekly','annual'=>'Annual'] as $rv=>$rl): ?>
           <option value="<?= $rv ?>" <?= $curRec===$rv?'selected':'' ?>><?= $rl ?></option>
           <?php endforeach; ?>
@@ -112,7 +112,7 @@ $curRec = (string)($edit['recurrence'] ?? 'none');
   <!-- Existing events -->
   <h2 class="font-semibold text-stone-700 mb-3">All events (<?= count($rows) ?>)</h2>
   <div class="overflow-x-auto">
-    <table class="w-full text-sm bg-white border border-stone-200 rounded-lg overflow-hidden" data-admin-list data-list-name-col="0" data-list-date-col="1">
+    <table class="ui-cards w-full text-sm bg-white border border-stone-200 rounded-lg overflow-hidden" data-admin-list data-list-name-col="0" data-list-date-col="1">
       <thead class="bg-stone-50 border-b border-stone-200 text-stone-500 text-xs uppercase tracking-wide">
         <tr><th class="text-left p-2">Title</th><th class="text-left p-2">When</th><th class="text-left p-2">Recurs</th><th class="text-left p-2">Status</th><th class="p-2">Actions</th></tr>
       </thead>
@@ -121,11 +121,11 @@ $curRec = (string)($edit['recurrence'] ?? 'none');
         <tr><td colspan="5" class="p-4 text-center text-stone-400">No events yet — add your first one above.</td></tr>
         <?php else: foreach ($rows as $r): ?>
         <tr class="border-t border-stone-100">
-          <td class="p-2 font-medium text-stone-700"><?= htmlspecialchars((string)$r['title']) ?></td>
+          <td data-cell="title" class="p-2 font-medium text-stone-700"><?= htmlspecialchars((string)$r['title']) ?></td>
           <td class="p-2 text-stone-500"><?= htmlspecialchars(date('M j, Y', strtotime((string)$r['start_datetime']))) ?></td>
           <td class="p-2 text-stone-500"><?= htmlspecialchars($r['recurrence'] === 'none' ? '—' : $r['recurrence']) ?></td>
           <td class="p-2"><span class="text-xs px-2 py-0.5 rounded <?= $r['status']==='published'?'bg-green-100 text-green-700':'bg-stone-200 text-stone-600' ?>"><?= htmlspecialchars((string)$r['status']) ?></span></td>
-          <td class="p-2 text-center whitespace-nowrap">
+          <td data-cell="actions" class="p-2 text-center whitespace-nowrap">
             <a href="/admin/admin.php?view=events&edit=<?= (int)$r['id'] ?>" class="text-amber-700 hover:underline mr-2">Edit</a>
             <form method="POST" action="/admin/admin.php?view=events" class="inline">
               <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
