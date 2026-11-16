@@ -175,11 +175,11 @@ $fmt = fn($n) => '$' . number_format((float)$n, 2);
             <?= date('M j, Y', strtotime($date_from)) ?> — <?= date('M j, Y', strtotime($date_to)) ?>
         </p>
     </div>
-    <div class="flex items-center gap-2 flex-wrap">
+    <div class="flex items-center gap-2 flex-wrap justify-end">
         <!-- Period pills -->
         <?php foreach (['today'=>'Today','7'=>'7 Days','30'=>'30 Days','month'=>'This Month','year'=>'This Year'] as $k => $l): ?>
         <a href="?view=sales_analytics&period=<?= $k ?>"
-            class="px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider border transition
+            class="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border transition
                    <?= $period === $k ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 border-stone-300 hover:bg-stone-100' ?>">
             <?= $l ?>
         </a>
