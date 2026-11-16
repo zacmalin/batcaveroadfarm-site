@@ -87,7 +87,6 @@ $__found = bcrf_extras_search($pdo, $__q, 30);
             Blog posts, recipes and animal pages given here as extras need review: they can save drafts and send them to you, but only an Owner or Manager can publish.</p>
         </div>
 
-        <?php foreach (bcrf_permission_sections() as $sec): ?>
         <style>
 .permission-group { border-color: #d8d0c3; border-radius: 10px; }
 .permission-heading { background: #f5f1e9; }
@@ -99,6 +98,8 @@ $__found = bcrf_extras_search($pdo, $__q, 30);
 .permission-heading::-webkit-details-marker { display: none; }
 .permission-group[open] .permission-chevron { transform: rotate(180deg); }
 </style>
+        <?php foreach (bcrf_permission_sections() as $sec): ?>
+        
 <details name="permission-groups" class="permission-group bg-white border border-stone-200 rounded shadow-sm overflow-hidden">
             <summary class="permission-heading text-stone-800 px-5 py-3 flex items-center gap-2 cursor-pointer">
                 <span class="text-base"><?= $sec['icon'] ?></span>
