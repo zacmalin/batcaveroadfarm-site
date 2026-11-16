@@ -336,7 +336,7 @@ for ($p = 0; $p < $total_pages; $p++) {
         <select id="labelStartInput" name="start_pos" style="padding:6px;color:#1c1917;background:#fff;border-radius:4px;">
             <?php for ($p = 1; $p <= 6; $p++): ?><option value="<?= $p ?>" <?= $start_pos === $p ? 'selected' : '' ?>><?= $p ?></option><?php endfor; ?>
         </select>
-        <button type="submit" style="padding:7px 10px;border:1px solid #d6d3d1;border-radius:4px;color:#fff;cursor:pointer;">Update preview</button>
+        <button type="submit" style="padding:7px 10px;border:1px solid #d6d3d1;background:#f5f5f4;border-radius:4px;color:#1c1917;font-weight:600;cursor:pointer;">Update preview</button>
     </form>
     <button id="printLabelsButton" type="button" style="background:#16a34a;color:#fff;border:none;padding:8px 24px;border-radius:4px;font-weight:bold;font-size:13px;cursor:pointer;letter-spacing:0.05em;">
         🖨 Print Labels
