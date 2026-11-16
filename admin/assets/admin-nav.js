@@ -202,18 +202,33 @@
             }
         }
     }
+    // Keep keyboard focus inside the phone More dialog, and restore it on close.
+    var sheetReturnFocus = null;
+    var sheetFocusSelector = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    function sheetFocusable() {
+        return Array.prototype.filter.call(sheet.querySelectorAll(sheetFocusSelector), function (el) {
+            return el.getClientRects().length > 0 && !el.closest('[hidden], .hidden');
+        });
+    }
     function openSheet() {
-        if (!sheet) return;
+        if (!sheet || !sheet.classList.contains('hidden')) return;
+        sheetReturnFocus = document.activeElement;
         sheet.classList.remove('hidden');
         document.documentElement.classList.add('nav-sheet-open');
         if (moreBtn) moreBtn.setAttribute('aria-expanded', 'true');
+        var focusable = sheetFocusable();
+        if (focusable.length) focusable[0].focus();
     }
     function closeSheet() {
-        if (!sheet) return;
+        if (!sheet || sheet.classList.contains('hidden')) return;
         if (editing) stopEdit(false);
         sheet.classList.add('hidden');
         document.documentElement.classList.remove('nav-sheet-open');
         if (moreBtn) moreBtn.setAttribute('aria-expanded', 'false');
+        var previous = sheetReturnFocus;
+        sheetReturnFocus = null;
+        if (previous && previous.isConnected && typeof previous.focus === 'function') previous.focus();
+        else if (moreBtn) moreBtn.focus();
     }
 
     if (moreBtn) moreBtn.addEventListener('click', openSheet);
@@ -245,7 +260,23 @@
         });
     }
     document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && sheet && !sheet.classList.contains('hidden')) closeSheet();
+        if (!sheet || sheet.classList.contains('hidden')) return;
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            closeSheet();
+            return;
+        }
+        if (e.key !== 'Tab') return;
+        var focusable = sheetFocusable();
+        if (!focusable.length) { e.preventDefault(); return; }
+        var first = focusable[0], last = focusable[focusable.length - 1];
+        if (e.shiftKey && (document.activeElement === first || !sheet.contains(document.activeElement))) {
+            e.preventDefault();
+            last.focus();
+        } else if (!e.shiftKey && (document.activeElement === last || !sheet.contains(document.activeElement))) {
+            e.preventDefault();
+            first.focus();
+        }
     });
 
     // ── "/" opens search (02 › Search, Nov 13 2026), unless typing in a field ──

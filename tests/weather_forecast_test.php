@@ -100,7 +100,18 @@ $ok(!$r['ok'] && str_contains($r['msg'], 'Site Info'), 'missing location says to
 $set('geo_lat', '35.61953');
 
 // --- days, notes, emoji
-$days = bcrf_wx_days($p, $tz, $now);
+// Anchor the day-grouping fixture at local noon. The live-clock fixture above
+// can cross midnight in CI, making "This Afternoon" fall on yesterday.
+$dayNow = (new DateTimeImmutable('today 12:00', new DateTimeZone($tz)))->getTimestamp();
+$dayPeriods = $p;
+foreach ($dayPeriods as &$period) {
+    foreach (['start', 'end'] as $key) {
+        $period[$key] = (new DateTimeImmutable('@' . (strtotime($period[$key]) + $dayNow - $now)))
+            ->setTimezone(new DateTimeZone($tz))->format('c');
+    }
+}
+unset($period);
+$days = bcrf_wx_days($dayPeriods, $tz, $dayNow);
 $ok(count($days) === 3, 'three daytime periods → three days');
 $ok($days[0]['label'] === 'Today' && $days[0]['high'] === 64 && $days[0]['low'] === 41, 'today has high and the night low');
 $ok($days[1]['wet'] === true && $days[0]['wet'] === false, 'rainy day flagged wet, partly sunny is not');
