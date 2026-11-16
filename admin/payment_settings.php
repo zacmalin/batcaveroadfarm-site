@@ -23,9 +23,10 @@ $h     = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
 $tabs  = ['methods' => 'Payment methods', 'register' => 'Register', 'tax' => 'Tax rates'];
 $tab   = isset($tabs[$_GET['tab'] ?? '']) ? $_GET['tab'] : 'methods';
 $_GET['tab'] = $tab;   // the Settings › Payments & Register section tabs mark this one (Nov 11, 2026)
+$section = (string)($_GET['section'] ?? '');
 $ready = bcrf_sales_ready($pdo);
 $flash = $_SESSION['pay_flash'] ?? null; unset($_SESSION['pay_flash']);
-$go    = function (string $type, string $msg) use ($tab) { $_SESSION['pay_flash'] = [$type, $msg]; header('Location: /admin/payment_settings.php?tab=' . $tab); exit; };
+$go    = function (string $type, string $msg) use ($tab) { $_SESSION['pay_flash'] = [$type, $msg]; header('Location: /admin/payment_settings.php?tab=' . $tab . ($section !== '' ? '&section=' . rawurlencode($section) : '')); exit; };
 
 // ── Save ─────────────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -104,18 +105,21 @@ $methodNotes = [
 <?php if ($flash) echo bcrf_shell_flash($flash); ?>
 
 <?php if ($tab === 'methods'): ?>
-<form method="POST" class="card">
+<details class="pay-accordion" <?= $section === '' || $section === 'apps' ? 'open' : '' ?>>
+<summary>The farm's payment apps</summary>
+<form method="POST" action="?tab=methods&amp;section=apps" class="card">
   <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
-  <h2>The farm's payment apps</h2>
   <p class="muted" style="margin:0">Shown with a QR code when staff take a PayPal, Venmo or Cash App payment, so the customer can scan it. Leave blank to hide.</p>
   <label>PayPal.me name <small class="muted">(paypal.me/<b>name</b>)</small><input type="text" name="p2p_paypal" value="<?= $h($ps['handles']['paypal']) ?>" maxlength="41" autocomplete="off"></label>
   <label>Venmo username <small class="muted">(@<b>name</b>)</small><input type="text" name="p2p_venmo" value="<?= $h($ps['handles']['venmo']) ?>" maxlength="41" autocomplete="off"></label>
   <label>Cash App $cashtag <small class="muted">($<b>name</b>)</small><input type="text" name="p2p_cashapp" value="<?= $h($ps['handles']['cashapp']) ?>" maxlength="41" autocomplete="off"></label>
   <button type="submit">Save payment apps</button>
 </form>
+</details>
 <?php $act = bcrf_tenders_active($pdo); $pos = array_flip(array_keys($act)); $n = count($act); ?>
+<details class="pay-accordion" <?= $section === 'types' ? 'open' : '' ?>>
+<summary>Payment types on the register</summary>
 <div class="card">
-  <h2>Payment types on the register</h2>
   <p class="muted" style="margin:0">Each switch saves as soon as you tap it. Turning one off only hides it for new sales; past sales and refunds still work.<br>None of these are connected to a payment company: the register records them, it doesn't verify them.</p>
   <?php foreach (bcrf_tenders() as $code => $label): $isOn = isset($act[$code]); ?>
     <div class="mrow trow ui-swrow<?= $isOn ? '' : ' is-off' ?>" data-switch-row>
@@ -125,10 +129,12 @@ $methodNotes = [
     </div>
   <?php endforeach; ?>
 </div>
-<form method="POST" class="card">
+</details>
+<details class="pay-accordion" <?= $section === 'order' ? 'open' : '' ?>>
+<summary>Button order</summary>
+<form method="POST" action="?tab=methods&amp;section=order" class="card">
   <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
   <input type="hidden" name="form" value="tenders">
-  <h2>Button order</h2>
   <p class="muted" style="margin:0">The number sets the order of the payment buttons on the register (1 first).</p>
   <?php foreach (bcrf_tenders() as $code => $label): $isOn = isset($act[$code]); ?>
     <div class="mrow trow">
@@ -138,6 +144,7 @@ $methodNotes = [
   <?php endforeach; ?>
   <button type="submit">Save order</button>
 </form>
+</details>
 
 <?php elseif ($tab === 'register'): ?>
 <form method="POST" class="card">
