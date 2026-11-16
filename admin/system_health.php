@@ -280,6 +280,9 @@ $imgTools = (function (): array {
 .fs-health .health-section { margin: 1rem 0; border: 1px solid #d8d0c3; border-radius: 10px; overflow: hidden; }
 .fs-health .health-section h2 { margin: 0; }
 .fs-health .health-toggle { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border: 0; background: #f5f1e9; color: inherit; font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
+.fs-health .health-toggle:hover { background: #ece8df; }
+.fs-health .health-toggle[aria-expanded="true"] { background: #e7ecdf; }
+.fs-health .health-toggle[aria-expanded="true"]:hover { background: #dfe7d6; }
 .fs-health .health-toggle:focus-visible { outline: 3px solid #4a6741; outline-offset: -3px; }
 .fs-health .health-toggle span { transition: transform .18s ease; }
 .fs-health .health-toggle[aria-expanded="true"] span { transform: rotate(180deg); }
