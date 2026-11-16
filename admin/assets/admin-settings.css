@@ -77,6 +77,18 @@
 .fs-pay .tord input{width:64px;margin:0}
 .fs-pay button{margin-top:.5rem}
 
+
+/* Payment settings accordions: native details preserve keyboard and save behavior. */
+.fs-pay .pay-accordion{border:1px solid #d6d3d1;border-radius:.5rem;margin:.75rem 0;background:#fff;overflow:hidden}
+.fs-pay .pay-accordion>summary{cursor:pointer;list-style:none;padding:.85rem 1rem;font-weight:600;color:#44403c;background:#fafaf9}
+.fs-pay .pay-accordion>summary::-webkit-details-marker{display:none}
+.fs-pay .pay-accordion>summary::before{content:"▸";display:inline-block;margin-right:.65rem;color:#78716c}
+.fs-pay .pay-accordion[open]>summary::before{content:"▾"}
+.fs-pay .pay-accordion>summary:hover{background:#f5f5f4}
+.fs-pay .pay-accordion[open]>summary{background:#f5f5f4;color:#292524;border-bottom:1px solid #e7e5e4}
+.fs-pay .pay-accordion>summary:focus-visible{outline:2px solid #b45309;outline-offset:-2px}
+.fs-pay .pay-accordion>.card{margin:0;border:0;border-radius:0;box-shadow:none}
+
 /* Backups */
 .fs-bak .lbl{min-width:42%}
 
