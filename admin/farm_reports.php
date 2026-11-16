@@ -107,7 +107,7 @@ $pl = fn(int $n, string $w) => $n . ' ' . $w . ($n === 1 ? '' : 's');
 $step = fn(string $d, int $n) => date('Y-m-d', strtotime("$d $n days"));
 
 bcrf_shell_open($titles[$r] . ' — Reports', ['legacy' => true, 'js' => ['report.js']]);
-if ($admission) echo '<p class="noprint muted"><a href="gate.php">Open the gate screen</a></p>';
+// Gate check-in remains available from the main Farm OS navigation.
 echo '<nav class="rtabs noprint" aria-label="Reports">';
 foreach ($titles as $k => $t) {
     if ($k === 'visitors' && !$admission) continue;
@@ -206,7 +206,7 @@ if ($r === 'daily') {
     }
     if ($admission) {
         echo '<h2>Visitors</h2><table class="rt">', $row('Visits', (int)$d['visits']), $row('Guests', (int)$d['visitors']),
-             $row('Most on site at once', (int)$d['peak_occupancy']), '</table><p class="noprint"><a href="', $h($q(['r' => 'visitors', 'date' => $date])), '">Visitors report →</a></p>';
+             $row('Most on site at once', (int)$d['peak_occupancy']), '</table>';
     }
     $log = bcrf_rpt_log($pdo, $date, $date);
     if ($log) echo '<p class="noprint"><a href="', $h($q(['r' => 'log', 'from' => $date, 'to' => $date])), '">', count($log), ' refund/void/discount entr', count($log) === 1 ? 'y' : 'ies', ' →</a></p>';
