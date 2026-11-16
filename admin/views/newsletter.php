@@ -9,7 +9,7 @@ $total_active    = $nl_segment_counts['all'];
 $total_inactive  = $total_subs - $total_active;
 ?>
 
-<div class="flex justify-between items-center mb-6">
+<div id="newsletter-root" data-segment-counts="<?= htmlspecialchars($segment_counts_json, ENT_QUOTES) ?>" class="flex justify-between items-center mb-6">
     <h1 class="text-2xl font-bold text-stone-800">Newsletter</h1>
     <div class="flex gap-3 text-xxs font-bold">
         <span class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-2 py-1 rounded">✅ <?= $total_active ?> Active</span>
@@ -70,13 +70,13 @@ $nlPct = ($nlActive && $nlTotalActive > 0) ? (int)round($nlSent / $nlTotalActive
 
         <!-- Segment filter tabs -->
         <div class="flex gap-1 mb-3 text-[9px] font-bold uppercase">
-            <button type="button" onclick="filterCRM('all')"       id="crmtab-all"       class="crm-tab flex-1 py-1 rounded bg-amber-700 text-white border border-stone-200">All</button>
-            <button type="button" onclick="filterCRM('active')"    id="crmtab-active"    class="crm-tab flex-1 py-1 rounded bg-stone-100 text-stone-600 border border-stone-200">Active</button>
-            <button type="button" onclick="filterCRM('nursery')"   id="crmtab-nursery"   class="crm-tab flex-1 py-1 rounded bg-stone-100 text-stone-600 border border-stone-200">Nursery</button>
-            <button type="button" onclick="filterCRM('inventory')" id="crmtab-inventory" class="crm-tab flex-1 py-1 rounded bg-stone-100 text-stone-600 border border-stone-200">Inv</button>
+            <button type="button" data-crm-filter="all"       id="crmtab-all"       class="crm-tab flex-1 py-1 rounded bg-amber-700 text-white border border-stone-200">All</button>
+            <button type="button" data-crm-filter="active"    id="crmtab-active"    class="crm-tab flex-1 py-1 rounded bg-stone-100 text-stone-600 border border-stone-200">Active</button>
+            <button type="button" data-crm-filter="nursery"   id="crmtab-nursery"   class="crm-tab flex-1 py-1 rounded bg-stone-100 text-stone-600 border border-stone-200">Nursery</button>
+            <button type="button" data-crm-filter="inventory" id="crmtab-inventory" class="crm-tab flex-1 py-1 rounded bg-stone-100 text-stone-600 border border-stone-200">Inv</button>
         </div>
 
-        <input type="search" id="crmSearch" oninput="searchCRM(this.value)" placeholder="Search name or email…"
+        <input type="search" id="crmSearch"  placeholder="Search name or email…"
             class="w-full mb-2 p-1.5 border border-stone-300 rounded bg-stone-50 text-[10px] outline-none focus:ring-2 focus:ring-stone-400">
 
         <div id="crmList" class="flex-1 max-h-[55vh] overflow-y-auto space-y-1.5 pr-1">
@@ -143,7 +143,7 @@ $nlPct = ($nlActive && $nlTotalActive > 0) ? (int)round($nlSent / $nlTotalActive
             <div>
                 <label class="block font-bold text-stone-600 mb-1">Send To</label>
                 <div class="flex gap-2 items-center">
-                    <select name="segment" id="segmentSelect" onchange="updateRecipientCount()"
+                    <select name="segment" id="segmentSelect" 
                         class="flex-1 p-2 border border-stone-300 bg-white rounded font-medium">
                         <option value="all">All Active Subscribers</option>
                         <option value="nursery">Nursery Updates List</option>
@@ -163,7 +163,7 @@ $nlPct = ($nlActive && $nlTotalActive > 0) ? (int)round($nlSent / $nlTotalActive
                     <input type="email" name="test_email" id="testEmailInput"
                         placeholder="your@email.com — sends only to this address"
                         class="flex-1 p-2 border border-stone-300 bg-white rounded text-xs">
-                    <button type="button" onclick="submitCampaign(true)"
+                    <button type="button" data-nl-send="test"
                         class="shrink-0 bg-amber-700 text-white font-semibold px-4 py-2 rounded hover:bg-amber-800 transition text-xs">
                         Send Test
                     </button>
@@ -183,19 +183,19 @@ $nlPct = ($nlActive && $nlTotalActive > 0) ? (int)round($nlSent / $nlTotalActive
             <div id="emailPreviewWrapper" class="hidden border border-stone-200 rounded bg-stone-50 p-4">
                 <div class="flex justify-between items-center mb-3">
                     <span class="font-bold text-stone-600 text-[11px] uppercase tracking-wider">Preview</span>
-                    <button type="button" onclick="togglePreview()"
+                    <button type="button" data-nl-preview-toggle
                         class="text-[10px] text-stone-400 hover:text-stone-700 underline">Hide</button>
                 </div>
                 <div id="emailPreviewContent" class="bg-white border border-stone-200 rounded p-4 prose prose-sm max-w-none text-xs"></div>
             </div>
 
             <div class="flex gap-2 justify-between items-center pt-2 border-t">
-                <button type="button" onclick="togglePreview()"
+                <button type="button" data-nl-preview-toggle
                     class="border border-stone-200 font-bold uppercase text-[10px] tracking-wider px-4 py-2 rounded text-stone-600 hover:bg-stone-100 transition">
                     👁 Preview
                 </button>
                 <!-- Fix 6: confirmation before blast -->
-                <button type="button" onclick="submitCampaign(false)"
+                <button type="button" data-nl-send="live"
                     class="bg-amber-700 text-white font-bold uppercase tracking-wider px-8 py-2.5 rounded hover:bg-amber-800 transition shadow-sm text-xs">
                     🚀 Send Campaign
                 </button>
@@ -254,7 +254,7 @@ $nlPct = ($nlActive && $nlTotalActive > 0) ? (int)round($nlSent / $nlTotalActive
                     </td>
                     <td class="p-3 text-center">
                         <button type="button"
-                            onclick="openCampaignPreview(<?= (int)$campaign['id'] ?>, <?= htmlspecialchars(json_encode($campaign['subject']), ENT_QUOTES) ?>)"
+                            data-campaign-preview="<?= (int)$campaign['id'] ?>" data-campaign-subject="<?= htmlspecialchars($campaign['subject'], ENT_QUOTES) ?>"
                             class="text-[10px] font-bold uppercase tracking-wider border px-2 py-1 rounded bg-stone-50 hover:bg-stone-900 hover:text-white transition">
                             👁 View
                         </button>
@@ -266,161 +266,7 @@ $nlPct = ($nlActive && $nlTotalActive > 0) ? (int)round($nlSent / $nlTotalActive
     </div>
 </div>
 
-<script>
-// ── QUILL SETUP ───────────────────────────────────────────────────────────────
-const emailQuill = new Quill('#emailBodyEditor', {
-    theme: 'snow',
-    modules: { toolbar: [
-        [{ header: [1, 2, 3, false] }],
-        ['bold', 'italic', 'underline'],
-        [{ color: [] }, { background: [] }],
-        ['link', 'image'],
-        [{ list: 'ordered' }, { list: 'bullet' }],
-        ['blockquote'],
-        ['clean']
-    ]}
-});
 
-// ── SEGMENT COUNTS ────────────────────────────────────────────────────────────
-const segmentCounts = <?= $segment_counts_json ?>;
-
-function updateRecipientCount() {
-    const seg   = document.getElementById('segmentSelect').value;
-    const count = segmentCounts[seg] ?? 0;
-    document.getElementById('recipientCountBadge').textContent = count + ' recipient' + (count !== 1 ? 's' : '');
-}
-
-// ── CRM FILTER + SEARCH ─────────────────────────────────────────────────────────
-var crmSegment = 'all';
-var crmQuery   = '';
-
-function crmApply() {
-    document.querySelectorAll('.crm-row').forEach(row => {
-        let seg = true;
-        if (crmSegment === 'active')    seg = row.dataset.subscribed === '1';
-        if (crmSegment === 'nursery')   seg = row.dataset.nursery    === '1' && row.dataset.subscribed === '1';
-        if (crmSegment === 'inventory') seg = row.dataset.inventory  === '1' && row.dataset.subscribed === '1';
-        const txt = !crmQuery || (row.dataset.search || '').includes(crmQuery);
-        row.style.display = (seg && txt) ? '' : 'none';
-    });
-}
-
-function filterCRM(filter) {
-    document.querySelectorAll('.crm-tab').forEach(t => {
-        t.className = 'crm-tab flex-1 py-1 rounded bg-stone-100 text-stone-600 border text-[9px] font-bold uppercase';
-    });
-    const active = document.getElementById('crmtab-' + filter);
-    if (active) active.className = 'crm-tab flex-1 py-1 rounded bg-amber-700 text-white border text-[9px] font-bold uppercase';
-    crmSegment = filter;
-    crmApply();
-}
-
-function searchCRM(val) {
-    crmQuery = (val || '').trim().toLowerCase();
-    crmApply();
-}
-
-// ── PREVIEW ───────────────────────────────────────────────────────────────────
-function togglePreview() {
-    const wrapper = document.getElementById('emailPreviewWrapper');
-    const hidden  = wrapper.classList.contains('hidden');
-    if (hidden) {
-        document.getElementById('emailPreviewContent').innerHTML = emailQuill.root.innerHTML;
-    }
-    wrapper.classList.toggle('hidden');
-}
-
-// ── SEND WITH CONFIRMATION ────────────────────────────────────────────────────
-async function submitCampaign(isTest) {
-    const html = emailQuill.root.innerHTML.trim();
-    if (!html || html === '<p><br></p>') {
-        await sysAlert('Please write an email body before sending.', 'Missing Content', '✉️');
-        return;
-    }
-
-    const form       = document.getElementById('campaignForm');
-    const subject    = form.querySelector('[name="subject"]').value.trim();
-    const fromName   = form.querySelector('[name="from_name"]').value.trim();
-    const replyTo    = form.querySelector('[name="reply_to"]').value.trim();
-    const segment    = form.querySelector('[name="segment"]').value;
-    const testEmail  = document.getElementById('testEmailInput').value.trim();
-    const csrfToken  = form.querySelector('[name="csrf_token"]').value;
-
-    if (!subject) { await sysAlert('Please enter a subject line.', 'Missing Subject', '✉️'); return; }
-
-    if (isTest) {
-        if (!testEmail) { await sysAlert('Enter a test email address first.', 'Missing Email', '📧'); return; }
-
-        // ── TEST SEND: AJAX so form stays intact ──────────────────────────────
-        const sendBtn = form.querySelector('[onclick="submitCampaign(true)"]');
-        const origTxt = sendBtn ? sendBtn.textContent : '';
-        if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Sending…'; }
-
-        try {
-            const res = await fetch('/admin/handlers/campaign_action.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams({
-                    csrf_token: csrfToken,
-                    subject, from_name: fromName, reply_to: replyTo,
-                    segment, body_html: html,
-                    is_test: '1', test_email: testEmail,
-                    ajax: '1',
-                }),
-            });
-
-            const rawText = await res.text();
-            let data;
-            try { data = JSON.parse(rawText); }
-            catch { console.error('Non-JSON response:', rawText.substring(0, 300)); await sysAlert('Server error — check the browser console for details.', 'Server Error', '⚠️'); return; }
-
-            if (data.ok) {
-                showNLToast('✅ ' + data.message);
-            } else {
-                showNLToast('❌ ' + data.message, true);
-            }
-        } catch (err) {
-            showNLToast('❌ Network error: ' + err.message, true);
-        } finally {
-            if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = origTxt; }
-        }
-
-    } else {
-        // ── LIVE SEND: full form POST with confirmation ───────────────────────
-        const seg   = segment;
-        const count = segmentCounts[seg] ?? 0;
-        const label = { all: 'all active subscribers', nursery: 'the Nursery list', inventory: 'the Inventory Alerts list' }[seg];
-        const ok = await sysConfirm(`Send this campaign to <strong>${count}</strong> people on <strong>${label}</strong>?<br><br>This cannot be undone.`, 'Send Campaign', '📧', 'Send Now');
-        if (!ok) return;
-
-        document.getElementById('bodyHtml').value = html;
-        const isTestInput  = document.createElement('input');
-        isTestInput.type   = 'hidden';
-        isTestInput.name   = 'is_test';
-        isTestInput.value  = '0';
-        form.appendChild(isTestInput);
-        form.submit();
-    }
-}
-
-// Lightweight inline toast for test send feedback
-function showNLToast(msg, isError = false) {
-    let t = document.getElementById('nlToast');
-    if (!t) {
-        t = document.createElement('div');
-        t.id        = 'nlToast';
-        t.className = 'fixed bottom-5 right-5 z-50 px-4 py-2 rounded shadow-lg text-xs font-bold transition-opacity duration-300';
-        document.body.appendChild(t);
-    }
-    t.textContent        = msg;
-    t.style.background   = isError ? '#fef2f2' : '#f0fdf4';
-    t.style.color        = isError ? '#991b1b' : '#166534';
-    t.style.border       = isError ? '1px solid #fecaca' : '1px solid #bbf7d0';
-    t.style.opacity      = '1';
-    clearTimeout(t._timer);
-    t._timer = setTimeout(() => t.style.opacity = '0', 4000);
-}
-</script>
 
 <!-- ── CAMPAIGN PREVIEW MODAL ── -->
 <div id="campaignPreviewModal"
@@ -433,7 +279,7 @@ function showNLToast(msg, isError = false) {
                     class="text-[10px] font-bold uppercase tracking-wider border border-stone-200 px-3 py-1.5 rounded hover:bg-stone-900 hover:text-white transition">
                     Open in New Tab ↗
                 </a>
-                <button type="button" onclick="closeCampaignPreview()"
+                <button type="button" data-campaign-close
                     class="text-[10px] font-bold uppercase tracking-wider border border-stone-200 px-3 py-1.5 rounded hover:bg-stone-900 hover:text-white transition">
                     Close ✕
                 </button>
@@ -450,38 +296,6 @@ function showNLToast(msg, isError = false) {
     </div>
 </div>
 
-<script>
-async function openCampaignPreview(id, subject) {
-    const url   = '/admin/handlers/view_campaign.php?id=' + id;
-    const frame = document.getElementById('campaignPreviewFrame');
 
-    document.getElementById('campaignPreviewTitle').textContent = subject;
-    document.getElementById('campaignPreviewNewTab').href       = url;
-    document.getElementById('campaignPreviewModal').classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
 
-    frame.srcdoc = '<body style="display:flex;align-items:center;justify-content:center;height:100%;font-family:sans-serif;font-size:14px;color:#999;">Loading preview&hellip;</body>';
-
-    try {
-        const res  = await fetch(url);
-        const html = await res.text();
-        frame.srcdoc = html;
-    } catch (err) {
-        frame.srcdoc = '<body style="padding:24px;font-family:sans-serif;color:#cc0000;font-size:14px;">Failed to load preview: ' + err.message + '</body>';
-    }
-}
-
-function closeCampaignPreview() {
-    document.getElementById('campaignPreviewModal').classList.add('hidden');
-    document.getElementById('campaignPreviewFrame').srcdoc = '';
-    document.body.style.overflow = '';
-}
-
-document.getElementById('campaignPreviewModal').addEventListener('click', function(e) {
-    if (e.target === this) closeCampaignPreview();
-});
-
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeCampaignPreview();
-});
-</script>
+<script src="/admin/assets/newsletter.js" defer></script>
