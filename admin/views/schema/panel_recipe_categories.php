@@ -18,13 +18,13 @@
                             <button type="button" onclick="toggleAddCategoryForm('recipes')"
                                 class="border text-stone-500 text-[10px] font-bold px-2 py-1 rounded hover:bg-stone-100">Cancel</button>
                         </div>
-                        <div id="categoriesCheckboxList_recipes" role="group" aria-labelledby="categoryHeading_recipes" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))" class="grid gap-2 p-3 border rounded bg-stone-50 max-h-24 overflow-y-auto">
+                        <div id="categoriesCheckboxList_recipes" role="group" aria-labelledby="categoryHeading_recipes" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))" class="grid gap-2 p-3 border rounded bg-stone-50 max-h-24 overflow-y-auto">
                             <?php foreach ($all_categories as $ct): ?>
-                            <label class="flex items-center gap-2 text-xxs font-medium cursor-pointer" style="min-width:0;">
+                            <label class="text-xxs font-medium cursor-pointer" style="display:grid;grid-template-columns:24px minmax(0,1fr);align-items:center;gap:10px;min-width:0;">
                                 <input type="checkbox" style="flex-shrink:0;" name="categories_matrix[]"
                                     value="<?= (int)$ct['id'] ?>"
                                     <?= in_array($ct['id'], $active_cat_ids ?? []) ? 'checked' : '' ?>>
-                                <span style="min-width:0;overflow-wrap:anywhere;"><?= htmlspecialchars($ct['category_name']) ?></span>
+                                <span style="display:block;min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;word-break:break-word;"><?= htmlspecialchars($ct['category_name']) ?></span>
                             </label>
                             <?php endforeach; ?>
                         </div>
