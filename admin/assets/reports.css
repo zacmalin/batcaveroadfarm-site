@@ -1,3 +1,16 @@
+/* Report navigation and dense financial tables on smaller screens. */
+.rtabs{scroll-padding-inline:.5rem}
+.rtabs a{white-space:nowrap}
+.rtabs a:focus-visible{outline:3px solid #4a6741;outline-offset:2px}
+.scroll{max-width:100%}
+.scroll .rt{width:100%;font-variant-numeric:tabular-nums}
+.scroll .rt td{white-space:nowrap}
+.scroll .rt td:first-child{white-space:normal;min-width:100px}
+@media(max-width:520px){
+  .rtabs{margin-inline:-.25rem;padding-inline:.25rem}
+  .scroll .rt{min-width:560px}
+  .rbar .btn{min-height:40px}
+}
 /* admin/assets/reports.css — Farm OS reports page (admin/farm_reports.php), on top of register.css. Strict CSP: no inline styles. */
 .narrow.wide{max-width:760px}
 .rtabs{display:flex;gap:.4rem;overflow-x:auto;padding:.25rem 0 .5rem;scrollbar-width:none}
