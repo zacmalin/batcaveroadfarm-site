@@ -126,9 +126,9 @@ if ($r === 'daily') {
     $d = bcrf_rpt_days($pdo, $date, $date)[$date];
     $dLabel = date('l, F j, Y', strtotime($date));
     echo '<h1>Daily sales</h1><p><b>', $h(bcrf_farm_name()), '</b> · ', $h($dLabel), $date === $today ? ' (so far)' : '', '</p>';
-    echo '<div class="rbar noprint report-toolbar"><a class="btn sm" href="', $h($q(['r' => 'daily', 'date' => $step($date, -1)])), '">‹ Prev</a>',
+    echo '<div class="rbar noprint report-toolbar"><div class="report-step"><a class="btn sm" href="', $h($q(['r' => 'daily', 'date' => $step($date, -1)])), '">‹ Prev</a>',
          $date < $today ? '<a class="btn sm" href="' . $h($q(['r' => 'daily', 'date' => $step($date, 1)])) . '">Next ›</a>' : '',
-         $dateForm('date', $date), '<button type="button" class="btn sm" id="btnPrint">Print</button>', $csvLink(['r' => 'daily', 'date' => $date, 'csv' => 1]), '</div>';
+         '</div>', $dateForm('date', $date), '<div class="report-actions"><button type="button" class="btn sm" id="btnPrint">Print</button>', $csvLink(['r' => 'daily', 'date' => $date, 'csv' => 1]), '</div></div>';
 
     echo '<h2>Register</h2><table class="rt">',
          $row('Sales', (int)$d['sales_count']), $row('Gross sales', $m($d['gross_sales'])), $row('Discounts', $m(-$d['discounts'])),
@@ -219,9 +219,9 @@ if ($r === 'month') {
     $tot = bcrf_rpt_total($days);
     $prevM = date('Y-m', strtotime($month . '-01 -1 month')); $nextM = date('Y-m', strtotime($month . '-01 +1 month'));
     echo '<h1>Monthly sales & tax</h1><p><b>', $h(bcrf_farm_name()), '</b> · ', $h(date('F Y', strtotime($month . '-01'))), $b === $today ? ' (so far)' : '', '</p>';
-    echo '<div class="rbar noprint report-toolbar"><a class="btn sm" href="', $h($q(['r' => 'month', 'month' => $prevM])), '">‹ Prev</a>',
+    echo '<div class="rbar noprint report-toolbar"><div class="report-step"><a class="btn sm" href="', $h($q(['r' => 'month', 'month' => $prevM])), '">‹ Prev</a>',
          $nextM <= substr($today, 0, 7) ? '<a class="btn sm" href="' . $h($q(['r' => 'month', 'month' => $nextM])) . '">Next ›</a>' : '',
-         $dateForm('month', $month, 'month'), '<button type="button" class="btn sm" id="btnPrint">Print</button></div>';
+         '</div>', $dateForm('month', $month, 'month'), '<div class="report-actions"><button type="button" class="btn sm" id="btnPrint">Print</button>', $csvLink(['r' => 'month', 'month' => $month, 'csv' => 'tax'], 'Tax CSV'), $csvLink(['r' => 'month', 'month' => $month, 'csv' => 1], 'Sales by day CSV'), '</div></div>';
 
     // All money in (Nov 14, 2026): every way money came in, before tax, after refunds, vs the same days last month.
     // Gift cards count when spent (the register sale they pay for), so a card bought is shown as owed, not as income.
@@ -255,7 +255,6 @@ if ($r === 'month') {
         echo '<tr class="b"><td>Total</td><td class="r">', $m(array_sum(array_column($taxes, 'net')) + array_sum(array_column($itax, 'net'))), '</td><td class="r">', $m(array_sum(array_column($taxes, 'tax')) + array_sum(array_column($itax, 'tax'))), '</td></tr></table>';
         echo '<p class="muted">Register sales after discounts and refunds, plus online tickets and annual passes paid this month (their prices include the tax; net is the price less the tax). Tickets and passes paid before Nov 13, 2026 had no tax recorded and are not listed. Rates shown are today\'s for the register; each sale kept the rate it was sold at.</p>';
     }
-    echo '<p class="noprint rbar">', $csvLink(['r' => 'month', 'month' => $month, 'csv' => 'tax'], 'Tax CSV'), $csvLink(['r' => 'month', 'month' => $month, 'csv' => 1], 'Sales by day CSV'), '</p>';
 
     echo '<h2>Totals</h2><table class="rt">', $row('Sales', (int)$tot['sales_count']), $row('Gross sales', $m($tot['gross_sales'])),
          $row('Discounts', $m(-$tot['discounts'])), $row('Refunds', $m(-$tot['refunds'])), $row('Net sales', $m($tot['net_sales']), 'b'),
@@ -302,10 +301,10 @@ if ($r === 'visitors') {
     $v = bcrf_rpt_visitors($pdo, $date);
     $o = $v['occupancy'];
     echo '<h1>Visitors</h1><p><b>', $h(bcrf_farm_name()), '</b> · ', $h(date('l, F j, Y', strtotime($date))), $date === $today ? ' (so far)' : '', '</p>';
-    echo '<div class="rbar noprint report-toolbar"><a class="btn sm" href="', $h($q(['r' => 'visitors', 'date' => $step($date, -1)])), '">‹ Prev</a>',
+    echo '<div class="rbar noprint report-toolbar"><div class="report-step"><a class="btn sm" href="', $h($q(['r' => 'visitors', 'date' => $step($date, -1)])), '">‹ Prev</a>',
          $date < $today ? '<a class="btn sm" href="' . $h($q(['r' => 'visitors', 'date' => $step($date, 1)])) . '">Next ›</a>' : '',
-         $dateForm('date', $date), '<button type="button" class="btn sm" id="btnPrint">Print</button>',
-         $csvLink(['r' => 'visitors', 'date' => $date, 'csv' => 'hours'], 'By hour CSV'), $csvLink(['r' => 'visitors', 'date' => $date, 'csv' => 1], 'Check-ins CSV'), '</div>';
+         '</div>', $dateForm('date', $date), '<div class="report-actions"><button type="button" class="btn sm" id="btnPrint">Print</button>',
+         $csvLink(['r' => 'visitors', 'date' => $date, 'csv' => 'hours'], 'By hour CSV'), $csvLink(['r' => 'visitors', 'date' => $date, 'csv' => 1], 'Check-ins CSV'), '</div></div>';
     echo '<table class="rt">', $row('Parties', (int)$v['visits']), $row('Guests', (int)$v['guests'], 'b'),
          $v['counted'] !== $v['guests'] ? $row('Guests counted toward the limit', (int)$v['counted']) : '',
          $row('Most on site at once', (int)$o['peak'] . ' of ' . (int)$o['limit'] . ($o['peak_at'] ? ' <small class="muted">at ' . $h(bcrf_local_time($o['peak_at'])) . '</small>' : ''), 'b'),
