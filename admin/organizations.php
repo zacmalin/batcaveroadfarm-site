@@ -138,7 +138,7 @@ if ($id || isset($_GET['new'])) {
       <?php endforeach; ?>
     </ul>
     <?php endif; ?>
-    <form method="POST" action="organizations.php" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 items-end"><?= $hidden($id) ?><input type="hidden" name="act" value="contact_add">
+    <form method="POST" action="organizations.php" class="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end"><?= $hidden($id) ?><input type="hidden" name="act" value="contact_add">
       <div><label class="<?= $label ?>" for="cn">Name</label><input id="cn" name="name" maxlength="100" class="<?= $input ?>"></div>
       <div><label class="<?= $label ?>" for="ce">Email</label><input id="ce" name="email" type="email" required class="<?= $input ?>"></div>
       <div><label class="<?= $label ?>" for="cp">Phone (optional)</label><input id="cp" name="phone" type="tel" maxlength="20" autocomplete="tel" class="<?= $input ?>"></div>
