@@ -28,8 +28,8 @@ $elapsed_seconds = $active_shift ? (time() - strtotime($active_shift['clock_in']
                 </div>
                 <div>
                     <!-- Fix 8: maxlength cap on notes -->
-                    <label class="block font-bold text-stone-600 mb-1">Shift Start Notes</label>
-                    <input type="text" name="clock_notes" maxlength="120"
+                    <label for="clock-notes" class="block font-bold text-stone-600 mb-1">Shift Start Notes</label>
+                    <input id="clock-notes" type="text" name="clock_notes" maxlength="120"
                         class="w-full p-2 border border-stone-300 bg-stone-50 rounded text-xs"
                         placeholder="e.g., Running farm stand register...">
                 </div>
@@ -46,7 +46,7 @@ $elapsed_seconds = $active_shift ? (time() - strtotime($active_shift['clock_in']
                 <!-- Fix 3: elapsed time display, updates live via JS -->
                 <div class="bg-stone-50 border border-stone-200 rounded p-3 text-center">
                     <span class="block text-[10px] uppercase tracking-widest font-bold text-stone-400 mb-1">Elapsed Time</span>
-                    <span id="elapsedDisplay" class="text-2xl font-black text-stone-900">
+                    <span id="elapsedDisplay" data-elapsed-seconds="<?= (int)$elapsed_seconds ?>" data-weekly-seconds="<?= (int)$weekly_seconds ?>" class="text-2xl font-black text-stone-900">
                         <?= fmt_duration($elapsed_seconds) ?>
                     </span>
                     <span class="block text-xxs text-stone-400 mt-1">
@@ -56,7 +56,7 @@ $elapsed_seconds = $active_shift ? (time() - strtotime($active_shift['clock_in']
 
                 <!-- Fix 9: confirm dialog on clock-out -->
                 <button type="submit" name="time_clock_action" value="clock_out"
-                    onclick="return sysClockOutConfirm(this);"
+                    data-clock-out-confirm
                     class="w-full bg-red-700 text-white font-semibold py-3 rounded hover:bg-red-900 transition shadow-sm">
                     Clock OUT ✕
                 </button>
@@ -148,48 +148,5 @@ $elapsed_seconds = $active_shift ? (time() - strtotime($active_shift['clock_in']
 </div>
 
 <?php if ($active_shift): ?>
-<!-- Fix 3: live elapsed timer — ticks every 60s, no page reload needed -->
-<script>
-function sysClockOutConfirm(el) {
-    sysConfirm(
-        'Clock out and end your current shift?',
-        'Clock Out', '🕒', 'Clock Out'
-    ).then(function(confirmed) {
-        if (!confirmed) return;
-        var form = el.closest('form');
-        // form.submit() skips button name/value — inject it as hidden input
-        if (el.name) {
-            var h = document.createElement('input');
-            h.type  = 'hidden';
-            h.name  = el.name;
-            h.value = el.value;
-            form.appendChild(h);
-        }
-        form.submit();
-    });
-    return false;
-}
-
-    let elapsedSecs = <?= $elapsed_seconds ?>;
-    const weeklySecs = <?= $weekly_seconds ?>;
-
-    function fmtDuration(s) {
-        if (s <= 0) return '0m';
-        const h = Math.floor(s / 3600);
-        const m = Math.floor((s % 3600) / 60);
-        return (h > 0 ? h + 'h ' : '') + m + 'm';
-    }
-
-    function tick() {
-        elapsedSecs += 60;
-        const el = document.getElementById('elapsedDisplay');
-        const ex = document.getElementById('weeklyElapsedExtra');
-        const re = document.getElementById('rowElapsed');
-        if (el) el.textContent = fmtDuration(elapsedSecs);
-        if (ex) ex.textContent = fmtDuration(elapsedSecs);
-        if (re) re.textContent = fmtDuration(elapsedSecs);
-    }
-
-    setInterval(tick, 60000);
-</script>
+<script src="/admin/assets/timeclock.js" defer></script>
 <?php endif; ?>
