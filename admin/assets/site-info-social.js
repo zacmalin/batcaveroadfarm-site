@@ -14,7 +14,20 @@
     var addB = document.getElementById('siSocialAdd');
     var nextIdx = Number(rows?.dataset.nextIndex || 0);
     if (rows) {
-        rows.addEventListener('input', function (e) {\n            var input = e.target.closest('[data-social-image-url]');\n            if (input) updateImgPreview(input.id.slice('imgUrl_'.length));\n        });\n        rows.addEventListener('change', function (e) {\n            var file = e.target.closest('[data-social-image-upload]');\n            if (file) quickUploadImage(file, file.closest('.si-social-row').querySelector('[data-social-image-url]').id.slice('imgUrl_'.length));\n        });\n        rows.addEventListener('error', function (e) {\n            if (e.target.matches('[data-social-preview-image]')) e.target.closest('[data-social-preview]').style.display = 'none';\n        }, true);\n        rows.addEventListener('click', function (e) {\n            var vault = e.target.closest('[data-social-vault]');\n            if (vault) { openVaultPicker(vault.closest('.si-social-row').querySelector('[data-social-image-url]').id.slice('imgUrl_'.length)); return; }
+        rows.addEventListener('input', function (e) {
+            var input = e.target.closest('[data-social-image-url]');
+            if (input) updateImgPreview(input.id.slice('imgUrl_'.length));
+        });
+        rows.addEventListener('change', function (e) {
+            var file = e.target.closest('[data-social-image-upload]');
+            if (file) quickUploadImage(file, file.closest('.si-social-row').querySelector('[data-social-image-url]').id.slice('imgUrl_'.length));
+        });
+        rows.addEventListener('error', function (e) {
+            if (e.target.matches('[data-social-preview-image]')) e.target.closest('[data-social-preview]').style.display = 'none';
+        }, true);
+        rows.addEventListener('click', function (e) {
+            var vault = e.target.closest('[data-social-vault]');
+            if (vault) { openVaultPicker(vault.closest('.si-social-row').querySelector('[data-social-image-url]').id.slice('imgUrl_'.length)); return; }
             var del = e.target.closest('.si-social-del');
             if (del) { var row = del.closest('.si-social-row'); if (row) row.remove(); }
         });
