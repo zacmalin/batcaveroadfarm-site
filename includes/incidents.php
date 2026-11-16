@@ -219,8 +219,15 @@ function bcrf_incident_add(PDO $pdo, array $in, array $files, ?int $uid): array 
         catch (BcrfIncidentError $e) { $warnings[] = 'A photo was not saved: ' . $e->getMessage(); }
         catch (Throwable $e) { error_log('[incidents] photo: ' . $e->getMessage()); $warnings[] = 'A photo was not saved.'; }
     }
+    $due = trim((string)($in['task_due_date'] ?? ''));
+    if ($due === '') {
+        $choice = (string)($in['task_due_choice'] ?? 'today');
+        $today = bcrf_incident_now_local();
+        if ($choice === 'tomorrow') $due = $today->modify('+1 day')->format('Y-m-d');
+        elseif ($choice === 'week') $due = $today->modify('+7 days')->format('Y-m-d');
+    }
     $taskId = null;
-    try { $taskId = bcrf_incident_make_task($pdo, $id, (string)($in['task_due_date'] ?? '')); }
+    try { $taskId = bcrf_incident_make_task($pdo, $id, $due); }
     catch (Throwable $e) { error_log('[incidents] task: ' . $e->getMessage()); $warnings[] = 'The follow-up task was not made.'; }
     $sent = 0;
     try { $sent = bcrf_incident_notify($pdo, $id); }
