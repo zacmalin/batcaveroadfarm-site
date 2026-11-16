@@ -55,7 +55,10 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
 <?php else: ?>
 <style>
 .site-info-section { border-color: #d8d0c3; border-radius: 10px; }
-.site-info-section > summary { background: #f5f1e9; padding: 1rem; font-size: 1.1rem; }
+.site-info-section > summary { background: #f5f1e9; padding: 1rem; font-size: 1.1rem; transition: background-color .15s ease; }
+.site-info-section > summary:hover { background: #ece8df; }
+.site-info-section[open] > summary { background: #e7ecdf; }
+.site-info-section[open] > summary:hover { background: #dfe7d6; }
 .site-info-section > summary:focus-visible { outline: 3px solid #4a6741; outline-offset: -3px; }
 .site-info-section > summary::marker { content: ""; }
 .site-info-section > summary::-webkit-details-marker { display: none; }
@@ -67,7 +70,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
 
 
     <!-- ── BUSINESS & ADDRESS ── -->
-    <details class="<?= $sectionCls ?>">
+    <details id="site-announcement" class="<?= $sectionCls ?>" open>
         <summary class="<?= $sumCls ?>"><span>📢 Announcement Bar</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
         <form method="POST" action="/admin/admin.php?view=site_info" class="p-5">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
@@ -91,7 +94,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
         </form>
     </details>
 
-    <details class="<?= $sectionCls ?>" open>
+    <details id="site-address" class="<?= $sectionCls ?>">
         <summary class="<?= $sumCls ?>"><span>📍 Business &amp; Address</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
         <form method="POST" action="/admin/admin.php?view=site_info" class="px-5 pb-5 pt-1">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
@@ -142,7 +145,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
     </details>
 
     <!-- ── PHONES ── -->
-    <details class="<?= $sectionCls ?>">
+    <details id="site-phones" class="<?= $sectionCls ?>">
         <summary class="<?= $sumCls ?>"><span>📞 Phones</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
         <form method="POST" action="/admin/admin.php?view=site_info" class="px-5 pb-5 pt-1">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
@@ -165,7 +168,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
     </details>
 
     <!-- ── EMAILS ── -->
-    <details class="<?= $sectionCls ?>">
+    <details id="site-emails" class="<?= $sectionCls ?>">
         <summary class="<?= $sumCls ?>"><span>✉️ Emails</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
         <form method="POST" action="/admin/admin.php?view=site_info" class="px-5 pb-5 pt-1">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
@@ -189,7 +192,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
 
     <!-- ── SOCIAL LINKS ── -->
     <?php $socials = site_socials(); ?>
-    <details class="<?= $sectionCls ?>">
+    <details id="site-socials" class="<?= $sectionCls ?>">
         <summary class="<?= $sumCls ?>"><span>🔗 Social Links</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
         <form method="POST" action="/admin/admin.php?view=site_info" class="px-5 pb-5 pt-1">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
@@ -242,7 +245,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
     </details>
 
     <!-- ── HOURS ── -->
-    <details class="<?= $sectionCls ?>">
+    <details id="site-hours" class="<?= $sectionCls ?>">
         <summary class="<?= $sumCls ?>"><span>🕒 Hours</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
         <form method="POST" action="/admin/admin.php?view=site_info" class="px-5 pb-5 pt-1">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
@@ -287,7 +290,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
     </details>
 
     <!-- ── SEASON ── -->
-    <details class="<?= $sectionCls ?>">
+    <details id="site-season" class="<?= $sectionCls ?>">
         <summary class="<?= $sumCls ?>"><span>🍂 Season</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
         <form method="POST" action="/admin/admin.php?view=site_info" class="px-5 pb-5 pt-1">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
@@ -305,6 +308,10 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
 <?php require_once __DIR__ . '/layout/vault_picker.php'; ?>
 
 <script>
+var selected = location.hash && document.getElementById(location.hash.slice(1));
+if (selected && selected.classList.contains('site-info-section')) {
+  document.querySelectorAll('.site-info-section').forEach(function (section) { section.open = section === selected; });
+}
 document.querySelectorAll('.site-info-section').forEach(function (section) {
   section.addEventListener('toggle', function () {
     if (!section.open) return;
