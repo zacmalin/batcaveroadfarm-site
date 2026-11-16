@@ -29,7 +29,7 @@ $curRec = (string)($edit['recurrence'] ?? 'none');
   <p class="text-sm text-stone-500 mb-6">Add seasonal, recurring, or one-off events. Published events appear on the public <a href="/events/" target="_blank" class="text-amber-700 underline">events page</a>; past one-off events drop off automatically.</p>
 
   <!-- Add / Edit form -->
-  <form method="POST" action="/admin/admin.php?view=events" class="bg-white border border-stone-200 rounded-lg p-5 mb-8 shadow-sm">
+  <form method="POST" action="/admin/admin.php?view=events" class="bg-white border border-stone-200 rounded-lg p-3 sm:p-5 mb-8 shadow-sm">
     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
     <input type="hidden" name="event_action" value="save">
     <?php if ($edit): ?><input type="hidden" name="id" value="<?= (int)$edit['id'] ?>"><?php endif; ?>
@@ -54,7 +54,7 @@ $curRec = (string)($edit['recurrence'] ?? 'none');
       </div>
       <div>
         <label for="ev-recurrence" class="block text-xs font-semibold text-stone-600 mb-1">Recurrence</label>
-        <select id="ev-recurrence" id="ev-recurrence" name="recurrence" class="w-full p-2 border border-stone-300 rounded bg-stone-50">
+        <select id="ev-recurrence" name="recurrence" class="w-full p-2 border border-stone-300 rounded bg-stone-50">
           <?php foreach (['none'=>'One-time','range'=>'Date range (season)','weekly'=>'Weekly','annual'=>'Annual'] as $rv=>$rl): ?>
           <option value="<?= $rv ?>" <?= $curRec===$rv?'selected':'' ?>><?= $rl ?></option>
           <?php endforeach; ?>
@@ -103,16 +103,16 @@ $curRec = (string)($edit['recurrence'] ?? 'none');
       </div>
     </div>
 
-    <div class="mt-5 flex gap-3">
-      <button type="submit" class="bg-amber-700 hover:bg-amber-800 text-white font-semibold px-5 py-2 rounded text-sm"><?= $edit ? 'Update event' : 'Add event' ?></button>
-      <?php if ($edit): ?><a href="/admin/admin.php?view=events" class="px-5 py-2 rounded text-sm border border-stone-300 text-stone-600 hover:bg-stone-100">Cancel</a><?php endif; ?>
+    <div class="mt-5 flex flex-col sm:flex-row gap-3">
+      <button type="submit" class="bg-amber-700 hover:bg-amber-800 text-white font-semibold px-5 py-3 sm:py-2 rounded text-sm text-center"><?= $edit ? 'Update event' : 'Add event' ?></button>
+      <?php if ($edit): ?><a href="/admin/admin.php?view=events" class="px-5 py-3 sm:py-2 rounded text-sm border border-stone-300 text-stone-600 hover:bg-stone-100 text-center">Cancel</a><?php endif; ?>
     </div>
   </form>
 
   <!-- Existing events -->
   <h2 class="font-semibold text-stone-700 mb-3">All events (<?= count($rows) ?>)</h2>
   <div class="overflow-x-auto">
-    <table class="w-full text-sm bg-white border border-stone-200 rounded-lg overflow-hidden" data-admin-list data-list-name-col="0" data-list-date-col="1">
+    <table class="ui-cards w-full text-sm bg-white border border-stone-200 rounded-lg overflow-hidden" data-admin-list data-list-name-col="0" data-list-date-col="1">
       <thead class="bg-stone-50 border-b border-stone-200 text-stone-500 text-xs uppercase tracking-wide">
         <tr><th class="text-left p-2">Title</th><th class="text-left p-2">When</th><th class="text-left p-2">Recurs</th><th class="text-left p-2">Status</th><th class="p-2">Actions</th></tr>
       </thead>
@@ -121,21 +121,21 @@ $curRec = (string)($edit['recurrence'] ?? 'none');
         <tr><td colspan="5" class="p-4 text-center text-stone-400">No events yet — add your first one above.</td></tr>
         <?php else: foreach ($rows as $r): ?>
         <tr class="border-t border-stone-100">
-          <td class="p-2 font-medium text-stone-700"><?= htmlspecialchars((string)$r['title']) ?></td>
+          <td data-cell="title" class="p-2 font-medium text-stone-700"><?= htmlspecialchars((string)$r['title']) ?></td>
           <td class="p-2 text-stone-500"><?= htmlspecialchars(date('M j, Y', strtotime((string)$r['start_datetime']))) ?></td>
           <td class="p-2 text-stone-500"><?= htmlspecialchars($r['recurrence'] === 'none' ? '—' : $r['recurrence']) ?></td>
           <td class="p-2"><span class="text-xs px-2 py-0.5 rounded <?= $r['status']==='published'?'bg-green-100 text-green-700':'bg-stone-200 text-stone-600' ?>"><?= htmlspecialchars((string)$r['status']) ?></span></td>
-          <td class="p-2 text-center whitespace-nowrap">
-            <a href="/admin/admin.php?view=events&edit=<?= (int)$r['id'] ?>" class="text-amber-700 hover:underline mr-2">Edit</a>
+          <td data-cell="actions" class="p-2 text-center">
+            <a href="/admin/admin.php?view=events&edit=<?= (int)$r['id'] ?>" class="inline-flex items-center min-h-10 px-2 text-amber-700 hover:underline">Edit</a>
             <form method="POST" action="/admin/admin.php?view=events" class="inline">
               <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
               <input type="hidden" name="event_action" value="toggle"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
-              <button type="submit" class="text-stone-500 hover:underline mr-2"><?= $r['status']==='published'?'Unpublish':'Publish' ?></button>
+              <button type="submit" class="min-h-10 px-2 text-stone-500 hover:underline"><?= $r['status']==='published'?'Unpublish':'Publish' ?></button>
             </form>
             <form method="POST" action="/admin/admin.php?view=events" class="inline" >
               <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
               <input type="hidden" name="event_action" value="delete"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
-              <button type="submit" class="text-red-600 hover:underline" data-confirm="Delete this event? This cannot be undone." data-confirm-danger>Delete</button>
+              <button type="submit" class="min-h-10 px-2 text-red-600 hover:underline" data-confirm="Delete this event? This cannot be undone." data-confirm-danger>Delete</button>
             </form>
           </td>
         </tr>
