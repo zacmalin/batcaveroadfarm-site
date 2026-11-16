@@ -326,11 +326,15 @@ function bcrf_crm_org_contacts(PDO $pdo, int $orgId): array {
 }
 
 /** Adds a contact by email (making a guest customer for a new email). */
-function bcrf_crm_org_contact_add(PDO $pdo, int $orgId, string $email, string $name, string $role): int {
+function bcrf_crm_org_contact_add(PDO $pdo, int $orgId, string $email, string $name, string $role, string $phone = ''): int {
     if (!bcrf_crm_org_get($pdo, $orgId)) throw new BcrfCrmError('That organization is gone.');
     if (!isset(BCRF_CRM_CONTACT_ROLES[$role])) $role = 'booking';
-    $cid = bcrf_crm_find_or_create($pdo, $email, $name);
+    $phone = trim($phone);
+    if (mb_strlen($phone) > 20) throw new BcrfCrmError('Phone must be 20 characters or fewer.');
+    $cid = bcrf_crm_find_or_create($pdo, $email, $name, $phone);
     if (!$cid) throw new BcrfCrmError('Type the contact\'s email.');
+    // Existing contacts keep their current number; fill it only when missing.
+    if ($phone !== '') $pdo->prepare("UPDATE customers SET phone_number = ? WHERE id = ? AND (phone_number IS NULL OR phone_number = '')")->execute([$phone, $cid]);
     $pdo->prepare("INSERT INTO organization_contacts (organization_id, customer_id, role, created_at) VALUES (?, ?, ?, UTC_TIMESTAMP())
                    ON DUPLICATE KEY UPDATE role = VALUES(role)")->execute([$orgId, $cid, $role]);
     return $cid;
