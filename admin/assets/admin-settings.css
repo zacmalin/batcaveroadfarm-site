@@ -78,16 +78,19 @@
 .fs-pay button{margin-top:.5rem}
 
 
-/* Payment settings accordions: native details preserve keyboard and save behavior. */
-.fs-pay .pay-accordion{border:1px solid #d6d3d1;border-radius:.5rem;margin:.75rem 0;background:#fff;overflow:hidden}
-.fs-pay .pay-accordion>summary{cursor:pointer;list-style:none;padding:.85rem 1rem;font-weight:600;color:#44403c;background:#fafaf9}
+/* Payment settings accordions — match Site Info's neutral/selected states. */
+.fs-pay .pay-accordion{border:1px solid #d8d0c3;border-radius:10px;margin:.75rem 0;background:#fff;overflow:hidden}
+.fs-pay .pay-accordion>summary{cursor:pointer;list-style:none;padding:1rem;font-size:1.1rem;font-weight:700;color:#292524;background:#f5f1e9;transition:background-color .15s ease}
 .fs-pay .pay-accordion>summary::-webkit-details-marker{display:none}
-.fs-pay .pay-accordion>summary::before{content:"▸";display:inline-block;margin-right:.65rem;color:#78716c}
-.fs-pay .pay-accordion[open]>summary::before{content:"▾"}
-.fs-pay .pay-accordion>summary:hover{background:#f5f5f4}
-.fs-pay .pay-accordion[open]>summary{background:#f5f5f4;color:#292524;border-bottom:1px solid #e7e5e4}
-.fs-pay .pay-accordion>summary:focus-visible{outline:2px solid #b45309;outline-offset:-2px}
+.fs-pay .pay-accordion>summary::marker{content:""}
+.fs-pay .pay-accordion>summary::after{content:"⌄";float:right;color:#78716c;transition:transform .18s ease}
+.fs-pay .pay-accordion[open]>summary::after{transform:rotate(180deg)}
+.fs-pay .pay-accordion>summary:hover{background:#ece8df}
+.fs-pay .pay-accordion[open]>summary{background:#e7ecdf;border-bottom:1px solid #d8d0c3}
+.fs-pay .pay-accordion[open]>summary:hover{background:#dfe7d6}
+.fs-pay .pay-accordion>summary:focus-visible{outline:3px solid #4a6741;outline-offset:-3px}
 .fs-pay .pay-accordion>.card{margin:0;border:0;border-radius:0;box-shadow:none}
+@media (prefers-reduced-motion:reduce){.fs-pay .pay-accordion>summary,.fs-pay .pay-accordion>summary::after{transition:none}}
 
 /* Backups */
 .fs-bak .lbl{min-width:42%}
