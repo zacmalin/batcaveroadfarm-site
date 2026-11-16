@@ -1810,20 +1810,20 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
 </div>
 
 <!-- ── ADD CUISINE MODAL ── -->
-<div id="addCuisineModal" style="display:none;"
+<div id="addCuisineModal" role="dialog" aria-modal="true" aria-labelledby="addCuisineTitle" style="display:none;"
     class="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-lg border border-stone-200 max-w-xs w-full p-6 shadow-xl space-y-3">
-        <h4 class="font-semibold text-base text-stone-800">Add Cuisine</h4>
-        <input type="text" id="newCuisineInput" placeholder="e.g. Korean"
+        <h4 id="addCuisineTitle" class="font-semibold text-base text-stone-800">Add Cuisine</h4>
+        <input type="text" id="newCuisineInput" aria-label="Cuisine name" placeholder="e.g. Korean"
             class="w-full p-2 border border-stone-300 bg-stone-50 rounded text-sm outline-none font-mono"
             onkeydown="if(event.key==='Enter') submitNewCuisine()">
-        <p id="cuisineModalMsg" class="text-red-600 text-xs font-mono min-h-[1rem]"></p>
+        <p id="cuisineModalMsg" role="alert" class="text-red-600 text-xs font-mono min-h-[1rem]"></p>
         <div class="flex gap-2">
-            <button onclick="submitNewCuisine()"
+            <button type="button" id="saveCuisineBtn" onclick="submitNewCuisine()"
                 class="flex-1 bg-amber-700 text-white py-2 rounded font-bold text-xs uppercase tracking-wider hover:bg-amber-800">
                 Save
             </button>
-            <button onclick="closeAddCuisineModal()"
+            <button type="button" onclick="closeAddCuisineModal()"
                 class="flex-1 border border-stone-200 py-2 rounded text-stone-500 text-xs uppercase font-bold hover:bg-stone-50">
                 Cancel
             </button>
@@ -2505,7 +2505,9 @@ function sysDeleteConfirm(name, triggerEl) {
 }
 
 // ── ADD CUISINE MODAL ─────────────────────────────────────────────────────────
+let cuisineModalReturnFocus = null;
 function openAddCuisineModal() {
+    cuisineModalReturnFocus = document.activeElement;
     document.getElementById('addCuisineModal').style.display = 'flex';
     document.getElementById('newCuisineInput').value = '';
     document.getElementById('newCuisineInput').focus();
@@ -2513,32 +2515,46 @@ function openAddCuisineModal() {
 }
 function closeAddCuisineModal() {
     document.getElementById('addCuisineModal').style.display = 'none';
+    if (cuisineModalReturnFocus?.isConnected) cuisineModalReturnFocus.focus();
+    cuisineModalReturnFocus = null;
 }
+document.getElementById('addCuisineModal')?.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.preventDefault(); closeAddCuisineModal(); }
+});
 async function submitNewCuisine() {
     const input = document.getElementById('newCuisineInput');
     const msg   = document.getElementById('cuisineModalMsg');
+    const btn   = document.getElementById('saveCuisineBtn');
     const name  = input.value.trim();
-    if (!name) { msg.textContent = 'Please enter a cuisine name.'; return; }
-
-    const res  = await fetch('/admin/handlers/add_cuisine.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ csrf_token: '<?= $_SESSION['csrf_token'] ?>', name: name })
-    });
-    const data = await res.json();
-    if (data.success) {
-        // Add to dropdown and select it
-        const sel = document.querySelector('select[name="fields[cuisine_id]"]');
-        if (sel) {
-            const opt = document.createElement('option');
-            opt.value    = data.id;
-            opt.textContent = data.name;
-            opt.selected = true;
-            sel.appendChild(opt);
+    if (!name) { msg.textContent = 'Please enter a cuisine name.'; input.focus(); return; }
+    btn.disabled = true;
+    try {
+        const res = await fetch('/admin/handlers/add_cuisine.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ csrf_token: '<?= $_SESSION['csrf_token'] ?>', name: name })
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        if (data.success) {
+            const sel = document.querySelector('select[name="fields[cuisine_id]"]');
+            if (sel) {
+                const opt = document.createElement('option');
+                opt.value = data.id;
+                opt.textContent = data.name;
+                opt.selected = true;
+                sel.appendChild(opt);
+                sel.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            closeAddCuisineModal();
+        } else {
+            msg.textContent = data.message || 'Error saving cuisine.';
         }
-        closeAddCuisineModal();
-    } else {
-        msg.textContent = data.message || 'Error saving cuisine.';
+    } catch (err) {
+        msg.textContent = 'Could not save cuisine. Please try again.';
+        console.error('Add cuisine failed:', err);
+    } finally {
+        btn.disabled = false;
     }
 }
 
