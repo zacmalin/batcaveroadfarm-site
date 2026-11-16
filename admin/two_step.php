@@ -188,6 +188,11 @@ $local = function (?string $utc): string {
     return $d->format('M j, Y');
 };
 ob_end_flush();
+if ($signedIn) {
+    require_once __DIR__ . '/../includes/admin_shell.php';
+    bcrf_shell_open('Two-step sign-in', ['view' => 'two_step', 'strict' => false, 'width' => 'max-w-3xl']);
+    echo '<div class="bg-white p-6 sm:p-8 rounded shadow-sm border border-stone-200">';
+} else {
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -204,6 +209,9 @@ ob_end_flush();
 <body class="bg-stone-100 min-h-screen p-4 flex items-start sm:items-center justify-center">
 <div class="bg-white p-6 sm:p-8 rounded shadow-md max-w-md w-full border border-stone-200 my-6">
 
+<?php
+}
+?>
 <?php if ($error): ?><div class="p-2.5 mb-4 text-sm bg-red-50 text-red-800 border border-red-200 rounded"><?= $h($error) ?></div><?php endif; ?>
 <?php if ($notice): ?><div class="p-2.5 mb-4 text-sm bg-green-50 text-green-900 border border-green-200 rounded"><?= $h($notice) ?></div><?php endif; ?>
 
@@ -300,5 +308,7 @@ ob_end_flush();
     <p class="text-xs text-stone-500 mt-4">Locked out with no phone and no backup codes? In cPanel → File Manager, create an empty file named <code>bcrf-mfa-off.txt</code> in your home folder (next to bcrf-secrets.php). Two-step is skipped while it's there; sign in, reset, then delete the file.</p>
 <?php endif; ?>
 </div>
+<?php if ($signedIn): bcrf_shell_close(); else: ?>
 </body>
 </html>
+<?php endif; ?>
