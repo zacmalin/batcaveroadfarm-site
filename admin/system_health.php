@@ -156,7 +156,7 @@ $imgTools = (function (): array {
 
 <?php if ($flash !== ''): ?><div class="card" style="border-color:#4a6741;background:#eef5ea"><?= $h($flash) ?></div><?php endif; ?>
 
-<section class="health-section" id="runner"><h2><button type="button" class="health-toggle" aria-expanded="true" aria-controls="health-runner">Runner &amp; job queue <span aria-hidden="true">⌄</span></button></h2><div id="health-runner" class="health-panel">
+<section class="health-section" id="runner"><h2><button type="button" class="health-toggle" aria-expanded="true" aria-controls="health-runner">⚙️ Runner &amp; job queue <span aria-hidden="true">⌄</span></button></h2><div id="health-runner" class="health-panel">
 <?php if (!$q['ready']): ?>
   <div class="card meta" style="font-size:.88rem">Not set up yet. In <a href="/admin/migrations.php">Settings › Database</a>, run migration <code>0004_events_and_queue</code>, then add the runner in cPanel (below).</div>
 <?php else: $rj = $jobs['run'] ?? null; ?>
@@ -222,7 +222,7 @@ $imgTools = (function (): array {
 <?php endif; ?>
 
 </div></section>
-<section class="health-section"><h2><button type="button" class="health-toggle" aria-expanded="false" aria-controls="health-jobs">Scheduled jobs <span aria-hidden="true">⌄</span></button></h2><div id="health-jobs" class="health-panel" hidden>
+<section class="health-section"><h2><button type="button" class="health-toggle" aria-expanded="false" aria-controls="health-jobs">🕒 Scheduled jobs <span aria-hidden="true">⌄</span></button></h2><div id="health-jobs" class="health-panel" hidden>
 <?php foreach ($jobs as $j): [$bl, $bc, $bg] = $badge[$j['state']]; ?>
   <div class="card job">
     <div>
@@ -239,7 +239,7 @@ $imgTools = (function (): array {
 <?php endforeach; ?>
 
 </div></section>
-<section class="health-section" id="errors"><h2><button type="button" class="health-toggle" aria-expanded="false" aria-controls="health-errors">PHP errors (last <?= $days ?> day<?= $days === 1 ? '' : 's' ?>) <span aria-hidden="true">⌄</span></button></h2><div id="health-errors" class="health-panel" hidden>
+<section class="health-section" id="errors"><h2><button type="button" class="health-toggle" aria-expanded="false" aria-controls="health-errors">⚠️ PHP errors (last <?= $days ?> day<?= $days === 1 ? '' : 's' ?>) <span aria-hidden="true">⌄</span></button></h2><div id="health-errors" class="health-panel" hidden>
 <p class="sub tabs">Show: <?php foreach ([1, 7, 30] as $d): ?><a href="?days=<?= $d ?>#errors"<?= $d === $days ? ' style="font-weight:800"' : '' ?>><?= $d ?> day<?= $d === 1 ? '' : 's' ?></a><?php endforeach; ?>
  · <?= $total ?> line<?= $total === 1 ? '' : 's' ?> from <?= count($logFiles) ?> log file<?= count($logFiles) === 1 ? '' : 's' ?>. Same error repeated = one row with a count.</p>
 <?php if (!$groups): ?>
@@ -251,7 +251,7 @@ $imgTools = (function (): array {
 <?php endforeach; ?>
 
 </div></section>
-<section class="health-section" id="images"><h2><button type="button" class="health-toggle" aria-expanded="false" aria-controls="health-images">Image tools <span aria-hidden="true">⌄</span></button></h2><div id="health-images" class="health-panel" hidden>
+<section class="health-section" id="images"><h2><button type="button" class="health-toggle" aria-expanded="false" aria-controls="health-images">🖼️ Image tools <span aria-hidden="true">⌄</span></button></h2><div id="health-images" class="health-panel" hidden>
 <p class="sub">What the server can use to make social images (Pinterest 1000 × 1500 JPEGs).</p>
 <div class="card meta" style="font-size:.88rem;line-height:1.8">
   <?php $yn = fn($b) => $b ? '<strong style="color:#2f5a22">Yes</strong>' : '<strong style="color:#8b2018">No</strong>'; ?>
@@ -268,7 +268,7 @@ $imgTools = (function (): array {
 </div>
 
 </div></section>
-<section class="health-section"><h2><button type="button" class="health-toggle" aria-expanded="false" aria-controls="health-uptime">Uptime checks (UptimeRobot) <span aria-hidden="true">⌄</span></button></h2><div id="health-uptime" class="health-panel" hidden>
+<section class="health-section"><h2><button type="button" class="health-toggle" aria-expanded="false" aria-controls="health-uptime">📡 Uptime checks (UptimeRobot) <span aria-hidden="true">⌄</span></button></h2><div id="health-uptime" class="health-panel" hidden>
 <div class="card meta" style="font-size:.88rem">
   Add these as <strong>Keyword</strong> monitors (keyword <code>BCRF-OK</code>, alert when missing), every 5 minutes, with email alerts:<br>
   1. <code><?= bcrf_farm_url() ?>/health.php</code>: site, PHP and database<br>
@@ -279,10 +279,10 @@ $imgTools = (function (): array {
 <style>
 .fs-health .health-section { margin: 1rem 0; border: 1px solid #d8d0c3; border-radius: 10px; overflow: hidden; }
 .fs-health .health-section h2 { margin: 0; }
-.fs-health .health-toggle { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border: 0; background: #f5f1e9; color: inherit; font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
-.fs-health .health-toggle:hover { background: #ece8df; }
-.fs-health .health-toggle[aria-expanded="true"] { background: #e7ecdf; }
-.fs-health .health-toggle[aria-expanded="true"]:hover { background: #dfe7d6; }
+.fs-health .health-toggle { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border: 0; background: #f5f1e9; color: #292524; font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
+.fs-health .health-toggle:hover { background: #ece8df; color: #292524; }
+.fs-health .health-toggle[aria-expanded="true"] { background: #e7ecdf; color: #292524; }
+.fs-health .health-toggle[aria-expanded="true"]:hover { background: #dfe7d6; color: #292524; }
 .fs-health .health-toggle:focus-visible { outline: 3px solid #4a6741; outline-offset: -3px; }
 .fs-health .health-toggle span { transition: transform .18s ease; }
 .fs-health .health-toggle[aria-expanded="true"] span { transform: rotate(180deg); }
