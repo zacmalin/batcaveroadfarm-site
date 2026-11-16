@@ -353,7 +353,13 @@ if (isset($_GET['id'])) {
     <?php endif; ?>
   </p>
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
-  <?php if ($t['description']): ?><div class="<?= $card ?> p-4 mb-4 text-sm text-stone-700 whitespace-pre-line"><?= $h($t['description']) ?></div><?php endif; ?>
+  <?php if ($t['description']):
+    // Older incident follow-ups stored the incident URL as plain text; the linked-record breadcrumb above already opens it.
+    $taskDescription = (string)$t['description'];
+    if (($t['related_type'] ?? '') === 'incident' && bcrf_record_id($t['related_id'] ?? '') > 0) {
+        $taskDescription = str_replace('when it is settled: /admin/incidents.php?id=' . bcrf_record_id($t['related_id']), 'when it is settled.', $taskDescription);
+    }
+  ?><div class="<?= $card ?> p-4 mb-4 text-sm text-stone-700 whitespace-pre-line"><?= $h($taskDescription) ?></div><?php endif; ?>
 
   <?php if ($total): ?>
   <div class="flex items-center justify-between mb-2">
