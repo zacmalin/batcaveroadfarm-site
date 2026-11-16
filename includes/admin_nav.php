@@ -121,7 +121,7 @@ function bcrf_admin_nav_sections(): array {
         ['label'=>'Social Media', 'short'=>'Social', 'icon'=>'📣','tabs'=>[['Social Media','/admin/social_reports.php','view','social']]],   // social analytics (Nov 11 2026)
     ]],
     'settings' => ['label'=>'Settings','icon'=>'⚙️','items'=>[
-        ['label'=>'Hours & Contacts', 'short'=>'Hours','icon'=>'🏠','tabs'=>[['Hours & Contacts','?view=site_info','view','site_info']]],
+        ['label'=>'Site Info', 'short'=>'Site Info','icon'=>'🏠','tabs'=>[['Site Info','?view=site_info','view','site_info']]],
         ['label'=>'Payments & Register', 'short'=>'Payments','icon'=>'💳','tabs'=>[   // administrators only (moved off the register, Nov 6 2026)
             ['Payment methods', '/admin/payment_settings.php?tab=methods',  'view', 'payment_settings'],
             ['Register',        '/admin/payment_settings.php?tab=register', 'view', 'payment_settings'],
