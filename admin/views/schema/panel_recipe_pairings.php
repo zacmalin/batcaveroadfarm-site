@@ -34,7 +34,7 @@
                                         <option value="<?= (int)$pr['id'] ?>" <?= (int)$pr['id'] === (int)$apid ? 'selected' : '' ?>><?= htmlspecialchars($pr['title']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
-                                <button type="button" onclick="this.closest('.pairing-row').remove()" class="text-red-600 font-bold px-1 hover:text-red-900 shrink-0">✕</button>
+                                <button type="button" data-remove-pairing aria-label="Remove pairing" class="text-red-600 font-bold px-1 hover:text-red-900 shrink-0">✕</button>
                             </div>
                             <?php endforeach; ?>
                         </div>
@@ -44,45 +44,10 @@
                         </button>
                     </div>
 
-                    <script>
-                    /* Self-contained: "Add Pairs Well With" spawns a recipe dropdown row (mirrors the ingredients UI). */
-                    (function () {
-                        var PAIR_RECIPES = <?= json_encode(array_values(array_filter(array_map(function ($pr) use ($cur_recipe_id) {
+                    <script type="application/json" id="pairingRecipeData"><?= json_encode(array_values(array_filter(array_map(function ($pr) use ($cur_recipe_id) {
                             return ($cur_recipe_id && (int)$pr['id'] === $cur_recipe_id) ? null : ['id' => (int)$pr['id'], 'title' => $pr['title']];
-                        }, $all_pair_recipes))), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) ?>;
-                        var wrap = document.getElementById('pairingsWrapper');
-                        var btn  = document.getElementById('addPairingBtn');
-                        if (!wrap || !btn) return;
-                        btn.addEventListener('click', function () {
-                            var row = document.createElement('div');
-                            row.className = 'pairing-row flex items-center gap-2';
-
-                            var icon = document.createElement('span');
-                            icon.className = 'text-stone-400 shrink-0 text-xs';
-                            icon.textContent = '\uD83C\uDF7D';
-
-                            var sel = document.createElement('select');
-                            sel.name = 'pairings_matrix[]';
-                            sel.className = 'p-1 border bg-white rounded flex-1 text-xs';
-                            var none = document.createElement('option');
-                            none.value = ''; none.textContent = '\u2014 Select a recipe \u2014';
-                            sel.appendChild(none);
-                            PAIR_RECIPES.forEach(function (r) {
-                                var op = document.createElement('option');
-                                op.value = r.id; op.textContent = r.title;
-                                sel.appendChild(op);
-                            });
-
-                            var rm = document.createElement('button');
-                            rm.type = 'button'; rm.textContent = '\u2715';
-                            rm.className = 'text-red-600 font-bold px-1 hover:text-red-900 shrink-0';
-                            rm.onclick = function () { row.remove(); };
-
-                            row.append(icon, sel, rm);
-                            wrap.appendChild(row);
-                        });
-                    })();
-                    </script>
+                        }, $all_pair_recipes))), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
+                    <script src="/admin/assets/recipe-pairings.js" defer></script>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4" id="schemaFieldGrid">
 
