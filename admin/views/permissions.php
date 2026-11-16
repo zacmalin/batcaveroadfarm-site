@@ -70,7 +70,6 @@ if (!empty($inspect_role)) {
         <?php if (!empty($inspect_role)): ?>
 
         <!-- ── SECTIONED PERMISSION MATRIX ── -->
-        <?php foreach ($permission_sections as $sec_key => $sec): ?>
         <style>
 .permission-group { border-color: #d8d0c3; border-radius: 10px; }
 .permission-heading { background: #f5f1e9; }
@@ -82,6 +81,8 @@ if (!empty($inspect_role)) {
 .permission-heading::-webkit-details-marker { display: none; }
 .permission-group[open] .permission-chevron { transform: rotate(180deg); }
 </style>
+        <?php foreach ($permission_sections as $sec_key => $sec): ?>
+        
 <details name="permission-groups" class="permission-group bg-white border border-stone-200 rounded shadow-sm overflow-hidden">
             <summary class="permission-heading text-stone-800 px-5 py-3 flex items-center gap-2 cursor-pointer">
                 <span class="text-base"><?= $sec['icon'] ?></span>
