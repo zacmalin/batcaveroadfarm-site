@@ -37,31 +37,31 @@ $curRec = (string)($edit['recurrence'] ?? 'none');
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="md:col-span-2">
-        <label class="block text-xs font-semibold text-stone-600 mb-1">Title *</label>
-        <input type="text" name="title" required value="<?= $v('title') ?>" class="w-full p-2 border border-stone-300 rounded bg-stone-50">
+        <label for="ev-title" class="block text-xs font-semibold text-stone-600 mb-1">Title *</label>
+        <input type="text" id="ev-title" name="title" required value="<?= $v('title') ?>" class="w-full p-2 border border-stone-300 rounded bg-stone-50">
       </div>
       <div>
-        <label class="block text-xs font-semibold text-stone-600 mb-1">Start *</label>
-        <input type="datetime-local" name="start_datetime" required value="<?= $dtv('start_datetime') ?>" class="w-full p-2 border border-stone-300 rounded bg-stone-50">
+        <label for="ev-start-datetime" class="block text-xs font-semibold text-stone-600 mb-1">Start *</label>
+        <input type="datetime-local" id="ev-start-datetime" name="start_datetime" required value="<?= $dtv('start_datetime') ?>" class="w-full p-2 border border-stone-300 rounded bg-stone-50">
       </div>
       <div>
-        <label class="block text-xs font-semibold text-stone-600 mb-1">End (optional)</label>
-        <input type="datetime-local" name="end_datetime" value="<?= $dtv('end_datetime') ?>" class="w-full p-2 border border-stone-300 rounded bg-stone-50">
+        <label for="ev-end-datetime" class="block text-xs font-semibold text-stone-600 mb-1">End (optional)</label>
+        <input type="datetime-local" id="ev-end-datetime" name="end_datetime" value="<?= $dtv('end_datetime') ?>" class="w-full p-2 border border-stone-300 rounded bg-stone-50">
       </div>
       <div class="flex items-center gap-2">
         <input type="checkbox" id="ev-allday" name="all_day" value="1" <?= !empty($edit['all_day']) ? 'checked' : '' ?>>
         <label for="ev-allday" class="text-sm text-stone-600">All-day event</label>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-stone-600 mb-1">Recurrence</label>
-        <select id="ev-recurrence" name="recurrence" class="w-full p-2 border border-stone-300 rounded bg-stone-50" onchange="bcrfRecToggle()">
+        <label for="ev-recurrence" class="block text-xs font-semibold text-stone-600 mb-1">Recurrence</label>
+        <select id="ev-recurrence" id="ev-recurrence" name="recurrence" class="w-full p-2 border border-stone-300 rounded bg-stone-50">
           <?php foreach (['none'=>'One-time','range'=>'Date range (season)','weekly'=>'Weekly','annual'=>'Annual'] as $rv=>$rl): ?>
           <option value="<?= $rv ?>" <?= $curRec===$rv?'selected':'' ?>><?= $rl ?></option>
           <?php endforeach; ?>
         </select>
       </div>
 
-      <div id="ev-weekdays" class="md:col-span-2" style="<?= $curRec==='weekly'?'':'display:none' ?>">
+      <div id="ev-weekdays" class="md:col-span-2" <?= $curRec==='weekly' ? '' : 'hidden' ?>>
         <label class="block text-xs font-semibold text-stone-600 mb-1">Repeats on</label>
         <div class="flex flex-wrap gap-3">
           <?php foreach ($dows as $i=>$dn): ?>
@@ -69,13 +69,13 @@ $curRec = (string)($edit['recurrence'] ?? 'none');
           <?php endforeach; ?>
         </div>
       </div>
-      <div id="ev-until" class="md:col-span-2" style="<?= in_array($curRec,['weekly','annual'],true)?'':'display:none' ?>">
-        <label class="block text-xs font-semibold text-stone-600 mb-1">Repeats until (optional series end)</label>
-        <input type="date" name="recur_until" value="<?= $v('recur_until') ?>" class="w-full md:w-64 p-2 border border-stone-300 rounded bg-stone-50">
+      <div id="ev-until" class="md:col-span-2" <?= in_array($curRec,['weekly','annual'],true) ? '' : 'hidden' ?>>
+        <label for="ev-recur-until" class="block text-xs font-semibold text-stone-600 mb-1">Repeats until (optional series end)</label>
+        <input type="date" id="ev-recur-until" name="recur_until" value="<?= $v('recur_until') ?>" class="w-full md:w-64 p-2 border border-stone-300 rounded bg-stone-50">
       </div>
       <div class="md:col-span-2">
-        <label class="block text-xs font-semibold text-stone-600 mb-1">Schedule note (shown to visitors, e.g. "Every Saturday in October")</label>
-        <input type="text" name="recurrence_note" value="<?= $v('recurrence_note') ?>" class="w-full p-2 border border-stone-300 rounded bg-stone-50">
+        <label for="ev-recurrence-note" class="block text-xs font-semibold text-stone-600 mb-1">Schedule note (shown to visitors, e.g. "Every Saturday in October")</label>
+        <input type="text" id="ev-recurrence-note" name="recurrence_note" value="<?= $v('recurrence_note') ?>" class="w-full p-2 border border-stone-300 rounded bg-stone-50">
       </div>
 
       <div class="flex items-center gap-2">
@@ -83,20 +83,20 @@ $curRec = (string)($edit['recurrence'] ?? 'none');
         <label for="ev-free" class="text-sm text-stone-600">Free event</label>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-stone-600 mb-1">Price (if not free)</label>
-        <input type="number" step="0.01" min="0" name="price" value="<?= $v('price') ?>" class="w-full p-2 border border-stone-300 rounded bg-stone-50">
+        <label for="ev-price" class="block text-xs font-semibold text-stone-600 mb-1">Price (if not free)</label>
+        <input type="number" step="0.01" min="0" id="ev-price" name="price" value="<?= $v('price') ?>" class="w-full p-2 border border-stone-300 rounded bg-stone-50">
       </div>
       <div class="md:col-span-2">
-        <label class="block text-xs font-semibold text-stone-600 mb-1">Image URL (optional)</label>
-        <input type="text" name="image_url" value="<?= $v('image_url') ?>" class="w-full p-2 border border-stone-300 rounded bg-stone-50" placeholder="<?= bcrf_farm_url() ?>/img/...">
+        <label for="ev-image-url" class="block text-xs font-semibold text-stone-600 mb-1">Image URL (optional)</label>
+        <input type="text" id="ev-image-url" name="image_url" value="<?= $v('image_url') ?>" class="w-full p-2 border border-stone-300 rounded bg-stone-50" placeholder="<?= bcrf_farm_url() ?>/img/...">
       </div>
       <div class="md:col-span-2">
-        <label class="block text-xs font-semibold text-stone-600 mb-1">Description</label>
-        <textarea name="description" rows="3" class="w-full p-2 border border-stone-300 rounded bg-stone-50"><?= htmlspecialchars((string)($edit['description'] ?? ''), ENT_QUOTES) ?></textarea>
+        <label for="ev-description" class="block text-xs font-semibold text-stone-600 mb-1">Description</label>
+        <textarea id="ev-description" name="description" rows="3" class="w-full p-2 border border-stone-300 rounded bg-stone-50"><?= htmlspecialchars((string)($edit['description'] ?? ''), ENT_QUOTES) ?></textarea>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-stone-600 mb-1">Status</label>
-        <select name="status" class="w-full p-2 border border-stone-300 rounded bg-stone-50">
+        <label for="ev-status" class="block text-xs font-semibold text-stone-600 mb-1">Status</label>
+        <select id="ev-status" name="status" class="w-full p-2 border border-stone-300 rounded bg-stone-50">
           <option value="published" <?= (($edit['status'] ?? 'published')==='published')?'selected':'' ?>>Published</option>
           <option value="draft" <?= (($edit['status'] ?? '')==='draft')?'selected':'' ?>>Draft</option>
         </select>
@@ -135,7 +135,7 @@ $curRec = (string)($edit['recurrence'] ?? 'none');
             <form method="POST" action="/admin/admin.php?view=events" class="inline" >
               <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
               <input type="hidden" name="event_action" value="delete"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
-              <button type="submit" class="text-red-600 hover:underline">Delete</button>
+              <button type="submit" class="text-red-600 hover:underline" data-confirm="Delete this event? This cannot be undone." data-confirm-danger>Delete</button>
             </form>
           </td>
         </tr>
@@ -145,10 +145,3 @@ $curRec = (string)($edit['recurrence'] ?? 'none');
   </div>
 </div>
 
-<script>
-function bcrfRecToggle(){
-  var r = document.getElementById('ev-recurrence').value;
-  document.getElementById('ev-weekdays').style.display = (r === 'weekly') ? '' : 'none';
-  document.getElementById('ev-until').style.display = (r === 'weekly' || r === 'annual') ? '' : 'none';
-}
-</script>

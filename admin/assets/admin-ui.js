@@ -398,7 +398,22 @@
         if (typeof s.form.requestSubmit === 'function') s.form.requestSubmit(); else s.form.submit();
     });
 
+    // Farm Events: recurrence fields work under the admin CSP (no inline handlers).
+    function initEventRecurrence() {
+        var select = document.getElementById('ev-recurrence');
+        if (!select) return;
+        var weekdays = document.getElementById('ev-weekdays');
+        var until = document.getElementById('ev-until');
+        function update() {
+            if (weekdays) weekdays.hidden = select.value !== 'weekly';
+            if (until) until.hidden = select.value !== 'weekly' && select.value !== 'annual';
+        }
+        select.addEventListener('change', update);
+        update();
+    }
+
     function init() {
+        initEventRecurrence();
         labelTables();
         initMessages();
         Array.prototype.forEach.call(document.querySelectorAll('form[data-autosave]'), function (f) {
