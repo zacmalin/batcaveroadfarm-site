@@ -322,24 +322,35 @@ for ($p = 0; $p < $total_pages; $p++) {
 <?php endforeach; ?>
 
 <!-- Print button bar — visible on screen, hidden in print -->
-<div id="printBar" style="position:fixed;top:0;left:0;right:0;z-index:999;background:#1c1917;color:#fff;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;font-family:Arial,sans-serif;font-size:12px;">
+<div id="printBar" style="position:fixed;top:0;left:0;right:0;z-index:999;background:#1c1917;color:#fff;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;font-family:Arial,sans-serif;font-size:12px;">
     <span style="font-weight:bold;">
         <?= $copies ?> label<?= $copies !== 1 ? 's' : '' ?> — <?= $name_esc ?>
         <?php if ($sku_esc): ?><span style="color:#6ee7b7;margin-left:8px;">SKU: <?= $sku_esc ?></span><?php endif; ?>
     </span>
+    <form method="GET" action="/admin/print_label.php" id="labelOptions" class="no-print" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 10px;">
+        <input type="hidden" name="item_id" value="<?= (int)$item_id ?>">
+        <input type="hidden" name="best_by" value="<?= htmlspecialchars($best_by, ENT_QUOTES) ?>">
+        <label for="labelCopiesInput">Labels</label>
+        <input id="labelCopiesInput" name="copies" type="number" min="1" max="60" required value="<?= (int)$copies ?>" style="width:62px;padding:6px;color:#1c1917;background:#fff;border-radius:4px;">
+        <label for="labelStartInput">Start slot</label>
+        <select id="labelStartInput" name="start_pos" style="padding:6px;color:#1c1917;background:#fff;border-radius:4px;">
+            <?php for ($p = 1; $p <= 6; $p++): ?><option value="<?= $p ?>" <?= $start_pos === $p ? 'selected' : '' ?>><?= $p ?></option><?php endfor; ?>
+        </select>
+        <button type="submit" style="padding:7px 10px;border:1px solid #d6d3d1;border-radius:4px;color:#fff;cursor:pointer;">Update preview</button>
+    </form>
     <button id="printLabelsButton" type="button" style="background:#16a34a;color:#fff;border:none;padding:8px 24px;border-radius:4px;font-weight:bold;font-size:13px;cursor:pointer;letter-spacing:0.05em;">
         🖨 Print Labels
     </button>
 </div>
 <!-- Warnings (not printed): unchecked allergens, unnamed nuts/fish/shellfish, text that doesn't fit -->
-<div id="labelWarnings" class="no-print" style="position:fixed;top:44px;left:0;right:0;z-index:998;font-family:Arial,sans-serif;font-size:12px;">
+<div id="labelWarnings" class="no-print" style="position:relative;z-index:998;font-family:Arial,sans-serif;font-size:12px;">
     <?php foreach ($label_warnings as $w): ?>
     <div style="background:#fde2dd;color:#8b2018;padding:8px 20px;border-bottom:1px solid #f3b8ad;font-weight:bold;">⚠ <?= htmlspecialchars($w) ?></div>
     <?php endforeach; ?>
     <div id="fitWarning" style="display:none;background:#fde2dd;color:#8b2018;padding:8px 20px;border-bottom:1px solid #f3b8ad;font-weight:bold;"></div>
 </div>
 <!-- Spacer so first label isn't hidden under the bar -->
-<div style="height:<?= 44 + 34 * count($label_warnings) ?>px;" class="no-print" id="barSpacer"></div>
+<div style="height:96px;" class="no-print" id="barSpacer"></div>
 
 <script src="/admin/assets/print-label.js" defer></script>
 <style>
