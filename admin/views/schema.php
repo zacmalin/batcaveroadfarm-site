@@ -1646,10 +1646,10 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
             <?php if (in_array($target_table, ['fruits_vegetables', 'baked_goods', 'pantry'])): ?>
                 <div class="border-t pt-4 mt-2">
                     <label class="block font-bold text-stone-700 mb-2 text-xs">Ingredients</label>
-                    <div class="grid grid-cols-3 gap-2 p-3 border border-stone-200 rounded bg-stone-50 max-h-32 overflow-y-auto">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 p-3 border border-stone-200 rounded bg-stone-50 max-h-48 overflow-y-auto">
                         <?php foreach ($all_ingredients as $ing): ?>
-                        <label class="flex items-center space-x-2 text-xxs font-medium cursor-pointer">
-                            <input type="checkbox" name="standalone_ingredients[]"
+                        <label class="flex items-start gap-2 min-w-0 text-xs font-medium cursor-pointer py-1">
+                            <input type="checkbox" class="shrink-0 mt-0.5" name="standalone_ingredients[]"
                                 value="<?= (int)$ing['id'] ?>"
                                 <?= in_array($ing['id'], $active_i_ids) ? 'checked' : '' ?>>
                             <span><?= htmlspecialchars($ing['singular_name']) ?></span>
