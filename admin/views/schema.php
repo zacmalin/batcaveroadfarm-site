@@ -473,7 +473,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                             <button type="button" onclick="toggleAddCategoryForm('recipes')"
                                 class="border border-stone-200 text-stone-500 text-[10px] font-bold px-2 py-1 rounded hover:bg-stone-100">Cancel</button>
                         </div>
-                        <div id="categoriesCheckboxList_recipes" class="grid grid-cols-4 gap-2 p-3 border border-stone-200 rounded bg-stone-50 max-h-24 overflow-y-auto">
+                        <div id="categoriesCheckboxList_recipes" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 p-3 border border-stone-200 rounded bg-stone-50 max-h-24 overflow-y-auto">
                             <?php foreach ($all_categories as $ct): ?>
                             <label class="flex items-center space-x-2 text-xxs font-medium cursor-pointer">
                                 <input type="checkbox" name="categories_matrix[]"
@@ -505,7 +505,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                             <button type="button" onclick="toggleAddCategoryForm('blog')"
                                 class="border border-stone-200 text-stone-500 text-[10px] font-bold px-2 py-1 rounded hover:bg-stone-100">Cancel</button>
                         </div>
-                        <div id="categoriesCheckboxList_blog" class="grid grid-cols-4 gap-2 p-3 border border-stone-200 rounded bg-stone-50 max-h-28 overflow-y-auto">
+                        <div id="categoriesCheckboxList_blog" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 p-3 border border-stone-200 rounded bg-stone-50 max-h-28 overflow-y-auto">
                             <?php foreach (($all_blog_categories ?? []) as $ct): ?>
                             <label class="flex items-center space-x-2 text-xxs font-medium cursor-pointer">
                                 <input type="checkbox" name="categories_matrix[]"
