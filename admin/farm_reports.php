@@ -111,7 +111,7 @@ bcrf_shell_open($titles[$r] . ' — Reports', ['legacy' => true, 'js' => ['repor
 echo '<nav class="rtabs noprint" aria-label="Reports">';
 foreach ($titles as $k => $t) {
     if ($k === 'visitors' && !$admission) continue;
-    echo '<a href="', $h($q(['r' => $k] + ($k === 'month' ? ['month' => $month] : ($k === 'log' ? [] : ['date' => $date])))), '"', $k === $r ? ' aria-current="page"' : '', '>', $h($t), '</a>';
+    echo '<a href="', $h($q(['r' => $k] + ($k === 'month' ? ['month' => $month] : (in_array($k, ['log', 'margin'], true) ? ['from' => $from, 'to' => $to] : ['date' => $date])))), '"', $k === $r ? ' aria-current="page"' : '', '>', $h($t), '</a>';
 }
 echo '</nav>';
 
