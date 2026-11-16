@@ -73,12 +73,12 @@ $sBadge = fn(string $s) => match($s) {
 <!-- Issue pass manually -->
 <details class="bg-white border border-stone-200 rounded-lg mb-6 shadow-sm">
     <summary class="px-5 py-3 cursor-pointer font-semibold text-stone-700 text-sm select-none">+ Issue pass manually (in-person / cash sale)</summary>
-    <form method="POST" action="/admin/admin.php?view=passes" class="p-5 grid grid-cols-2 md:grid-cols-3 gap-4">
+    <form method="POST" action="/admin/admin.php?view=passes" class="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
         <input type="hidden" name="csrf_token"   value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
         <input type="hidden" name="pass_action"  value="issue">
         <div>
-            <label class="block text-xs font-semibold text-stone-500 mb-1">Pass type *</label>
-            <select name="pt_id" required class="w-full p-2 border border-stone-300 rounded bg-stone-50 text-sm">
+            <label for="pass-issue-type" class="block text-xs font-semibold text-stone-500 mb-1">Pass type *</label>
+            <select id="pass-issue-type" name="pt_id" required class="w-full p-2 border border-stone-300 rounded bg-stone-50 text-sm">
                 <option value="">— Select —</option>
                 <?php foreach ($passTypes as $pt): ?>
                 <option value="<?= (int)$pt['id'] ?>"><?= htmlspecialchars($pt['label']) ?> — $<?= number_format((float)$pt['price'],0) ?></option>
@@ -86,29 +86,29 @@ $sBadge = fn(string $s) => match($s) {
             </select>
         </div>
         <div>
-            <label class="block text-xs font-semibold text-stone-500 mb-1">Holder name *</label>
-            <input type="text" name="holder_name" required class="w-full p-2 border border-stone-300 rounded bg-stone-50 text-sm">
+            <label for="pass-issue-holder" class="block text-xs font-semibold text-stone-500 mb-1">Holder name *</label>
+            <input type="text" id="pass-issue-holder" name="holder_name" required class="w-full p-2 border border-stone-300 rounded bg-stone-50 text-sm">
         </div>
         <div>
-            <label class="block text-xs font-semibold text-stone-500 mb-1">Email *</label>
-            <input type="email" name="email" required class="w-full p-2 border border-stone-300 rounded bg-stone-50 text-sm">
+            <label for="pass-issue-email" class="block text-xs font-semibold text-stone-500 mb-1">Email *</label>
+            <input type="email" id="pass-issue-email" name="email" required class="w-full p-2 border border-stone-300 rounded bg-stone-50 text-sm">
         </div>
         <div>
-            <label class="block text-xs font-semibold text-stone-500 mb-1">Phone</label>
-            <input type="tel" name="phone" class="w-full p-2 border border-stone-300 rounded bg-stone-50 text-sm">
+            <label for="pass-issue-phone" class="block text-xs font-semibold text-stone-500 mb-1">Phone</label>
+            <input type="tel" id="pass-issue-phone" name="phone" class="w-full p-2 border border-stone-300 rounded bg-stone-50 text-sm">
         </div>
         <div>
-            <label class="block text-xs font-semibold text-stone-500 mb-1">Payment method</label>
-            <select name="payment_provider" class="w-full p-2 border border-stone-300 rounded bg-stone-50 text-sm">
+            <label for="pass-issue-payment" class="block text-xs font-semibold text-stone-500 mb-1">Payment method</label>
+            <select id="pass-issue-payment" name="payment_provider" class="w-full p-2 border border-stone-300 rounded bg-stone-50 text-sm">
                 <option value="cash">Cash</option>
                 <option value="comp">Complimentary (free)</option>
             </select>
         </div>
         <div>
-            <label class="block text-xs font-semibold text-stone-500 mb-1">Amount collected ($)</label>
-            <input type="number" name="amount_paid" min="0" step="0.01" class="w-full p-2 border border-stone-300 rounded bg-stone-50 text-sm" placeholder="0.00">
+            <label for="pass-issue-amount" class="block text-xs font-semibold text-stone-500 mb-1">Amount collected ($)</label>
+            <input type="number" id="pass-issue-amount" name="amount_paid" min="0" step="0.01" class="w-full p-2 border border-stone-300 rounded bg-stone-50 text-sm" placeholder="0.00">
         </div>
-        <div class="col-span-2 md:col-span-3">
+        <div class="md:col-span-3">
             <button type="submit" class="px-5 py-2 bg-amber-700 text-white rounded text-sm font-semibold hover:bg-amber-800">Issue Pass & Send Email</button>
         </div>
     </form>
@@ -258,45 +258,45 @@ try {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
             <!-- Title -->
             <div class="md:col-span-2">
-                <label class="block text-xs font-semibold text-stone-500 mb-1">Pass title *</label>
-                <input type="text" name="pt[label]" required
+                <label for="pass-type-title" class="block text-xs font-semibold text-stone-500 mb-1">Pass title *</label>
+                <input type="text" id="pass-type-title" name="pt[label]" required
                        value="<?= htmlspecialchars($f['label'], ENT_QUOTES) ?>"
                        placeholder="e.g. Family Pass"
                        class="w-full p-2.5 border border-stone-300 rounded-lg bg-stone-50 text-sm">
             </div>
             <!-- Tagline -->
             <div class="md:col-span-2">
-                <label class="block text-xs font-semibold text-stone-500 mb-1">Tagline <span class="font-normal opacity-60">(shown under title on pass cards)</span></label>
-                <input type="text" name="pt[tagline]"
+                <label for="pass-type-tagline" class="block text-xs font-semibold text-stone-500 mb-1">Tagline <span class="font-normal opacity-60">(shown under title on pass cards)</span></label>
+                <input type="text" id="pass-type-tagline" name="pt[tagline]"
                        value="<?= htmlspecialchars($f['tagline'] ?? '', ENT_QUOTES) ?>"
                        placeholder="e.g. Bring the whole family — unlimited visits all year."
                        class="w-full p-2.5 border border-stone-300 rounded-lg bg-stone-50 text-sm">
             </div>
             <!-- Price -->
             <div>
-                <label class="block text-xs font-semibold text-stone-500 mb-1">Price ($) *</label>
-                <input type="number" name="pt[price]" required min="0" step="0.01"
+                <label for="pass-type-price" class="block text-xs font-semibold text-stone-500 mb-1">Price ($) *</label>
+                <input type="number" id="pass-type-price" name="pt[price]" required min="0" step="0.01"
                        value="<?= number_format((float)$f['price'], 2) ?>"
                        class="w-full p-2.5 border border-stone-300 rounded-lg bg-stone-50 text-sm font-mono">
             </div>
             <!-- Duration -->
             <div>
-                <label class="block text-xs font-semibold text-stone-500 mb-1">Duration (months) <span class="font-normal opacity-60">12 = 1 year</span></label>
-                <input type="number" name="pt[duration_months]" required min="1" max="60"
+                <label for="pass-type-duration" class="block text-xs font-semibold text-stone-500 mb-1">Duration (months) <span class="font-normal opacity-60">12 = 1 year</span></label>
+                <input type="number" id="pass-type-duration" name="pt[duration_months]" required min="1" max="60"
                        value="<?= (int)($f['duration_months'] ?? 12) ?>"
                        class="w-full p-2.5 border border-stone-300 rounded-lg bg-stone-50 text-sm font-mono">
             </div>
             <!-- Max guests -->
             <div>
-                <label class="block text-xs font-semibold text-stone-500 mb-1">Max guests per visit *</label>
-                <input type="number" name="pt[max_guests]" required min="1" max="20"
+                <label for="pass-type-guests" class="block text-xs font-semibold text-stone-500 mb-1">Max guests per visit *</label>
+                <input type="number" id="pass-type-guests" name="pt[max_guests]" required min="1" max="20"
                        value="<?= (int)$f['max_guests'] ?>"
                        class="w-full p-2.5 border border-stone-300 rounded-lg bg-stone-50 text-sm font-mono">
             </div>
             <!-- Sort order -->
             <div>
-                <label class="block text-xs font-semibold text-stone-500 mb-1">Sort order <span class="font-normal opacity-60">lower = shown first</span></label>
-                <input type="number" name="pt[sort_order]" min="0" max="99"
+                <label for="pass-type-sort" class="block text-xs font-semibold text-stone-500 mb-1">Sort order <span class="font-normal opacity-60">lower = shown first</span></label>
+                <input type="number" id="pass-type-sort" name="pt[sort_order]" min="0" max="99"
                        value="<?= (int)$f['sort_order'] ?>"
                        class="w-full p-2.5 border border-stone-300 rounded-lg bg-stone-50 text-sm font-mono">
             </div>
