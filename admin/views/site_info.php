@@ -64,16 +64,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
 @media (prefers-reduced-motion: reduce) { .site-info-chevron { transition: none; } }
 </style>
 <div class="max-w-3xl">
-<script>
-document.querySelectorAll('.site-info-section').forEach(function (section) {
-  section.addEventListener('toggle', function () {
-    if (!section.open) return;
-    document.querySelectorAll('.site-info-section').forEach(function (other) {
-      if (other !== section) other.open = false;
-    });
-  });
-});
-</script>
+
 
     <!-- ── BUSINESS & ADDRESS ── -->
     <details class="<?= $sectionCls ?>">
@@ -313,5 +304,15 @@ document.querySelectorAll('.site-info-section').forEach(function (section) {
 
 <?php require_once __DIR__ . '/layout/vault_picker.php'; ?>
 
+<script>
+document.querySelectorAll('.site-info-section').forEach(function (section) {
+  section.addEventListener('toggle', function () {
+    if (!section.open) return;
+    document.querySelectorAll('.site-info-section').forEach(function (other) {
+      if (other !== section) other.open = false;
+    });
+  });
+});
+</script>
 <script src="/admin/assets/site-info-social.js" defer></script>
 <?php endif; ?>
