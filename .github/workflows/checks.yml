@@ -91,10 +91,6 @@ jobs:
       - name: Admin stylesheet is up to date
         run: |
           cd tools/admin-css && npm ci --no-audit --no-fund && npm run build && cd ../..
-          echo 'BCRF_CONSOLE_CSS_BEGIN'
-          base64 -w0 admin/assets/console.css
-          echo
-          echo 'BCRF_CONSOLE_CSS_END'
           if ! git diff --quiet -- admin/assets/admin.css; then
             echo "::error file=admin/assets/admin.css::admin/assets/admin.css is out of date. Run: cd tools/admin-css && npm ci && npm run build, then commit and upload it."
             exit 1
