@@ -312,12 +312,12 @@ try {
                            value="<?= htmlspecialchars($perk, ENT_QUOTES) ?>"
                            placeholder="e.g. Unlimited visits for 12 months"
                            class="flex-1 p-2 border border-stone-300 rounded bg-stone-50 text-sm">
-                    <button type="button" onclick="this.closest('.perk-row').remove()"
+                    <button type="button" data-perk-remove
                             class="text-stone-400 hover:text-red-500 text-lg leading-none px-1" title="Remove">×</button>
                 </div>
                 <?php endforeach; ?>
             </div>
-            <button type="button" onclick="addPerk()"
+            <button type="button" id="addPerkButton"
                     class="px-3 py-1.5 text-xs rounded border border-stone-300 text-stone-600 hover:bg-stone-50 font-semibold">
                 + Add benefit
             </button>
@@ -340,7 +340,7 @@ try {
                 <input type="checkbox" name="pt[has_limit]" value="1"
                        id="has-limit-cb"
                        <?= !empty($f['founding_qty_limit']) ? 'checked' : '' ?>
-                       onchange="document.getElementById('limit-qty').style.display=this.checked?'':'none'"
+                       
                        class="mt-0.5 w-4 h-4 accent-blue-600">
                 <div class="flex-1">
                     <div class="font-semibold text-sm text-stone-700">Limited quantity</div>
@@ -349,7 +349,7 @@ try {
                                value="<?= (int)($f['founding_qty_limit'] ?? 50) ?>"
                                placeholder="e.g. 50"
                                class="w-full p-1.5 border border-blue-300 rounded bg-white text-sm font-mono"
-                               onclick="event.stopPropagation()">
+                               id="passLimitQuantity">
                         <div class="text-xs text-stone-400 mt-1">Total available</div>
                     </div>
                 </div>
@@ -381,17 +381,7 @@ try {
     </form>
 </div>
 
-<script>
-function addPerk() {
-    var list = document.getElementById('perks-list');
-    var row  = document.createElement('div');
-    row.className = 'flex gap-2 items-center perk-row';
-    row.innerHTML = '<input type="text" name="pt[perks][]" placeholder="e.g. 10% off farmstand purchases" class="flex-1 p-2 border border-stone-300 rounded bg-stone-50 text-sm">'
-                  + '<button type="button" onclick="this.closest(\'.perk-row\').remove()" class="text-stone-400 hover:text-red-500 text-lg leading-none px-1" title="Remove">×</button>';
-    list.appendChild(row);
-    row.querySelector('input').focus();
-}
-</script>
+<script src="/admin/assets/passes-benefits.js" defer></script>
 
 <?php else: ?>
 <a href="?view=passes&create_type=1#pass-types"
