@@ -17,7 +17,10 @@ if (!function_exists('_si_done')) {
     function _si_done(string $msg, string $type = 'success'): void {
         $_SESSION['toast_msg']  = $msg;
         $_SESSION['toast_type'] = $type;
-        header('Location: /admin/admin.php?view=site_info');
+        $section = (string)($_POST['site_info_action'] ?? '');
+        $allowed = ['announcement', 'address', 'phones', 'emails', 'socials', 'hours', 'season'];
+        $fragment = in_array($section, $allowed, true) ? '#site-' . $section : '';
+        header('Location: /admin/admin.php?view=site_info' . $fragment);
         exit;
     }
     // Trim + guarantee valid UTF-8 so downstream json_encode() never returns false.
