@@ -266,13 +266,13 @@ if ($signedIn) {
         <form method="POST" class="mt-3"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="a" value="cancel">
             <button class="text-xs underline text-stone-600">Cancel and go back</button></form>
     <?php else: ?>
-        <p class="mt-4 text-xs"><a class="underline text-stone-600" href="/admin/admin.php">← Back to the console</a></p>
+        <?php if (!$signedIn): ?><p class="mt-4 text-xs"><a class="underline text-stone-600" href="/admin/admin.php">← Back to the console</a></p><?php endif; ?>
     <?php endif; ?>
     <script src="/js/qrcode.min.js"></script>
     <script>try { new QRCode(document.getElementById('qr'), { text: <?= json_encode(bcrf_totp_uri($setupSecret, (string)$me['email'])) ?>, width: 200, height: 200 }); } catch (e) {}</script>
 
 <?php else: /* signed in, two-step on */ ?>
-    <p class="text-xs mb-3"><a class="underline text-stone-600" href="/admin/admin.php">← Back to the console</a></p>
+    
     <h1 class="text-xl font-serif font-bold text-stone-800 mb-1">Two-step sign-in</h1>
     <p class="text-sm text-stone-600 mb-4">On for <?= $h($label) ?> since <?= $h($local($me['totp_enabled_at'])) ?>. Backup codes left: <?= count(json_decode((string)$me['mfa_recovery_json'], true) ?: []) ?>.</p>
     <form method="POST" class="space-y-2 mb-5">
