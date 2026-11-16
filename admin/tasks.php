@@ -281,7 +281,7 @@ $row = function (array $t, bool $showDate = false) use ($h, $card, $prioChip, $s
     $quick = !$closed && !$t['checklist'] && empty($t['form']) && ($t['photo_rule'] ?? 'none') === 'none'
         && empty($t['followup_unticked']) && empty($t['followup_of']) && ($t['related_type'] ?? '') !== 'animal';
     $s = '<div class="' . $card . ' flex items-center gap-2 p-2' . ($closed ? ' opacity-70' : '') . '">';
-    $s .= '<a href="tasks.php?id=' . (int)$t['id'] . '" class="flex flex-1 min-w-0 items-center gap-3 p-1 min-h-12 rounded hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-700">';
+    $s .= '<a href="tasks.php?id=' . (int)$t['id'] . '" class="flex flex-1 min-w-0 items-center gap-3 p-1 min-h-11 rounded hover:bg-stone-50">';
     $s .= '<span class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-base ' . ($closed ? 'bg-emerald-100' : ($t['overdue'] ? 'bg-red-100' : 'bg-stone-100')) . '" aria-hidden="true">'
         . ($t['status'] === 'done' ? '✓' : ($t['status'] === 'skipped' ? '↷' : ($t['status'] === 'cancelled' ? '✕' : ($t['overdue'] ? '!' : '○')))) . '</span>';
     $s .= '<span class="flex-1 min-w-0"><span class="flex flex-wrap items-center gap-1.5">';
@@ -304,7 +304,7 @@ $row = function (array $t, bool $showDate = false) use ($h, $card, $prioChip, $s
         $s .= '<form method="POST" action="tasks.php" class="shrink-0">' . $hidden('set', (int)$t['id'])
             . '<input type="hidden" name="to" value="done"><input type="hidden" name="quick_done" value="1">'
             . '<input type="hidden" name="back" value="tasks.php">'
-            . '<button type="submit" class="min-h-11 px-3 rounded-lg border border-emerald-700 text-emerald-800 bg-white hover:bg-emerald-50 text-sm font-semibold" aria-label="Complete ' . $h($t['title']) . '">Done</button></form>';
+            . '<button type="submit" class="min-h-11 px-3 rounded-lg border border-stone-300 text-emerald-800 bg-white hover:bg-stone-50 text-sm font-semibold" aria-label="Complete ' . $h($t['title']) . '">Done</button></form>';
     }
     return $s . '</div>';
 };
