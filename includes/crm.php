@@ -326,6 +326,7 @@ function bcrf_crm_org_contacts(PDO $pdo, int $orgId): array {
 }
 
 /** Adds a contact by email (making a guest customer for a new email). */
+/** Optional contact phone fills an empty customer number, never replaces an existing one. */
 function bcrf_crm_org_contact_add(PDO $pdo, int $orgId, string $email, string $name, string $role, string $phone = ''): int {
     if (!bcrf_crm_org_get($pdo, $orgId)) throw new BcrfCrmError('That organization is gone.');
     if (!isset(BCRF_CRM_CONTACT_ROLES[$role])) $role = 'booking';
