@@ -2245,10 +2245,20 @@ async function lookupUSDA(ingId) {
             row.className = 'flex items-start justify-between gap-2 bg-white border rounded p-2 text-[10px]';
 
             const info = document.createElement('div');
+            const description = document.createElement('span');
+            description.className = 'font-bold text-stone-800';
+            description.textContent = food.description ?? '';
+            const dataType = document.createElement('span');
+            dataType.className = 'ml-1 text-stone-400';
+            dataType.textContent = food.data_type ?? '';
+            info.append(description, dataType);
             const cals = food.nutrients.calories_per_100g;
-            info.innerHTML = `<span class="font-bold text-stone-800">${food.description}</span>
-                <span class="ml-1 text-stone-400">${food.data_type}</span>
-                ${cals !== null ? `<span class="ml-2 font-mono text-emerald-700">${cals} kcal/100g</span>` : ''}`;
+            if (cals !== null && cals !== undefined) {
+                const calories = document.createElement('span');
+                calories.className = 'ml-2 font-mono text-emerald-700';
+                calories.textContent = String(cals) + ' kcal/100g';
+                info.appendChild(calories);
+            }
 
             const useBtn = document.createElement('button');
             useBtn.type      = 'button';
