@@ -106,7 +106,8 @@
                     const list = document.getElementById('categoriesCheckboxList_' + ctx);
                     if (!list) return;
                     const label = document.createElement('label');
-                    label.className = 'flex items-center space-x-2 text-xxs font-medium cursor-pointer';
+                    label.className = 'text-xxs font-medium cursor-pointer';
+                    label.style.cssText = 'display:grid;grid-template-columns:24px minmax(0,1fr);align-items:center;gap:10px;min-width:0';
                     const cb = document.createElement('input');
                     cb.type    = 'checkbox';
                     cb.name    = 'categories_matrix[]';
@@ -114,6 +115,7 @@
                     cb.checked = true;
                     const span = document.createElement('span');
                     span.textContent = data.name;
+                    span.style.cssText = 'display:block;min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;word-break:break-word';
                     label.append(cb, span);
                     list.appendChild(label);
                 });
