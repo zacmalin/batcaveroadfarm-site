@@ -8,20 +8,20 @@ if ($current_role !== 'administrator') {
 }
 ?>
 
-<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6 print:hidden">
+<div class="flex justify-between items-center mb-6 print:hidden" style="flex-wrap:wrap;gap:12px">
     <h1 class="text-2xl font-bold text-stone-800">Timesheets</h1>
-    <div class="flex flex-wrap gap-2">
+    <div class="space-x-2">
         <button type="button" id="timesheetPrint" class="bg-stone-100 border border-stone-300 px-4 py-2 rounded text-xs font-bold uppercase text-stone-700 hover:bg-stone-200">🖨️ Print Report</button>
         <a href="/admin/handlers/export_timesheets.php" class="bg-emerald-700 text-white px-4 py-2 rounded text-xs font-bold uppercase tracking-wider hover:bg-emerald-800">📊 Export to CSV</a>
     </div>
 </div>
 
 <!-- Search Toolbar -->
-<div class="bg-white border border-stone-200 rounded p-4 sm:p-5 mb-6 shadow-sm print:hidden">
-    <form method="GET" class="flex flex-wrap items-center gap-2">
+<div class="bg-white border border-stone-200 rounded p-5 mb-6 shadow-sm flex justify-between items-center print:hidden">
+    <form method="GET" class="flex gap-2" style="flex-wrap:wrap">
         <input type="hidden" name="view" value="timesheet_admin">
         <label for="timesheetSearch" class="sr-only">Search staff name</label>\n        <input id="timesheetSearch" type="search" name="search_q" value="<?= htmlspecialchars($_GET['search_q'] ?? '') ?>" 
-               placeholder="Search staff name..." class="p-2 border rounded text-xs outline-none focus:border-stone-500 min-w-0 flex-1">
+               placeholder="Search staff name..." class="p-2 border rounded text-xs outline-none focus:border-stone-500">
         <button type="submit" class="bg-amber-700 text-white px-4 py-2 rounded text-xs font-bold uppercase tracking-wider">Search Logs</button>
         <?php if (!empty($_GET['search_q'])): ?>
             <a href="admin.php?view=timesheet_admin" class="bg-stone-200 px-4 py-2 rounded text-xs font-bold uppercase">Clear</a>
@@ -39,7 +39,7 @@ if ($current_role !== 'administrator') {
             <div class="bg-stone-50 text-stone-800 border-b border-stone-200 p-3 font-bold text-xs uppercase tracking-wider">
                 Week Ending: <?= htmlspecialchars($week) ?>
             </div>
-            <div class="overflow-x-auto">\n            <table class="w-full min-w-[700px] text-xs text-center border-collapse">
+            <div class="overflow-x-auto">\n            <table class="w-full text-xs text-center border-collapse" style="min-width:700px">
                 <thead>
                     <tr class="bg-stone-50 border-b border-stone-200">
                         <th class="p-3 text-left">Employee Name (ID)</th>
