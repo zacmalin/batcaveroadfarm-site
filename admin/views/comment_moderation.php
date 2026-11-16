@@ -13,8 +13,8 @@ $total_unmoderated = count($mod_comments);
     </div>
     <?php if ($total_unmoderated > 0): ?>
     <div class="flex gap-2 text-xs font-bold uppercase tracking-wider">
-        <button type="button" onclick="selectAll(true)"  class="border border-stone-200 px-3 py-1.5 rounded bg-stone-50 hover:bg-stone-200">Select All</button>
-        <button type="button" onclick="selectAll(false)" class="border border-stone-200 px-3 py-1.5 rounded bg-stone-50 hover:bg-stone-200">Select None</button>
+        <button type="button" data-mod-select-all  class="border border-stone-200 px-3 py-1.5 rounded bg-stone-50 hover:bg-stone-200">Select All</button>
+        <button type="button" data-mod-select-none class="border border-stone-200 px-3 py-1.5 rounded bg-stone-50 hover:bg-stone-200">Select None</button>
     </div>
     <?php endif; ?>
 </div>
@@ -32,13 +32,13 @@ $total_unmoderated = count($mod_comments);
 
     <!-- Action bar — sticky at top -->
     <div class="sticky top-0 z-10 bg-stone-100/95 backdrop-blur-sm border-b border-stone-200 px-4 py-3 mb-4 flex justify-between items-center print:hidden">
-        <span id="selectedCount" class="text-xs text-stone-500 font-bold">0 selected</span>
+        <span id="selectedCount" role="status" aria-live="polite" class="text-xs text-stone-500 font-bold">0 selected</span>
         <div class="flex gap-2">
-            <button type="button" onclick="submitAction('approve')"
+            <button type="button" data-mod-action="approve"
                 class="bg-emerald-700 hover:bg-emerald-900 text-white font-bold uppercase tracking-wider px-5 py-2 rounded text-xs shadow-sm transition">
                 ✅ Approve Selected
             </button>
-            <button type="button" onclick="submitAction('reject')"
+            <button type="button" data-mod-action="reject"
                 class="bg-red-700 hover:bg-red-900 text-white font-bold uppercase tracking-wider px-5 py-2 rounded text-xs shadow-sm transition">
                 ❌ Reject Selected
             </button>
@@ -63,7 +63,7 @@ $total_unmoderated = count($mod_comments);
                     <input type="checkbox" name="comment_ids[]"
                         value="<?= (int)$comment['id'] ?>"
                         class="mod-cb mt-1 w-4 h-4 shrink-0 cursor-pointer"
-                        onchange="updateCount()">
+                        >
 
                     <div class="flex-1 min-w-0">
                         <!-- Header row -->
@@ -113,27 +113,4 @@ $total_unmoderated = count($mod_comments);
 
 <?php endif; ?>
 
-<script>
-function selectAll(state) {
-    document.querySelectorAll('.mod-cb').forEach(cb => cb.checked = state);
-    updateCount();
-}
-
-function updateCount() {
-    const n = document.querySelectorAll('.mod-cb:checked').length;
-    document.getElementById('selectedCount').textContent = n + ' selected';
-}
-
-async function submitAction(action) {
-    const checked = document.querySelectorAll('.mod-cb:checked');
-    if (checked.length === 0) {
-        await sysAlert('Select at least one comment first.', 'Nothing Selected', 'ℹ️');
-        return;
-    }
-    const label = action === 'approve' ? 'approve' : 'reject';
-    const confirmed = await sysConfirm(`${label.charAt(0).toUpperCase() + label.slice(1)} <strong>${checked.length}</strong> comment${checked.length !== 1 ? 's' : ''}?`, 'Confirm Action', action === 'reject' ? '❌' : '✅', label.charAt(0).toUpperCase() + label.slice(1), action === 'reject');
-    if (!confirmed) return;
-    document.getElementById('modAction').value = action;
-    document.getElementById('modForm').submit();
-}
-</script>
+<script src="/admin/assets/comment-moderation.js" defer></script>
