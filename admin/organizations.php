@@ -47,7 +47,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         } elseif (!$id || !bcrf_crm_org_get($pdo, $id)) {
             throw new BcrfCrmError('That organization is gone.');
         } elseif ($act === 'contact_add') {
-            bcrf_crm_org_contact_add($pdo, $id, (string)($_POST['email'] ?? ''), (string)($_POST['name'] ?? ''), (string)($_POST['role'] ?? 'booking'), (string)($_POST['phone'] ?? ''));
+            bcrf_crm_org_contact_add($pdo, $id, (string)($_POST['email'] ?? ''), (string)($_POST['name'] ?? ''), (string)($_POST['role'] ?? 'booking')), (string)($_POST['phone'] ?? ''));
             $_SESSION['org_flash'] = ['ok', 'Contact added.'];
         } elseif ($act === 'contact_remove') {
             bcrf_crm_org_contact_remove($pdo, $id, (int)($_POST['customer_id'] ?? 0));
