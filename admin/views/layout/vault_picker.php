@@ -22,20 +22,20 @@ if (defined('BCRF_VAULT_PICKER_RENDERED')) return;
 define('BCRF_VAULT_PICKER_RENDERED', 1);
 ?>
 <!-- ── VAULT PICKER MODAL ── -->
-<div id="vaultPickerModal" class="fixed inset-0 z-[998] hidden" aria-modal="true">
+<div id="vaultPickerModal" class="fixed inset-0 z-[998] hidden" role="dialog" aria-modal="true" aria-labelledby="vaultPickerTitle">
     <div id="vaultPickerBackdrop" class="absolute inset-0 bg-stone-900/70 backdrop-blur-sm"></div>
     <div class="absolute inset-0 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl flex flex-col" style="max-height:88vh;">
             <div class="flex justify-between items-center px-5 py-4 border-b shrink-0">
                 <div>
-                    <h3 class="font-bold text-stone-800 font-serif text-lg">Media Vault</h3>
-                    <p id="vaultPickerCount" class="text-xs text-stone-400 font-mono mt-0.5">Click an image to use it</p>
+                    <h3 id="vaultPickerTitle" class="font-bold text-stone-800 font-serif text-lg">Media Vault</h3>
+                    <p id="vaultPickerCount" role="status" aria-live="polite" class="text-xs text-stone-400 font-mono mt-0.5">Click an image to use it</p>
                 </div>
-                <button type="button" onclick="closeVaultPicker()"
+                <button type="button" aria-label="Close Media Vault" onclick="closeVaultPicker()"
                     class="text-stone-400 hover:text-stone-700 text-2xl font-bold leading-none">&times;</button>
             </div>
             <div class="px-5 py-3 border-b shrink-0 space-y-2">
-                <input type="search" placeholder="Filter by filename..."
+                <input type="search" aria-label="Filter Media Vault images by filename" placeholder="Filter by filename..."
                     oninput="filterVaultImages(this.value)"
                     class="w-full p-2 border rounded bg-stone-50 text-xs font-mono outline-none">
                 <div id="vaultPickerTabs" class="flex flex-wrap gap-1.5"></div>
@@ -47,7 +47,7 @@ define('BCRF_VAULT_PICKER_RENDERED', 1);
                 style="display:none;padding:0.5rem 1rem;border-top:1px solid #e7e5e4;align-items:center;justify-content:space-between;gap:0.5rem;flex-shrink:0;">
                 <button type="button" id="vaultPagerPrev" onclick="vaultChangePage(-1)"
                     style="border:1px solid #d6d3d1;border-radius:4px;padding:4px 12px;font-size:11px;font-family:monospace;font-weight:700;cursor:pointer;background:#fafaf9;">← Prev</button>
-                <span id="vaultPagerInfo" style="font-size:11px;font-family:monospace;color:#78716c;"></span>
+                <span id="vaultPagerInfo" aria-live="polite" style="font-size:11px;font-family:monospace;color:#78716c;"></span>
                 <button type="button" id="vaultPagerNext" onclick="vaultChangePage(1)"
                     style="border:1px solid #d6d3d1;border-radius:4px;padding:4px 12px;font-size:11px;font-family:monospace;font-weight:700;cursor:pointer;background:#fafaf9;">Next →</button>
             </div>
