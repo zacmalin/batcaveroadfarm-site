@@ -240,7 +240,7 @@ $imgTools = (function (): array {
 
 </div></section>
 <section class="health-section" id="errors"><h2><button type="button" class="health-toggle" aria-expanded="false" aria-controls="health-errors">PHP errors (last <?= $days ?> day<?= $days === 1 ? '' : 's' ?>) <span aria-hidden="true">⌄</span></button></h2><div id="health-errors" class="health-panel" hidden>
-<p class="sub tabs">Show: <?php foreach ([1, 7, 30] as $d): ?><a href="?days=<?= $d ?>"<?= $d === $days ? ' style="font-weight:800"' : '' ?>><?= $d ?> day<?= $d === 1 ? '' : 's' ?></a><?php endforeach; ?>
+<p class="sub tabs">Show: <?php foreach ([1, 7, 30] as $d): ?><a href="?days=<?= $d ?>#errors"<?= $d === $days ? ' style="font-weight:800"' : '' ?>><?= $d ?> day<?= $d === 1 ? '' : 's' ?></a><?php endforeach; ?>
  · <?= $total ?> line<?= $total === 1 ? '' : 's' ?> from <?= count($logFiles) ?> log file<?= count($logFiles) === 1 ? '' : 's' ?>. Same error repeated = one row with a count.</p>
 <?php if (!$groups): ?>
   <div class="card">No PHP errors logged in this period. 🎉</div>
