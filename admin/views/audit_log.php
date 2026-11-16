@@ -79,7 +79,7 @@ $actorIcon = ['agent' => '🤖 ', 'system' => '⚙️ ', 'anonymous' => '❔ ', 
 </div>
 
 <!-- Quick filters: one swipeable row on phones (mobile tidy, Nov 5, 2026) -->
-<div class="flex gap-2 mb-3 overflow-x-auto pb-1 -mx-1 px-1 md:justify-end">
+<div class="flex gap-2 mb-3 overflow-x-auto pb-1 -mx-1 px-1">
     <a href="?view=audit_log" class="inline-flex items-center shrink-0 border border-stone-200 px-3 min-h-9 md:min-h-8 rounded-full uppercase tracking-wider text-[10px] font-bold <?= ($filter_table === '' && $filter_action === '' && $filter_user === '') ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 hover:bg-stone-100' ?>">All</a>
     <a href="?view=audit_log&amp;tbl=staff_login" class="inline-flex items-center shrink-0 border border-stone-200 px-3 min-h-9 md:min-h-8 rounded-full uppercase tracking-wider text-[10px] font-bold <?= $filter_table === 'staff_login' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 hover:bg-stone-100' ?>">Staff logins</a>
     <a href="?view=audit_log&amp;tbl=site_info" class="inline-flex items-center shrink-0 border border-stone-200 px-3 min-h-9 md:min-h-8 rounded-full uppercase tracking-wider text-[10px] font-bold <?= $filter_table === 'site_info' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 hover:bg-stone-100' ?>">Site Info</a>
