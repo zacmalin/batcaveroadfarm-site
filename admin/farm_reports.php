@@ -126,7 +126,7 @@ if ($r === 'daily') {
     $d = bcrf_rpt_days($pdo, $date, $date)[$date];
     $dLabel = date('l, F j, Y', strtotime($date));
     echo '<h1>Daily sales</h1><p><b>', $h(bcrf_farm_name()), '</b> · ', $h($dLabel), $date === $today ? ' (so far)' : '', '</p>';
-    echo '<div class="rbar noprint"><a class="btn sm" href="', $h($q(['r' => 'daily', 'date' => $step($date, -1)])), '">‹ Prev</a>',
+    echo '<div class="rbar noprint report-toolbar"><a class="btn sm" href="', $h($q(['r' => 'daily', 'date' => $step($date, -1)])), '">‹ Prev</a>',
          $date < $today ? '<a class="btn sm" href="' . $h($q(['r' => 'daily', 'date' => $step($date, 1)])) . '">Next ›</a>' : '',
          $dateForm('date', $date), '<button type="button" class="btn sm" id="btnPrint">Print</button>', $csvLink(['r' => 'daily', 'date' => $date, 'csv' => 1]), '</div>';
 
@@ -219,7 +219,7 @@ if ($r === 'month') {
     $tot = bcrf_rpt_total($days);
     $prevM = date('Y-m', strtotime($month . '-01 -1 month')); $nextM = date('Y-m', strtotime($month . '-01 +1 month'));
     echo '<h1>Monthly sales & tax</h1><p><b>', $h(bcrf_farm_name()), '</b> · ', $h(date('F Y', strtotime($month . '-01'))), $b === $today ? ' (so far)' : '', '</p>';
-    echo '<div class="rbar noprint"><a class="btn sm" href="', $h($q(['r' => 'month', 'month' => $prevM])), '">‹ Prev</a>',
+    echo '<div class="rbar noprint report-toolbar"><a class="btn sm" href="', $h($q(['r' => 'month', 'month' => $prevM])), '">‹ Prev</a>',
          $nextM <= substr($today, 0, 7) ? '<a class="btn sm" href="' . $h($q(['r' => 'month', 'month' => $nextM])) . '">Next ›</a>' : '',
          $dateForm('month', $month, 'month'), '<button type="button" class="btn sm" id="btnPrint">Print</button></div>';
 
@@ -302,7 +302,7 @@ if ($r === 'visitors') {
     $v = bcrf_rpt_visitors($pdo, $date);
     $o = $v['occupancy'];
     echo '<h1>Visitors</h1><p><b>', $h(bcrf_farm_name()), '</b> · ', $h(date('l, F j, Y', strtotime($date))), $date === $today ? ' (so far)' : '', '</p>';
-    echo '<div class="rbar noprint"><a class="btn sm" href="', $h($q(['r' => 'visitors', 'date' => $step($date, -1)])), '">‹ Prev</a>',
+    echo '<div class="rbar noprint report-toolbar"><a class="btn sm" href="', $h($q(['r' => 'visitors', 'date' => $step($date, -1)])), '">‹ Prev</a>',
          $date < $today ? '<a class="btn sm" href="' . $h($q(['r' => 'visitors', 'date' => $step($date, 1)])) . '">Next ›</a>' : '',
          $dateForm('date', $date), '<button type="button" class="btn sm" id="btnPrint">Print</button>',
          $csvLink(['r' => 'visitors', 'date' => $date, 'csv' => 'hours'], 'By hour CSV'), $csvLink(['r' => 'visitors', 'date' => $date, 'csv' => 1], 'Check-ins CSV'), '</div>';
