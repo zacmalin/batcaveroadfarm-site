@@ -1979,29 +1979,61 @@ function initRiCombo(combo){
     const search = combo.querySelector('.ri-search');
     const dd     = combo.querySelector('.ri-dropdown');
     let items = [], active = -1;
-    function close(){ dd.style.display='none'; active=-1; }
+    const listId = 'ri-options-' + (++window.riComboSequence);
+    dd.id = listId;
+    dd.setAttribute('role', 'listbox');
+    search.setAttribute('role', 'combobox');
+    search.setAttribute('aria-label', 'Ingredient or sub-recipe');
+    search.setAttribute('aria-autocomplete', 'list');
+    search.setAttribute('aria-controls', listId);
+    search.setAttribute('aria-expanded', 'false');
+    function close(){
+        dd.style.display='none'; active=-1;
+        search.setAttribute('aria-expanded', 'false');
+        search.removeAttribute('aria-activedescendant');
+    }
     function render(q){
-        items = riFilter(q); active = -1; dd.innerHTML='';
-        if(!items.length){ const e=document.createElement('div'); e.className='ri-empty'; e.textContent='No match — pick from the list'; dd.appendChild(e); return; }
-        items.forEach((o)=>{
+        items = riFilter(q); active = -1; dd.replaceChildren();
+        search.removeAttribute('aria-activedescendant');
+        if(!items.length){
+            const e=document.createElement('div'); e.className='ri-empty';
+            e.textContent='No match — pick from the list'; e.setAttribute('role','status');
+            dd.appendChild(e); return;
+        }
+        items.forEach((o,i)=>{
             const d=document.createElement('div');
+            d.id=listId+'-'+i;
+            d.setAttribute('role','option');
+            d.setAttribute('aria-selected','false');
             d.className='ri-item'+(o.ref.indexOf('rec:')===0?' ri-item-recipe':'');
             d.textContent=o.label;
             d.addEventListener('mousedown', ev=>{ ev.preventDefault(); pick(o); });
             dd.appendChild(d);
         });
     }
-    function open(){ render(search.value); dd.style.display='block'; }
+    function open(){
+        render(search.value); dd.style.display='block';
+        search.setAttribute('aria-expanded','true');
+    }
     function pick(o){ hidden.value=o.ref; search.value=o.label; close(); }
-    function hi(){ [...dd.children].forEach((c,i)=>c.classList.toggle('ri-active',i===active)); }
+    function hi(){
+        [...dd.children].forEach((c,i)=>{
+            c.classList.toggle('ri-active',i===active);
+            c.setAttribute('aria-selected',String(i===active));
+        });
+        if(active>=0 && items[active]){
+            search.setAttribute('aria-activedescendant',listId+'-'+active);
+            dd.children[active].scrollIntoView({block:'nearest'});
+        } else search.removeAttribute('aria-activedescendant');
+    }
     search.addEventListener('focus', open);
     search.addEventListener('input', ()=>{ hidden.value=''; open(); });
     search.addEventListener('keydown', e=>{
         if(dd.style.display==='none') return;
-        if(e.key==='ArrowDown'){ e.preventDefault(); active=Math.min(active+1,items.length-1); hi(); }
-        else if(e.key==='ArrowUp'){ e.preventDefault(); active=Math.max(active-1,0); hi(); }
+        if(e.key==='ArrowDown' && items.length){ e.preventDefault(); active=Math.min(active+1,items.length-1); hi(); }
+        else if(e.key==='ArrowUp' && items.length){ e.preventDefault(); active=Math.max(active-1,0); hi(); }
         else if(e.key==='Enter'){ if(active>=0&&items[active]){ e.preventDefault(); pick(items[active]); } }
-        else if(e.key==='Escape'){ close(); }
+        else if(e.key==='Escape'){ e.preventDefault(); close(); }
     });
     search.addEventListener('blur', ()=>{ setTimeout(()=>{ close(); if(!hidden.value) search.value=''; }, 160); });
 }
