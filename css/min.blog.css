@@ -13,7 +13,7 @@
 .journal-card:hover{transform:translateY(-4px);box-shadow:0 14px 30px rgba(0,0,0,.55)}
 .journal-card .thumb{width:100%;height:180px;object-fit:cover;display:block;border-bottom:2px solid var(--gold)}
 .journal-card .card-inner{padding:18px 20px}
-.journal-date{font-family:'Lora',serif;font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--brown-mid)}
+.journal-date{font-family:'Lora',serif;font-size:.8rem;color:var(--brown-mid);margin:0 0 8px}
 .journal-card h2{font-family:'Playfair Display',serif;font-size:1.2rem;line-height:1.25;margin:6px 0 8px}
 .journal-card h2 a{color:var(--brown-dark)}
 .journal-card h2 a:hover{color:var(--red-barn)}

@@ -121,8 +121,8 @@ if ($__li) {
             <img class="thumb" src="<?= htmlspecialchars($img) ?>"<?= bcrf_img_attrs($img) ?> alt="<?= htmlspecialchars($art['title']) ?>" loading="lazy" decoding="async">
           <?php endif; ?>
           <div class="card-inner">
-            <span class="journal-date"><?= $when ? date('F j, Y', strtotime($when)) : '' ?></span>
             <h2><a href="<?= $bUrl ?>"><?= htmlspecialchars($art['title']) ?></a></h2>
+            <?php if ($when): ?><p class="journal-date"><?= date('F j, Y', strtotime($when)) ?></p><?php endif; ?>
             <p class="excerpt"><?= htmlspecialchars($excerpt) ?></p>
             <?php if ($catNames): ?>
               <div class="journal-cats">

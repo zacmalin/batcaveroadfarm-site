@@ -167,11 +167,11 @@ require_once '../../includes/header.php';
         <img class="ad-photo img-zoom" src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($imgAlt) ?>" fetchpriority="high" decoding="async">
       <?php endif; ?>
       <div class="ad-info">
+        <h1><?= htmlspecialchars($name) ?></h1>
         <div class="ad-pills">
           <?php if (!empty($animal['classification'])): ?><span class="ad-pill"><?= htmlspecialchars($animal['classification']) ?></span><?php endif; ?>
           <?php if ($breedName !== ''): ?><a class="ad-pill ad-pill-link" href="<?= htmlspecialchars($breedHref) ?>"><?= htmlspecialchars($breedName) ?></a><?php endif; ?>
         </div>
-        <h1><?= htmlspecialchars($name) ?></h1>
         <?php if ($displayTag !== ''): ?><p class="ad-tagline"><?= htmlspecialchars($displayTag) ?></p><?php endif; ?>
         <?php if ($ageLine !== null): ?><?php if ($ageLine !== ''): ?><p class="ad-facts"><?= htmlspecialchars($ageLine) ?></p><?php endif; ?>
         <?php elseif ($age !== ''): ?><p class="ad-facts"><?= htmlspecialchars($age) ?> old</p><?php endif; ?>

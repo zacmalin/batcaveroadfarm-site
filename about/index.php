@@ -43,40 +43,40 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
               <div class="timeline-item">
                 <div class="timeline-dot" aria-hidden="true">🏔️</div>
                 <div class="timeline-content">
-                  <div class="timeline-year">1996 — Casey Arrives</div>
                   <h4>Old Fort Becomes Home</h4>
+                  <div class="timeline-year">1996 — Casey Arrives</div>
                   <p>Casey plants roots in Old Fort and begins building a life in the Blue Ridge Mountains. The land has a way of getting into people.</p>
                 </div>
               </div>
               <div class="timeline-item">
                 <div class="timeline-dot" aria-hidden="true">🐐</div>
                 <div class="timeline-content">
-                  <div class="timeline-year">2024 — Zac Arrives. So Do the Goats.</div>
                   <h4>The Animals Take Over</h4>
+                  <div class="timeline-year">2024 — Zac Arrives. So Do the Goats.</div>
                   <p>Zac moves to Old Fort. The goats arrive. The donkey — already resident and already opinionated — adjusts reluctantly. Pigs follow. Then, in three days, seven baby goats are born and everything becomes very real very fast.</p>
                 </div>
               </div>
               <div class="timeline-item">
                 <div class="timeline-dot" aria-hidden="true">🎟</div>
                 <div class="timeline-content">
-                  <div class="timeline-year">2024 — The Petting Zoo Opens</div>
                   <h4>Sharing the Animals</h4>
+                  <div class="timeline-year">2024 — The Petting Zoo Opens</div>
                   <p>When you have this many animals who want to be around people, keeping them to yourself feels wrong. The petting zoo opens and the community shows up immediately.</p>
                 </div>
               </div>
               <div class="timeline-item">
                 <div class="timeline-dot" aria-hidden="true">🥕</div>
                 <div class="timeline-content">
-                  <div class="timeline-year">2025 — The Farm Grows</div>
                   <h4>Farmstand &amp; Thrift Shop</h4>
+                  <div class="timeline-year">2025 — The Farm Grows</div>
                   <p>The farmstand opens to share what the land is producing. The thrift shop follows — a little unexpected, a little perfect. Both find their footing quickly.</p>
                 </div>
               </div>
               <div class="timeline-item">
                 <div class="timeline-dot" aria-hidden="true">⭐</div>
                 <div class="timeline-content">
-                  <div class="timeline-year">Today</div>
                   <h4>Still Figuring It Out</h4>
+                  <div class="timeline-year">Today</div>
                   <p>We're still figuring out the rest as we go — which, honestly, feels like exactly the right way to run a farm. We're grateful for every visitor, neighbor, and friend who makes this place what it is.</p>
                 </div>
               </div>

@@ -103,7 +103,6 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.ph
                   <article class="home-blog-card">
                     <?php if ($bImg !== ''): ?><a class="hbc-imgwrap" href="<?= htmlspecialchars($bUrl) ?>"><img src="<?= htmlspecialchars($bImg) ?>"<?= bcrf_img_attrs($bImg) ?> alt="<?= htmlspecialchars($latestPost['title']) ?>" loading="lazy" decoding="async"></a><?php endif; ?>
                     <div class="hbc-body">
-                      <span class="home-eyebrow">From the Journal</span>
                       <h3><a href="<?= htmlspecialchars($bUrl) ?>"><?= htmlspecialchars($latestPost['title']) ?></a></h3>
                       <?php if ($bDate): ?><p class="hbc-date"><?= htmlspecialchars($bDate) ?></p><?php endif; ?>
                       <?php if ($bExc): ?><p class="hbc-excerpt"><?= htmlspecialchars($bExc) ?></p><?php endif; ?>
@@ -118,8 +117,8 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.ph
                   <div class="home-recipe-col">
                     <?php
                     $rows = [];
-                    if ($latestRecipe) { $rows[] = ['Latest Recipe', $latestRecipe]; }
-                    if ($favRecipe && (!$latestRecipe || $favRecipe['id'] != $latestRecipe['id'])) { $rows[] = ['Farm Favorite', $favRecipe]; }
+                    if ($latestRecipe) { $rows[] = ['Latest recipe', $latestRecipe]; }
+                    if ($favRecipe && (!$latestRecipe || $favRecipe['id'] != $latestRecipe['id'])) { $rows[] = ['Farm favorite', $favRecipe]; }
                     foreach ($rows as $row):
                         $label = $row[0]; $r = $row[1];
                         $ri = bcrf_img_thumb($homeNorm($homeRecImg($r)), 400);   // shown 132px wide: 400px copy covers 2-3x screens (was 640; homepage LCP, Nov 13 2026)
@@ -129,9 +128,8 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/includes/farm.ph
                       <a class="home-recipe-row" href="<?= htmlspecialchars($rUrl) ?>">
                         <?php if ($ri !== ''): ?><img src="<?= htmlspecialchars($ri) ?>"<?= bcrf_img_attrs($ri) ?> alt="" loading="lazy" decoding="async"><?php endif; ?>
                         <div class="hrr-body">
-                          <span class="home-eyebrow"><?= htmlspecialchars($label) ?></span>
                           <h3><?= htmlspecialchars($r['title']) ?></h3>
-                          <?php if ($mins > 0): ?><p class="hrr-meta"><span aria-hidden="true">⏱️</span> <?= $mins ?> mins</p><?php endif; ?>
+                          <p class="hrr-meta"><?= htmlspecialchars($label) ?><?php if ($mins > 0): ?> · <span aria-hidden="true">⏱️</span> <?= $mins ?> mins<?php endif; ?></p>
                         </div>
                       </a>
                     <?php endforeach; ?>

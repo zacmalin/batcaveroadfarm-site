@@ -141,8 +141,8 @@ if ($price !== null && $price !== '' && is_numeric($price) && (float)$price > 0)
         <img class="item-photo img-zoom" src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($name . ' — Bat Cave Road Farm farm stand in Old Fort, NC') ?>" fetchpriority="high" decoding="async">
       <?php endif; ?>
       <div class="item-info">
-        <a class="item-pill" href="<?= htmlspecialchars($catUrl) ?>"><?= htmlspecialchars($catName) ?></a>
         <h1><?= htmlspecialchars($name) ?></h1>
+        <a class="item-pill" href="<?= htmlspecialchars($catUrl) ?>"><?= htmlspecialchars($catName) ?></a>
         <?php if ($price !== null && $price !== ''): ?>
           <p class="item-price">$<?= number_format((float)$price, 2) ?><?php if ($sizeStr !== ''): ?> <span class="item-per">/ <?= htmlspecialchars($sizeStr) ?></span><?php endif; ?></p>
         <?php elseif ($sizeStr !== ''): ?>

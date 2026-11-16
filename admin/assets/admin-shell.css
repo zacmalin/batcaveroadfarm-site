@@ -58,7 +58,6 @@ html.nav-sheet-open, html.nav-sheet-open body{overflow:hidden}
 
 /* ── Page tabs ── */
 .nav-tabs-wrap{margin:0 0 1rem}
-.nav-tabs-crumb{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#78716c;margin-bottom:.35rem}
 .nav-tabs{display:flex;gap:.25rem;overflow-x:auto;border-bottom:1px solid #d6d3d1;scrollbar-width:none}
 .nav-tabs::-webkit-scrollbar{display:none}
 .nav-tab{position:relative;white-space:nowrap;padding:.5rem .85rem;font-weight:700;font-size:12px;color:#57534e;border-bottom:2px solid transparent;margin-bottom:-1px;text-decoration:none}

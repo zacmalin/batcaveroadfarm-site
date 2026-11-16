@@ -224,9 +224,9 @@ if (!function_exists('bcrf_related_render')) {
                 $h .= '<span class="related-thumb"><img src="' . htmlspecialchars($img) . '"' . bcrf_img_attrs($img) . ' alt="' . htmlspecialchars($c['title']) . '" loading="lazy" decoding="async"></span>';
             }
             $h .= '<span class="related-body">';
-            if ($kind !== '') $h .= '<span class="related-kind">' . htmlspecialchars($kind) . '</span>';
             $h .= '<span class="related-name">' . htmlspecialchars($c['title']) . '</span>';
-            if ($meta !== '') $h .= '<span class="related-meta">' . htmlspecialchars($meta) . '</span>';
+            $metaLine = implode(' · ', array_filter([$kind, $meta], fn($v) => $v !== ''));   // no eyebrow label above the name (Zac, Nov 15 2026)
+            if ($metaLine !== '') $h .= '<span class="related-meta">' . htmlspecialchars($metaLine) . '</span>';
             $h .= '</span></a>';
         }
         $h .= '</div></section>';

@@ -75,8 +75,8 @@ require_once '../../includes/header.php';
         <img class="item-photo img-zoom" src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($name . ' — Bat Cave Road Farm thrift shop in Old Fort, NC') ?>" fetchpriority="high" decoding="async">
       <?php endif; ?>
       <div class="item-info">
-        <span class="item-pill"><?= htmlspecialchars($item['category'] ?? 'Thrift Find') ?></span>
         <h1><?= htmlspecialchars($name) ?></h1>
+        <span class="item-pill"><?= htmlspecialchars($item['category'] ?? 'Thrift Find') ?></span>
         <?php if ($price !== null && $price !== ''): ?>
           <p class="item-price">$<?= number_format((float)$price, 2) ?></p>
         <?php endif; ?>

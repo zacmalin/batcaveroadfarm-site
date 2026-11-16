@@ -331,7 +331,6 @@ $_badge = fn(int $n): string => $n > 0
 <?php if ($_cur_item && count($_cur_item['tabs']) > 1): ?>
 <!-- ═══ Page tabs (moved to the top of <main> by admin-nav.js) ═══ -->
 <div id="navTabs" class="nav-tabs-wrap print:hidden" hidden>
-  <div class="nav-tabs-crumb"><?= $_h($_nav[$_cur_section]['label']) ?> › <?= $_h($_cur_item['label']) ?></div>
   <nav class="nav-tabs" aria-label="<?= $_h($_cur_item['label']) ?>">
     <?php foreach ($_cur_item['tabs'] as $_tab): ?>
     <a href="<?= $_h($_tab['href']) ?>" class="nav-tab<?= $_tab['active'] ? ' is-active' : '' ?>"<?= $_tab['active'] ? ' aria-current="page"' : '' ?>>
