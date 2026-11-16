@@ -1058,6 +1058,28 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                           .ri-item:hover,.ri-item.ri-active{background:#f5f5f4}
                           .ri-item-recipe{color:#4a6741;font-weight:600}
                           .ri-empty{padding:6px 10px;font-size:12px;color:#a8a29e}
+                          /* Keep ingredient search usable and action buttons inside narrow screens. */
+                          @media (max-width:640px) {
+                            #ingredientsDynamicWrapper{min-width:0;padding:10px}
+                            #ingredientsDynamicWrapper .dynamic-ingredient-row > div:first-child{
+                              display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:8px;align-items:center
+                            }
+                            #ingredientsDynamicWrapper .ri-num{grid-column:span 1;width:auto;text-align:left}
+                            #ingredientsDynamicWrapper .ri-combo{grid-column:span 11;min-width:0}
+                            #ingredientsDynamicWrapper .ri-search{min-width:0;box-sizing:border-box}
+                            #ingredientsDynamicWrapper input[name$="[quantity]"]{grid-column:span 4;width:100%;min-width:0;box-sizing:border-box}
+                            #ingredientsDynamicWrapper select[name$="[unit_id]"]{grid-column:span 5;width:100%;min-width:0;box-sizing:border-box}
+                            #ingredientsDynamicWrapper .dynamic-ingredient-row > div:first-child > button{
+                              grid-column:span 1;min-width:0;padding:6px 0;text-align:center
+                            }
+                            #ingredientsDynamicWrapper .dynamic-ingredient-row > div:nth-child(2){
+                              display:grid;grid-template-columns:minmax(0,1fr);gap:8px;padding-left:0;margin-left:0
+                            }
+                            #ingredientsDynamicWrapper .ri-group,
+                            #ingredientsDynamicWrapper input[name$="[notes]"]{
+                              width:100%;min-width:0;max-width:100%;box-sizing:border-box
+                            }
+                          }
                         </style>
                         <div id="ingredientsDynamicWrapper" class="space-y-2 border border-stone-200 p-3 rounded bg-stone-50">
                             <?php foreach ($ri_data as $idx => $ri_row): ?>
