@@ -158,6 +158,9 @@ $fields = function (array $d, bool $isNew) use ($h, $input, $label, $animals, $p
       <div><label class="<?= $label ?>" for="i_wit">Witnesses (names, contact)</label><textarea id="i_wit" name="witnesses" rows="2" maxlength="2000" class="<?= $input ?>"><?= $h($d['witnesses'] ?? '') ?></textarea></div>
     </div>
     <div class="mb-3"><label class="<?= $label ?>" for="i_fu">Follow-up needed</label><textarea id="i_fu" name="follow_up" rows="2" maxlength="2000" class="<?= $input ?>" placeholder="e.g. call the family tomorrow, fix the gate latch"><?= $h($d['follow_up'] ?? '') ?></textarea></div>
+    <?php if ($isNew): ?>
+    <div class="mb-3"><label class="<?= $label ?>" for="i_due">Follow-up task due (optional; defaults to today)</label><input id="i_due" name="task_due_date" type="date" min="<?= $h(bcrf_incident_now_local()->format('Y-m-d')) ?>" value="<?= $h($d['task_due_date'] ?? '') ?>" class="<?= $input ?>"><p class="text-xs text-stone-500 mt-1">The task is assigned to Owners; you can change its assignee from the task itself.</p></div>
+    <?php endif; ?>
 <?php
 };
 

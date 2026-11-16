@@ -47,7 +47,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         } elseif (!$id || !bcrf_crm_org_get($pdo, $id)) {
             throw new BcrfCrmError('That organization is gone.');
         } elseif ($act === 'contact_add') {
-            bcrf_crm_org_contact_add($pdo, $id, (string)($_POST['email'] ?? ''), (string)($_POST['name'] ?? ''), (string)($_POST['role'] ?? 'booking'));
+            bcrf_crm_org_contact_add($pdo, $id, (string)($_POST['email'] ?? ''), (string)($_POST['name'] ?? ''), (string)($_POST['role'] ?? 'booking'), (string)($_POST['phone'] ?? ''));
             $_SESSION['org_flash'] = ['ok', 'Contact added.'];
         } elseif ($act === 'contact_remove') {
             bcrf_crm_org_contact_remove($pdo, $id, (int)($_POST['customer_id'] ?? 0));
@@ -141,6 +141,7 @@ if ($id || isset($_GET['new'])) {
     <form method="POST" action="organizations.php" class="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end"><?= $hidden($id) ?><input type="hidden" name="act" value="contact_add">
       <div><label class="<?= $label ?>" for="cn">Name</label><input id="cn" name="name" maxlength="100" class="<?= $input ?>"></div>
       <div><label class="<?= $label ?>" for="ce">Email</label><input id="ce" name="email" type="email" required class="<?= $input ?>"></div>
+      <div><label class="<?= $label ?>" for="cp">Phone (optional)</label><input id="cp" name="phone" type="tel" maxlength="20" autocomplete="tel" class="<?= $input ?>"></div>
       <div><label class="<?= $label ?>" for="cr">Role</label><select id="cr" name="role" class="<?= $input ?>"><?php foreach (BCRF_CRM_CONTACT_ROLES as $k => $v): ?><option value="<?= $k ?>"><?= $h($v) ?></option><?php endforeach; ?></select></div>
       <button class="<?= $btnSec ?>">Add contact</button>
     </form>
