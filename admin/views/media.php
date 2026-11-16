@@ -35,8 +35,8 @@ $displayed_images = ($active_folder === '_all')
             <input type="hidden" name="execute_image_processing" value="1">
 
             <div>
-                <label class="block font-bold text-stone-600 mb-1">Target Subfolder</label>
-                <select name="upload_subdirectory_target" class="w-full p-2 border border-stone-300 bg-white rounded text-xxs">
+                <label for="upload_subdirectory_target" class="block font-bold text-stone-600 mb-1">Target Subfolder</label>
+                <select name="upload_subdirectory_target" id="upload_subdirectory_target" class="w-full p-2 border border-stone-300 bg-white rounded text-xxs">
                     <option value="/">/img/ (Root)</option>
                     <?php // one folder list for every upload box (admin/includes/image_names.php, Nov 15, 2026)
                     require_once __DIR__ . '/../includes/image_names.php';
@@ -48,14 +48,14 @@ $displayed_images = ($active_folder === '_all')
 
             <div class="border border-stone-200 p-3 rounded bg-stone-50 space-y-3">
                 <div>
-                    <label class="block font-bold text-stone-500 mb-0.5">Method A: Upload File</label>
+                    <label for="gdSourceFile" class="block font-bold text-stone-500 mb-0.5">Method A: Upload File</label>
                     <!-- Fix 9: accept restricts browser picker to images -->
                     <input type="file" name="image_source_file" id="gdSourceFile" accept="image/*"
                         class="w-full text-xxs text-stone-500 bg-white border border-stone-300 p-1 rounded">
                 </div>
                 <div class="text-center font-bold text-stone-300 text-[9px] uppercase tracking-widest">&mdash; OR &mdash;</div>
                 <div>
-                    <label class="block font-bold text-stone-500 mb-0.5">Method B: Remote HTTPS URL</label>
+                    <label for="gdSourceUrl" class="block font-bold text-stone-500 mb-0.5">Method B: Remote HTTPS URL</label>
                     <input type="url" name="image_source_url" id="gdSourceUrl"
                         class="w-full p-2 border border-stone-300 bg-white rounded text-xxs placeholder-stone-300"
                         placeholder="https://example.com/image.jpg">
@@ -64,7 +64,7 @@ $displayed_images = ($active_folder === '_all')
 
             <div class="grid grid-cols-2 gap-2">
                 <div>
-                    <label class="block font-bold text-stone-600 mb-1">Output Filename</label>
+                    <label for="gdOutputName" class="block font-bold text-stone-600 mb-1">Output Filename</label>
                     <!-- Fix 4: hint that only safe chars are kept -->
                     <input type="text" name="output_filename_override" id="gdOutputName"
                         class="w-full p-2 border border-stone-300 bg-stone-50 rounded"
@@ -74,8 +74,8 @@ $displayed_images = ($active_folder === '_all')
                     <p class="text-[10px] text-stone-400 mt-1">Filled in from the picked file. Blank = automatic name.</p>
                 </div>
                 <div>
-                    <label class="block font-bold text-stone-600 mb-1">Scale Width (px)</label>
-                    <input type="number" name="resize_dimension_width" min="1" max="8000"
+                    <label for="resize_dimension_width" class="block font-bold text-stone-600 mb-1">Scale Width (px)</label>
+                    <input type="number" name="resize_dimension_width" id="resize_dimension_width" min="1" max="8000"
                         class="w-full p-2 border border-stone-300 bg-stone-50 rounded"
                         placeholder="Original width">
                 </div>
@@ -83,16 +83,16 @@ $displayed_images = ($active_folder === '_all')
 
             <div class="grid grid-cols-2 gap-2">
                 <div>
-                    <label class="block font-bold text-stone-600 mb-1">Output Format</label>
-                    <select name="format_conversion_mode" class="w-full p-2 border border-stone-300 bg-white rounded font-bold text-stone-800">
+                    <label for="format_conversion_mode" class="block font-bold text-stone-600 mb-1">Output Format</label>
+                    <select name="format_conversion_mode" id="format_conversion_mode" class="w-full p-2 border border-stone-300 bg-white rounded font-bold text-stone-800">
                         <option value="webp">WebP</option>
                         <option value="jpg">JPG</option>
                         <option value="png">PNG</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block font-bold text-stone-600 mb-1">Quality (10–100)</label>
-                    <input type="number" name="compression_quality_scale" min="10" max="100" value="80"
+                    <label for="compression_quality_scale" class="block font-bold text-stone-600 mb-1">Quality (10–100)</label>
+                    <input type="number" name="compression_quality_scale" id="compression_quality_scale" min="10" max="100" value="80"
                         class="w-full p-2 border border-stone-300 bg-stone-50 rounded">
                 </div>
             </div>
@@ -154,7 +154,7 @@ $displayed_images = ($active_folder === '_all')
                 <img src="<?= htmlspecialchars($img['url'] . ($__mt ? '?v=' . $__mt : ''), ENT_QUOTES) ?>"
                     class="w-full h-24 object-cover border bg-white rounded"
                     loading="lazy"
-                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                    data-vault-image>
                 <!-- Fallback if image fails to load -->
                 <div class="w-full h-24 border border-stone-200 bg-stone-100 rounded hidden items-center justify-center text-stone-300 text-2xl">🖼</div>
 
@@ -169,7 +169,7 @@ $displayed_images = ($active_folder === '_all')
 
                 <!-- Fix 1: ENT_QUOTES on onclick attribute value -->
                 <button type="button"
-                    onclick="copyVaultPath(this, <?= htmlspecialchars(json_encode(full_img_url($img['url'], $site_base)), ENT_QUOTES) ?>)"
+                    data-copy-url="<?= htmlspecialchars(full_img_url($img['url'], $site_base), ENT_QUOTES) ?>"
                     class="vault-copy-btn w-full mt-1.5 text-[9px] uppercase tracking-wider font-bold bg-stone-100 hover:bg-stone-900 border hover:text-white font-sans py-1 rounded transition text-stone-700">
                     Copy Path
                 </button>
@@ -200,46 +200,4 @@ $displayed_images = ($active_folder === '_all')
 
 </div>
 
-<script>
-    // Output Filename: prefill from the picked file (or the remote URL) unless staff typed their own.
-    (function () {
-        var out = document.getElementById('gdOutputName');
-        var fileIn = document.getElementById('gdSourceFile');
-        var urlIn  = document.getElementById('gdSourceUrl');
-        if (!out) return;
-        function slug(n) {
-            var s = String(n || '').replace(/\.[^.\/]+$/, '');
-            if (s.normalize) s = s.normalize('NFKD').replace(/[̀-ͯ]/g, '');
-            return s.toLowerCase().replace(/[^a-z0-9_\-]+/g, '-').replace(/-{2,}/g, '-').replace(/^[-_]+|[-_]+$/g, '').slice(0, 80);
-        }
-        function fill(name) {
-            if (out.value.trim() !== '' && out.dataset.auto !== '1') return;   // keep what they typed
-            out.value = slug(name);
-            out.dataset.auto = '1';
-        }
-        out.addEventListener('input', function () { out.dataset.auto = ''; });
-        if (fileIn) fileIn.addEventListener('change', function () {
-            if (fileIn.files && fileIn.files[0]) { fill(fileIn.files[0].name); out.focus(); out.select(); }
-        });
-        if (urlIn) urlIn.addEventListener('change', function () {
-            try { var p = new URL(urlIn.value).pathname.split('/').pop(); if (p) fill(decodeURIComponent(p)); } catch (e) {}
-        });
-    })();
-
-    function copyVaultPath(btn, url) {
-        navigator.clipboard.writeText(url).then(() => {
-            const orig = btn.textContent;
-            btn.textContent = "Copied ✓";
-            btn.classList.add('bg-amber-700', 'text-white');
-            btn.classList.remove('bg-stone-100', 'text-stone-700');
-            setTimeout(() => {
-                btn.textContent = orig;
-                btn.classList.remove('bg-amber-700', 'text-white');
-                btn.classList.add('bg-stone-100', 'text-stone-700');
-            }, 2000);
-        }).catch(() => {
-            // Fallback for browsers that block clipboard without HTTPS
-            prompt('Copy this path:', url);
-        });
-    }
-</script>
+<script src="/admin/assets/media-library.js" defer></script>
