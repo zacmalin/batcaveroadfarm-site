@@ -1,5 +1,6 @@
 /* Consistent report navigation, date filter, and export rows. */
-.fos .report-toolbar{display:flex;flex-direction:column;align-items:stretch;gap:.55rem;margin:.75rem 0 1.25rem}
+.fos .report-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:.55rem;margin:.75rem 0 1.25rem}
+@media(max-width:760px){.fos .report-toolbar{flex-direction:column;align-items:stretch}}
 .fos .report-toolbar .report-step,.fos .report-toolbar .report-actions{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem}
 .fos .report-toolbar .rform{display:flex;align-items:center;gap:.5rem;background:none;border:0;padding:0;margin:0;box-shadow:none;min-width:0}
 .fos .report-toolbar .rform input{box-sizing:border-box;min-width:0;min-height:42px;max-width:100%}
