@@ -220,7 +220,7 @@ function bcrf_incident_add(PDO $pdo, array $in, array $files, ?int $uid): array 
         catch (Throwable $e) { error_log('[incidents] photo: ' . $e->getMessage()); $warnings[] = 'A photo was not saved.'; }
     }
     $taskId = null;
-    try { $taskId = bcrf_incident_make_task($pdo, $id); }
+    try { $taskId = bcrf_incident_make_task($pdo, $id, (string)($in['task_due_date'] ?? '')); }
     catch (Throwable $e) { error_log('[incidents] task: ' . $e->getMessage()); $warnings[] = 'The follow-up task was not made.'; }
     $sent = 0;
     try { $sent = bcrf_incident_notify($pdo, $id); }
@@ -243,7 +243,13 @@ function bcrf_incident_files(array $f): array {
 }
 
 /** High-priority task for the Owners, due today, linked to the incident. Returns its id, or null without Tasks. */
-function bcrf_incident_make_task(PDO $pdo, int $id): ?int {
+function bcrf_incident_make_task(PDO $pdo, int $id, string $dueDate = ''): ?int {
+    $today = bcrf_incident_now_local()->format('Y-m-d');
+    if ($dueDate !== '') {
+        $parsed = DateTimeImmutable::createFromFormat('!Y-m-d', $dueDate);
+        if (!$parsed || $parsed->format('Y-m-d') !== $dueDate || $dueDate < $today) $dueDate = '';
+    }
+    if ($dueDate === '') $dueDate = $today;
     if (!function_exists('bcrf_task_create')) { if (is_file(__DIR__ . '/tasks.php')) require_once __DIR__ . '/tasks.php'; }
     if (!function_exists('bcrf_task_create') || !bcrf_tasks_ready($pdo)) return null;
     $i = bcrf_incident_get($pdo, $id);
@@ -252,7 +258,7 @@ function bcrf_incident_make_task(PDO $pdo, int $id): ?int {
         'title' => 'Follow up on incident #' . $id . ': ' . $what,
         'description' => 'Read the report, check on the people and animals involved, note what was done, and close it when it is settled: /admin/incidents.php?id=' . $id,
         'priority' => $i['severity'] === 'serious' ? 'urgent' : 'high',
-        'due_date' => bcrf_incident_now_local()->format('Y-m-d'),
+        'due_date' => $dueDate,
         'who' => 'role:administrator',
         'related_type' => 'incident', 'related_id' => (string)$id,
     ]);
