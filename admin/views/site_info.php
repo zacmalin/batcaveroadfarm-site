@@ -36,7 +36,7 @@ if (!$tablesMissing) {
     $g = fn($k, $d = '') => htmlspecialchars((string)($settings[$k] ?? $d), ENT_QUOTES);
 }
 
-$sectionCls = "bg-white border border-stone-200 rounded-lg mb-4 overflow-hidden";
+$sectionCls = "site-info-section bg-white border border-stone-200 rounded-lg mb-4 overflow-hidden";
 $sumCls     = "cursor-pointer select-none px-5 py-4 font-bold text-stone-800 flex items-center justify-between hover:bg-stone-50";
 $inputCls   = "w-full px-3 py-2 border border-stone-300 rounded text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-400";
 $btnCls     = "mt-4 px-4 py-2 rounded bg-amber-700 text-white text-xs font-semibold hover:bg-amber-800";
@@ -53,11 +53,31 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
         ⚠️ The Site Info tables don't exist yet. Run <code class="">site_info_module.sql</code> (Sections 1 &amp; 2) in phpMyAdmin, then reload.
     </div>
 <?php else: ?>
+<style>
+.site-info-section { border-color: #d8d0c3; border-radius: 10px; }
+.site-info-section > summary { background: #f5f1e9; padding: 1rem; font-size: 1.1rem; }
+.site-info-section > summary:focus-visible { outline: 3px solid #4a6741; outline-offset: -3px; }
+.site-info-section > summary::marker { content: ""; }
+.site-info-section > summary::-webkit-details-marker { display: none; }
+.site-info-chevron { display: inline-block; transition: transform .18s ease; }
+.site-info-section[open] .site-info-chevron { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .site-info-chevron { transition: none; } }
+</style>
 <div class="max-w-3xl">
+<script>
+document.querySelectorAll('.site-info-section').forEach(function (section) {
+  section.addEventListener('toggle', function () {
+    if (!section.open) return;
+    document.querySelectorAll('.site-info-section').forEach(function (other) {
+      if (other !== section) other.open = false;
+    });
+  });
+});
+</script>
 
     <!-- ── BUSINESS & ADDRESS ── -->
-    <details class="<?= $sectionCls ?>" open>
-        <summary class="<?= $sumCls ?>"><span>📢 Announcement Bar</span><span class="text-stone-300 text-xs">edit</span></summary>
+    <details class="<?= $sectionCls ?>">
+        <summary class="<?= $sumCls ?>"><span>📢 Announcement Bar</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
         <form method="POST" action="/admin/admin.php?view=site_info" class="p-5">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
             <input type="hidden" name="site_info_action" value="announcement">
@@ -81,7 +101,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
     </details>
 
     <details class="<?= $sectionCls ?>" open>
-        <summary class="<?= $sumCls ?>"><span>📍 Business &amp; Address</span><span class="text-stone-300 text-xs">edit</span></summary>
+        <summary class="<?= $sumCls ?>"><span>📍 Business &amp; Address</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
         <form method="POST" action="/admin/admin.php?view=site_info" class="px-5 pb-5 pt-1">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
             <input type="hidden" name="site_info_action" value="address">
@@ -132,7 +152,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
 
     <!-- ── PHONES ── -->
     <details class="<?= $sectionCls ?>">
-        <summary class="<?= $sumCls ?>"><span>📞 Phones</span><span class="text-stone-300 text-xs">edit</span></summary>
+        <summary class="<?= $sumCls ?>"><span>📞 Phones</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
         <form method="POST" action="/admin/admin.php?view=site_info" class="px-5 pb-5 pt-1">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
             <input type="hidden" name="site_info_action" value="phones">
@@ -155,7 +175,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
 
     <!-- ── EMAILS ── -->
     <details class="<?= $sectionCls ?>">
-        <summary class="<?= $sumCls ?>"><span>✉️ Emails</span><span class="text-stone-300 text-xs">edit</span></summary>
+        <summary class="<?= $sumCls ?>"><span>✉️ Emails</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
         <form method="POST" action="/admin/admin.php?view=site_info" class="px-5 pb-5 pt-1">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
             <input type="hidden" name="site_info_action" value="emails">
@@ -179,7 +199,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
     <!-- ── SOCIAL LINKS ── -->
     <?php $socials = site_socials(); ?>
     <details class="<?= $sectionCls ?>">
-        <summary class="<?= $sumCls ?>"><span>🔗 Social Links</span><span class="text-stone-300 text-xs">edit</span></summary>
+        <summary class="<?= $sumCls ?>"><span>🔗 Social Links</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
         <form method="POST" action="/admin/admin.php?view=site_info" class="px-5 pb-5 pt-1">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
             <input type="hidden" name="site_info_action" value="socials">
@@ -232,7 +252,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
 
     <!-- ── HOURS ── -->
     <details class="<?= $sectionCls ?>">
-        <summary class="<?= $sumCls ?>"><span>🕒 Hours</span><span class="text-stone-300 text-xs">edit</span></summary>
+        <summary class="<?= $sumCls ?>"><span>🕒 Hours</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
         <form method="POST" action="/admin/admin.php?view=site_info" class="px-5 pb-5 pt-1">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
             <input type="hidden" name="site_info_action" value="hours">
@@ -277,7 +297,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
 
     <!-- ── SEASON ── -->
     <details class="<?= $sectionCls ?>">
-        <summary class="<?= $sumCls ?>"><span>🍂 Season</span><span class="text-stone-300 text-xs">edit</span></summary>
+        <summary class="<?= $sumCls ?>"><span>🍂 Season</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
         <form method="POST" action="/admin/admin.php?view=site_info" class="px-5 pb-5 pt-1">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
             <input type="hidden" name="site_info_action" value="season">
