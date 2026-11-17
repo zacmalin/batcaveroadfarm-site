@@ -380,9 +380,9 @@ $preset_labels = [
             </select>
         </div>
 
-        <div class="flex gap-2">
-            <button type="submit" class="flex-1 bg-amber-700 text-white font-bold uppercase tracking-wider py-2 rounded text-[10px]">Apply</button>
-            <a href="/admin/admin.php?view=timesheet" class="flex-1 border border-stone-200 py-2 bg-stone-100 rounded font-bold text-stone-600 text-center uppercase tracking-wider text-[10px]">Reset</a>
+        <div class="flex flex-wrap justify-end gap-2 sm:col-span-4">
+            <a href="/admin/admin.php?view=timesheet" class="inline-flex items-center justify-center px-4 py-2 rounded-full border border-stone-300 bg-white text-sm font-semibold text-stone-700 hover:bg-stone-50">Reset</a>
+            <button type="submit" class="px-4 py-2 rounded-full bg-stone-800 text-white text-sm font-semibold hover:bg-stone-700">Apply</button>
         </div>
     </div>
 
