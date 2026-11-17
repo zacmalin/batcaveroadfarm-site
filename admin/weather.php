@@ -137,14 +137,14 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
 
   <?php $siteNote = function_exists('site_weather_closed_note') ? site_weather_closed_note() : ''; ?>
   <details id="website-closure" class="<?= $card ?>" <?= $openSection === '' || $openSection === 'website-closure' ? 'open' : '' ?>>
-    <summary class="cursor-pointer text-base font-semibold text-stone-800 mb-2 hover:text-amber-800">🌧️ Website closure notice <?= $siteNote !== '' ? '· Active' : '· Off' ?></summary>
+    <summary class="cursor-pointer text-base font-semibold text-stone-800 mb-2 hover:text-amber-800">🌧️ Website closure notice <span class="inline-block align-middle ml-1 rounded-full px-2 py-0.5 text-xs <?= $siteNote !== '' ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-200 text-stone-700' ?>"><?= $siteNote !== '' ? 'ON' : 'OFF' ?></span></summary>
     <p class="text-xs text-stone-500 mb-3">This notice affects today's public website only. It does not block bookings or notify customers.</p>
     <?php if ($siteNote !== ''): ?>
       <?= bcrf_shell_notice('warning', 'ON: every page of the website shows "Closed today for weather. ' . $siteNote . '" and the header says Closed. It turns off by itself at midnight.') ?>
       <?php if ($mgr): ?>
       <form method="POST" action="weather.php" class="mt-3">
         <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="section" value="website-closure"><input type="hidden" name="date" value="<?= $h($date) ?>">
-        <button name="act" value="site_closed_off" class="<?= $btnSec ?>">Turn it off (we're open after all)</button>
+        <button name="act" value="site_closed_off" class="<?= $btnSec ?> min-h-10 font-semibold">Turn off website closure</button>
       </form>
       <?php endif; ?>
     <?php else: ?>
@@ -152,9 +152,9 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
       <?php if ($mgr): ?>
       <form method="POST" action="weather.php" class="space-y-3">
         <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="section" value="website-closure"><input type="hidden" name="date" value="<?= $h($date) ?>">
+        <button name="act" value="site_closed_on" class="<?= $btnMain ?> min-h-10" data-confirm="Show &quot;Closed today for weather&quot; on the website for today?">Turn on website closure</button>
         <div><label for="w_site_note" class="<?= $label ?>">Banner message <span class="font-normal text-stone-400">shown after "Closed today for weather."</span></label>
           <input id="w_site_note" name="site_note" maxlength="300" class="<?= $input ?>" value="<?= $h(bcrf_wx_last_note($pdo)) ?>"></div>
-        <button name="act" value="site_closed_on" class="<?= $btnMain ?>" data-confirm="Show &quot;Closed today for weather&quot; on the website for today?">Show "Closed today" on the website</button>
       </form>
       <?php else: ?>
       <p class="text-sm text-stone-500">Only an Owner or Manager can turn this on.</p>
