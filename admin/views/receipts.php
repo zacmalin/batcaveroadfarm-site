@@ -10,7 +10,6 @@ $date_from = trim($_GET['date_from'] ?? '');
 $date_to   = trim($_GET['date_to']   ?? '');
 $page      = max(1, (int)($_GET['page'] ?? 1));
 $per_page  = 50;
-$offset    = ($page - 1) * $per_page;
 
 // ── BUILD QUERY ───────────────────────────────────────────────────────────────
 $where  = [];
@@ -51,6 +50,7 @@ try {
 
 $total_pages = max(1, (int)ceil($summary['filtered_count'] / $per_page));
 $page        = min($page, $total_pages); // clamp after we know total pages
+$offset      = ($page - 1) * $per_page;
 
 // ── FETCH PAGE OF RECEIPTS ────────────────────────────────────────────────────
 $logged_receipts = [];
@@ -116,7 +116,7 @@ $is_filtered = !empty($search_q) || !empty($date_from) || !empty($date_to);
         </div>
 
         <div class="flex gap-2">
-            <button type="submit" class="flex-1 bg-amber-700 text-white font-semibold py-2 rounded text-center text-xs">Search</button>
+            <button type="submit" class="flex-1 bg-amber-700 text-white font-semibold py-2 rounded text-center text-xs">Apply filters</button>
             <?php if ($is_filtered): ?>
                 <a href="/admin/admin.php?view=receipts" class="flex-1 border border-stone-200 py-2 bg-stone-100 rounded font-semibold text-stone-600 text-center text-xs">Reset</a>
             <?php endif; ?>
