@@ -258,10 +258,10 @@ echo bcrf_shell_flash($flash);
   <form method="POST" enctype="multipart/form-data" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="upload">
     <h2 class="text-base font-semibold text-stone-800 mb-3">Add an invoice or receipt</h2>
     <?= bcrf_doc_inputs_html('doc') ?>
-    <details class="mb-3"><summary class="cursor-pointer text-sm text-amber-800 underline">Details (optional, you can add them later)</summary>
+    <details class="mb-3"><summary class="cursor-pointer text-sm text-amber-800 underline">Document details (optional, you can add them later)</summary>
       <div class="mt-3"><?= $fields(['doc_type' => $canStock ? 'invoice' : (bcrf_doc_can_animal() ? 'receipt' : 'vet'), 'link_type' => null, 'link_id' => null, 'expense_category' => 'other', 'vendor_id' => null, 'vendor_name' => '', 'doc_date' => '', 'total_cents' => null, 'ref' => '', 'note' => '']) ?></div>
     </details>
-    <button class="<?= $btnMain ?>">Save</button>
+    <button class="<?= $btnMain ?>">Upload document</button>
     <p class="text-xs text-stone-500 mt-2">Photos (JPEG, PNG, WebP, HEIC) or PDFs, up to <?= (int)(BCRF_DOC_MAX_BYTES / 1048576) ?> MB each. Several files at once become pages of one document. Saved outside the website and kept in the weekly files backup.</p>
   </form>
 
