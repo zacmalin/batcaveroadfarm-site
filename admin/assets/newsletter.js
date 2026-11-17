@@ -39,10 +39,13 @@ function crmApply() {
 
 function filterCRM(filter) {
     document.querySelectorAll('.crm-tab').forEach(t => {
-        t.className = 'crm-tab flex-1 py-1 rounded bg-stone-100 text-stone-600 border text-[9px] font-bold uppercase';
+        const selected = t.id === 'crmtab-' + filter;
+        t.classList.toggle('bg-amber-700', selected);
+        t.classList.toggle('text-white', selected);
+        t.classList.toggle('bg-stone-100', !selected);
+        t.classList.toggle('text-stone-600', !selected);
+        t.setAttribute('aria-pressed', selected ? 'true' : 'false');
     });
-    const active = document.getElementById('crmtab-' + filter);
-    if (active) active.className = 'crm-tab flex-1 py-1 rounded bg-amber-700 text-white border text-[9px] font-bold uppercase';
     crmSegment = filter;
     crmApply();
 }
