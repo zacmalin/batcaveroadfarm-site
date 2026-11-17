@@ -178,7 +178,7 @@ if ($tab === 'find') {
          '<p><small>Member since ', $h($local($m['enrolled_at'])), $m['last_activity_at'] ? ' · last earned ' . $h($local($m['last_activity_at'])) : '', '</small></p>',
          '<form method="POST" action="rewards.php">', $hid($back, $cid), '<input type="hidden" name="act" value="visit"><button class="btn" type="submit">Visit today (+25)</button></form></section>';
 
-    echo '<section class="card"><h3>Use a reward</h3>';
+    echo '<details class="card ui-expand" open><summary class="font-semibold cursor-pointer">🎁 Use a reward</summary><div class="mt-3">';
     $tiers = bcrf_rewards_tiers($pdo, true);
     if (!$tiers) echo '<p>No rewards are set up yet.', $isAdmin ? ' Add them in <a href="rewards.php?tab=settings">Settings</a>.' : '', '</p>';
     foreach ($tiers as $t) {
@@ -187,22 +187,22 @@ if ($tab === 'find') {
              '<input type="hidden" name="act" value="redeem"><input type="hidden" name="tier" value="', (int)$t['points'], '"><input type="hidden" name="key" value="', $tok(), '">',
              '<button class="btn', $ok ? ' primary' : '', '" type="submit"', $ok ? '' : ' disabled', '>', $n($t['points']), ' pts — ', $h($t['benefit']), '</button></form>';
     }
-    echo '</section>';
+    echo '</div></details>';
 
     if ($canAdjust) {
-        echo '<section class="card"><h3>Adjust points</h3><form class="stackf" method="POST" action="rewards.php">', $hid($back, $cid),
+        echo '<details class="card ui-expand"><summary class="font-semibold cursor-pointer">✏️ Adjust points</summary><div class="mt-3"><form class="stackf" method="POST" action="rewards.php">', $hid($back, $cid),
              '<input type="hidden" name="act" value="adjust"><input type="hidden" name="key" value="', $tok(), '">',
              '<label>Points (minus to remove) <input type="number" name="points" step="1" required></label>',
              '<label>Reason <input type="text" name="reason" maxlength="200" required placeholder="e.g. points missed on receipt R-2026-000123"></label>',
-             '<button class="btn" type="submit">Save adjustment</button></form></section>';
+             '<button class="btn" type="submit">Save adjustment</button></form></div></details>';
     }
 
-    echo '<section class="card scroll"><h3>History</h3><table class="rt grid"><tr class="th"><td>When</td><td>What</td><td>Points</td></tr>';
+    echo '<details class="card ui-expand"><summary class="font-semibold cursor-pointer">📜 Points history</summary><div class="scroll mt-3"><table class="rt grid"><tr class="th"><td>When</td><td>What</td><td>Points</td></tr>';
     foreach (bcrf_rewards_history($pdo, $cid) as $l) {
         $what = bcrf_rewards_type_label($l['entry_type']) . ($l['sale_number'] ? ' · ' . $l['sale_number'] : '') . ($l['note'] ? ' · ' . $l['note'] : '');
         echo '<tr><td>', $h($local($l['created_at'])), '</td><td>', $h($what), '</td><td>', sprintf('%+d', (int)$l['points']), '</td></tr>';
     }
-    echo '</table></section>';
+    echo '</table></div></details>';
 } else {   // settings
     echo '<section class="card"><h2>Settings</h2><form class="stackf" method="POST" action="rewards.php">', $hid('rewards.php?tab=settings'),
          '<input type="hidden" name="act" value="settings">',
