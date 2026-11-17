@@ -254,7 +254,7 @@ $allPendingPay = count(array_filter($pending,    fn($r) => ($r['payment_status']
       <div class="flex flex-wrap justify-end gap-1.5" role="group" aria-label="Filter bookings by status">
         <?php foreach ($statusLabels as $value => $labelText): ?>
           <a href="/admin/admin.php?<?= htmlspecialchars(http_build_query(['view'=>'bookings', 'day'=>$day, 'status'=>$value, 'sort'=>$scheduleSort]), ENT_QUOTES) ?>#booking-schedule"
-             class="inline-flex items-center min-h-9 px-3 rounded-full text-xs font-semibold border <?= $scheduleStatus === $value ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100' ?>"
+             class="inline-flex items-center min-h-9 px-3 rounded-full text-xs font-semibold border <?= $scheduleStatus === $value ? 'farmos-filter-selected' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100' ?>"
              <?= $scheduleStatus === $value ? 'aria-current="true"' : '' ?>><?= htmlspecialchars($labelText) ?></a>
         <?php endforeach; ?>
       </div>
