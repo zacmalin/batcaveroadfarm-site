@@ -162,7 +162,7 @@ $rows = jobs_staff_list($pdo, $show, $q);
 $need = jobs_certs_needed_count($pdo);
 ?>
 <div class="max-w-4xl pb-16">
-  <h1 class="text-2xl font-bold text-stone-800 mb-1">Hiring</h1>
+  <h1 class="text-2xl font-bold text-stone-800 mb-1">Staff</h1>
   <p class="text-sm text-stone-500 mb-4">People you've hired: their logins, jobs and paperwork.</p>
   <?php require __DIR__ . '/_tabs.php'; ?>
 
@@ -170,7 +170,7 @@ $need = jobs_certs_needed_count($pdo);
   <div class="bg-sky-50 border border-sky-200 text-sky-900 rounded-lg p-3 mb-4 text-sm"><?= $need ?> under-18 hire<?= $need === 1 ? '' : 's' ?> still need<?= $need === 1 ? 's' : '' ?> a youth employment certificate.</div>
   <?php endif; ?>
 
-  <div class="flex flex-wrap items-center gap-1.5 mb-3">
+  <div class="flex flex-wrap items-center justify-end gap-1.5 mb-3">
     <?php foreach (['current' => 'Working now', 'past' => 'Past', 'all' => 'All'] as $k => $l): $on = $show === $k; ?>
       <a href="/admin/admin.php?view=jobs_staff&show=<?= $k ?>" class="text-sm px-3 py-1.5 rounded-full border whitespace-nowrap <?= $on ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50' ?>" <?= $on ? 'aria-current="page"' : '' ?>><?= $l ?></a>
     <?php endforeach; ?>
