@@ -215,7 +215,7 @@ $btn  = 'px-3 py-2 rounded border text-[11px] font-bold';
             <label class="block text-[10px] font-bold text-stone-500">Alt text (describes the photo)
               <input name="alt_text" maxlength="500" value="<?= $e($r['alt_text']) ?>" class="mt-0.5 w-full border border-stone-300 rounded px-2 py-1.5 text-[12px] font-normal text-stone-800 select-text"></label>
             <div class="flex gap-1.5 flex-wrap">
-              <button class="<?= $btn ?> bg-amber-700 text-white border-amber-700">Save</button>
+              <button class="<?= $btn ?> bg-amber-700 text-white border-amber-700"><span aria-hidden="true">✓</span> Save</button>
               <?php if ($r['edited_at']): ?><button name="pinterest_action" value="reset_text" formnovalidate class="<?= $btn ?> bg-white text-stone-700 border-stone-300">Reset to generated text</button><?php endif; ?>
             </div>
           </form>
@@ -231,7 +231,7 @@ $btn  = 'px-3 py-2 rounded border text-[11px] font-bold';
               <option value="">Default for <?= $e($r['board_key']) ?><?= ($defBoard[$r['board_key']] ?? '') !== '' && isset($pBoards[$defBoard[$r['board_key']]]) ? ' (' . $e($pBoards[$defBoard[$r['board_key']]]) . ')' : '' ?></option>
               <?php foreach ($pBoards as $bid => $bn): ?><option value="<?= $e($bid) ?>"<?= (string)$r['board_id'] === (string)$bid ? ' selected' : '' ?>><?= $e($bn) ?></option><?php endforeach; ?>
             </select>
-            <button class="<?= $btn ?> bg-amber-700 text-white border-amber-700">Save</button>
+            <button class="<?= $btn ?> bg-amber-700 text-white border-amber-700"><span aria-hidden="true">✓</span> Save</button>
           </form>
         </details>
       <?php endif; ?>
@@ -242,7 +242,7 @@ $btn  = 'px-3 py-2 rounded border text-[11px] font-bold';
           <form method="post" class="mt-2 flex gap-1.5">
             <?= $hidden() ?><input type="hidden" name="id" value="<?= $rid ?>"><input type="hidden" name="pinterest_action" value="mark_pinned">
             <input name="pin_url" type="url" required placeholder="https://www.pinterest.com/pin/…" class="flex-1 min-w-0 border border-stone-300 rounded px-2 py-1.5 text-[12px] select-text">
-            <button class="<?= $btn ?> bg-amber-700 text-white border-amber-700">Save</button>
+            <button class="<?= $btn ?> bg-amber-700 text-white border-amber-700"><span aria-hidden="true">✓</span> Save</button>
           </form>
         </details>
       <?php endif; ?>
