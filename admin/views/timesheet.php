@@ -416,8 +416,8 @@ $preset_labels = [
         </div>
 
         <div class="flex flex-wrap justify-end gap-2 sm:col-span-4">
-            <a href="/admin/admin.php?view=timesheet" class="inline-flex items-center justify-center px-4 py-2 rounded-full border border-stone-300 bg-white text-sm font-semibold text-stone-700 hover:bg-stone-50">Reset</a>
-            <button type="submit" class="px-4 py-2 rounded-full bg-stone-800 text-white text-sm font-semibold hover:bg-stone-700">Apply</button>
+            <a href="/admin/admin.php?view=timesheet" class="inline-flex items-center justify-center px-4 py-2 rounded-full border border-stone-300 bg-white text-sm font-semibold text-stone-700 hover:bg-stone-50"><span aria-hidden="true">↺</span> Reset</a>
+            <button type="submit" class="px-4 py-2 rounded-full bg-stone-800 text-white text-sm font-semibold hover:bg-stone-700"><span aria-hidden="true">✓</span> Apply</button>
         </div>
     </div>
 
