@@ -144,8 +144,12 @@ if ($id) {
       <?php else: ?><p class="text-xs text-stone-500">Fix what's listed below, then save a version.</p><?php endif; ?>
     <?php endif; ?>
     <?php if ($versions): ?>
-    <details class="mt-3"><summary class="cursor-pointer text-sm text-amber-800 underline">All versions (<?= count($versions) ?>)</summary>
-      <ul class="divide-y divide-stone-100 mt-2"><?php foreach ($versions as $v): ?>
+    <details class="site-info-section mt-3 overflow-hidden border bg-white">
+      <summary class="flex cursor-pointer items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-stone-800">
+        <span class="flex items-center gap-2"><span aria-hidden="true">📚</span> All versions (<?= count($versions) ?>)</span>
+        <span class="site-info-chevron text-stone-600" aria-hidden="true">⌄</span>
+      </summary>
+      <ul class="divide-y divide-stone-100 px-4 pb-3"><?php foreach ($versions as $v): ?>
         <li class="py-2 text-sm"><a class="underline text-amber-800" href="kitchen_recipes.php?id=<?= $id ?>&amp;version=<?= (int)$v['id'] ?>">Version <?= (int)$v['version_no'] ?></a>
           <span class="text-xs text-stone-500"> · <?= $h($when($v['created_at'])) ?><?= trim((string)$v['by_name']) !== '' ? ' · ' . $h($v['by_name']) : '' ?><?= $v['note'] ? ' · ' . $h($v['note']) : '' ?></span></li>
       <?php endforeach; ?></ul></details>
