@@ -42,7 +42,8 @@ bcrf_shell_open('Search', ['width' => 'max-w-3xl', 'css' => ['search.css'], 'js'
   </form>
 
   <div id="srchRecent" class="srch-recent" hidden></div>
-  <div id="srchOut" aria-live="polite">
+  <p id="srchStatus" class="srch-status" role="status" aria-live="polite" aria-atomic="true"><?php if (mb_strlen($q) >= 2): ?><?= array_sum(array_map(fn($g) => count($g['rows']), $res['groups'])) + ($res['jump'] ? 1 : 0) ?> matching results<?= $res['groups'] ? ' across ' . count($res['groups']) . ' categories' : '' ?><?php endif; ?></p>
+  <div id="srchOut">
 <?php if ($q !== '' && mb_strlen($q) < 2): ?>
     <p class="srch-empty">Type at least 2 letters.</p>
 <?php elseif ($q !== ''): ?>
