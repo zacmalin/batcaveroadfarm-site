@@ -229,7 +229,7 @@
   function flash(msg) {
     var n = $('toast'); if (!n) return;
     clearTimeout(flashT); n.textContent = msg; n.hidden = false;
-    flashT = setTimeout(function () { n.hidden = true; }, 1400);
+    flashT = setTimeout(function () { n.hidden = true; }, 3000);
   }
 
   // ── item dialog (weight, open price, custom) ─────────────────────────────
