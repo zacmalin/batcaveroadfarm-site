@@ -1201,7 +1201,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
         <div class="flex justify-between items-center px-5 py-3 border-b bg-stone-50 rounded-t-lg shrink-0">
             <span id="blogPreviewTitle" class="font-bold text-stone-800 text-sm truncate max-w-lg"></span>
             <button type="button" id="blogPreviewClose" onclick="closeBlogPreview()"
-                class="text-[10px] font-bold uppercase tracking-wider font-mono border border-stone-200 px-3 py-1.5 rounded hover:bg-stone-900 hover:text-white transition shrink-0">
+                class="text-[10px] font-bold uppercase tracking-wider font-mono border border-stone-200 px-3 py-2 rounded hover:bg-stone-900 hover:text-white transition shrink-0" style="min-height:44px;">
                 Close ✕
             </button>
         </div>
@@ -1780,7 +1780,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                         <?php endif; ?>
                         <?php if ($target_table === 'blog_posts'): ?>
                         <button type="button" onclick="openBlogPreview()"
-                            class="border border-stone-200 font-mono font-bold uppercase tracking-wider py-2 px-4 rounded text-stone-600 hover:bg-stone-100 transition text-xs">
+                            class="border border-stone-200 font-mono font-bold uppercase tracking-wider py-2 px-4 rounded text-stone-600 hover:bg-stone-100 transition text-xs" style="min-height:44px;">
                             👁 Preview
                         </button>
                         <?php endif; ?>
