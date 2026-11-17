@@ -296,7 +296,8 @@ bcrf_shell_open('Gift Cards', ['toast' => $toast, 'width' => 'max-w-3xl']);
         <?php foreach ($sources as $k => $v): ?><option value="<?= $k ?>"<?= $f['source'] === $k ? ' selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?>
       </select></div>
     <div class="w-36"><label class="<?= $label ?>" for="gsort">Sort</label><?= bcrf_list_sort_select($sortOpts, $sort, ['id' => 'gsort', 'class' => $input]) ?></div>
-    <button type="submit" class="<?= $btnSec ?>">Show</button>
+    <button type="submit" class="<?= $btnSec ?>">Apply filters</button>
+    <?php if ($f['q'] !== '' || $f['status'] !== 'open' || $f['source'] !== '' || $sort !== 'default'): ?><a href="gift_cards.php" class="<?= $btnSec ?>">Reset</a><?php endif; ?>
   </form>
 
   <?php if (!$rows): ?>
