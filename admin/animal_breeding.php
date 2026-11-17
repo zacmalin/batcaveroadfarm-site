@@ -75,12 +75,14 @@ $card = 'bg-white border border-stone-200 rounded-lg p-4 shadow-sm mb-4';
 $open = bcrf_breeding_open($pdo);
 $recent = bcrf_breeding_recent($pdo);
 $today = bcrf_breeding_today();
+$overdueCount = count(array_filter($open, fn($b) => !empty($b['expected_on']) && $b['expected_on'] < $today));
 bcrf_shell_open('Breeding', ['toast' => $toast, 'width' => 'max-w-3xl']);
 echo '<h1 class="text-2xl font-bold text-stone-800 mb-3">Breeding</h1>';
 if ($error) echo bcrf_shell_notice('err', $error);
+if ($overdueCount) echo bcrf_shell_notice('warning', '⚠️ ' . $overdueCount . ' expected birth date' . ($overdueCount === 1 ? ' has' : 's have') . ' passed. Review the animals highlighted below.');
 ?>
   <div class="<?= $card ?>">
-    <h2 class="text-base font-semibold text-stone-800 mb-2">Expecting</h2>
+    <h2 class="text-base font-semibold text-stone-800 mb-2">🐣 Expecting (<?= count($open) ?>)</h2>
     <?php if (!$open): ?><p class="text-sm text-stone-500">Nobody right now.</p><?php else: ?>
     <ul class="divide-y divide-stone-100">
       <?php foreach ($open as $b): $late = $b['expected_on'] && $b['expected_on'] < $today; ?>
@@ -92,7 +94,7 @@ if ($error) echo bcrf_shell_notice('err', $error);
     <?php endif; ?>
   </div>
   <div class="<?= $card ?>">
-    <h2 class="text-base font-semibold text-stone-800 mb-2">Last 90 days</h2>
+    <h2 class="text-base font-semibold text-stone-800 mb-2">📋 Outcomes in the last 90 days (<?= count($recent) ?>)</h2>
     <?php if (!$recent): ?><p class="text-sm text-stone-500">Nothing yet.</p><?php else: ?>
     <ul class="divide-y divide-stone-100">
       <?php foreach ($recent as $b): ?>
