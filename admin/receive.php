@@ -228,6 +228,7 @@ if (!$typed && !$poRow && $preProduct) {
 echo '<section class="card"><h2>New receive</h2>';
 if ($poRow) {
     echo '<p class="muted">Against <a href="purchase_orders.php?id=', (int)$poRow['id'], '">PO #', (int)$poRow['id'], '</a> (', $h($poRow['vendor_name']), '). Remaining quantities are prefilled; adjust if the delivery differs.</p>';
+    echo '<p class="muted"><strong>Check unexpected items or overages:</strong> all received quantities increase stock, but quantities beyond the order and products not on it do not count toward completing this PO.</p>';
 }
 echo '<form class="stackf" method="POST" action="receive.php" autocomplete="off" enctype="multipart/form-data">';
 echo '<input type="hidden" name="csrf_token" value="', $h($csrf), '">';
