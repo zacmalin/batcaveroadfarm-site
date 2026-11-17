@@ -109,7 +109,7 @@ html.nav-sheet-open, html.nav-sheet-open body{overflow:hidden}
 .social-period-options{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.5rem}
 .social-period-pill{display:inline-block;padding:.375rem .75rem;border:1px solid #d6d3d1;border-radius:999px;background:#fff;color:#57534e;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;text-decoration:none;transition:background-color .15s ease}
 .social-period-pill:hover{background:#f5f5f4}
-.social-period-pill.is-active{background:#1c1917;border-color:#1c1917;color:#fff}
+.social-period-pill.is-active{background:#79523a;border-color:#79523a;color:#fff}
 .social-period-pill:focus-visible{outline:3px solid #4a6741;outline-offset:2px}
 .social-period-range{margin-top:.5rem;text-align:right;font-size:.75rem;color:#78716c}
 .social-last-refresh{text-align:right}
