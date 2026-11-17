@@ -29,8 +29,9 @@ $btn  = 'px-4 py-2 rounded text-sm font-semibold text-white';
   <p class="text-sm text-stone-500 mb-4">Setup checks, and clearing applicant records once you no longer have to keep them.</p>
 
   <!-- ── Checks ── -->
-  <section class="bg-white border border-stone-200 rounded-lg p-4 mb-5 shadow-sm">
-    <h2 class="font-semibold text-stone-800 mb-2">Setup checks</h2>
+  <details class="site-info-section bg-white border border-stone-200 rounded-lg mb-4 overflow-hidden" open>
+    <summary class="cursor-pointer select-none px-5 py-4 font-bold text-stone-800 flex items-center justify-between gap-3"><span>🩺 Setup checks</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
+    <div class="p-4">
     <ul class="divide-y divide-stone-100">
       <?php foreach ($checks as [$label, $ok, $detail]):
         [$mark, $cls] = $ok === true ? ['OK', 'bg-green-100 text-green-800'] : ($ok === false ? ['Fix', 'bg-red-100 text-red-800'] : ['Note', 'bg-amber-100 text-amber-800']); ?>
@@ -40,11 +41,13 @@ $btn  = 'px-4 py-2 rounded text-sm font-semibold text-white';
       </li>
       <?php endforeach; ?>
     </ul>
-  </section>
+    </div>
+  </details>
 
   <!-- ── Keep period ── -->
-  <section class="bg-white border border-stone-200 rounded-lg p-4 mb-5 shadow-sm">
-    <h2 class="font-semibold text-stone-800 mb-1">How long to keep applications</h2>
+  <details class="site-info-section bg-white border border-stone-200 rounded-lg mb-4 overflow-hidden">
+    <summary class="cursor-pointer select-none px-5 py-4 font-bold text-stone-800 flex items-center justify-between gap-3"><span>🗓️ How long to keep applications</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
+    <div class="p-4">
     <p class="text-xs text-stone-500 mb-3">Federal rules say at least 1 year after the decision, and for people you hired, 1 year after their job ends. Keep longer if you're dealing with a complaint or claim.</p>
     <form method="GET" action="/admin/admin.php" class="space-y-3">
       <input type="hidden" name="view" value="jobs_records">
@@ -56,11 +59,13 @@ $btn  = 'px-4 py-2 rounded text-sm font-semibold text-white';
       </div>
       <label class="flex items-start gap-2 text-sm text-stone-700"><input type="checkbox" name="pool" value="1" class="mt-1" <?= $pool ? 'checked' : '' ?>> Include Talent Pool (<?= $sum['pool_total'] ?>). Leave this off to keep people you want to contact again.</label>
     </form>
-  </section>
+    </div>
+  </details>
 
   <!-- ── Clear ── -->
-  <section id="clear" class="bg-white border <?= $sum['due'] ? 'border-amber-300' : 'border-stone-200' ?> rounded-lg p-4 mb-5 shadow-sm">
-    <h2 class="font-semibold text-stone-800 mb-1">Clear old applications</h2>
+  <details id="clear" class="site-info-section bg-white border border-stone-200 rounded-lg mb-4 overflow-hidden">
+    <summary class="cursor-pointer select-none px-5 py-4 font-bold text-stone-800 flex items-center justify-between gap-3"><span>🗑️ Clear old applications</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
+    <div class="p-4">
     <?php if (!$sum['due']): ?>
       <p class="text-sm text-stone-500">Nothing is past the <?= $h(strtolower($MO[$months])) ?> mark yet.<?= $sum['cleared'] ? ' ' . $sum['cleared'] . ' cleared so far.' : '' ?></p>
     <?php else: ?>
@@ -80,11 +85,13 @@ $btn  = 'px-4 py-2 rounded text-sm font-semibold text-white';
       </form>
       <?php if ($sum['cleared']): ?><p class="text-xs text-stone-400 mt-2"><?= $sum['cleared'] ?> cleared so far.</p><?php endif; ?>
     <?php endif; ?>
-  </section>
+    </div>
+  </details>
 
   <!-- ── Other clean-up ── -->
-  <section class="bg-white border border-stone-200 rounded-lg p-4 mb-5 shadow-sm">
-    <h2 class="font-semibold text-stone-800 mb-3">Other clean-up</h2>
+  <details class="site-info-section bg-white border border-stone-200 rounded-lg mb-4 overflow-hidden">
+    <summary class="cursor-pointer select-none px-5 py-4 font-bold text-stone-800 flex items-center justify-between gap-3"><span>🧹 Other clean-up</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
+    <div class="p-4">
     <?php foreach ([
         ['spam',    $sum['spam'],    'Spam older than ' . JOBS_SPAM_DAYS . ' days', 'Deleted completely, including any file.'],
         ['alerts',  $sum['alerts'],  'Job-alert signups stopped ' . JOBS_ALERT_STOP_DAYS . '+ days ago', 'Their email address is deleted.'],
@@ -103,6 +110,7 @@ $btn  = 'px-4 py-2 rounded text-sm font-semibold text-white';
       <?php endif; ?>
     </div>
     <?php endforeach; ?>
-  </section>
+    </div>
+  </details>
   <p class="text-xs text-stone-400">Nothing on this page runs by itself. A good habit: check it once a year, after your busy season.</p>
 </div>
