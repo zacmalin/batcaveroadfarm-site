@@ -81,8 +81,9 @@
   function run() {
     var q = box.value.trim();
     showRecent();
-    if (q === '') { out.textContent = ''; history.replaceState(null, '', '/admin/search.php'); return; }
+    // Invalidate any in-flight search even when the field is cleared.
     var my = ++seq;
+    if (q === '') { out.textContent = ''; history.replaceState(null, '', '/admin/search.php'); return; }
     fetch('/admin/search.php?api=1&q=' + encodeURIComponent(q), { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
       .then(function (r) { return r.json(); })
       .then(function (j) {
