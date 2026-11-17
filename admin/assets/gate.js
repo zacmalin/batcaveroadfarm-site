@@ -60,6 +60,7 @@
   function toast(m) { var t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 2200); }
 
   // ── occupancy and on-site list ───────────────────────────────────────────
+  var checkoutPending = Object.create(null);
   function renderState(s) {
     $('mOn').textContent = s.on_site; $('mLimit').textContent = s.limit;
     $('meter').className = 'meter ' + s.level;
@@ -74,7 +75,14 @@
       return el('li', {}, [
         el('span', {}, [el('b', { text: p.who + ' · ' + p.party }), el('br'), el('small', { class: 'muted', text: src + ' · in ' + p.in + ' · out by ' + p.out + (p.override ? ' · override: ' + p.override : '') })]),
         el('button', { type: 'button', class: 'btn sm', text: 'Out', 'aria-label': 'Check out ' + p.who, onclick: function () {
-          api('checkout', { id: p.id }).then(function (j) { if (j.ok) { renderState(j.state); toast(p.who + ' checked out'); } else toast(j.message); });
+          if (checkoutPending[p.id]) return;
+          checkoutPending[p.id] = true;
+          this.disabled = true;
+          var button = this;
+          api('checkout', { id: p.id }).then(function (j) {
+            if (j.ok) { renderState(j.state); toast(p.who + ' checked out'); }
+            else { button.disabled = false; toast(j.message || 'Check-out failed. Try again.'); }
+          }, function () { button.disabled = false; toast('No connection. Try again.'); }).then(function () { delete checkoutPending[p.id]; });
         } })
       ]);
     }));
@@ -94,12 +102,16 @@
     var form = el('div', { class: 'gform', hidden: true });
     var status = g.arrived ? g.arrived + ' of ' + g.guests + ' arrived' + (g.on_site ? ' · ' + g.on_site + ' here now' : '') : 'Expected ' + g.guests;
     var wov = null;
+    var arriving = false;
     var go = function (override) {
+      if (arriving) return;
       var body = { type: g.type, id: g.id, n: +num.value, update_quote: !!(upd && upd.checked) };
       if (!(body.n > 0)) { num.focus(); return; }
       if (override) body.override = override;
       if (wov) body.waiver_override = wov;
+      arriving = true;
       api('arrive', body).then(function (j) {
+        arriving = false;
         if (j.ok) { groupOpen = false; renderState(j.state); toast(body.n + ' in: ' + g.name + (j.quote ? '. ' + j.quote : '')); return; }
         if (j.code === 'waiver') { waiverRefused(cap, j, g.waiver, function (why) { wov = why; go(override); }); return; }
         if (j.code === 'capacity') {
@@ -113,7 +125,7 @@
           cap.hidden = false; return;
         }
         cap.replaceChildren(el('p', { class: 'err', text: j.message })); cap.hidden = false;
-      }, function () { cap.replaceChildren(el('p', { class: 'err', text: 'No connection. Try again.' })); cap.hidden = false; });
+      }, function () { arriving = false; cap.replaceChildren(el('p', { class: 'err', text: 'No connection. Try again.' })); cap.hidden = false; });
     };
     form.replaceChildren.apply(form, [
       el('label', { class: 'gcount' }, ['How many arrived? ', num]),
@@ -170,11 +182,15 @@
       if (r.on_site) lines.push(el('div', { class: 'warn', text: r.on_site }));
     }
     var wov = null;
+    var admitting = false;
     var admit = function (override) {
+      if (admitting) return;
       var body = { kind: r.kind, id: r.id, n: +num.textContent };
       if (override) body.override = override;
       if (wov) body.waiver_override = wov;
+      admitting = true;
       api('admit', body).then(function (j) {
+        admitting = false;
         if (j.ok) { renderState(j.state); $('results').replaceChildren(); $('q').value = ''; $('findMsg').textContent = ''; toast(body.n + ' admitted: ' + r.name); return; }
         if (j.code === 'waiver') { waiverRefused(cap, j, r.waiver, function (why) { wov = why; admit(override); }); return; }
         if (j.code === 'capacity') {
@@ -189,7 +205,7 @@
           return;
         }
         cap.replaceChildren(el('p', { class: 'err', text: j.message })); cap.hidden = false;
-      }, function () { cap.replaceChildren(el('p', { class: 'err', text: 'No connection. Try again.' })); cap.hidden = false; });
+      }, function () { admitting = false; cap.replaceChildren(el('p', { class: 'err', text: 'No connection. Try again.' })); cap.hidden = false; });
     };
     return el('div', { class: 'gcard' + (r.blocker ? ' blocked' : '') }, [
       el('div', { class: 'gtop' }, [el('b', { text: r.name || '(no name)' }), el('span', { class: 'chip ' + r.kind, text: r.kind === 'ticket' ? 'Ticket' : 'Pass' })]),
