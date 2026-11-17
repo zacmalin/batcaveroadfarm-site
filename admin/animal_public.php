@@ -112,13 +112,12 @@ echo '<p class="text-sm text-stone-500 mb-3">What visitors see on the website\'s
 if ($error) echo bcrf_shell_notice('err', $error);
 if ($todo) echo bcrf_shell_notice('info', $todo . ' page' . ($todo > 1 ? 's are' : ' is') . ' on the website but missing something (listed below).');
 $list = function (array $rows, string $title, string $empty) use ($h, $card, $site, $slug, $btnSec): void { ?>
-  <details class="<?= $card ?> group" open>
-    <summary class="cursor-pointer list-none flex items-center justify-between gap-3 text-base font-semibold text-stone-800 [&::-webkit-details-marker]:hidden">
-      <span><?= $h($title) ?> (<?= count($rows) ?>)</span>
-      <span aria-hidden="true" class="text-stone-500 text-sm group-open:hidden">Show ▾</span>
-      <span aria-hidden="true" class="text-stone-500 text-sm hidden group-open:inline">Hide ▴</span>
+  <details name="animal-public-sections" class="site-info-section bg-white border border-stone-200 rounded-lg shadow-sm mb-4 overflow-hidden" <?= $title === 'On the website' ? 'open' : '' ?>>
+    <summary class="flex items-center justify-between gap-3 cursor-pointer font-semibold text-stone-800">
+      <span><?= $title === 'On the website' ? '🌐' : '📝' ?> <?= $h($title) ?> (<?= count($rows) ?>)</span>
+      <span class="site-info-chevron text-stone-600" aria-hidden="true">⌄</span>
     </summary>
-    <div class="mt-3">
+    <div class="p-4">
     <?php if (!$rows): ?><p class="text-sm text-stone-500"><?= $h($empty) ?></p><?php else: ?>
     <ul class="divide-y divide-stone-100">
       <?php foreach ($rows as $r): ?>
