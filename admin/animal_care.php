@@ -334,9 +334,9 @@ if ($tab === 'log') {
     if ($error) echo bcrf_shell_notice('err', $error);
     ?>
   <nav aria-label="Filter care history by type" class="flex flex-wrap justify-end gap-2 mb-4">
-    <a href="animal_care.php?tab=log" class="px-3 py-1.5 rounded-full text-sm border <?= !$careType ? 'bg-amber-800 border-amber-800 text-white' : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-100' ?>" <?= !$careType ? 'aria-current="page"' : '' ?>>All</a>
+    <a href="animal_care.php?tab=log" class="care-filter-pill<?= !$careType ? ' is-active' : '' ?>" <?= !$careType ? 'aria-current="page"' : '' ?>>All</a>
     <?php foreach ($careTypes as $ct): $selected = $careType === (int)$ct['id']; ?>
-      <a href="animal_care.php?tab=log&amp;care_type=<?= (int)$ct['id'] ?>" class="px-3 py-1.5 rounded-full text-sm border <?= $selected ? 'bg-amber-800 border-amber-800 text-white' : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-100' ?>" <?= $selected ? 'aria-current="page"' : '' ?>><?= $h($ct['name']) ?></a>
+      <a href="animal_care.php?tab=log&amp;care_type=<?= (int)$ct['id'] ?>" class="care-filter-pill<?= $selected ? ' is-active' : '' ?>" <?= $selected ? 'aria-current="page"' : '' ?>><?= $h($ct['name']) ?></a>
     <?php endforeach; ?>
   </nav>
   <?php if (!$rows): ?><p class="text-sm text-stone-500">No care entries match this filter.</p><?php else: ?>
