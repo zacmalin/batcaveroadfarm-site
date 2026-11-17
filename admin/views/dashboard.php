@@ -151,8 +151,8 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
       <div id="acList" class="space-y-3">
         <div id="acAllClear" class="<?= $card ?> p-6 text-center"<?= $alerts ? ' hidden' : '' ?>>
           <div class="text-2xl mb-1">✅</div>
-          <div class="text-sm font-bold text-stone-700">All clear</div>
-          <div class="text-xs text-stone-500">Anything that needs you (bookings, inquiries, low stock, system problems) shows up here.</div>
+          <div data-clear-title class="text-sm font-bold text-stone-700">All clear</div>
+          <div data-clear-detail class="text-xs text-stone-500">Anything that needs you (bookings, inquiries, low stock, system problems) shows up here.</div>
         </div>
 
         <?php foreach ($alerts as $al): $ps = $prioStyle[$al['priority']]; $dis = $al['priority'] === 'fyi'; ?>
@@ -318,4 +318,4 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
   <?php endif; ?>
   </div>
 </div>
-<script src="/admin/assets/admin-dashboard.js?v=20261105a"></script>
+<script src="/admin/assets/admin-dashboard.js?v=20261117b"></script>
