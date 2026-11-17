@@ -112,7 +112,7 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
         echo '<p class="card muted">That order doesn\'t exist. <a href="purchase_orders.php">All orders</a></p></div></main></body></html>';
         exit;
     }
-    echo '<p><a href="purchase_orders.php">← All orders</a> · <a href="purchase_orders.php?new=1">New order</a></p>';
+    echo '<p><a href="purchase_orders.php">← All orders</a> · <a href="purchase_orders.php?new=1"><span aria-hidden="true">＋</span> New order</a></p>';
     if ($flash) echo bcrf_shell_flash($flash);
     echo '<h1>PO #', (int)$po['id'], '</h1>';
     echo '<p class="muted">', $h($statusLabel[$po['status']] ?? $po['status']), ' · ', $h($po['vendor_name']),
@@ -180,7 +180,7 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
             echo '<div class="two"><label>Qty<input type="number" name="qty[]" value="', $h($d['qty'][$i] ?? ''), '" min="0" step="any" inputmode="decimal"></label>',
                  '<label>Unit cost $<input type="number" name="unit_cost[]" value="', $h($d['unit_cost'][$i] ?? ''), '" min="0" step="0.01" inputmode="decimal"></label></div></div>';
         }
-        echo '</fieldset><div class="rbar"><button class="btn primary" type="submit">Save draft</button></div></form>';
+        echo '</fieldset><div class="rbar"><button class="btn primary" type="submit"><span aria-hidden="true">✓</span> Save draft</button></div></form>';
     }
     echo '</div></main></body></html>';
     exit;
@@ -209,7 +209,7 @@ if (!empty($_GET['new'])) {
         echo '<div class="two"><label>Qty<input type="number" name="qty[]" value="', $h($d['qty'][$i] ?? ''), '" min="0" step="any" inputmode="decimal"></label>',
              '<label>Unit cost $<input type="number" name="unit_cost[]" value="', $h($d['unit_cost'][$i] ?? ''), '" min="0" step="0.01" inputmode="decimal"></label></div></div>';
     }
-    echo '</fieldset><div class="rbar"><button class="btn primary" type="submit">Save draft</button></div></form>';
+    echo '</fieldset><div class="rbar"><button class="btn primary" type="submit"><span aria-hidden="true">✓</span> Save draft</button></div></form>';
     echo '<p class="muted">After saving, mark ordered when you place it, then receive against it when the delivery arrives.</p>';
     echo '</div></main></body></html>';
     exit;
@@ -234,7 +234,7 @@ echo '<form class="rform" method="GET" action="purchase_orders.php"><input type=
      $sel('status', ['open' => 'Open', 'draft' => 'Draft', 'ordered' => 'Ordered', 'partial' => 'Partial', 'received' => 'Received', 'cancelled' => 'Cancelled', 'all' => 'All'], $f['status']),
      $sel('vendor', $vendors, $f['vendor_id'] ?? '', 'All vendors'),
      bcrf_list_sort_select($sortOpts, $sort),
-     '<button class="btn sm" type="submit">Apply filters</button><a class="btn sm" href="purchase_orders.php">Reset</a><a class="btn sm primary" href="purchase_orders.php?new=1">New order</a></form>';
+     '<button class="btn sm" type="submit"><span aria-hidden="true">✓</span> Apply filters</button><a class="btn sm" href="purchase_orders.php"><span aria-hidden="true">↺</span> Reset</a><a class="btn sm primary" href="purchase_orders.php?new=1"><span aria-hidden="true">＋</span> New order</a></form>';
 if (!$rows) echo '<p class="card muted">No orders match. <a href="purchase_orders.php?new=1">Create one</a>.</p>';
 else {
     echo '<div class="card hist">';
