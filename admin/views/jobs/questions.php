@@ -140,7 +140,7 @@ $archived = array_filter($all, fn($r) => (int)$r['is_archived']);
     <form method="POST" action="/admin/admin.php?view=jobs_questions">
       <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
       <input type="hidden" name="jobs_setup_action" value="q_starters">
-      <button class="px-4 py-2 rounded text-sm bg-green-700 hover:bg-green-800 text-white font-semibold">Add starter questions</button>
+      <button class="px-4 py-2 rounded text-sm bg-green-700 hover:bg-green-800 text-white font-semibold"><span aria-hidden="true">＋</span> Add starter questions</button>
     </form>
   </div>
   <?php endif; ?>
