@@ -406,6 +406,42 @@ function bcrf_care_log(PDO $pdo, array $in, ?int $uid = null): array {
     return ['id' => $logId, 'animals' => count($ids), 'stock_note' => $stockNote];
 }
 
+/** Save all feeds from one form atomically, reusing the existing per-feed stock/cost/void ledger.
+ * Each feed is a separate linked-to-animals care entry; no schema change or duplicate stock deduction.
+ */
+function bcrf_care_log_session(PDO $pdo, array $in, array $feeds, ?int $uid = null): array {
+    $type = bcrf_care_type($pdo, (int)($in['type'] ?? 0));
+    if (!$type || !$type['active']) throw new BcrfCareError('Pick what you did.');
+    if (!$type['is_feeding']) return bcrf_care_log($pdo, $in, $uid);
+    if (!$feeds || count($feeds) > 30) throw new BcrfCareError('Add between 1 and 30 feeds.');
+    $clean = [];
+    foreach ($feeds as $row) {
+        if (!is_array($row)) throw new BcrfCareError('Invalid feed row.');
+        $product = (int)($row['product'] ?? 0);
+        $quantity = trim((string)($row['qty'] ?? ''));
+        $unit = trim((string)($row['unit'] ?? ''));
+        if (!$product && $quantity === '' && $unit === '') continue;
+        if (!$product || $quantity === '') throw new BcrfCareError('Choose a feed and amount for each row, or remove the empty row.');
+        $clean[] = ['feed_product' => $product, 'feed_qty' => $quantity, 'feed_unit' => $unit];
+    }
+    if (!$clean) throw new BcrfCareError('Choose at least one feed and amount.');
+    $own = !$pdo->inTransaction();
+    if ($own) $pdo->beginTransaction();
+    try {
+        $result = null; $notes = [];
+        foreach ($clean as $row) {
+            $r = bcrf_care_log($pdo, array_merge($in, $row), $uid);
+            if ($result === null) $result = $r;
+            if ($r['stock_note']) $notes[] = $r['stock_note'];
+        }
+        if ($own) $pdo->commit();
+        return ['id' => $result['id'], 'ids_count' => count($clean), 'animals' => $result['animals'], 'stock_note' => implode(' ', $notes)];
+    } catch (Throwable $e) {
+        if ($own && $pdo->inTransaction()) $pdo->rollBack();
+        throw $e;
+    }
+}
+
 /** Void an entry; its feed goes back into stock at the location it came from. */
 function bcrf_care_void(PDO $pdo, int $logId, string $reason, ?int $uid = null): void {
     $reason = mb_substr(trim($reason), 0, 255);
