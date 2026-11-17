@@ -175,7 +175,7 @@ if ($id) {
 $show = in_array($_GET['show'] ?? '', ['attention', 'unchecked', 'all'], true) ? $_GET['show'] : 'attention';
 $q = trim(mb_substr((string)($_GET['q'] ?? ''), 0, 60));
 $rows = bcrf_kitchen_ingredient_list($pdo, $q !== '' ? 'all' : $show, $q);
-$sortOpts = ['default' => ['Name A to Z'], 'za' => ['Name Z to A', 'singular_name', 'desc'],
+$sortOpts = ['az' => ['Name A to Z', 'singular_name', 'asc'], 'za' => ['Name Z to A', 'singular_name', 'desc'],
              'used' => ['In the most recipes', fn($r) => count($r['used_in']), 'desc'], 'newest' => ['Newest added', 'id', 'desc']];
 $sort = bcrf_list_sort_pick($pdo, 'kitchen_ingredients', $sortOpts);
 $rows = bcrf_list_sort_rows($rows, $sortOpts, $sort);
