@@ -240,7 +240,7 @@ elseif ($tab === 'templates'):
     <label class="block text-xs text-stone-600">Message <span class="text-stone-400">(HTML — keep the &lt;p&gt; tags around each paragraph)</span>
       <textarea name="body_html" id="je-body" rows="12" required class="mt-1 w-full border border-stone-300 rounded px-2 py-2 text-xs font-mono leading-relaxed"><?= $h($body) ?></textarea></label>
 
-    <label class="flex items-start gap-2 text-sm text-stone-700"><input type="checkbox" name="is_active" value="1" class="mt-1" <?= $act ? 'checked' : '' ?>>
+    <label class="flex items-start gap-2 text-sm text-stone-700"><input type="checkbox" name="is_active" value="1" class="ui-form-switch mt-1" <?= $act ? 'checked' : '' ?>>
       <span>On <span class="text-stone-500 text-xs">— when off, this email is skipped and nothing is sent.</span></span></label>
 
     <div class="flex flex-wrap gap-2">
