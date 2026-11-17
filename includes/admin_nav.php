@@ -53,8 +53,6 @@ function bcrf_admin_nav_sections(): array {
                                                      ['Setup','/admin/animal_weights.php?tab=setup','table','animals']]],
         ['label'=>'Breeding',  'icon'=>'🐣','tabs'=>[['Breeding','/admin/animal_breeding.php','table','animals']]],                       // Farm OS Phase 5 slice 6 (Nov 12)
         ['label'=>'Expenses',  'icon'=>'🧾','tabs'=>[['Expenses','/admin/animal_expenses.php','view','animal_expenses']]],              // Farm OS Phase 5 slice 7 (Nov 12)
-        ['label'=>'Incidents', 'icon'=>'🚑','tabs'=>[['Incidents','/admin/incidents.php','view','incidents'],                         // Farm OS Phase 5 slice 8 (Nov 12)
-                                                     ['Report','/admin/tasks.php?incident=new','always','']]],                   // any staff member (Staff can only open tasks.php)
         ['label'=>'Reference', 'short'=>'Ref','icon'=>'📚','tabs'=>[
             ['Breeds',          '?view=schema&table=breeds',          'table', 'breeds'],
             ['Classifications', '?view=schema&table=classifications', 'table', 'classifications'],
@@ -103,6 +101,8 @@ function bcrf_admin_nav_sections(): array {
                                                        ['Chores',    '/admin/tasks.php?tab=chores',    'view', 'tasks_manage'],
                                                        ['Checklists','/admin/tasks.php?tab=templates', 'view', 'tasks_manage'],
                                                        ['Events',    '/admin/tasks.php?tab=events',    'view', 'tasks_manage']]],   // party/booking checklists (slice 3)
+        ['label'=>'Incidents', 'icon'=>'🚑','tabs'=>[['Incidents','/admin/incidents.php','view','incidents'],                         // Farm OS Phase 5 slice 8 (Nov 12)
+                                                     ['Report','/admin/tasks.php?incident=new','always','']]],                   // any staff member (Staff can only open tasks.php)
         ['label'=>'Staff',      'icon'=>'🪪','tabs'=>[['Staff','?view=jobs_staff','view','jobs_staff']]],
         ['label'=>'Time Clock', 'short'=>'Clock','icon'=>'⏰','tabs'=>[['Time Clock','?view=timecard','view','timecard']]],
         ['label'=>'Timesheets', 'icon'=>'🗓️','tabs'=>[['Timesheets','?view=timesheet','view','timesheet']]],
