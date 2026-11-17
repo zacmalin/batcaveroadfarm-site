@@ -34,7 +34,17 @@
     var a = recent();
     recentEl.textContent = '';
     if (box.value.trim() !== '' || !a.length) { recentEl.hidden = true; return; }
-    recentEl.appendChild(el('div', 'srch-gh', 'Recent searches'));
+    var header = el('div', 'srch-recent-head');
+    header.appendChild(el('span', 'srch-gh', 'Recent searches'));
+    var clear = el('button', 'srch-clear', 'Clear recent searches');
+    clear.type = 'button';
+    clear.addEventListener('click', function () {
+      try { sessionStorage.removeItem(KEY); } catch (e) { /* storage off: fine */ }
+      showRecent();
+      box.focus();
+    });
+    header.appendChild(clear);
+    recentEl.appendChild(header);
     a.forEach(function (q) {
       var b = el('button', 'srch-chip', q);
       b.type = 'button';
