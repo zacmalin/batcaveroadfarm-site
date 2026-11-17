@@ -1,5 +1,5 @@
 <?php
-// admin/incidents.php — Animals › Incidents (Farm OS Phase 5 slice 8, Nov 12, 2026; includes/incidents.php, migration 0047).
+// admin/incidents.php — Team › Incidents (Farm OS Phase 5 slice 8, Nov 12, 2026; includes/incidents.php, migration 0047).
 //   GET  incidents.php[?status=open|closed|all&type=]   every incident, newest first (Owners and Managers)
 //   GET  incidents.php?new=1                            report one (any staff member)
 //   GET  incidents.php?id=N[&edit=1]                    one report: everything, photos, links, change history; change, add, close
@@ -105,6 +105,7 @@ $hidden  = '<input type="hidden" name="csrf_token" value="' . $h($csrf) . '">';
 $sevChip = ['minor' => 'bg-stone-100 text-stone-700', 'moderate' => 'bg-amber-100 text-amber-900', 'serious' => 'bg-red-100 text-red-800'];
 $local   = fn(?string $utc, string $f = 'D M j, Y g:i A') => $utc ? bcrf_incident_local($utc)->format($f) : '';
 $animals = function_exists('bcrf_animals_list') && function_exists('bcrf_animals_ready') && bcrf_animals_ready($pdo) ? bcrf_animals_list($pdo, 'all') : [];
+usort($animals, fn($a, $b) => strcasecmp((string)$a['name'], (string)$b['name']));
 $places  = function_exists('bcrf_enclosures') && function_exists('bcrf_animals_ready') && bcrf_animals_ready($pdo) ? array_column(bcrf_enclosures($pdo), 'name') : [];
 
 // The fields shared by the report form and the change form. $d: values to show.
@@ -136,10 +137,10 @@ $fields = function (array $d, bool $isNew) use ($h, $input, $label, $animals, $p
     <div class="mb-3"><label class="<?= $label ?>" for="i_desc">What happened</label><textarea id="i_desc" name="description" rows="4" maxlength="5000" required class="<?= $input ?>" placeholder="Just the facts: who, what, in what order."><?= $h($d['description'] ?? '') ?></textarea></div>
     <div class="mb-3"><label class="<?= $label ?>" for="i_act">What was done (first aid, who was called)</label><textarea id="i_act" name="action_taken" rows="3" maxlength="5000" class="<?= $input ?>"><?= $h($d['action_taken'] ?? '') ?></textarea></div>
     <?php if ($animals): ?>
-    <div class="mb-3"><label class="<?= $label ?>" for="i_an">Animals involved (hold to pick more than one)</label>
+    <div class="mb-3"><label class="<?= $label ?>" for="i_an">Animals involved (optional)</label>
       <select id="i_an" name="animals[]" multiple size="6" class="<?= $input ?>">
         <?php foreach ($animals as $a): ?><option value="<?= (int)$a['id'] ?>"<?= in_array((int)$a['id'], $picked, true) ? ' selected' : '' ?>><?= $h($a['name']) ?><?= function_exists('bcrf_animal_is_leaving') && bcrf_animal_is_leaving((string)$a['status']) ? ' (left)' : '' ?></option><?php endforeach; ?>
-      </select></div>
+      </select><p class="text-xs text-stone-500 mt-1">On a phone, tap animals to select or deselect them. Leave blank if no animals were involved.</p></div>
     <?php endif; ?>
     <?php if ($isNew): ?>
     <fieldset class="mb-3"><legend class="<?= $label ?>">Visitors involved (name, and phone or email if you have them)</legend>
@@ -343,6 +344,6 @@ if ($error) echo bcrf_shell_notice('err', $error); ?>
     <?php endforeach; ?></ul>
     <?php endif; ?>
   </div>
-  <p class="text-sm text-stone-500">Any staff member can report an incident from the menu (Animals › Incidents › Report). Reports are never deleted; changes are kept on each one.</p>
+  <p class="text-sm text-stone-500">Any staff member can report an incident from Team › Incidents › Report. Reports are never deleted; changes are kept on each one.</p>
 <?php
 bcrf_shell_close();
