@@ -139,9 +139,9 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
 
     <!-- ═══ ACTION CENTER ═══ -->
     <section class="lg:col-span-2 lg:col-start-1 lg:row-start-1 space-y-3" aria-labelledby="acHead">
-      <div class="flex items-center justify-between gap-2">
+      <div class="flex flex-wrap items-center justify-between gap-2">
         <h2 id="acHead" class="text-sm font-black uppercase tracking-widest text-stone-500">Action Center</h2>
-        <div class="flex items-center gap-1.5 text-[10px] font-bold">
+        <div class="flex flex-wrap items-center gap-1.5 text-[10px] font-bold">
           <?php foreach ($prioStyle as $pk => $ps): if (empty($prioCount[$pk])) continue; ?>
             <span class="px-2 py-0.5 rounded-full <?= $ps['chip'] ?>"><?= (int)$prioCount[$pk] ?> <?= $ps['label'] ?></span>
           <?php endforeach; ?>
