@@ -2,7 +2,7 @@
 $total_unmoderated = count($mod_comments);
 ?>
 
-<div class="flex justify-between items-center mb-6">
+<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
     <div>
         <h1 class="text-2xl font-bold text-stone-800">Comment Moderation</h1>
         <p class="text-xs text-stone-400 mt-0.5">
@@ -12,9 +12,9 @@ $total_unmoderated = count($mod_comments);
         </p>
     </div>
     <?php if ($total_unmoderated > 0): ?>
-    <div class="flex gap-2 text-xs font-bold uppercase tracking-wider">
-        <button type="button" data-mod-select-all  class="border border-stone-200 px-3 py-1.5 rounded bg-stone-50 hover:bg-stone-200">Select All</button>
-        <button type="button" data-mod-select-none class="border border-stone-200 px-3 py-1.5 rounded bg-stone-50 hover:bg-stone-200">Select None</button>
+    <div class="flex flex-wrap gap-2 text-xs font-bold uppercase tracking-wider">
+        <button type="button" data-mod-select-all  class="border border-stone-200 px-3 py-2 rounded bg-stone-50 hover:bg-stone-200" style="min-height:44px;">Select All</button>
+        <button type="button" data-mod-select-none class="border border-stone-200 px-3 py-2 rounded bg-stone-50 hover:bg-stone-200" style="min-height:44px;">Select None</button>
     </div>
     <?php endif; ?>
 </div>
@@ -31,15 +31,15 @@ $total_unmoderated = count($mod_comments);
     <input type="hidden" name="mod_action" id="modAction" value="">
 
     <!-- Action bar — sticky at top -->
-    <div class="sticky top-0 z-10 bg-stone-100/95 backdrop-blur-sm border-b border-stone-200 px-4 py-3 mb-4 flex justify-between items-center print:hidden">
+    <div class="sticky top-0 z-10 bg-stone-100/95 backdrop-blur-sm border-b border-stone-200 px-3 py-3 mb-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 print:hidden">
         <span id="selectedCount" role="status" aria-live="polite" class="text-xs text-stone-500 font-bold">0 selected</span>
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2 w-full sm:w-auto">
             <button type="button" data-mod-action="approve"
-                class="bg-emerald-700 hover:bg-emerald-900 text-white font-bold uppercase tracking-wider px-5 py-2 rounded text-xs shadow-sm transition">
+                class="bg-emerald-700 hover:bg-emerald-900 text-white font-bold uppercase tracking-wider px-3 sm:px-5 py-2 rounded text-xs shadow-sm transition flex-1 sm:flex-none" style="min-height:44px;">
                 ✅ Approve Selected
             </button>
             <button type="button" data-mod-action="reject"
-                class="bg-red-700 hover:bg-red-900 text-white font-bold uppercase tracking-wider px-5 py-2 rounded text-xs shadow-sm transition">
+                class="bg-red-700 hover:bg-red-900 text-white font-bold uppercase tracking-wider px-3 sm:px-5 py-2 rounded text-xs shadow-sm transition flex-1 sm:flex-none" style="min-height:44px;">
                 ❌ Reject Selected
             </button>
         </div>
