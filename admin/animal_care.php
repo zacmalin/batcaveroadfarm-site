@@ -325,11 +325,21 @@ if ($tab === 'setup' && $canEdit) {
 
 // ── Recent ──
 if ($tab === 'log') {
-    $rows = bcrf_care_recent($pdo, 0, 200);
+    $careTypes = $pdo->query('SELECT DISTINCT t.id, t.name FROM animal_care_types t JOIN animal_care_logs l ON l.care_type_id = t.id ORDER BY t.name')->fetchAll(PDO::FETCH_ASSOC);
+    $careType = max(0, (int)($_GET['care_type'] ?? 0));
+    if ($careType && !in_array($careType, array_map(fn($t) => (int)$t['id'], $careTypes), true)) $careType = 0;
+    $rows = bcrf_care_recent($pdo, 0, 200, true, $careType);
     bcrf_shell_open('Animal care', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' => ['quotes.js']]);
     echo '<h1 class="text-2xl font-bold text-stone-800 mb-3">Animal care</h1>';
     if ($error) echo bcrf_shell_notice('err', $error);
-    if (!$rows) { echo '<p class="text-sm text-stone-500">Nothing logged yet.</p>'; bcrf_shell_close(); exit; } ?>
+    ?>
+  <nav aria-label="Filter care history by type" class="flex flex-wrap justify-end gap-2 mb-4">
+    <a href="animal_care.php?tab=log" class="px-3 py-1.5 rounded-full text-sm border <?= !$careType ? 'bg-amber-800 border-amber-800 text-white' : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-100' ?>" <?= !$careType ? 'aria-current="page"' : '' ?>>All</a>
+    <?php foreach ($careTypes as $ct): $selected = $careType === (int)$ct['id']; ?>
+      <a href="animal_care.php?tab=log&amp;care_type=<?= (int)$ct['id'] ?>" class="px-3 py-1.5 rounded-full text-sm border <?= $selected ? 'bg-amber-800 border-amber-800 text-white' : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-100' ?>" <?= $selected ? 'aria-current="page"' : '' ?>><?= $h($ct['name']) ?></a>
+    <?php endforeach; ?>
+  </nav>
+  <?php if (!$rows): ?><p class="text-sm text-stone-500">No care entries match this filter.</p><?php else: ?>
   <div class="<?= $card ?> p-0 overflow-hidden">
     <ul class="divide-y divide-stone-100">
     <?php foreach ($rows as $r): ?>
@@ -343,6 +353,7 @@ if ($tab === 'log') {
     <?php endforeach; ?>
     </ul>
   </div>
+  <?php endif; ?>
 <?php
     bcrf_shell_close(); exit;
 }
