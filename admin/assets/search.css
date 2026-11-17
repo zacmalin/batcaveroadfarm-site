@@ -13,6 +13,11 @@
 .srch-go:hover { background: #44403c; }
 .srch-hint { margin-top: 6px; font-size: 12px; color: #78716c; }
 .srch-recent { margin-bottom: 16px; }
+.srch-recent-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.srch-recent-head .srch-gh { margin: 0; }
+.srch-clear { border: 0; background: transparent; padding: 6px 2px; color: #57534e; font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.srch-clear:hover { color: #92400e; }
+.srch-clear:focus-visible { outline: 2px solid #b45309; outline-offset: 2px; border-radius: 3px; }
 .srch-status { margin: 0 0 12px; font-size: 12px; color: #57534e; min-height: 1em; }
 .srch-status:empty { display: none; }
 .srch-chip {
