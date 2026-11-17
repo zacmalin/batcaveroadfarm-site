@@ -168,7 +168,7 @@ if ($type) {
   <?php if (!$q): ?>
     <div class="<?= $card ?>">
       <p class="text-sm text-stone-700 mb-3"><?= $s['is_party']
-          ? 'Starts at ' . $h($m(bcrf_quote_party_price($pdo))) . ' a guest × ' . (int)$s['guests'] . ' guests, paid on arrival with no deposit. You can change it before sending.'
+          ? 'Starts with a suggested party price for ' . (int)$s['guests'] . ' guests. Review the package, price, deposit and payment terms before sending.'
           : 'Starts from the booking type\'s price. You can change it, add a deposit and turn online payment on or off before sending.' ?></p>
       <form method="POST" action="quotes.php"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="for" value="<?= $h($type . ':' . $sid) ?>">
         <button name="act" value="create" class="<?= $btnMain ?>">Start the quote</button></form>
@@ -214,7 +214,7 @@ if ($type) {
       </div>
       <div><label for="q_note" class="<?= $label ?>">Note to the customer <span class="font-normal text-stone-400">optional; shown on the quote</span></label>
         <textarea id="q_note" name="customer_note" rows="2" maxlength="1000" class="<?= $input ?>"><?= $h($d['customer_note'] ?? (string)$q['customer_note']) ?></textarea></div>
-      <?php if ($s['is_party']): ?><p class="text-xs text-stone-500">Party terms (shown to the customer): $10 a guest, no deposit, paid in full on arrival, rain or shine, every child with an adult around the animals.</p><?php endif; ?>
+      <?php if ($s['is_party']): ?><p class="text-xs text-stone-500">Review the party package, deposit, payment timing and customer note before sending. The customer sees the saved quote and its terms.</p><?php endif; ?>
       <button name="act" value="save" class="<?= $btnMain ?>">Save quote</button>
     </form>
 
