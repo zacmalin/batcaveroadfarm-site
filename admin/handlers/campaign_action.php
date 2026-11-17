@@ -264,6 +264,10 @@ if ($campaign_id) {
 
 // ── RESULT ────────────────────────────────────────────────────────────────────
 if ($is_test) {
+    if ($failed_count > 0) {
+        $msg = "Test email failed to send to {$test_email}. Check the mail error log.";
+        $is_ajax ? ajax_exit(false, $msg) : redirect_exit($msg, 'error');
+    }
     $msg = "Test email sent to {$test_email}.";
     $is_ajax ? ajax_exit(true, $msg) : redirect_exit($msg, 'success');
 } elseif ($failed_count === 0) {
