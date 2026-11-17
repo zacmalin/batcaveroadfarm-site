@@ -91,7 +91,7 @@ if ($tab === 'setup' && $canEdit) {
     <p class="text-sm text-stone-500 mb-3">A weighing that is this much up or down from the animal's last one shows as an alert on its page and here.</p>
     <div class="flex flex-wrap gap-2 items-end">
       <div class="w-32"><label class="<?= $label ?>" for="ap">Percent</label><input id="ap" name="alert_pct" type="number" min="1" max="100" step="0.5" required value="<?= $h($pctTxt) ?>" class="<?= $input ?>"></div>
-      <button class="<?= $btnMain ?>">Save</button>
+      <button class="<?= $btnMain ?>"><span aria-hidden="true">✓</span> Save</button>
     </div>
   </form>
 <?php
@@ -163,7 +163,7 @@ if ($error) echo bcrf_shell_notice('err', $error);
       </li>
       <?php endforeach; ?>
     </ul>
-    <button class="<?= $btnMain ?>">Save weights</button>
+    <button class="<?= $btnMain ?>"><span aria-hidden="true">✓</span> Save weights</button>
   </form>
   <?php endif; ?>
 <?php
