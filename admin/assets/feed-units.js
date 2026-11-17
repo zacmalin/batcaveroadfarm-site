@@ -50,7 +50,7 @@
         var rows = holder.querySelectorAll('[data-feed-row]');
         rows.forEach(function (row, i) {
             row.querySelector('[data-feed-title]').textContent = 'Feed ' + (i + 1);
-            row.querySelector('[data-feed-remove]').hidden = rows.length === 1;
+            row.querySelector('[data-feed-remove]').style.display = rows.length === 1 ? 'none' : 'inline-flex';
         });
         add.disabled = rows.length >= 30;
     }
@@ -63,9 +63,15 @@
             field.name = field.name.replace(/^feeds\[[0-9]+\]/, 'feeds[' + index + ']');
             if (field.tagName === 'SELECT') field.selectedIndex = 0;
             else field.value = '';
-            field.removeAttribute('id');
+            var oldId = field.getAttribute('id');
+            if (oldId) {
+                var newId = oldId + '-' + index;
+                field.id = newId;
+                row.querySelectorAll('label[for]').forEach(function (label) {
+                    if (label.getAttribute('for') === oldId) label.setAttribute('for', newId);
+                });
+            }
         });
-        row.querySelectorAll('label[for]').forEach(function (label) { label.removeAttribute('for'); });
         holder.appendChild(row);
         initialize(row);
         refresh();
