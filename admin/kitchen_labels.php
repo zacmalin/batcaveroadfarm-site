@@ -214,7 +214,6 @@ bcrf_shell_open('Kitchen labels', ['toast' => $toast, 'width' => 'max-w-4xl']);
     <?php endforeach; ?>
   </ul>
   <?php endif; ?>
-  <p class="text-sm text-stone-600 mb-4">🖨️ Labels print from a batch: Kitchen › Batches › a lot › Print labels. Label sheets and type sizes: <a class="underline text-amber-800" href="kitchen_label_print.php">Label printing</a>.</p>
   <div class="<?= $card ?>">
     <h2 class="text-base font-semibold text-stone-800 mb-1">Required statement</h2>
     <p class="text-xs text-stone-500 mb-2">Printed on every label, under "Made by". Use the exact wording NCDA&amp;CS requires for home processors once they confirm it. Changing it means every label needs approving again.</p>
