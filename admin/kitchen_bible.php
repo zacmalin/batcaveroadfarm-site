@@ -54,12 +54,12 @@ if ($id) {
     echo $h(implode(' · ', $meta));
     ?>
   </p>
-  <div class="flex flex-wrap gap-2 items-center mb-4 print:hidden">
+  <div class="flex flex-wrap gap-2 items-center justify-end mb-4 print:hidden" role="group" aria-label="Recipe batch size">
     <span class="text-xs font-semibold text-stone-600">Batch size</span>
     <?php foreach (bcrf_bible_multipliers() as $k => $lbl): $on = (float)$k === $mult; ?>
-      <a href="kitchen_bible.php?id=<?= $r['id'] ?>&amp;x=<?= $h($k) ?>" class="px-3 py-1.5 rounded text-sm border <?= $on ? 'bg-amber-700 border-amber-700 text-white font-semibold' : 'border-stone-300 text-stone-700 bg-white hover:bg-stone-100' ?>"<?= $on ? ' aria-current="true"' : '' ?>><?= $h($lbl) ?></a>
+      <a href="kitchen_bible.php?id=<?= $r['id'] ?>&amp;x=<?= $h($k) ?>" class="inline-flex min-h-9 items-center justify-center rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors <?= $on ? 'bg-stone-800 border-stone-800 text-white' : 'border-stone-300 text-stone-700 bg-white hover:bg-stone-100' ?>"<?= $on ? ' aria-current="true"' : '' ?>><?= $h($lbl) ?></a>
     <?php endforeach; ?>
-    <button type="button" id="recipeBiblePrint" class="<?= $btnSec ?> ml-auto">🖨️ Print</button>
+    <button type="button" id="recipeBiblePrint" class="<?= $btnSec ?>">🖨️ Print</button>
   </div>
 
   <script src="/admin/assets/recipe-bible.js" defer></script>
