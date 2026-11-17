@@ -156,7 +156,7 @@ document.addEventListener('keydown', function(e) {
 <!-- Admin list search + sort (external, CSP-safe) -->
 <script defer src="/admin/assets/admin-list.js?v=20261117a"></script>
 <!-- Shared UI kit (02 Navigation & UX): chips, phone card tables, common behaviours -->
-<link rel="stylesheet" href="/admin/assets/admin-ui.css?v=20261117a">
+<link rel="stylesheet" href="/admin/assets/admin-ui.css?v=20261117c">
 <script defer src="/admin/assets/admin-ui.js?v=20261117a"></script>
 <!-- Phone boxes format as (828) 555-0100 while typing (Nov 15, 2026; same file as the public site) -->
 <script defer src="/js/min.phone.js?v=20261115a"></script>
