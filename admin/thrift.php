@@ -147,7 +147,9 @@ echo '<form class="rform" method="GET" action="thrift.php"><input type="search" 
      $sel('status', ['available' => 'For sale', 'sold' => 'Sold', 'all' => 'All', 'returned' => 'Returned', 'withdrawn' => 'Withdrawn'], $f['status']),
      $sel('source', bcrf_thrift_sources(), $f['source'] ?? '', 'All sources'),
      bcrf_list_sort_select($sortOpts, $sort),
-     '<button class="btn sm" type="submit">Show</button><a class="btn sm primary" href="thrift.php?new=1">Intake</a></form>';
+     '<button class="btn sm" type="submit">Apply filters</button>',
+     ($f['q'] !== '' || $f['status'] !== 'available' || $f['source'] !== null || $sort !== 'default' ? '<a class="btn sm" href="thrift.php">Reset</a>' : ''),
+     '<a class="btn sm primary" href="thrift.php?new=1">Intake</a></form>';
 if (!$rows) echo '<p class="card muted">No thrift items match. <a href="thrift.php?new=1">Take one in</a>.</p>';
 else {
     echo '<div class="card hist">';
