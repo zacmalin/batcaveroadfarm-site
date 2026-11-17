@@ -71,19 +71,7 @@ $overlaps  = fn($as, $ae, $bs, $be) => ($as < $be) && ($ae > $bs);
 $statusBadge = fn(string $s): string => ui_chip($s);
 
 
-// Ticket breakdown display helper
-$tixBreakdown = function (array $row): string {
-    if (empty($row['ticket_breakdown'])) return '';
-    $tb = json_decode($row['ticket_breakdown'], true);
-    if (!is_array($tb) || empty($tb)) return '';
-    $parts = [];
-    foreach ($tb as $name => $data) {
-        $parts[] = htmlspecialchars($name) . ' Ã' . (int)$data['qty'];
-    }
-    return '<div class="text-[10px] text-stone-400 mt-1 tracking-tight">ðï¸ ' . implode(' &bull; ', $parts) . '</div>';
-};
-
-// Ticket breakdown — replaces the helper above, which printed garbled characters (× and the ticket icon).
+// Ticket breakdown display helper.
 $tixBreakdown = function (array $row): string {
     if (empty($row['ticket_breakdown'])) return '';
     $tb = json_decode($row['ticket_breakdown'], true);
