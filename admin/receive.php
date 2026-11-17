@@ -252,7 +252,7 @@ for ($i = 0; $i < $lineCount; $i++) {
     if ($pid && isset($byId[(int)$pid]) && $byId[(int)$pid]['avg_cost_cents'] !== null && $cost === '') {
         $hint = 'placeholder="' . $h(rtrim(rtrim(number_format(((int)$byId[(int)$pid]['avg_cost_cents']) / 100, 4, '.', ''), '0'), '.')) . '"';
     }
-    echo '<div class="card pline">';
+    echo '<div class="card pline"><strong>Line ', $i + 1, '</strong>';
     echo '<label>SKU / barcode <small class="muted">(scan here — overrides the product pick)</small>',
          '<input type="text" name="sku[]" value="', $h($sku), '" maxlength="50" autocomplete="off" inputmode="text"></label>';
     echo '<label>Product', $sel('product_id[]', $prodOpts, $pid), '</label>';
