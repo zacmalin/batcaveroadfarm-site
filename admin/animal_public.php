@@ -110,7 +110,7 @@ bcrf_shell_open('Public pages', ['toast' => $toast, 'width' => 'max-w-4xl']);
 echo '<h1 class="text-2xl font-bold text-stone-800 mb-1">Public pages</h1>';
 echo '<p class="text-sm text-stone-500 mb-3">What visitors see on the website\'s petting zoo pages. Open an animal\'s Public tab to change its words and photos. Health, weights, costs and incidents never go on the website.</p>';
 if ($error) echo bcrf_shell_notice('err', $error);
-if ($todo) echo bcrf_shell_notice('info', $todo . ' page' . ($todo > 1 ? 's are' : ' is') . ' on the website but missing something (listed below).');
+if ($todo) echo bcrf_shell_notice('warning', '⚠️ ' . $todo . ' published animal page' . ($todo > 1 ? 's need' : ' needs') . ' attention: missing information is listed below.');
 $list = function (array $rows, string $title, string $empty) use ($h, $card, $site, $slug, $btnSec): void { ?>
   <details name="animal-public-sections" class="site-info-section bg-white border border-stone-200 rounded-lg shadow-sm mb-4 overflow-hidden" <?= $title === 'On the website' ? 'open' : '' ?>>
     <summary class="flex items-center justify-between gap-3 cursor-pointer font-semibold text-stone-800">
