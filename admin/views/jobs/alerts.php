@@ -58,7 +58,7 @@ $base  = 'show=' . $show . ($q !== '' ? '&q=' . rawurlencode($q) : '');
 
   <div class="flex flex-wrap items-center justify-end gap-1.5 mb-3">
     <?php foreach (['active' => 'Getting alerts', 'stopped' => 'Stopped', 'all' => 'All'] as $k => $l): $on = $show === $k; ?>
-      <a href="/admin/admin.php?view=jobs_alerts&show=<?= $k ?>" class="text-sm px-3 py-1.5 rounded-full border whitespace-nowrap <?= $on ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50' ?>" <?= $on ? 'aria-current="page"' : '' ?>><?= $l ?></a>
+      <a href="/admin/admin.php?view=jobs_alerts&show=<?= $k ?>" class="text-sm px-3 py-1.5 rounded-full border whitespace-nowrap <?= $on ? 'farmos-filter-selected' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50' ?>" <?= $on ? 'aria-current="page"' : '' ?>><?= $l ?></a>
     <?php endforeach; ?>
   </div>
   <form method="GET" action="/admin/admin.php" class="flex gap-2 mb-4">
