@@ -31,6 +31,8 @@ function bcrf_admin_nav_sections(): array {
                                                                          ['Gift Cards','/admin/gift_cards.php','view','pos']]],              // Farm OS Phase 2 gift cards (Nov 11)
     ]],
     'visitors' => ['label'=>'Visitors & Events','icon'=>'🎟','items'=>[
+        ['label'=>'Gate Check-in',  'short'=>'Gate','icon'=>'🚪','tabs'=>[['Gate Check-in','/admin/gate.php','view','pos'],
+                                                                        ['Gate Check-in','/admin/gate.php','view','passes']]],
         ['label'=>'Bookings',       'icon'=>'📋','tabs'=>[['Bookings','?view=bookings','view','bookings'],
                                                          ['Quotes & payments','/admin/quotes.php','view','bookings'],          // Farm OS Phase 3 slice 4 (Nov 12)
                                                          ['Weather day','/admin/weather.php','view','bookings']]],             // slice 5 (Nov 12)
@@ -155,7 +157,6 @@ function bcrf_admin_nav_sections(): array {
 function bcrf_admin_nav_extra_pages(): array {
     return [
         ['Dashboard',      '/admin/admin.php?view=dashboard', [['always']],                    'Home'],
-        ['Gate check-in',  '/admin/gate.php',                 [['view', 'pos'], ['view', 'passes']], 'Scan tickets and passes'],
         ['Notifications',  '/admin/notifications.php',        [['always']],                    'Alerts bell'],
     ];
 }
