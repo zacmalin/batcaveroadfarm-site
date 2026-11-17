@@ -153,6 +153,7 @@ $displayed_images = ($active_folder === '_all')
                 <?php $__mt = @filemtime(rtrim($_SERVER['DOCUMENT_ROOT'], '/') . $img['url']); ?>
                 <img src="<?= htmlspecialchars($img['url'] . ($__mt ? '?v=' . $__mt : ''), ENT_QUOTES) ?>"
                     class="w-full h-24 object-cover border bg-white rounded"
+                    alt="<?= htmlspecialchars(basename($img['url']), ENT_QUOTES) ?>"
                     loading="lazy"
                     data-vault-image>
                 <!-- Fallback if image fails to load -->
@@ -170,7 +171,7 @@ $displayed_images = ($active_folder === '_all')
                 <!-- Fix 1: ENT_QUOTES on onclick attribute value -->
                 <button type="button"
                     data-copy-url="<?= htmlspecialchars(full_img_url($img['url'], $site_base), ENT_QUOTES) ?>"
-                    class="vault-copy-btn w-full mt-1.5 text-[9px] uppercase tracking-wider font-bold bg-stone-100 hover:bg-stone-900 border hover:text-white font-sans py-1 rounded transition text-stone-700">
+                    class="vault-copy-btn w-full mt-1.5 text-[9px] uppercase tracking-wider font-bold bg-stone-100 hover:bg-stone-900 border hover:text-white font-sans py-2 rounded transition text-stone-700" style="min-height:44px;">
                     Copy Path
                 </button>
 
@@ -180,12 +181,12 @@ $displayed_images = ($active_folder === '_all')
                     <input type="hidden" name="execute_image_rotate" value="1">
                     <input type="hidden" name="rotate_image_path" value="<?= htmlspecialchars($img['url'], ENT_QUOTES) ?>">
                     <input type="hidden" name="rotate_return_folder" value="<?= htmlspecialchars($active_folder, ENT_QUOTES) ?>">
-                    <button type="submit" name="rotate_direction" value="left" title="Rotate left 90° and save"
-                        class="flex-1 text-xs leading-none bg-stone-100 hover:bg-stone-900 hover:text-white border border-stone-200 py-1 rounded transition text-stone-700">&#8634;</button>
-                    <button type="submit" name="rotate_direction" value="180" title="Rotate 180° and save"
-                        class="flex-1 text-[9px] font-bold leading-none bg-stone-100 hover:bg-stone-900 hover:text-white border border-stone-200 py-1 rounded transition text-stone-700">180&deg;</button>
-                    <button type="submit" name="rotate_direction" value="right" title="Rotate right 90° and save"
-                        class="flex-1 text-xs leading-none bg-stone-100 hover:bg-stone-900 hover:text-white border border-stone-200 py-1 rounded transition text-stone-700">&#8635;</button>
+                    <button type="submit" name="rotate_direction" value="left" title="Rotate left 90° and save" aria-label="Rotate <?= htmlspecialchars(basename($img['url']), ENT_QUOTES) ?> left 90 degrees and save"
+                        style="min-height:44px;" class="flex-1 text-xs leading-none bg-stone-100 hover:bg-stone-900 hover:text-white border border-stone-200 py-1 rounded transition text-stone-700">&#8634;</button>
+                    <button type="submit" name="rotate_direction" value="180" title="Rotate 180° and save" aria-label="Rotate <?= htmlspecialchars(basename($img['url']), ENT_QUOTES) ?> 180 degrees and save"
+                        style="min-height:44px;" class="flex-1 text-[9px] font-bold leading-none bg-stone-100 hover:bg-stone-900 hover:text-white border border-stone-200 py-1 rounded transition text-stone-700">180&deg;</button>
+                    <button type="submit" name="rotate_direction" value="right" title="Rotate right 90° and save" aria-label="Rotate <?= htmlspecialchars(basename($img['url']), ENT_QUOTES) ?> right 90 degrees and save"
+                        style="min-height:44px;" class="flex-1 text-xs leading-none bg-stone-100 hover:bg-stone-900 hover:text-white border border-stone-200 py-1 rounded transition text-stone-700">&#8635;</button>
                 </form>
             </div>
             <?php endforeach; ?>
