@@ -237,7 +237,7 @@ if ($tab === 'setup' && $canEdit) {
   <div class="<?= $card ?>" id="feed">
     <h2 class="text-base font-semibold text-stone-800 mb-2">Feed products</h2>
     <p class="text-sm text-stone-500 mb-3">Tick the products you feed the animals. Logging a feeding takes the amount out of stock (as "Used on the farm") and records its cost. Products that aren't stocked are recorded without touching stock.</p>
-    <form method="GET" action="animal_care.php#feed" class="flex flex-wrap gap-2 items-end mb-3"><input type="hidden" name="tab" value="setup">
+    <form method="GET" action="animal_care.php#feed" class="flex flex-wrap items-end justify-end gap-2 mb-3"><input type="hidden" name="tab" value="setup">
       <div><label class="<?= $label ?>" for="fcat">Category</label><select id="fcat" name="fcat" class="<?= $input ?>"><option value="all"<?= $fcat === 'all' ? ' selected' : '' ?>>All categories</option><?php foreach ($cats as $cid => $cn): ?><option value="<?= (int)$cid ?>"<?= $fcat === (string)$cid ? ' selected' : '' ?>><?= $h($cn) ?></option><?php endforeach; ?></select></div>
       <div class="flex-1 min-w-40"><label class="<?= $label ?>" for="fq">Search</label><input id="fq" name="fq" type="search" value="<?= $h($fq) ?>" class="<?= $input ?>" placeholder="Name or SKU"></div>
       <button class="<?= $btnSec ?>">Show</button>
@@ -324,7 +324,7 @@ if ($tab === 'log') {
     <?php foreach ($rows as $r): ?>
       <li class="px-4 py-2"><?= $entryLine($r) ?>
         <?php if ($canEdit && !$r['voided_at']): ?>
-        <details class="mt-1"><summary class="cursor-pointer text-xs text-amber-800 underline">Void</summary>
+        <details class="mt-2"><summary class="cursor-pointer text-xs font-medium text-amber-800 underline underline-offset-2">Void entry</summary>
           <form method="POST" action="animal_care.php" class="flex flex-wrap gap-2 items-end mt-2"><?= $hidden ?><input type="hidden" name="act" value="void"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
             <div class="flex-1 min-w-48"><label class="<?= $label ?>" for="vr<?= (int)$r['id'] ?>">Why</label><input id="vr<?= (int)$r['id'] ?>" name="reason" maxlength="255" required class="<?= $input ?>" placeholder="e.g. logged twice"></div>
             <button class="<?= $btnSec ?>" data-confirm="Void this entry? It stays on file<?= $r['feed_name'] ? ' and the feed goes back into stock' : '' ?>.">Void</button></form></details>
