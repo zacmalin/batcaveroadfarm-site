@@ -412,8 +412,25 @@
         update();
     }
 
+    // Site Info: one section open at a time; #site-hours etc. in the address opens that section (Nov 17, 2026).
+    function initSiteInfoSections() {
+        var sections = document.querySelectorAll('.site-info-section');
+        if (!sections.length) return;
+        var selected = location.hash && document.getElementById(location.hash.slice(1));
+        if (selected && selected.classList.contains('site-info-section')) {
+            Array.prototype.forEach.call(sections, function (section) { section.open = section === selected; });
+        }
+        Array.prototype.forEach.call(sections, function (section) {
+            section.addEventListener('toggle', function () {
+                if (!section.open) return;
+                Array.prototype.forEach.call(sections, function (other) { if (other !== section) other.open = false; });
+            });
+        });
+    }
+
     function init() {
         initEventRecurrence();
+        initSiteInfoSections();
         labelTables();
         initMessages();
         Array.prototype.forEach.call(document.querySelectorAll('form[data-autosave]'), function (f) {

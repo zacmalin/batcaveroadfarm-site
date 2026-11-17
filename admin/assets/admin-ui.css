@@ -186,3 +186,25 @@ dialog.ui-modal::backdrop{background:transparent;overflow:hidden;overscroll-beha
 .pside .r{text-align:right;white-space:nowrap;line-height:1.35}
 [data-switch-row].is-off > .pside .r{opacity:.55}
 @media (max-width:640px){.pside{flex-direction:column;align-items:flex-end;gap:0}}
+/* Site Info accordion (views/site_info.php, Nov 17, 2026) */
+.site-info-section { border-color: #d8d0c3; border-radius: 10px; }
+.site-info-section > summary { background: #f5f1e9; padding: 1rem; font-size: 1.1rem; transition: background-color .15s ease; }
+.site-info-section > summary:hover { background: #ece8df; }
+.site-info-section[open] > summary { background: #e7ecdf; }
+.site-info-section[open] > summary:hover { background: #dfe7d6; }
+.site-info-section > summary:focus-visible { outline: 3px solid #4a6741; outline-offset: -3px; }
+.site-info-section > summary::marker { content: ""; }
+.site-info-section > summary::-webkit-details-marker { display: none; }
+.site-info-chevron { display: inline-block; transition: transform .18s ease; }
+.site-info-section[open] .site-info-chevron { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .site-info-chevron { transition: none; } }
+/* Permissions accordions (views/permissions.php, permissions_person.php, Nov 17, 2026) */
+.permission-group { border-color: #d8d0c3; border-radius: 10px; }
+.permission-heading { background: #f5f1e9; }
+.permission-heading:hover { background: #ece8df; color: #292524; }
+.permission-group[open] > .permission-heading { background: #e7ecdf; }
+.permission-group[open] > .permission-heading:hover { background: #dfe7d6; }
+.permission-heading:focus-visible { outline: 3px solid #4a6741; outline-offset: -3px; }
+.permission-heading::marker { content: ""; }
+.permission-heading::-webkit-details-marker { display: none; }
+.permission-group[open] .permission-chevron { transform: rotate(180deg); }

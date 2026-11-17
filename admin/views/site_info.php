@@ -53,19 +53,6 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
         ⚠️ The Site Info tables don't exist yet. Run <code class="">site_info_module.sql</code> (Sections 1 &amp; 2) in phpMyAdmin, then reload.
     </div>
 <?php else: ?>
-<style>
-.site-info-section { border-color: #d8d0c3; border-radius: 10px; }
-.site-info-section > summary { background: #f5f1e9; padding: 1rem; font-size: 1.1rem; transition: background-color .15s ease; }
-.site-info-section > summary:hover { background: #ece8df; }
-.site-info-section[open] > summary { background: #e7ecdf; }
-.site-info-section[open] > summary:hover { background: #dfe7d6; }
-.site-info-section > summary:focus-visible { outline: 3px solid #4a6741; outline-offset: -3px; }
-.site-info-section > summary::marker { content: ""; }
-.site-info-section > summary::-webkit-details-marker { display: none; }
-.site-info-chevron { display: inline-block; transition: transform .18s ease; }
-.site-info-section[open] .site-info-chevron { transform: rotate(180deg); }
-@media (prefers-reduced-motion: reduce) { .site-info-chevron { transition: none; } }
-</style>
 <div class="max-w-3xl">
 
 
@@ -307,19 +294,5 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
 
 <?php require_once __DIR__ . '/layout/vault_picker.php'; ?>
 
-<script>
-var selected = location.hash && document.getElementById(location.hash.slice(1));
-if (selected && selected.classList.contains('site-info-section')) {
-  document.querySelectorAll('.site-info-section').forEach(function (section) { section.open = section === selected; });
-}
-document.querySelectorAll('.site-info-section').forEach(function (section) {
-  section.addEventListener('toggle', function () {
-    if (!section.open) return;
-    document.querySelectorAll('.site-info-section').forEach(function (other) {
-      if (other !== section) other.open = false;
-    });
-  });
-});
-</script>
 <script src="/admin/assets/site-info-social.js" defer></script>
 <?php endif; ?>

@@ -69,7 +69,7 @@ try {
         $price  = ($isFree || trim((string)($_POST['price'] ?? '')) === '') ? null : (float)$_POST['price'];
         $desc   = trim((string)($_POST['description'] ?? '')) ?: null;
         $img    = trim((string)($_POST['image_url'] ?? '')) ?: null;
-        $locn   = trim((string)($_POST['location_note'] ?? '')) ?: null;
+        $locn   = mb_substr(trim((string)($_POST['location_note'] ?? '')), 0, 160) ?: null;   // column is varchar(160)
         $status = (($_POST['status'] ?? 'published') === 'draft') ? 'draft' : 'published';
         $slug   = createSlug($title) ?: ('event-' . time());
 

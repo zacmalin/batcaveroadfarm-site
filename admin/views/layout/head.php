@@ -9,7 +9,7 @@
     <!-- Farm OS tab icon (Nov 15, 2026): same icons as the public site -->
     <link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">
     <?php // Compiled Tailwind 4.3.5 (tools/admin-css). Falls back to the CDN script only while console.css isn't uploaded yet (Nov 15, 2026).
-    if (is_file(dirname(__DIR__, 2) . '/assets/console.css')): ?><link rel="stylesheet" href="/admin/assets/console.css?v=20261115a">
+    if (is_file(dirname(__DIR__, 2) . '/assets/console.css')): ?><link rel="stylesheet" href="/admin/assets/console.css?v=20261117a">
     <?php else: ?><script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script><?php endif; ?>
     <style>
         @media print {
@@ -156,8 +156,8 @@ document.addEventListener('keydown', function(e) {
 <!-- Admin list search + sort (external, CSP-safe) -->
 <script defer src="/admin/assets/admin-list.js?v=20260615b"></script>
 <!-- Shared UI kit (02 Navigation & UX): chips, phone card tables, common behaviours -->
-<link rel="stylesheet" href="/admin/assets/admin-ui.css?v=20261115d">
-<script defer src="/admin/assets/admin-ui.js?v=20261116a"></script>
+<link rel="stylesheet" href="/admin/assets/admin-ui.css?v=20261117a">
+<script defer src="/admin/assets/admin-ui.js?v=20261117a"></script>
 <!-- Phone boxes format as (828) 555-0100 while typing (Nov 15, 2026; same file as the public site) -->
 <script defer src="/js/min.phone.js?v=20261115a"></script>
 <!-- Shell chrome (sidebar rail, phone bar, More sheet, tabs) — moved out of sidebar.php Nov 11, 2026 -->

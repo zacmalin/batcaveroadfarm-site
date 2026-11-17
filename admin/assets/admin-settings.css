@@ -117,3 +117,16 @@
 /* Google Business Profile, Pinterest */
 .fs-gbp label.loc{display:block;padding:.5rem 0;border-bottom:1px solid #f5f5f4}
 .fs-pin label.row{display:block;margin:.6rem 0;border:0;padding:0}
+/* System Health accordion (admin/system_health.php, Nov 17, 2026) */
+.fs-health .health-section { margin: 1rem 0; border: 1px solid #d8d0c3; border-radius: 10px; overflow: hidden; }
+.fs-health .health-section h2 { margin: 0; }
+.fs-health .health-toggle { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border: 0; background: #f5f1e9; color: #292524; font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
+.fs-health .health-toggle:hover { background: #ece8df; color: #292524; }
+.fs-health .health-toggle[aria-expanded="true"] { background: #e7ecdf; color: #292524; }
+.fs-health .health-toggle[aria-expanded="true"]:hover { background: #dfe7d6; color: #292524; }
+.fs-health .health-toggle:focus-visible { outline: 3px solid #4a6741; outline-offset: -3px; }
+.fs-health .health-toggle span { transition: transform .18s ease; }
+.fs-health .health-toggle[aria-expanded="true"] span { transform: rotate(180deg); }
+.fs-health .health-panel { padding: .75rem; }
+.fs-health .health-panel[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) { .fs-health .health-toggle span { transition: none; } }

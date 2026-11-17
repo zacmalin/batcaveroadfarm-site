@@ -70,17 +70,6 @@ if (!empty($inspect_role)) {
         <?php if (!empty($inspect_role)): ?>
 
         <!-- ── SECTIONED PERMISSION MATRIX ── -->
-        <style>
-.permission-group { border-color: #d8d0c3; border-radius: 10px; }
-.permission-heading { background: #f5f1e9; }
-.permission-heading:hover { background: #ece8df; color: #292524; }
-.permission-group[open] > .permission-heading { background: #e7ecdf; }
-.permission-group[open] > .permission-heading:hover { background: #dfe7d6; }
-.permission-heading:focus-visible { outline: 3px solid #4a6741; outline-offset: -3px; }
-.permission-heading::marker { content: ""; }
-.permission-heading::-webkit-details-marker { display: none; }
-.permission-group[open] .permission-chevron { transform: rotate(180deg); }
-</style>
         <?php foreach ($permission_sections as $sec_key => $sec): ?>
         
 <details name="permission-groups" class="permission-group bg-white border border-stone-200 rounded shadow-sm overflow-hidden">

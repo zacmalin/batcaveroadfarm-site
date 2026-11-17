@@ -150,7 +150,7 @@ $imgTools = (function (): array {
         'test'     => $test,
     ];
 })();
-?><?php bcrf_shell_open('System Health', ['strict' => false, 'css' => ['admin-settings.css'], 'width' => 'max-w-3xl fset fs-health']); ?>
+?><?php bcrf_shell_open('System Health', ['strict' => false, 'css' => ['admin-settings.css'], 'js' => ['system-health.js'], 'width' => 'max-w-3xl fset fs-health']); ?>
 <h1>System Health</h1>
 <p class="sub">Scheduled jobs, PHP errors and uptime checks in one place.</p>
 
@@ -276,38 +276,4 @@ $imgTools = (function (): array {
   Plus <strong>HTTP</strong> monitors for <code><?= bcrf_farm_url() ?>/</code> and <code><?= bcrf_farm_url() ?>/booking/</code>.
 </div>
 </div></section>
-<style>
-.fs-health .health-section { margin: 1rem 0; border: 1px solid #d8d0c3; border-radius: 10px; overflow: hidden; }
-.fs-health .health-section h2 { margin: 0; }
-.fs-health .health-toggle { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border: 0; background: #f5f1e9; color: #292524; font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
-.fs-health .health-toggle:hover { background: #ece8df; color: #292524; }
-.fs-health .health-toggle[aria-expanded="true"] { background: #e7ecdf; color: #292524; }
-.fs-health .health-toggle[aria-expanded="true"]:hover { background: #dfe7d6; color: #292524; }
-.fs-health .health-toggle:focus-visible { outline: 3px solid #4a6741; outline-offset: -3px; }
-.fs-health .health-toggle span { transition: transform .18s ease; }
-.fs-health .health-toggle[aria-expanded="true"] span { transform: rotate(180deg); }
-.fs-health .health-panel { padding: .75rem; }
-.fs-health .health-panel[hidden] { display: none; }
-@media (prefers-reduced-motion: reduce) { .fs-health .health-toggle span { transition: none; } }
-</style>
-<script>
-document.querySelectorAll('.fs-health .health-toggle').forEach(function (button) {
-  button.addEventListener('click', function () {
-    var opening = button.getAttribute('aria-expanded') !== 'true';
-    document.querySelectorAll('.fs-health .health-toggle').forEach(function (other) {
-      other.setAttribute('aria-expanded', 'false');
-      document.getElementById(other.getAttribute('aria-controls')).hidden = true;
-    });
-    if (opening) {
-      button.setAttribute('aria-expanded', 'true');
-      document.getElementById(button.getAttribute('aria-controls')).hidden = false;
-    }
-  });
-});
-if (location.hash) {
-  var section = document.getElementById(location.hash.slice(1));
-  var button = section && section.querySelector('.health-toggle');
-  if (button && button.getAttribute('aria-expanded') !== 'true') button.click();
-}
-</script>
 <?php bcrf_shell_close(); ?>

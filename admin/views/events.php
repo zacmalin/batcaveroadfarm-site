@@ -92,7 +92,7 @@ $curRec = (string)($edit['recurrence'] ?? 'none');
       </div>
       <div class="md:col-span-2">
         <label for="ev-location" class="block text-xs font-semibold text-stone-600 mb-1">Location on the farm (optional)</label>
-        <input type="text" id="ev-location" name="location_note" maxlength="255" value="<?= $v('location_note') ?>" class="w-full p-2 border border-stone-300 rounded bg-stone-50" placeholder="e.g. Barn, picnic area, or farmstand">
+        <input type="text" id="ev-location" name="location_note" maxlength="160" value="<?= $v('location_note') ?>" class="w-full p-2 border border-stone-300 rounded bg-stone-50" placeholder="e.g. Barn, picnic area, or farmstand">
         <p class="text-xs text-stone-500 mt-1">Shown to visitors so they know where to meet.</p>
       </div>
       <div class="md:col-span-2">
