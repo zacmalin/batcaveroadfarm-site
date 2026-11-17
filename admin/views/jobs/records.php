@@ -27,7 +27,6 @@ $btn  = 'px-4 py-2 rounded text-sm font-semibold text-white';
 <div class="max-w-3xl pb-16">
   <h1 class="text-2xl font-bold text-stone-800 mb-1">Hiring</h1>
   <p class="text-sm text-stone-500 mb-4">Setup checks, and clearing applicant records once you no longer have to keep them.</p>
-  <?php require __DIR__ . '/_tabs.php'; ?>
 
   <!-- ── Checks ── -->
   <section class="bg-white border border-stone-200 rounded-lg p-4 mb-5 shadow-sm">
