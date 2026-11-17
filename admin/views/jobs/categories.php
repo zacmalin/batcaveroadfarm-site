@@ -66,7 +66,6 @@ $row = function (?array $c) use ($h, $csrf, $input) {
 <div class="max-w-2xl">
   <h1 class="text-2xl font-bold text-stone-800 mb-1">Hiring</h1>
   <p class="text-sm text-stone-500 mb-4">Categories group jobs on the public page and in job alerts. Farm policy: under-18s work only in non-farm areas (Thrift Shop, Farmstand), so only tick <strong>Allows under 18</strong> for those. Every minor needs an NC youth employment certificate before their first shift.</p>
-  <?php require __DIR__ . '/_tabs.php'; ?>
 
   <div class="space-y-3">
     <?php foreach ($cats as $c) echo $row($c); ?>
