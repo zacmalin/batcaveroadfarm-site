@@ -107,7 +107,7 @@ if ($editing !== null):
       <div><label class="<?= $label ?>" for="pd">Length (minutes)</label><input id="pd" name="duration" inputmode="numeric" value="<?= $h($v['duration']) ?>" class="<?= $input ?>"></div>
       <div class="sm:col-span-2"><label class="<?= $label ?>" for="pin">What's included (one per line, shown to staff)</label><textarea id="pin" name="inclusions" rows="4" class="<?= $input ?>"><?= $h($v['inclusions']) ?></textarea></div>
       <div><label class="<?= $label ?>" for="ps">Order in lists</label><input id="ps" name="sort_order" inputmode="numeric" value="<?= $h($v['sort_order']) ?>" class="<?= $input ?>"></div>
-      <label class="flex items-center gap-2 text-sm text-stone-700 pt-5"><input type="checkbox" name="active" value="1" <?= !empty($v['active']) ? 'checked' : '' ?>> Offered (shows in the list)</label>
+      <label class="flex items-center gap-2 text-sm text-stone-700 pt-5"><input type="checkbox" class="ui-form-switch" name="active" value="1" <?= !empty($v['active']) ? 'checked' : '' ?>> Offered (shows in the list)</label>
     </div>
     <div class="flex flex-wrap gap-2 mt-4"><button class="<?= $btnMain ?> min-h-10"><span aria-hidden="true">✓</span> Save package</button><a href="party_packages.php" class="<?= $btnSec ?> inline-flex min-h-10 items-center">Cancel</a></div>
   </form>
