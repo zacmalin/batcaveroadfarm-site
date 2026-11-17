@@ -880,7 +880,7 @@ if ($tab === 'all') {
     <div><label for="a_f" class="<?= $label ?>">Due from</label><input id="a_f" type="date" name="from" value="<?= $h($f['from']) ?>" class="<?= $input ?>"></div>
     <div><label for="a_t" class="<?= $label ?>">to</label><input id="a_t" type="date" name="to" value="<?= $h($f['to']) ?>" class="<?= $input ?>"></div>
     <div class="sm:col-span-2"><label for="a_sort" class="<?= $label ?>">Sort</label><?= bcrf_list_sort_select($sortOpts, $sort, ['id' => 'a_sort', 'class' => $input]) ?></div>
-    <div class="sm:col-span-4"><button type="submit" class="<?= $btnSec ?>">Show</button></div>
+    <div class="sm:col-span-4 flex justify-end"><button type="submit" class="<?= $btnSec ?>">Show</button></div>
   </form>
   <div class="space-y-2">
     <?php foreach ($list as $t) echo $row($t, true); ?>
