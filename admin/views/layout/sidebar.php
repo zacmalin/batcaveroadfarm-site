@@ -356,4 +356,4 @@ $_badge = fn(int $n): string => $n > 0
 <?php endif; ?>
 
 <script type="application/json" id="navData"><?= json_encode($_nav_data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
-<script src="/admin/assets/admin-nav.js?v=20261115a"></script>
+<script src="/admin/assets/admin-nav.js?v=20261117a"></script>
