@@ -169,6 +169,6 @@ $boot = ['ready' => $ready, 'csrf' => $csrf];
 </main>
 <div class="toast" id="toast" role="status" hidden></div>
 <script src="assets/manager-pin.js?v=<?= bcrf_asset_v('/admin/assets/manager-pin.js') ?>"></script>
-<script src="assets/gate.js?v=5"></script>
+<script src="assets/gate.js?v=<?= bcrf_asset_v('/admin/assets/gate.js') ?>"></script>
 </body>
 </html>
