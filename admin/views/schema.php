@@ -496,16 +496,16 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                                 + Add New
                             </button>
                         </div>
-                        <div id="addCategoryForm_blog" class="hidden mb-2 flex gap-2">
-                            <input type="text" id="newCategoryInput_blog" maxlength="80"
+                        <div id="addCategoryForm_blog" class="hidden mb-2 flex flex-wrap gap-2">
+                            <input type="text" id="newCategoryInput_blog" maxlength="80" aria-label="New blog category name"
                                 placeholder="New category name..."
-                                class="flex-1 p-1.5 border border-stone-300 rounded bg-white text-xs font-medium outline-none">
+                                class="flex-1 min-w-0 p-2 border border-stone-300 rounded bg-white text-xs font-medium outline-none">
                             <button type="button" onclick="submitNewCategory('blog')"
                                 class="bg-amber-700 text-white text-[10px] font-bold uppercase px-3 py-1 rounded hover:bg-amber-800">Save</button>
                             <button type="button" onclick="toggleAddCategoryForm('blog')"
                                 class="border border-stone-200 text-stone-500 text-[10px] font-bold px-2 py-1 rounded hover:bg-stone-100">Cancel</button>
                         </div>
-                        <div id="categoriesCheckboxList_blog" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 p-3 border border-stone-200 rounded bg-stone-50 max-h-28 overflow-y-auto">
+                        <div id="categoriesCheckboxList_blog" role="group" aria-label="Blog post categories" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 p-3 border border-stone-200 rounded bg-stone-50 max-h-56 overflow-y-auto">
                             <?php foreach (($all_blog_categories ?? []) as $ct): ?>
                             <label class="flex items-center space-x-2 text-xxs font-medium cursor-pointer">
                                 <input type="checkbox" name="categories_matrix[]"
