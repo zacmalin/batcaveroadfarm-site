@@ -6,6 +6,7 @@
   var box = document.getElementById('srchBox');
   var out = document.getElementById('srchOut');
   var recentEl = document.getElementById('srchRecent');
+  var status = document.getElementById('srchStatus');
   if (!box || !out) return;
 
   var KEY = 'bcrf.search.recent';
@@ -43,8 +44,12 @@
     recentEl.hidden = false;
   }
 
+  function setStatus(message) { if (status) status.textContent = message; }
+
   function render(j) {
     out.textContent = '';
+    var count = j.groups.reduce(function (n, g) { return n + g.rows.length; }, j.jump ? 1 : 0);
+    setStatus(count ? count + ' matching results' + (j.groups.length ? ' across ' + j.groups.length + ' categories' : '') : 'No matching results');
     var q = j.q || '';
     if (q.length < 2) { if (q.length) out.appendChild(el('p', 'srch-empty', 'Type at least 2 letters.')); return; }
     if (j.jump) {
@@ -92,20 +97,27 @@
     showRecent();
     // Invalidate any in-flight search even when the field is cleared.
     var my = ++seq;
-    if (q === '') { out.textContent = ''; history.replaceState(null, '', '/admin/search.php'); return; }
+    if (q === '') { out.textContent = ''; setStatus(''); history.replaceState(null, '', '/admin/search.php'); return; }
+    if (q.length < 2) { out.textContent = ''; setStatus('Type at least 2 letters.'); return; }
+    setStatus('Searching…');
     fetch('/admin/search.php?api=1&q=' + encodeURIComponent(q), { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
       .then(function (r) { return r.json(); })
       .then(function (j) {
-        if (my !== seq || !j || !j.ok) return;
+        if (my !== seq) return;
+        if (!j || !j.ok) throw new Error('Search response was not valid');
         render(j);
         history.replaceState(null, '', '/admin/search.php?q=' + encodeURIComponent(q));
       })
-      .catch(function () { if (my === seq) { out.textContent = ''; out.appendChild(el('p', 'srch-empty', 'Search did not answer. Check the connection and try again.')); } });
+      .catch(function () { if (my === seq) { setStatus('Search unavailable'); out.textContent = ''; out.appendChild(el('p', 'srch-empty', 'Search could not complete. Check your connection and try again.')); } });
   }
 
   box.addEventListener('input', function () {
     clearTimeout(timer);
     ++seq; // Discard old responses immediately, including during the debounce delay.
+    var q = box.value.trim();
+    if (q === '') { out.textContent = ''; setStatus(''); showRecent(); history.replaceState(null, '', '/admin/search.php'); return; }
+    if (q.length < 2) { out.textContent = ''; setStatus('Type at least 2 letters.'); return; }
+    setStatus('Searching…');
     timer = setTimeout(run, 200);
   });
   // Enter submits the form: the server opens a code's record straight away, or shows the results.
