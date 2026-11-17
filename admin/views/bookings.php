@@ -263,7 +263,7 @@ $allPendingPay = count(array_filter($pending,    fn($r) => ($r['payment_status']
         <input type="hidden" name="day" value="<?= htmlspecialchars($day, ENT_QUOTES) ?>">
         <input type="hidden" name="status" value="<?= htmlspecialchars($scheduleStatus, ENT_QUOTES) ?>">
         <label for="bookingScheduleSort" class="text-xs text-stone-600">Sort</label>
-        <select id="bookingScheduleSort" name="sort" onchange="this.form.requestSubmit()" class="min-h-9 rounded-lg border border-stone-300 bg-white px-2 text-xs">
+        <select id="bookingScheduleSort" name="sort" data-sort-auto class="min-h-9 rounded-lg border border-stone-300 bg-white px-2 text-xs">
           <option value="time_asc" <?= $scheduleSort === 'time_asc' ? 'selected' : '' ?>>Time: earliest first</option>
           <option value="time_desc" <?= $scheduleSort === 'time_desc' ? 'selected' : '' ?>>Time: latest first</option>
           <option value="name_asc" <?= $scheduleSort === 'name_asc' ? 'selected' : '' ?>>Name: A–Z</option>

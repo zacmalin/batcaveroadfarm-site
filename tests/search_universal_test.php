@@ -108,7 +108,7 @@ $ok(in_array('/admin/pin_settings.php', $urls($group($r, 'pages')), true), 'Owne
 $r = bcrf_search($pdo, 'sales tax', $admin);
 $ok(in_array('/admin/payment_settings.php?tab=tax', $urls($group($r, 'pages')), true), 'two words both have to match');
 $r = bcrf_search($pdo, 'Settings', $admin);
-$ok(count($group($r, 'pages')['rows'] ?? []) <= BCRF_SEARCH_PER_GROUP + 1, 'pages capped');
+$ok(count($group($r, 'pages')['rows'] ?? []) === count(bcrf_search_pages('Settings', $admin)), 'every allowed page match comes back (page shows 5, rest under Show more)');
 
 // Every extra word and extra page points at a real menu link, so a renamed page can't leave them dangling
 $hrefs = [];

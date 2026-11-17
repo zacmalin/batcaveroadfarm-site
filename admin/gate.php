@@ -130,7 +130,7 @@ $boot = ['ready' => $ready, 'csrf' => $csrf];
 <meta name="robots" content="noindex">
 <title>Gate — <?= $h(bcrf_farm_name()) ?></title>
 <link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">
-<link rel="stylesheet" href="assets/register.css?v=9">
+<link rel="stylesheet" href="assets/register.css?v=13">
 <link rel="stylesheet" href="assets/waiver.css?v=1">
 <link rel="stylesheet" href="assets/pin.css?v=<?= bcrf_asset_v('/admin/assets/pin.css') ?>">
 <?= bcrf_pin_head_tags() ?>

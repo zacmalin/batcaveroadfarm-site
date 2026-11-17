@@ -54,7 +54,7 @@ if ($t && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 <meta name="robots" content="noindex">
 <title>Sign the waiver — <?= $h(bcrf_farm_name()) ?></title>
 <link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">
-<link rel="stylesheet" href="assets/register.css?v=9">
+<link rel="stylesheet" href="assets/register.css?v=13">
 <link rel="stylesheet" href="assets/waiver.css?v=1">
 <?= bcrf_pin_head_tags() ?>
 </head>

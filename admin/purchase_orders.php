@@ -149,7 +149,7 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
         echo '<form method="POST" action="purchase_orders.php" class="inline-form">',
              '<input type="hidden" name="csrf_token" value="', $h($csrf), '">',
              '<input type="hidden" name="id" value="', (int)$po['id'], '"><input type="hidden" name="act" value="cancel">',
-             '<button class="btn" type="submit" onclick="return confirm(&quot;Cancel this purchase order? This will change its status to cancelled.&quot;)">Cancel order</button></form>';
+             '<button class="btn" type="submit" data-confirm="Cancel this purchase order? This will change its status to cancelled.">Cancel order</button></form>';
     }
     echo '</div>';
     echo bcrf_doc_box_html($pdo, 'po', (int)$po['id'], '/admin/purchase_orders.php?id=' . (int)$po['id'], $csrf);

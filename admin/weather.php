@@ -152,10 +152,10 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
           <p class="text-xs text-stone-600"><?= $siteNote !== '' ? 'Active for today; automatically clears at midnight.' : 'Off. The public website is not showing a weather closure.' ?></p>
         </div>
         <button id="wx-closure-switch" type="submit" role="switch" aria-label="Website weather closure" aria-checked="<?= $siteNote !== '' ? 'true' : 'false' ?>"
-          style="display:inline-flex;align-items:center;gap:10px;min-height:44px;border:0;background:transparent;cursor:pointer;padding:4px 0;"
-          <?= $siteNote === '' ? 'onclick="return confirm(&quot;Show Closed today for weather on the public website?&quot;)"' : '' ?>>
+          class="inline-flex items-center gap-2.5 min-h-11 border-0 bg-transparent cursor-pointer py-1 px-0"
+          <?= $siteNote === '' ? 'data-confirm="Show Closed today for weather on the public website?" data-confirm-label="Turn on"' : '' ?>>
           <span class="text-sm font-semibold text-stone-700"><?= $siteNote !== '' ? 'On' : 'Off' ?></span>
-          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="48" height="28" viewBox="0 0 48 28" style="display:inline-block;width:48px;height:28px;min-width:48px;vertical-align:middle;flex-shrink:0;">
+          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="48" height="28" viewBox="0 0 48 28" class="inline-block w-12 h-7 min-w-12 align-middle shrink-0">
             <rect x="0" y="0" width="48" height="28" rx="14" fill="<?= $siteNote !== '' ? '#15803d' : '#78716c' ?>"/>
             <circle cx="<?= $siteNote !== '' ? '34' : '14' ?>" cy="14" r="10" fill="#ffffff"/>
           </svg>

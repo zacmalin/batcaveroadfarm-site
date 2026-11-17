@@ -286,7 +286,7 @@ if ($tab === 'count') {
             echo '<section class="card"><h3>Finish</h3><p class="muted">', (int)$c['lines_n'], ' counted so far', (int)$c['flagged_n'] ? ', <span class="off">' . (int)$c['flagged_n'] . ' with a big difference</span>' : '', '.</p>',
                  '<form class="rbar" method="POST" action="stock.php">', $hid($back), '<input type="hidden" name="act" value="count_close"><input type="hidden" name="count_id" value="', (int)$c['id'], '">',
                  '<button class="btn" type="submit" name="how" value="partial">Finish (leave the rest as they are)</button>';
-            if ($todo) echo '<button class="btn danger" type="submit" name="how" value="full" onclick="return confirm(&quot;Finish this count and set ', count($todo), ' uncounted item(s) to zero? This changes inventory quantities and cannot be undone automatically.&quot;)">Finish and set ', count($todo), ' not counted to 0</button>';
+            if ($todo) echo '<button class="btn danger" type="submit" name="how" value="full" data-confirm="Finish this count and set ', count($todo), ' uncounted item(s) to zero? This changes inventory quantities and cannot be undone automatically.">Finish and set ', count($todo), ' not counted to 0</button>';
             echo '</form>';
             if ($todo && (int)$c['full_count']) echo '<p class="muted">Not counted yet: ', $h(implode(', ', array_map(fn($i) => $i['name'] . ' (' . $q3($i['on_hand']) . ')', array_slice($todo, 0, 12)))), count($todo) > 12 ? '…' : '', '</p>';
             echo '</section>';

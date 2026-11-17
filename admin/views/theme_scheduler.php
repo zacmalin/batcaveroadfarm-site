@@ -84,7 +84,7 @@ $nameOf = fn(string $s): string => isset($catalog[$s]) ? $catalog[$s]['name'] : 
                 <?php endforeach; ?>
             </select>
 
-            <button type="submit" class="bg-amber-700 hover:bg-amber-800 text-white font-bold uppercase tracking-wider px-4 py-2 rounded text-xs" style="min-height:44px;"><span aria-hidden="true">✓</span> Save Settings</button>
+            <button type="submit" class="bg-amber-700 hover:bg-amber-800 text-white font-bold uppercase tracking-wider px-4 py-2 rounded text-xs min-h-11"><span aria-hidden="true">✓</span> Save Settings</button>
         </form>
     </div>
 
@@ -133,7 +133,7 @@ $nameOf = fn(string $s): string => isset($catalog[$s]) ? $catalog[$s]['name'] : 
             <label class="block text-[11px] uppercase tracking-wider text-stone-500 mb-1">Priority (higher wins on overlap — give holidays a higher number than seasons)</label>
             <input type="number" name="priority" value="0" class="w-full border border-stone-300 rounded px-2 py-1.5 text-xs mb-4">
 
-            <button type="submit" class="bg-amber-700 hover:bg-amber-800 text-white font-bold uppercase tracking-wider px-4 py-2 rounded text-xs" style="min-height:44px;"><span aria-hidden="true">＋</span> Add Schedule</button>
+            <button type="submit" class="bg-amber-700 hover:bg-amber-800 text-white font-bold uppercase tracking-wider px-4 py-2 rounded text-xs min-h-11"><span aria-hidden="true">＋</span> Add Schedule</button>
         </form>
     </div>
 </div>
@@ -171,13 +171,13 @@ $nameOf = fn(string $s): string => isset($catalog[$s]) ? $catalog[$s]['name'] : 
                         <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
                         <input type="hidden" name="theme_action" value="toggle">
                         <input type="hidden" name="id" value="<?= (int)$row['id'] ?>">
-                        <button type="submit" class="border border-stone-200 px-3 py-2 rounded hover:bg-stone-100" style="min-height:44px;"><?= $on ? 'Pause' : 'Resume' ?></button>
+                        <button type="submit" class="border border-stone-200 px-3 py-2 rounded hover:bg-stone-100 min-h-11"><?= $on ? 'Pause' : 'Resume' ?></button>
                     </form>
                     <form method="POST" action="/admin/admin.php?view=theme_scheduler" class="inline" >
                         <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
                         <input type="hidden" name="theme_action" value="delete">
                         <input type="hidden" name="id" value="<?= (int)$row['id'] ?>">
-                        <button type="submit" class="border border-red-200 text-red-700 px-3 py-2 rounded hover:bg-red-50" style="min-height:44px;">Delete</button>
+                        <button type="submit" class="border border-red-200 text-red-700 px-3 py-2 rounded hover:bg-red-50 min-h-11">Delete</button>
                     </form>
                 </td>
             </tr>

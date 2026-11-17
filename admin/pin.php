@@ -77,7 +77,7 @@ $farm = function_exists('bcrf_farm_name') ? bcrf_farm_name() : 'Farm OS';
 <meta name="robots" content="noindex">
 <title>Sign in — <?= $h($farm) ?></title>
 <link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">
-<link rel="stylesheet" href="assets/register.css?v=8">
+<link rel="stylesheet" href="assets/register.css?v=13">
 <link rel="stylesheet" href="assets/pin.css?v=<?= bcrf_asset_v('/admin/assets/pin.css') ?>">
 </head>
 <body>
