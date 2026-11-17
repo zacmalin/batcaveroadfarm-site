@@ -45,7 +45,11 @@ $_active = function(string $href) use ($_tv, $_tt): bool {
         $file = basename((string)parse_url($href, PHP_URL_PATH));
         if ($file === '' || $file === 'admin.php' || $file !== basename((string)($_SERVER['SCRIPT_NAME'] ?? ''))) return false;
         parse_str(parse_url($href, PHP_URL_QUERY) ?: '', $p);
-        foreach ($p as $k => $v) if ((string)($_GET[$k] ?? '') !== (string)$v) return false;
+        foreach ($p as $k => $v) {
+            // tasks.php defaults to My tasks when no tab is supplied (including task detail pages).
+            if ($file === 'tasks.php' && $k === 'tab' && $v === 'my' && !isset($_GET['tab']) && !isset($_GET['incident'])) continue;
+            if ((string)($_GET[$k] ?? '') !== (string)$v) return false;
+        }
         // A base-page tab is not active while a named sibling tab is selected.
         if (!array_key_exists('tab', $p) && (string)($_GET['tab'] ?? '') !== '') return false;
         // Customers Find and Possible duplicates share customers.php; only one tab should be active.
