@@ -919,10 +919,11 @@ $nOpen = count($mine['overdue']) + count($mine['today']);
   <?php
   $section = function (string $title, array $items, string $tone = 'stone', bool $showDate = false, string $empty = '', bool $expanded = false) use ($row, $h) {
       if (!$items && $empty === '') return;
-      echo '<details class="mb-3 bg-white border border-stone-200 rounded-lg shadow-sm overflow-hidden" ', $expanded ? 'open' : '', '>',
-           '<summary class="cursor-pointer min-h-11 flex items-center justify-between gap-3 p-3 font-semibold text-sm text-stone-700 hover:bg-stone-50">',
-           '<span class="', $tone === 'red' ? 'text-red-700' : 'text-stone-700', '">', $h($title), '</span>',
-           '<span class="text-xs font-bold text-stone-500">', count($items), '</span></summary>',
+      echo '<details class="site-info-section bg-white border border-stone-200 rounded-lg mb-4 overflow-hidden" ', $expanded ? 'open' : '', '>',
+           '<summary class="cursor-pointer select-none px-5 py-4 font-bold text-stone-800 flex items-center justify-between gap-3">',
+           '<span class="', $tone === 'red' ? 'text-red-700' : 'text-stone-800', '">', $h($title), '</span>',
+           '<span class="flex items-center gap-3"><span class="text-sm font-semibold text-stone-600">', count($items), '</span>',
+           '<span class="site-info-chevron" aria-hidden="true">⌄</span></span></summary>',
            '<div class="space-y-2 p-3 border-t border-stone-200">';
       foreach ($items as $t) echo $row($t, $showDate);
       if (!$items) echo '<p class="text-sm text-stone-500">', $h($empty), '</p>';
