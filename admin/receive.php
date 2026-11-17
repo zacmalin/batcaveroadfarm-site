@@ -158,6 +158,7 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
     echo '<p class="muted">', $h($r['business_date']), ' · ', $h($r['location_name'] ?? ''),
          $r['vendor_name'] ? ' · ' . $h($r['vendor_name']) : '',
          $r['invoice_ref'] ? ' · inv ' . $h($r['invoice_ref']) : '', '</p>';
+    if (!empty($r['po_id'])) echo '<p><a href="purchase_orders.php?id=', (int)$r['po_id'], '">View linked purchase order #', (int)$r['po_id'], '</a></p>';
     if ($r['note']) echo '<p>', $h($r['note']), '</p>';
     echo '<div class="card hist">';
     $sum = 0;
