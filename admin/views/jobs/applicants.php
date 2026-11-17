@@ -359,14 +359,13 @@ $filtersOn = $F['job'] || $F['cat'] || $F['round'] !== 'current' || $F['flag'] !
 <div class="max-w-4xl pb-28">
   <h1 class="text-2xl font-bold text-stone-800 mb-1">Hiring</h1>
   <p class="text-sm text-stone-500 mb-4">Everyone who applied. Tap a name to see their answers, add notes and move them along.</p>
-  <?php require __DIR__ . '/_tabs.php'; ?>
 
   <?php if ($queuePending): ?>
   <div class="mb-3 text-sm bg-amber-50 border border-amber-200 text-amber-900 rounded p-2"><?= $queuePending ?> email<?= $queuePending === 1 ? ' is' : 's are' ?> waiting for approval. <a class="font-semibold underline" href="/admin/admin.php?view=jobs_emails&tab=queue">Review and send</a></div>
   <?php endif; ?>
 
   <!-- Status chips -->
-  <nav class="flex gap-1.5 overflow-x-auto pb-2 mb-2 -mx-1 px-1" aria-label="Status">
+  <nav class="flex justify-end gap-1.5 overflow-x-auto pb-2 mb-2 -mx-1 px-1" aria-label="Status">
     <?php
       $chipList = [['active', 'In progress', $activeN]];
       foreach ($SL as $k => $l) $chipList[] = [$k, $l, $counts[$k] ?? 0];
