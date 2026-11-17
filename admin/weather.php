@@ -155,9 +155,10 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
           style="display:inline-flex;align-items:center;gap:10px;min-height:44px;border:0;background:transparent;cursor:pointer;padding:4px 0;"
           onclick="if(<?= $siteNote === '' ? 'true' : 'false' ?> && !confirm('Show Closed today for weather on the public website?'))return;this.disabled=true;this.form.requestSubmit();">
           <span class="text-sm font-semibold text-stone-700"><?= $siteNote !== '' ? 'On' : 'Off' ?></span>
-          <span aria-hidden="true" style="display:inline-flex;align-items:center;width:48px;height:28px;padding:4px;box-sizing:border-box;border-radius:999px;background:<?= $siteNote !== '' ? '#15803d' : '#78716c' ?>;flex-shrink:0;">
-            <span style="display:block;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003;transform:<?= $siteNote !== '' ? 'translateX(20px)' : 'none' ?>;"></span>
-          </span>
+          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="48" height="28" viewBox="0 0 48 28" style="display:inline-block;width:48px;height:28px;min-width:48px;vertical-align:middle;flex-shrink:0;">
+            <rect x="0" y="0" width="48" height="28" rx="14" fill="<?= $siteNote !== '' ? '#15803d' : '#78716c' ?>"/>
+            <circle cx="<?= $siteNote !== '' ? '34' : '14' ?>" cy="14" r="10" fill="#ffffff"/>
+          </svg>
         </button>
       </div>
       <?php if ($siteNote === ''): ?>
