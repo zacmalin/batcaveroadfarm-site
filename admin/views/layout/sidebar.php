@@ -195,7 +195,7 @@ $_badge = fn(int $n): string => $n > 0
   </button>
 
   <?php if (isset($_catalog['search'])): ?>
-  <a href="/admin/search.php" title="Search (press /)" role="search"
+  <a href="/admin/search.php" title="Search (press /)"
      class="sb-row sb-search flex items-center gap-2 px-3 py-2 rounded border border-stone-700 text-stone-400 hover:text-white hover:bg-stone-800 transition shrink-0<?= $_catalog['search']['active'] ? ' bg-stone-700 text-white' : '' ?>">
     <span class="shrink-0">🔍</span> <span class="sb-text">Search</span> <span class="sb-text ml-auto text-[9px] font-mono text-stone-500">/</span>
   </a>
@@ -227,7 +227,7 @@ $_badge = fn(int $n): string => $n > 0
     </a>
     <?php else: ?>
     <div class="mb-1" data-sec="<?= $_h($_sk) ?>">
-      <button type="button" data-sb-toggle="<?= $_h($_sk) ?>" title="<?= $_h($_sec['label']) ?>"
+      <button type="button" data-sb-toggle="<?= $_h($_sk) ?>" aria-controls="sec-<?= $_h($_sk) ?>" aria-expanded="false" title="<?= $_h($_sec['label']) ?>"
         class="sb-row w-full flex items-center justify-between px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-widest
                text-stone-400 hover:text-white hover:bg-stone-800 transition mt-1">
         <span class="flex items-center gap-1.5">
