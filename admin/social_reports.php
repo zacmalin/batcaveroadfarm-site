@@ -199,16 +199,16 @@ bcrf_shell_open('Social Media — Reports', ['width' => 'max-w-4xl', 'toast' => 
     <p class="text-sm text-red-700">Run migration 0026 in Settings › Database first, then come back and tap Refresh now.</p>
   </section>
 <?php else: ?>
-  <nav class="mb-2" aria-label="Period">
-    <div class="flex flex-wrap items-center justify-end gap-2">
+  <nav class="social-period-nav" aria-label="Period">
+    <div class="social-period-options">
       <?php foreach ([7, 28, 90] as $o): ?>
         <a href="?days=<?= $o ?>" <?= $o === $days ? 'aria-current="page"' : '' ?>
-           class="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border transition <?= $o === $days ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 border-stone-300 hover:bg-stone-100' ?>"><?= $o ?> days</a>
+           class="social-period-pill<?= $o === $days ? ' is-active' : '' ?>"><?= $o ?> days</a>
       <?php endforeach; ?>
     </div>
-    <p class="text-xs text-stone-500 mt-2 text-right"><?= $h($from->format('M j')) ?> – <?= $h($to->format('M j, Y')) ?> · vs the <?= $days ?> days before</p>
+    <p class="social-period-range"><?= $h($from->format('M j')) ?> – <?= $h($to->format('M j, Y')) ?> · vs the <?= $days ?> days before</p>
   </nav>
-  <p class="text-xs text-stone-500 mb-4 text-right">
+  <p class="text-xs text-stone-500 mb-4 social-last-refresh">
     Last refresh: <?= !empty($status['fetched_at']) ? $h(date('M j, g:i A', strtotime($status['fetched_at']))) : 'never' ?>
     <?php foreach (['facebook' => 'Facebook', 'instagram' => 'Instagram'] as $n => $lab): if (!empty($status[$n]) && $status[$n] !== 'ok'): ?>
       <br><span class="text-red-700"><?= $lab ?>: <?= $h($status[$n]) ?></span>
