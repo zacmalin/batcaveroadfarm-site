@@ -84,7 +84,7 @@ $nameOf = fn(string $s): string => isset($catalog[$s]) ? $catalog[$s]['name'] : 
                 <?php endforeach; ?>
             </select>
 
-            <button type="submit" class="bg-amber-700 hover:bg-amber-800 text-white font-bold uppercase tracking-wider px-4 py-2 rounded text-xs" style="min-height:44px;">Save Settings</button>
+            <button type="submit" class="bg-amber-700 hover:bg-amber-800 text-white font-bold uppercase tracking-wider px-4 py-2 rounded text-xs" style="min-height:44px;"><span aria-hidden="true">✓</span> Save Settings</button>
         </form>
     </div>
 
@@ -133,7 +133,7 @@ $nameOf = fn(string $s): string => isset($catalog[$s]) ? $catalog[$s]['name'] : 
             <label class="block text-[11px] uppercase tracking-wider text-stone-500 mb-1">Priority (higher wins on overlap — give holidays a higher number than seasons)</label>
             <input type="number" name="priority" value="0" class="w-full border border-stone-300 rounded px-2 py-1.5 text-xs mb-4">
 
-            <button type="submit" class="bg-amber-700 hover:bg-amber-800 text-white font-bold uppercase tracking-wider px-4 py-2 rounded text-xs" style="min-height:44px;">Add Schedule</button>
+            <button type="submit" class="bg-amber-700 hover:bg-amber-800 text-white font-bold uppercase tracking-wider px-4 py-2 rounded text-xs" style="min-height:44px;"><span aria-hidden="true">＋</span> Add Schedule</button>
         </form>
     </div>
 </div>
