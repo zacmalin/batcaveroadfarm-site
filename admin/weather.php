@@ -148,15 +148,17 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
       <input type="hidden" name="act" value="<?= $siteNote !== '' ? 'site_closed_off' : 'site_closed_on' ?>">
       <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-stone-200 bg-stone-50 p-3">
         <div>
-          <label for="wx-closure-switch" class="block text-sm font-semibold text-stone-800">Website closure</label>
+          <span class="block text-sm font-semibold text-stone-800">Website closure</span>
           <p class="text-xs text-stone-600"><?= $siteNote !== '' ? 'Active for today; automatically clears at midnight.' : 'Off. The public website is not showing a weather closure.' ?></p>
         </div>
-        <label class="inline-flex items-center gap-2 cursor-pointer" style="position:relative;min-height:44px;">
+        <button id="wx-closure-switch" type="button" role="switch" aria-label="Website weather closure" aria-checked="<?= $siteNote !== '' ? 'true' : 'false' ?>"
+          style="display:inline-flex;align-items:center;gap:10px;min-height:44px;border:0;background:transparent;cursor:pointer;padding:4px 0;"
+          onclick="if(<?= $siteNote === '' ? 'true' : 'false' ?> && !confirm('Show Closed today for weather on the public website?'))return;this.disabled=true;this.form.requestSubmit();">
           <span class="text-sm font-semibold text-stone-700"><?= $siteNote !== '' ? 'On' : 'Off' ?></span>
-          <input id="wx-closure-switch" type="checkbox" role="switch" aria-label="Website weather closure" aria-checked="<?= $siteNote !== '' ? 'true' : 'false' ?>" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" <?= $siteNote !== '' ? 'checked' : '' ?>
-            onchange="if(this.checked && !confirm('Show Closed today for weather on the public website?')){this.checked=false;return;}this.disabled=true;this.form.requestSubmit();">
-          <span aria-hidden="true" style="display:inline-flex;align-items:center;width:48px;height:28px;padding:4px;box-sizing:border-box;border-radius:999px;background:<?= $siteNote !== '' ? '#15803d' : '#78716c' ?>;flex-shrink:0;"><span style="display:block;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003;transform:<?= $siteNote !== '' ? 'translateX(20px)' : 'none' ?>;"></span></span>
-        </label>
+          <span aria-hidden="true" style="display:inline-flex;align-items:center;width:48px;height:28px;padding:4px;box-sizing:border-box;border-radius:999px;background:<?= $siteNote !== '' ? '#15803d' : '#78716c' ?>;flex-shrink:0;">
+            <span style="display:block;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003;transform:<?= $siteNote !== '' ? 'translateX(20px)' : 'none' ?>;"></span>
+          </span>
+        </button>
       </div>
       <?php if ($siteNote === ''): ?>
       <div class="mt-3"><label for="w_site_note" class="<?= $label ?>">Banner message <span class="font-normal text-stone-400">shown after "Closed today for weather."</span></label>
