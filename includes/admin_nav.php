@@ -109,9 +109,12 @@ function bcrf_admin_nav_sections(): array {
         ['label'=>'Hiring',     'icon'=>'📥','tabs'=>[
             ['Applicants',    '?view=jobs',            'view', 'jobs'],
             ['Emails',        '?view=jobs_emails',     'view', 'jobs_emails'],
+            ['Staff',         '?view=jobs_staff',      'view', 'jobs_staff'],
             ['Jobs',          '?view=jobs_posts',      'view', 'jobs_posts'],
+            ['Alerts',        '?view=jobs_alerts',     'view', 'jobs_alerts'],
             ['Question Bank', '?view=jobs_questions',  'view', 'jobs_questions'],
             ['Categories',    '?view=jobs_categories', 'view', 'jobs_categories'],
+            ['Records',       '?view=jobs_records',    'view', 'jobs_records'],
         ], 'match'=>['jobs_hire']],
     ]],
     'reports' => ['label'=>'Reports','icon'=>'📈','items'=>[
