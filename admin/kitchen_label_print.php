@@ -186,14 +186,14 @@ bcrf_shell_open('Label printing', ['toast' => $toast, 'width' => 'max-w-3xl']);
         <?php endforeach; ?>
       </div>
     </details>
-    <div class="grid grid-cols-2 gap-3">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div><label class="<?= $label ?>" for="s_body">Body text (pt)</label><input id="s_body" name="body_pt" inputmode="decimal" value="<?= $v('body_pt') ?>" class="<?= $input ?>"></div>
       <div><label class="<?= $label ?>" for="s_minb">Smallest allowed (pt)</label><input id="s_minb" name="min_body_pt" inputmode="decimal" value="<?= $v('min_body_pt') ?>" class="<?= $input ?>"></div>
       <div><label class="<?= $label ?>" for="s_net">Net quantity (pt)</label><input id="s_net" name="net_pt" inputmode="decimal" value="<?= $v('net_pt') ?>" class="<?= $input ?>"></div>
       <div><label class="<?= $label ?>" for="s_minn">Smallest allowed (pt)</label><input id="s_minn" name="min_net_pt" inputmode="decimal" value="<?= $v('min_net_pt') ?>" class="<?= $input ?>"></div>
     </div>
     <p class="text-xs text-stone-500 -mt-2">The smallest sizes are the rule: 4.5 pt body and 9 pt net quantity until NCDA&amp;CS tells us otherwise. Text that doesn't fit is flagged, never shrunk.</p>
-    <div class="grid grid-cols-2 gap-3">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div><label class="<?= $label ?>" for="s_nx">Nudge right (inches, minus = left)</label><input id="s_nx" name="nudge_x" inputmode="decimal" value="<?= $v('nudge_x') ?>" class="<?= $input ?>"></div>
       <div><label class="<?= $label ?>" for="s_ny">Nudge down (inches, minus = up)</label><input id="s_ny" name="nudge_y" inputmode="decimal" value="<?= $v('nudge_y') ?>" class="<?= $input ?>"></div>
     </div>
