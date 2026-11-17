@@ -60,15 +60,24 @@
       var s = el('section', 'srch-group');
       s.appendChild(el('h2', 'srch-gh', g.icon + ' ' + g.label));
       var ul = el('ul', 'srch-list');
-      g.rows.forEach(function (r) {
+      function addRow(r, list) {
         var li = el('li'), a = el('a', 'srch-item');
         a.href = r.url;
         a.appendChild(el('span', 'srch-t', r.title));
         if (r.sub) a.appendChild(el('span', 'srch-s', r.sub));
         li.appendChild(a);
-        ul.appendChild(li);
-      });
+        list.appendChild(li);
+      }
+      g.rows.slice(0, 5).forEach(function (r) { addRow(r, ul); });
       s.appendChild(ul);
+      if (g.key === 'pages' && g.rows.length > 5) {
+        var details = el('details', 'srch-extra');
+        details.appendChild(el('summary', 'srch-more', 'Show ' + (g.rows.length - 5) + ' more pages'));
+        var extra = el('ul', 'srch-list');
+        g.rows.slice(5).forEach(function (r) { addRow(r, extra); });
+        details.appendChild(extra);
+        s.appendChild(details);
+      }
       if (g.more) {
         var m = el('a', 'srch-more', 'See all ' + g.label.toLowerCase() + ' →');
         m.href = g.more;
