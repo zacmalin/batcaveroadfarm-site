@@ -53,7 +53,7 @@ $eventLabels = [
     <p class="text-sm text-stone-500 mb-6">Manage birthday parties, field trips, and private event leads.</p>
 
     <!-- Status filter tabs -->
-    <div class="ui-strip flex flex-wrap gap-2 mb-6">
+    <div id="private-event-list" class="flex flex-wrap justify-end gap-2 mb-6 scroll-mt-4" role="group" aria-label="Filter private event inquiries">
         <?php
         $tabs = ['new' => 'New', 'contacted' => 'Contacted', 'quoted' => 'Quoted',
                  'confirmed' => 'Confirmed', 'declined' => 'Declined', 'archived' => 'Archived', 'all' => 'All'];
@@ -61,8 +61,8 @@ $eventLabels = [
             $cnt = $val !== 'all' ? ($counts[$val] ?? 0) : array_sum($counts);
             $active = $statusFilter === $val;
         ?>
-        <a href="?view=event_inquiries&status=<?= $val ?>"
-           class="inline-flex items-center min-h-10 md:min-h-8 px-3 rounded-lg text-xs font-semibold border whitespace-nowrap <?= $active ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50' ?>">
+        <a href="?view=event_inquiries&amp;status=<?= $val ?>#private-event-list"
+           class="inline-flex items-center min-h-10 px-4 py-2 rounded-full text-sm font-semibold border whitespace-nowrap <?= $active ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100' ?>">
             <?= $label ?> <?php if ($cnt > 0): ?><span class="ml-1 opacity-70">(<?= $cnt ?>)</span><?php endif; ?>
         </a>
         <?php endforeach; ?>
