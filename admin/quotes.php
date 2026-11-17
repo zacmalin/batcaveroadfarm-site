@@ -346,9 +346,9 @@ bcrf_shell_open('Quotes & payments', ['toast' => $toast]);
   <div id="quotes-list" class="flex flex-wrap items-end justify-end gap-3 mb-4 scroll-mt-4">
     <div class="flex flex-wrap items-center justify-end gap-2" role="group" aria-label="Filter quotes by type">
       <?php foreach (['all' => 'Everything', 'party' => 'Parties', 'booking' => 'Group bookings'] as $k => $v): ?>
-        <a href="?kind=<?= $k ?>&amp;show=<?= $show ?>#quotes-list" <?= $kind === $k ? 'aria-current="true"' : '' ?> class="inline-flex items-center justify-center min-h-10 px-4 py-2 rounded-full border text-sm font-semibold <?= $kind === $k ? 'bg-[#79523a] text-white border-[#79523a]' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100' ?>"><?= $v ?></a>
+        <a href="?kind=<?= $k ?>&amp;show=<?= $show ?>#quotes-list" <?= $kind === $k ? 'aria-current="true"' : '' ?> class="inline-flex items-center justify-center min-h-10 px-4 py-2 rounded-full border text-sm font-semibold <?= $kind === $k ? 'farmos-filter-selected' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100' ?>"><?= $v ?></a>
       <?php endforeach; ?>
-      <a href="?kind=<?= $kind ?>&amp;show=<?= $show === 'open' ? 'all' : 'open' ?>#quotes-list" class="inline-flex items-center justify-center min-h-10 px-4 py-2 rounded-full border text-sm font-semibold <?= $show === 'all' ? 'bg-[#79523a] text-white border-[#79523a]' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100' ?>"><?= $show === 'open' ? 'Include past / cancelled' : 'Showing past / cancelled' ?></a>
+      <a href="?kind=<?= $kind ?>&amp;show=<?= $show === 'open' ? 'all' : 'open' ?>#quotes-list" class="inline-flex items-center justify-center min-h-10 px-4 py-2 rounded-full border text-sm font-semibold <?= $show === 'all' ? 'farmos-filter-selected' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100' ?>"><?= $show === 'open' ? 'Include past / cancelled' : 'Showing past / cancelled' ?></a>
     </div>
     <form method="GET" action="quotes.php#quotes-list" class="flex items-center gap-2">
       <input type="hidden" name="kind" value="<?= $h($kind) ?>"><input type="hidden" name="show" value="<?= $h($show) ?>">
