@@ -29,8 +29,9 @@ $phone = fn($k) => strlen((string)$k) === 10 ? sprintf('(%s) %s-%s', substr($k, 
 $local = fn($utc) => $utc ? (new DateTimeImmutable($utc, new DateTimeZone('UTC')))->setTimezone(new DateTimeZone(date_default_timezone_get()))->format('n/j/Y g:i A') : '';
 
 if (!bcrf_rewards_ready($pdo)) {
-    bcrf_shell_open('Roost Rewards', ['legacy' => true]); echo '',
-         '<p class="flash err">Run migration 0016 (Roost Rewards) in Settings › Database first.</p></div></main></body></html>';
+    bcrf_shell_open('Roost Rewards', ['legacy' => true]);
+    echo '<p class="flash err">Run migration 0016 (Roost Rewards) in Settings › Database first.</p>';
+    bcrf_shell_close();
     exit;
 }
 
@@ -168,7 +169,7 @@ if ($tab === 'find') {
 } elseif ($tab === 'member') {
     $cid = (int)$_GET['id'];
     $m = bcrf_rewards_member($pdo, $cid);
-    if (!$m) { echo '<p>Not a member. <a href="rewards.php">Find a customer</a>.</p></div></main></body></html>'; exit; }
+    if (!$m) { echo '<p>Not a member. <a href="rewards.php">Find a customer</a>.</p>'; bcrf_shell_close(); exit; }
     $back = 'rewards.php?id=' . $cid;
     $bal = (int)$m['balance_points'];
     echo '<section class="card"><h2>', $h(trim($m['first_name'] . ' ' . $m['last_name'])), '</h2>',
@@ -225,4 +226,4 @@ if ($tab === 'find') {
     }
     echo '</section>';
 }
-echo '</div></main></body></html>';
+bcrf_shell_close();
