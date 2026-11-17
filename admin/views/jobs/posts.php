@@ -34,7 +34,7 @@ if (!$isNew && $editId === 0):
 
   <div class="flex items-center justify-between mb-4">
     <h2 class="font-semibold text-stone-700">Jobs (<?= count($jobs) ?>)</h2>
-    <a href="/admin/admin.php?view=jobs_posts&edit=new" class="bg-amber-700 hover:bg-amber-800 text-white font-semibold px-4 py-2 rounded text-sm">+ Add a job</a>
+    <a href="/admin/admin.php?view=jobs_posts&edit=new" class="bg-amber-700 hover:bg-amber-800 text-white font-semibold px-4 py-2 rounded text-sm"><span aria-hidden="true">＋</span> Add a job</a>
   </div>
 
   <?php if (!$jobs): ?>
@@ -366,7 +366,7 @@ $lbl   = 'block text-xs font-semibold text-stone-600 mb-1';
       </li>
       <?php endforeach; ?>
     </ol>
-    <button type="submit" form="jq-form" class="px-4 py-2 rounded text-sm bg-amber-700 hover:bg-amber-800 text-white font-semibold mb-4">Save required and knockout settings</button>
+    <button type="submit" form="jq-form" class="px-4 py-2 rounded text-sm bg-amber-700 hover:bg-amber-800 text-white font-semibold mb-4"><span aria-hidden="true">✓</span> Save required and knockout settings</button>
     <?php else: ?>
     <p class="text-sm text-stone-400 mb-3">No questions yet.</p>
     <?php endif; ?>
