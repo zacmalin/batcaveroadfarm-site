@@ -31,7 +31,7 @@ $preview  = fn(string $inner) => '<iframe sandbox="" referrerpolicy="no-referrer
 
   <nav class="flex flex-wrap justify-end gap-1.5 mb-4" aria-label="Email sections">
     <?php foreach (['queue' => 'Waiting' . ($pending ? ' (' . $pending . ')' : ''), 'templates' => 'Templates', 'log' => 'Sent log' . ($failed7 ? ' (' . $failed7 . ' failed)' : '')] as $k => $l): $on = $tab === $k; ?>
-      <a href="/admin/admin.php?view=jobs_emails&tab=<?= $k ?>" class="text-sm px-3 py-1.5 rounded-full border whitespace-nowrap <?= $on ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50' ?>" <?= $on ? 'aria-current="page"' : '' ?>><?= $h($l) ?></a>
+      <a href="/admin/admin.php?view=jobs_emails&tab=<?= $k ?>" class="text-sm px-3 py-1.5 rounded-full border whitespace-nowrap <?= $on ? 'farmos-filter-selected' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50' ?>" <?= $on ? 'aria-current="page"' : '' ?>><?= $h($l) ?></a>
     <?php endforeach; ?>
   </nav>
 
@@ -51,7 +51,7 @@ if ($tab === 'queue'):
 ?>
   <nav class="flex flex-wrap justify-end gap-1.5 mb-3" aria-label="Email queue status">
     <?php foreach (['waiting' => 'Waiting', 'sent' => 'Sent', 'cancelled' => 'Cancelled'] as $k => $l): $on = $qs === $k; ?>
-      <a href="/admin/admin.php?view=jobs_emails&tab=queue&qs=<?= $k ?>" class="text-sm px-3 py-1.5 rounded-full border whitespace-nowrap <?= $on ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50' ?>" <?= $on ? 'aria-current="page"' : '' ?>><?= $l ?></a>
+      <a href="/admin/admin.php?view=jobs_emails&tab=queue&qs=<?= $k ?>" class="text-sm px-3 py-1.5 rounded-full border whitespace-nowrap <?= $on ? 'farmos-filter-selected' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50' ?>" <?= $on ? 'aria-current="page"' : '' ?>><?= $l ?></a>
     <?php endforeach; ?>
   </nav>
 
