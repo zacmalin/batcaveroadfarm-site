@@ -104,7 +104,7 @@ $time = function (array $it): string {   // "9:30–11 AM", "11:30 AM–1 PM", "
     return date('A', $s) === date('A', $e) ? $f($s) . '–' . $f($e) . ' ' . date('A', $e) : $f($s) . ' ' . date('A', $s) . '–' . $f($e) . ' ' . date('A', $e);
 };
 $btnSec  = 'px-3 py-2 rounded-full text-sm border border-stone-300 text-stone-700 hover:bg-stone-100 bg-white';
-$btnOn   = 'px-3 py-2 rounded-full text-sm border border-stone-800 bg-stone-800 text-white';
+$btnOn   = 'px-3 py-2 rounded-full text-sm border farmos-filter-selected';
 $btnMain = 'px-4 py-2 rounded text-sm bg-amber-700 hover:bg-amber-800 text-white font-semibold';
 $card    = 'bg-white border border-stone-200 rounded-lg p-4 shadow-sm mb-4';
 
