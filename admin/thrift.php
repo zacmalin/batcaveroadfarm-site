@@ -117,9 +117,11 @@ if (!empty($_GET['new'])) {
     echo '<label>Category', $sel('category_id', $cats, $d['category_id'] ?? '', 'Thrift (default)'), '</label>';
     echo '<label>Cost if owned $<small class="muted">(donated = $0; consigned has no farm cost)</small>',
          '<input type="number" name="cost" value="', $h($d['cost'] ?? ''), '" min="0" step="0.01" inputmode="decimal"></label>';
-    echo '<div class="two"><label>Consignor customer id <small class="muted">(optional until settlements)</small>',
+    echo '<fieldset class="grp"><legend>Consignment details (consigned items only)</legend>',
+         '<p class="muted">For consigned items, find the customer in <a href="customers.php">Customers</a> and enter their ID. Assign the consignor before settlement; the share defaults to 60%.</p>',
+         '<div class="two"><label>Consignor customer ID <small class="muted">(optional at intake)</small>',
          '<input type="number" name="consignor_customer_id" value="', $h($d['consignor_customer_id'] ?? ''), '" min="1" step="1" inputmode="numeric"></label>',
-         '<label>Consignor share %<input type="number" name="consignor_share_pct" value="', $h($d['consignor_share_pct'] ?? '60'), '" min="0" max="100" step="1"></label></div>';
+         '<label>Consignor share %<input type="number" name="consignor_share_pct" value="', $h($d['consignor_share_pct'] ?? '60'), '" min="0" max="100" step="1"></label></div></fieldset>';
     echo '<label>Description<textarea name="description" rows="2" maxlength="5000">', $h($d['description'] ?? ''), '</textarea></label>';
     echo '<label>Photo address <small class="muted">(https://… or /media/…)</small><input type="text" name="image_url" value="', $h($d['image_url'] ?? ''), '" maxlength="255" autocomplete="off"></label>';
     echo '<div class="rbar"><button class="btn primary" type="submit">Take in</button></div></form>';
