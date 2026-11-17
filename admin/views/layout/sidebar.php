@@ -200,18 +200,23 @@ $_badge = fn(int $n): string => $n > 0
     <span id="sbCollapseIcon" class="text-sm leading-none">«</span>
   </button>
 
-  <?php if (isset($_catalog['search'])): ?>
-  <a href="/admin/search.php" title="Search (press /)"
-     class="sb-row sb-search flex items-center gap-2 px-3 py-2 rounded border border-stone-700 text-stone-400 hover:text-white hover:bg-stone-800 transition shrink-0<?= $_catalog['search']['active'] ? ' bg-stone-700 text-white' : '' ?>">
-    <span class="shrink-0">🔍</span> <span class="sb-text">Search</span> <span class="sb-text ml-auto text-[9px] font-mono text-stone-500">/</span>
-  </a>
-  <?php endif; ?>
-  <?php if (isset($_catalog['notifications'])): ?>
-  <a href="/admin/notifications.php" title="Notifications<?= $_bell ? ' (' . (int)$_bell . ' new)' : '' ?>"
-     class="sb-row sb-search flex items-center gap-2 px-3 py-2 rounded text-stone-400 hover:text-white hover:bg-stone-800 transition shrink-0<?= $_catalog['notifications']['active'] ? ' bg-stone-700 text-white' : '' ?>">
-    <span class="shrink-0">🔔</span> <span class="sb-text">Notifications</span>
-    <?php if ($_bell > 0): ?><span class="sb-badge ml-auto shrink-0 bg-amber-500 text-white text-[8px] font-black px-1 py-0.5 rounded"><?= (int)$_bell ?></span><?php endif; ?>
-  </a>
+  <?php if (isset($_catalog['search']) || isset($_catalog['notifications'])): ?>
+  <div class="sb-utilities">
+    <?php if (isset($_catalog['search'])): ?>
+    <a href="/admin/search.php" title="Search (press /)" aria-label="Search"
+       class="sb-utility-search sb-row<?= $_catalog['search']['active'] ? ' is-active' : '' ?>">
+      <span aria-hidden="true">🔍</span><span class="sb-text">Search</span><span class="sb-text sb-search-key" aria-hidden="true">/</span>
+    </a>
+    <?php endif; ?>
+    <?php if (isset($_catalog['notifications'])): ?>
+    <a href="/admin/notifications.php" title="Notifications<?= $_bell ? ' (' . (int)$_bell . ' unread)' : '' ?>"
+       aria-label="Notifications<?= $_bell ? ' (' . (int)$_bell . ' unread)' : '' ?>"
+       class="sb-utility-bell sb-row<?= $_catalog['notifications']['active'] ? ' is-active' : '' ?>">
+      <span aria-hidden="true">🔔</span>
+      <?php if ($_bell > 0): ?><span class="sb-utility-count"><?= $_bell > 99 ? '99+' : (int)$_bell ?></span><?php endif; ?>
+    </a>
+    <?php endif; ?>
+  </div>
   <?php endif; ?>
 
   <nav class="flex-1 px-2 py-3 text-xs" aria-label="Main">
