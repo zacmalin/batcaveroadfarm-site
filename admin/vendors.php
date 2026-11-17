@@ -133,7 +133,8 @@ if (!$editing) {
     </div>
     <div class="w-32"><label class="<?= $label ?>" for="vs">Show</label><?= str_replace('<select ', '<select id="vs" ', $sel('status', ['active' => 'Active', 'off' => 'Inactive', 'all' => 'All'], $f['status'])) ?></div>
     <div class="w-36"><label class="<?= $label ?>" for="vsort">Sort</label><?= bcrf_list_sort_select($sortOpts, $sort, ['id' => 'vsort', 'class' => $input]) ?></div>
-    <button type="submit" class="<?= $btnSec ?>">Show</button>
+    <button type="submit" class="<?= $btnSec ?>">Apply filters</button>
+    <?php if ($f['q'] !== '' || $f['status'] !== 'active' || $sort !== 'default'): ?><a href="vendors.php" class="<?= $btnSec ?>">Reset</a><?php endif; ?>
   </form>
 
   <?php if (!$rows): ?>
