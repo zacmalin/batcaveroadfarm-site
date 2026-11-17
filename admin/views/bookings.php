@@ -248,17 +248,17 @@ $allPendingPay = count(array_filter($pending,    fn($r) => ($r['payment_status']
     $statusLabels = ['all' => 'All', 'confirmed' => 'Confirmed', 'pending' => 'Pending', 'completed' => 'Completed', 'no_show' => 'No-show', 'cancelled' => 'Cancelled'];
   ?>
   <!-- Day schedule -->
-  <div class="bg-white border border-stone-200 rounded-lg p-5 mb-8 shadow-sm">
+  <div id="booking-schedule" class="bg-white border border-stone-200 rounded-lg p-5 mb-8 shadow-sm scroll-mt-4">
     <h2 class="font-semibold text-stone-700 mb-3">Schedule</h2>
     <div class="flex flex-wrap items-center justify-end gap-2 mb-4">
       <div class="flex flex-wrap justify-end gap-1.5" role="group" aria-label="Filter bookings by status">
         <?php foreach ($statusLabels as $value => $labelText): ?>
-          <a href="/admin/admin.php?<?= htmlspecialchars(http_build_query(['view'=>'bookings', 'day'=>$day, 'status'=>$value, 'sort'=>$scheduleSort]), ENT_QUOTES) ?>"
+          <a href="/admin/admin.php?<?= htmlspecialchars(http_build_query(['view'=>'bookings', 'day'=>$day, 'status'=>$value, 'sort'=>$scheduleSort]), ENT_QUOTES) ?>#booking-schedule"
              class="inline-flex items-center min-h-9 px-3 rounded-full text-xs font-semibold border <?= $scheduleStatus === $value ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100' ?>"
              <?= $scheduleStatus === $value ? 'aria-current="true"' : '' ?>><?= htmlspecialchars($labelText) ?></a>
         <?php endforeach; ?>
       </div>
-      <form method="GET" action="/admin/admin.php" class="flex items-center gap-2">
+      <form method="GET" action="/admin/admin.php#booking-schedule" class="flex items-center gap-2">
         <input type="hidden" name="view" value="bookings">
         <input type="hidden" name="day" value="<?= htmlspecialchars($day, ENT_QUOTES) ?>">
         <input type="hidden" name="status" value="<?= htmlspecialchars($scheduleStatus, ENT_QUOTES) ?>">
