@@ -226,7 +226,7 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
         <p class="text-sm text-stone-500">Only an Owner or Manager can call off a day.</p>
       <?php else: ?>
       <form method="POST" action="weather.php" class="space-y-3">
-        <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="section" value="website-closure"><input type="hidden" name="date" value="<?= $h($date) ?>">
+        <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="section" value="affected-events"><input type="hidden" name="date" value="<?= $h($date) ?>">
         <div><label for="w_msg" class="<?= $label ?>">Message <span class="font-normal text-stone-400">each email also says which booking it's about, with the date and time</span></label>
           <textarea id="w_msg" name="message" rows="6" maxlength="3000" required class="<?= $input ?>"><?= $h($day['message'] ?? bcrf_weather_default_message($pdo)) ?></textarea></div>
         <label class="flex items-center gap-2 text-sm text-stone-700"><input type="checkbox" name="close_day" value="1" <?= $isClosed ? 'checked disabled' : 'checked' ?>> Close this day to new bookings</label>
