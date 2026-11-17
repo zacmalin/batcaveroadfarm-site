@@ -294,7 +294,8 @@ echo bcrf_shell_flash($flash);
     <div><label class="<?= $label ?>" for="df">From</label><input id="df" name="from" type="date" value="<?= $h($from) ?>" class="<?= $input ?>"></div>
     <div><label class="<?= $label ?>" for="dt">To</label><input id="dt" name="to" type="date" value="<?= $h($to) ?>" class="<?= $input ?>"></div>
     <div><label class="<?= $label ?>" for="dsort">Sort</label><?= bcrf_list_sort_select($sortOpts, $sort, ['id' => 'dsort', 'class' => $input]) ?></div>
-    <button class="<?= $btnSec ?>">Show</button>
+    <button class="<?= $btnSec ?>">Apply filters</button>
+    <?php if ($q !== '' || $from !== '' || $to !== '' || $sort !== 'default'): ?><a class="<?= $btnSec ?>" href="documents.php<?= $show === 'all' ? '' : '?show=' . urlencode($show) ?>">Reset</a><?php endif; ?>
     <?= bcrf_csv_link_html('documents', ['show' => $show === 'all' ? '' : $show, 'q' => $q, 'from' => $from, 'to' => $to]) ?>
   </form>
   <div class="<?= $card ?>">
