@@ -122,7 +122,7 @@ if ($userId > 0):
       <div class="flex flex-wrap items-end gap-2">
         <label class="text-xs text-stone-600 flex-1 min-w-[10rem]">Certificate #<input type="text" name="youth_cert_number" maxlength="50" value="<?= $h($s['youth_cert_number']) ?>" class="<?= $in ?>"></label>
         <label class="flex items-center gap-2 text-sm text-stone-700 py-2"><input type="checkbox" name="youth_cert_received" value="1" <?= $s['youth_cert_received_at'] ? 'checked' : '' ?>> Received</label>
-        <button class="<?= $btn ?> border-stone-300 text-stone-700 hover:bg-stone-50">Save</button>
+        <button class="<?= $btn ?> border-stone-300 text-stone-700 hover:bg-stone-50"><span aria-hidden="true">✓</span> Save</button>
       </div>
     </form>
     <?php endif; ?>
