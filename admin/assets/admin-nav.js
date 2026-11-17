@@ -49,6 +49,8 @@
             var arr  = document.getElementById('arr-' + s);
             var open = (s === name);
             if (body) body.style.display = open ? '' : 'none';
+            var btn = document.querySelector('[data-sb-toggle="' + s + '"]');
+            if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
             if (arr)  arr.textContent = open ? '▾' : '▸';
         });
     }
