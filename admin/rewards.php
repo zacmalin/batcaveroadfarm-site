@@ -151,19 +151,26 @@ if ($tab === 'find') {
         $rows = $st->fetchAll(PDO::FETCH_ASSOC);
         if (!$rows) echo '<p>No customer found. Add them at the register (name, email and phone) first, then enroll them here.</p>';
         else {
-            echo '<div class="card scroll"><table class="rt grid"><tr class="th"><td>Customer</td><td>Phone</td><td>Points</td><td></td></tr>';
+            echo '<p class="text-sm text-stone-600 mb-3">', count($rows), ' matching customer', count($rows) === 1 ? '' : 's', ' (up to 25 shown)</p>';
+            echo '<div class="grid gap-3">';
             foreach ($rows as $r) {
                 $name = trim($r['first_name'] . ' ' . $r['last_name']);
-                echo '<tr><td>', $h($name), '<br><small>', $h($r['email']), '</small></td>';
+                echo '<section class="card"><div class="flex flex-wrap items-center justify-between gap-3">',
+                     '<div class="min-w-0"><h2 class="text-base font-semibold">', $h($name), '</h2>',
+                     '<p class="text-sm text-stone-600 break-words">', $h($r['email']), '</p></div>';
                 if ($r['phone_key'] !== null) {
-                    echo '<td>', $h($phone($r['phone_key'])), '</td><td>', $n($r['balance_points']), '</td><td><a class="btn sm primary" href="rewards.php?id=', (int)$r['id'], '">Open</a></td></tr>';
+                    echo '<div class="flex flex-wrap items-center gap-3"><div><p class="text-sm">', $h($phone($r['phone_key'])), '</p>',
+                         '<p class="text-sm font-semibold">', $n($r['balance_points']), ' points</p></div>',
+                         '<a class="btn sm primary" href="rewards.php?id=', (int)$r['id'], '">Open</a></div>';
                 } else {
-                    echo '<td colspan="3"><form class="rform" method="POST" action="rewards.php">', $hid('rewards.php?q=' . rawurlencode($q), (int)$r['id']),
+                    echo '<div class="w-full"><p class="text-sm text-stone-600 mb-2">Not enrolled</p>',
+                         '<form class="rform flex flex-wrap gap-2" method="POST" action="rewards.php">', $hid('rewards.php?q=' . rawurlencode($q), (int)$r['id']),
                          '<input type="hidden" name="act" value="enroll"><input type="tel" name="phone" value="', $h($r['phone_number']), '" placeholder="Phone" aria-label="Phone for ', $h($name), '" required>',
-                         '<button class="btn sm" type="submit">Enroll</button></form></td></tr>';
+                         '<button class="btn sm" type="submit">Enroll</button></form></div>';
                 }
+                echo '</div></section>';
             }
-            echo '</table></div>';
+            echo '</div>';
         }
     }
 } elseif ($tab === 'member') {
