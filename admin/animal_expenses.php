@@ -97,9 +97,11 @@ $recent = bcrf_expense_recent($pdo, 0, 30);
 $receipts = bcrf_docs_ready($pdo) ? bcrf_doc_map($pdo, 'animal_expense', array_column($recent, 'id')) : [];
 $species = $pdo->query("SELECT id, class_name FROM classifications ORDER BY class_name")->fetchAll(PDO::FETCH_ASSOC);
 $animals = bcrf_animals_list($pdo, 'all');
+usort($animals, fn($a, $b) => strcasecmp((string)$a['name'], (string)$b['name']));
 $flash = $_SESSION['ax_flash'] ?? null; unset($_SESSION['ax_flash']);
 $toast = ($flash && $flash[0] === 'ok') ? $flash : null;
 $error = ($flash && $flash[0] === 'err') ? $flash[1] : '';
+$warning = ($flash && $flash[0] === 'warning') ? $flash[1] : '';
 $input   = 'p-2 border border-stone-300 rounded bg-stone-50 text-base md:text-sm w-full';
 $label   = 'block text-xs font-semibold text-stone-600 mb-1';
 $btnMain = 'px-4 py-2 rounded text-sm bg-amber-700 hover:bg-amber-800 text-white font-semibold';
@@ -116,6 +118,7 @@ $thead = fn(string $first) => '<thead><tr class="text-left text-xs text-stone-50
 bcrf_shell_open('Animal expenses', ['toast' => $toast, 'width' => 'max-w-4xl', 'js' => ['quotes.js']]);
 echo '<h1 class="text-2xl font-bold text-stone-800 mb-3">Animal expenses</h1>';
 if ($error) echo bcrf_shell_notice('err', $error);
+if ($warning) echo bcrf_shell_notice('warning', $warning);
 ?>
   <form method="GET" class="<?= $card ?> flex flex-wrap gap-3 items-end">
     <div><label class="<?= $label ?>" for="xf">From</label><input id="xf" name="from" type="date" value="<?= $h($from) ?>" class="<?= $input ?>"></div>
@@ -132,7 +135,7 @@ if ($error) echo bcrf_shell_notice('err', $error);
   <p class="text-xs text-stone-500 mb-4">Vet is the cost on medical records. Feed is each feeding's cost (amount × the product's average cost), split across the animals fed. Other is what's added below.</p>
 
   <?php if ($canEdit): ?>
-  <details class="<?= $card ?>" <?= $lines ? '' : 'open' ?>><summary class="cursor-pointer text-base font-semibold text-stone-800">Add an expense</summary>
+  <details class="<?= $card ?>" <?= $lines ? '' : 'open' ?>><summary class="cursor-pointer text-base font-semibold text-stone-800">➕ Add an expense</summary>
     <form method="POST" class="mt-3" enctype="multipart/form-data"><?= $hidden ?><input type="hidden" name="act" value="add">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
         <div><label class="<?= $label ?>" for="ed">Date</label><input id="ed" name="spent_on" type="date" required max="<?= $h($today) ?>" value="<?= $h($today) ?>" class="<?= $input ?>"></div>
