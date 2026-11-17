@@ -109,7 +109,7 @@ $curRec = (string)($edit['recurrence'] ?? 'none');
     </div>
 
     <div class="mt-5 flex gap-3">
-      <button type="submit" class="bg-amber-700 hover:bg-amber-800 text-white font-semibold px-5 py-2 rounded text-sm"><?= $edit ? 'Update event' : 'Add event' ?></button>
+      <button type="submit" class="bg-amber-700 hover:bg-amber-800 text-white font-semibold px-5 py-2 rounded text-sm"><span aria-hidden="true"><?= $edit ? '✓' : '＋' ?></span> <?= $edit ? 'Update event' : 'Add event' ?></button>
       <?php if ($edit): ?><a href="/admin/admin.php?view=events" class="px-5 py-2 rounded text-sm border border-stone-300 text-stone-600 hover:bg-stone-100">Cancel</a><?php endif; ?>
     </div>
   </form>
