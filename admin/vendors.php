@@ -121,7 +121,7 @@ if (!$editing) {
     ?>
   <div class="flex flex-wrap items-end justify-between gap-3 mb-1">
     <h1 class="text-2xl font-bold text-stone-800">Vendors</h1>
-    <a href="vendors.php?new=1" class="<?= $btnMain ?>">Add a vendor</a>
+    <a href="vendors.php?new=1" class="<?= $btnMain ?>"><span aria-hidden="true">＋</span> Add a vendor</a>
   </div>
   <p class="text-sm text-stone-500 mb-4">Feed stores, farm suppliers and thrift sources. A product's preferred vendor is picked from the active ones here.</p>
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
@@ -133,8 +133,8 @@ if (!$editing) {
     </div>
     <div class="w-32"><label class="<?= $label ?>" for="vs">Show</label><?= str_replace('<select ', '<select id="vs" ', $sel('status', ['active' => 'Active', 'off' => 'Inactive', 'all' => 'All'], $f['status'])) ?></div>
     <div class="w-36"><label class="<?= $label ?>" for="vsort">Sort</label><?= bcrf_list_sort_select($sortOpts, $sort, ['id' => 'vsort', 'class' => $input]) ?></div>
-    <button type="submit" class="<?= $btnSec ?>">Apply filters</button>
-    <?php if ($f['q'] !== '' || $f['status'] !== 'active' || $sort !== 'default'): ?><a href="vendors.php" class="<?= $btnSec ?>">Reset</a><?php endif; ?>
+    <button type="submit" class="<?= $btnSec ?>"><span aria-hidden="true">✓</span> Apply filters</button>
+    <?php if ($f['q'] !== '' || $f['status'] !== 'active' || $sort !== 'default'): ?><a href="vendors.php" class="<?= $btnSec ?>"><span aria-hidden="true">↺</span> Reset</a><?php endif; ?>
   </form>
 
   <?php if (!$rows): ?>
