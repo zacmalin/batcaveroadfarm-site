@@ -295,7 +295,7 @@ function bcrf_pin_back_link(string $class = 'back drawerbtn'): string {
         $name = htmlspecialchars((string)($_SESSION['user_name'] ?? ''), ENT_QUOTES);
         return '<a class="' . $class . '" href="/admin/pin.php?lock=1" id="pinLock">🔒&nbsp;Lock' . ($name !== '' ? ' (' . $name . ')' : '') . '</a>';
     }
-    return '<a class="' . $class . '" href="/admin/admin.php"><span aria-hidden="true">←</span>&nbsp;Console</a>';
+    return '<a class="' . $class . '" href="/admin/admin.php">Farm OS</a>';
 }
 
 // ── Manager approval ─────────────────────────────────────────────────────────────────────────────
