@@ -283,7 +283,7 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
   <?php if ($showCal): ?>
   <!-- ═══ CALENDAR ═══ (left column under the Action Center on wide screens; last on phones) -->
   <section class="<?= $card ?> p-4 md:p-6 lg:col-span-2 lg:col-start-1 lg:row-start-2 self-start" aria-labelledby="calHead">
-    <div class="flex items-center justify-between mb-4">
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
       <h2 id="calHead" class="text-sm font-bold text-stone-700"><?= $h($cal_first->format('F Y')) ?></h2>
       <div class="flex items-center gap-2">
         <a href="<?= $A ?>?view=dashboard&cal=<?= $cal_prev ?>" class="px-3 py-2 rounded bg-stone-100 text-stone-600 hover:bg-stone-200 text-xs" aria-label="Previous month">&larr;</a>
