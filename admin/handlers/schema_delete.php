@@ -10,6 +10,14 @@ require_once __DIR__ . '/../includes/audit.php';
 $del_id = filter_input(INPUT_GET, 'delete_id', FILTER_VALIDATE_INT);
 if (!$del_id) return;
 
+// Preserve subscription and opt-out records. Generic deletion has no consent-aware workflow.
+if ($target_table === 'mailing_list') {
+    $_SESSION['toast_msg'] = 'Subscriber deletion is disabled to preserve subscription preferences.';
+    $_SESSION['toast_type'] = 'error';
+    header('Location: /admin/admin.php?view=schema&table=mailing_list');
+    exit;
+}
+
 // ── Same-site check ──────────────────────────────────────────────────────────
 // Delete is a plain link (GET), so it has no CSRF token. With SameSite=Lax the
 // login cookie rides along on links from other sites, so only accept the click
