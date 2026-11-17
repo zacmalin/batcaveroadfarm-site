@@ -282,7 +282,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
     <div class="bg-white rounded-xl border border-stone-200 p-4 shadow-sm h-fit print:hidden <?= $__editing ? 'hidden md:block' : '' ?>">
         <div class="flex justify-between items-center mb-3">
             <h2 class="text-xs uppercase font-bold text-stone-400 capitalize">
-                <?= htmlspecialchars(str_replace('_', ' ', $target_table)) ?>
+                <?= $target_table === 'mailing_list' ? 'Subscribers' : htmlspecialchars(str_replace('_', ' ', $target_table)) ?>
                 <span class="text-stone-300 font-normal">(<?= count($active_records) ?>)</span>
             </h2>
             <a href="/admin/admin.php?view=schema&table=<?= urlencode($target_table) ?>&new=1" class="<?= ui_btn('primary') ?>">+ New</a>
@@ -292,8 +292,8 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
         <div id="recordList" <?= count($active_records) > 1 ? 'data-admin-list-records' : '' ?> class="divide-y md:max-h-[65vh] md:overflow-y-auto text-xs md:text-[11px] font-medium tracking-tight">
             <?php if (empty($active_records)): ?>
                 <div class="py-6 text-center">
-                    <p class="text-sm font-bold text-stone-600">Nothing here yet</p>
-                    <p class="text-xs text-stone-400 mt-1">Tap + New to add the first one.</p>
+                    <p class="text-sm font-bold text-stone-600"><?= $target_table === 'mailing_list' ? 'No subscribers yet' : 'Nothing here yet' ?></p>
+                    <p class="text-xs text-stone-400 mt-1"><?= $target_table === 'mailing_list' ? 'Subscribers will appear here when they sign up.' : 'Tap + New to add the first one.' ?></p>
                 </div>
             <?php endif; ?>
 
