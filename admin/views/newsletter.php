@@ -69,11 +69,11 @@ $nlPct = ($nlActive && $nlTotalActive > 0) ? (int)round($nlSent / $nlTotalActive
         </h3>
 
         <!-- Segment filter tabs -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3 text-xs font-bold uppercase">
-            <button type="button" data-crm-filter="all"       id="crmtab-all"       class="crm-tab min-h-11 px-2 py-2 rounded bg-amber-700 text-white border border-stone-200">All</button>
-            <button type="button" data-crm-filter="active"    id="crmtab-active"    class="crm-tab min-h-11 px-2 py-2 rounded bg-stone-100 text-stone-600 border border-stone-200">Active</button>
-            <button type="button" data-crm-filter="nursery"   id="crmtab-nursery"   class="crm-tab min-h-11 px-2 py-2 rounded bg-stone-100 text-stone-600 border border-stone-200">Nursery</button>
-            <button type="button" data-crm-filter="inventory" id="crmtab-inventory" class="crm-tab min-h-11 px-2 py-2 rounded bg-stone-100 text-stone-600 border border-stone-200">Inv</button>
+        <div class="flex flex-wrap justify-end gap-2 mb-3 text-xs font-bold uppercase">
+            <button type="button" data-crm-filter="all"       id="crmtab-all"       class="crm-tab min-h-11 px-3 py-2 rounded-full farmos-filter-selected border">All</button>
+            <button type="button" data-crm-filter="active"    id="crmtab-active"    class="crm-tab min-h-11 px-3 py-2 rounded-full bg-stone-100 text-stone-600 border border-stone-200">Active</button>
+            <button type="button" data-crm-filter="nursery"   id="crmtab-nursery"   class="crm-tab min-h-11 px-3 py-2 rounded-full bg-stone-100 text-stone-600 border border-stone-200">Nursery</button>
+            <button type="button" data-crm-filter="inventory" id="crmtab-inventory" class="crm-tab min-h-11 px-3 py-2 rounded-full bg-stone-100 text-stone-600 border border-stone-200">Inv</button>
         </div>
 
         <input type="search" id="crmSearch"  placeholder="Search name or email…"
