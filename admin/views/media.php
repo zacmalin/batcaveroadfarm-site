@@ -123,7 +123,7 @@ $displayed_images = ($active_folder === '_all')
 
         <!-- Fix 7: folder filter tabs -->
         <?php if (!empty($vault_folders)): ?>
-        <div class="flex flex-wrap gap-1.5 text-[10px] font-bold uppercase tracking-wider">
+        <nav class="social-period-nav" aria-label="Media folder filters"><div class="social-period-options">
             <?php
             $all_folders   = array_merge(['_all'], $vault_folders);
             $folder_labels = ['_all' => 'All', '_root' => 'Root', 'recipies' => 'Recipes', 'supplies' => 'In-house supplies'];
@@ -133,11 +133,11 @@ $displayed_images = ($active_folder === '_all')
                 $count_f   = $f === '_all' ? count($vault_images) : count(array_filter($vault_images, fn($i) => $i['folder'] === $f));
             ?>
                 <a href="?view=media&folder=<?= urlencode($f) ?>"
-                    class="px-2.5 py-1 rounded border transition <?= $is_active ? 'bg-amber-700 text-white border-amber-700' : 'bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-200' ?>">
+                    class="social-period-pill<?= $is_active ? ' is-active' : '' ?>"<?= $is_active ? ' aria-current="page"' : '' ?>>
                     <?= htmlspecialchars($label) ?> <span class="opacity-60">(<?= $count_f ?>)</span>
                 </a>
             <?php endforeach; ?>
-        </div>
+        </div></nav>
         <?php endif; ?>
 
         <!-- Image grid -->
