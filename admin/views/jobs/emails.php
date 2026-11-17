@@ -244,7 +244,7 @@ elseif ($tab === 'templates'):
       <span>On <span class="text-stone-500 text-xs">— when off, this email is skipped and nothing is sent.</span></span></label>
 
     <div class="flex flex-wrap gap-2">
-      <button class="bg-amber-700 hover:bg-amber-800 text-white font-semibold px-5 py-2.5 rounded text-sm">Save</button>
+      <button class="bg-amber-700 hover:bg-amber-800 text-white font-semibold px-5 py-2.5 rounded text-sm"><span aria-hidden="true">✓</span> Save</button>
       <button name="then_test" value="1" class="px-4 py-2.5 rounded text-sm border border-stone-300 text-stone-700 hover:bg-stone-50">Save + send me a test</button>
     </div>
 
