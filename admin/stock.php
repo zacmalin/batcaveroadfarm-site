@@ -162,7 +162,7 @@ if ($tab === 'stock') {
     echo '<form class="rform" method="GET" action="stock.php"><input type="search" name="q" value="', $h($f['q']), '" placeholder="Name or SKU (scan)" aria-label="Search">',
          $sel('cat', $cats, $f['category_id'], 'Category', 'All categories'), $sel('location', $locNames, $f['location_id'], 'Location', 'All locations'),
          '<label class="check"><input type="checkbox" name="low" value="1"', $f['low'] ? ' checked' : '', '> Low only</label>',
-         '<button class="btn sm" type="submit">Apply filters</button><a class="btn sm" href="stock.php">Reset</a></form>';
+         '<button class="btn sm" type="submit"><span aria-hidden="true">✓</span> Apply filters</button><a class="btn sm" href="stock.php"><span aria-hidden="true">↺</span> Reset</a></form>';
     $show = $f['location_id'] ? [$f['location_id'] => $locById[$f['location_id']]] : array_filter($locById, function ($l) use ($rows) {
         foreach ($rows as $r) if (isset($r['levels'][(int)$l['id']])) return true;
         return (int)$l['is_default'] === 1;
@@ -280,7 +280,7 @@ if ($tab === 'count') {
                          '</small>', $done ? '<br><small class="' . ((int)$i['flagged'] ? 'off' : 'even') . '">Counted ' . $h($q3($i['counted_qty'])) . ((float)$i['difference'] != 0 ? ' (' . ((float)$i['difference'] > 0 ? '+' : '') . $h($q3($i['difference'])) . ')' : ', no change') . ((int)$i['flagged'] ? ' · check again' : '') . '</small>' : '',
                          '</span><input type="number" name="c[', (int)$i['id'], ']" min="0" step="any" inputmode="decimal" aria-label="Count for ', $h($i['name']), '" placeholder="', $done ? $h($q3($i['counted_qty'])) : '', '"></label>';
                 }
-                echo '</div><div class="rbar sticky"><button class="btn primary" type="submit">Save counts</button></div></form>';
+                echo '</div><div class="rbar sticky"><button class="btn primary" type="submit"><span aria-hidden="true">✓</span> Save counts</button></div></form>';
             }
             $todo = bcrf_count_uncounted($pdo, $c);
             echo '<section class="card"><h3>Finish</h3><p class="muted">', (int)$c['lines_n'], ' counted so far', (int)$c['flagged_n'] ? ', <span class="off">' . (int)$c['flagged_n'] . ' with a big difference</span>' : '', '.</p>',
@@ -318,7 +318,7 @@ if ($tab === 'history') {
          $hf['product_id'] ? '<input type="hidden" name="product" value="' . (int)$hf['product_id'] . '">' : '',
          '<input type="date" name="from" value="', $h($hf['from']), '" aria-label="From"><span>to</span><input type="date" name="to" value="', $h($hf['to']), '" aria-label="To">',
          $sel('location', $locNames, $hf['location_id'], 'Location', 'All locations'), $sel('reason', $reasons, $hf['reason'], 'Reason', 'All reasons'),
-         '<button class="btn sm" type="submit">Apply filters</button><a class="btn sm" href="stock.php?tab=history">Reset</a><a class="btn sm" href="', $h($self($pp + ['csv' => 1])), '">CSV</a></form>';
+         '<button class="btn sm" type="submit"><span aria-hidden="true">✓</span> Apply filters</button><a class="btn sm" href="stock.php?tab=history"><span aria-hidden="true">↺</span> Reset</a><a class="btn sm" href="', $h($self($pp + ['csv' => 1])), '">CSV</a></form>';
     if ($hf['product_id'] && ($pn = bcrf_stock_product($pdo, $hf['product_id']))) echo '<p class="muted">Only ', $h($pn['name']), ' · <a href="', $h($self(array_merge($pp, ['product' => null]))), '">all items</a></p>';
     $rows = bcrf_stock_history($pdo, $hf, 500);
     echo $histTable($rows), count($rows) >= 500 ? '<p class="muted">Showing the latest 500. Use the CSV for everything.</p>' : '';
