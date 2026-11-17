@@ -13,6 +13,8 @@
 .srch-go:hover { background: #44403c; }
 .srch-hint { margin-top: 6px; font-size: 12px; color: #78716c; }
 .srch-recent { margin-bottom: 16px; }
+.srch-status { margin: 0 0 12px; font-size: 12px; color: #57534e; min-height: 1em; }
+.srch-status:empty { display: none; }
 .srch-chip {
   display: inline-block; margin: 0 6px 6px 0; padding: 6px 12px; border-radius: 999px;
   background: #fff; border: 1px solid #d6d3d1; color: #44403c; font-size: 13px;
