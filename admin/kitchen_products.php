@@ -123,7 +123,7 @@ if ($id) {
 
 $rows = bcrf_kitchen_products($pdo);
 $kpTodo = fn($r) => ($r['recipe_id'] && $r['approved_type'] && $r['shelf_life_days'] && $r['net_qty'] !== '') ? 1 : 0;
-$sortOpts = ['default' => ['On sale first, A to Z'], 'az' => ['Name A to Z', 'name', 'asc'], 'za' => ['Name Z to A', 'name', 'desc'],
+$sortOpts = ['az' => ['Name A to Z', 'name', 'asc'], 'za' => ['Name Z to A', 'name', 'desc'],
              'todo' => ['Needs setup first', $kpTodo, 'asc'], 'price_lo' => ['Price low to high', 'price', 'asc'], 'price_hi' => ['Price high to low', 'price', 'desc']];
 $sort = bcrf_list_sort_pick($pdo, 'kitchen_products', $sortOpts);
 $rows = bcrf_list_sort_rows($rows, $sortOpts, $sort);
@@ -134,8 +134,8 @@ echo '<p class="text-sm text-stone-500 mb-4">Products made in the kitchen and th
 if ($error) echo bcrf_shell_notice('err', $error);
 ?>
   <?php if (count($rows) > 1): ?>
-  <form method="GET" action="kitchen_products.php" class="flex flex-wrap gap-2 items-end mb-3">
-    <div><label class="<?= $label ?>" for="kpsort">Sort</label><?= bcrf_list_sort_select($sortOpts, $sort, ['id' => 'kpsort', 'class' => $input]) ?></div>
+  <form method="GET" action="kitchen_products.php" class="flex flex-wrap justify-end gap-2 items-end mb-3">
+    <div><label class="<?= $label ?>" for="kpsort">Sort by</label><?= bcrf_list_sort_select($sortOpts, $sort, ['id' => 'kpsort', 'class' => $input]) ?></div>
     <button type="submit" class="<?= $btnSec ?>">Sort</button>
   </form>
   <?php endif; ?>
