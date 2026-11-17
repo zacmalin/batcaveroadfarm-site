@@ -1,0 +1,46 @@
+name: Rebuild Admin CSS
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rebuild-admin-css
+  cancel-in-progress: false
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: tools/admin-css/package-lock.json
+
+      - name: Rebuild generated stylesheets
+        working-directory: tools/admin-css
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - name: Commit generated stylesheets if changed
+        run: |
+          if git diff --quiet -- admin/assets/admin.css admin/assets/console.css; then
+            echo "Both generated stylesheets are already up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- admin/assets/admin.css admin/assets/console.css
+          git commit -m "build: refresh generated admin stylesheets"
+          git push origin HEAD:main
