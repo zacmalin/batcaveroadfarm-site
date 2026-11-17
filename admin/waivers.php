@@ -86,11 +86,11 @@ $card    = 'bg-white border border-stone-200 rounded-lg p-4 shadow-sm mb-4';
 $hidden  = '<input type="hidden" name="csrf_token" value="' . $h($csrf) . '">';
 $tab = (string)($_GET['tab'] ?? '');
 $tabs = function (string $on) use ($h) {
-    $out = '<div class="flex flex-wrap gap-1 mb-4">';
+    $out = '<nav aria-label="Waiver filters" class="flex flex-wrap justify-end gap-2 mb-4">';
     foreach ([['Signed', 'waivers.php', ''], ['Wording', 'waivers.php?tab=wording', 'wording'], ['Settings', 'waivers.php?tab=settings', 'settings']] as [$t, $u, $k]) {
-        $out .= '<a href="' . $u . '" class="px-3 py-2 rounded text-sm border ' . ($k === $on ? 'border-stone-800 bg-stone-800 text-white' : 'border-stone-300 text-stone-700 bg-white hover:bg-stone-100') . '">' . $h($t) . '</a>';
+        $out .= '<a href="' . $u . '" ' . ($k === $on ? 'aria-current="page" ' : '') . 'class="inline-flex items-center min-h-9 px-3 py-2 rounded-full text-sm font-semibold border ' . ($k === $on ? 'border-stone-800 bg-stone-800 text-white' : 'border-stone-300 text-stone-700 bg-stone-50 hover:bg-stone-100') . '">' . $h($t) . '</a>';
     }
-    return $out . '</div>';
+    return $out . '</nav>';
 };
 $cur = bcrf_waiver_current($pdo);
 $mode = bcrf_waiver_setting($pdo, 'waiver_mode', 'off');
