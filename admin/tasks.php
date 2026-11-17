@@ -917,24 +917,23 @@ $nOpen = count($mine['overdue']) + count($mine['today']);
   </form>
 
   <?php
-  $section = function (string $title, array $items, string $tone = 'stone', bool $showDate = false, string $empty = '') use ($row, $h) {
+  $section = function (string $title, array $items, string $tone = 'stone', bool $showDate = false, string $empty = '', bool $expanded = false) use ($row, $h) {
       if (!$items && $empty === '') return;
-      echo '<section class="mb-5"><h2 class="text-xs font-black uppercase tracking-widest mb-2 ', $tone === 'red' ? 'text-red-700' : 'text-stone-500', '">', $h($title),
-           $items ? ' <span class="font-bold">· ' . count($items) . '</span>' : '', '</h2><div class="space-y-2">';
+      echo '<details class="mb-3 bg-white border border-stone-200 rounded-lg shadow-sm overflow-hidden" ', $expanded ? 'open' : '', '>',
+           '<summary class="cursor-pointer min-h-11 flex items-center justify-between gap-3 p-3 font-semibold text-sm text-stone-700 hover:bg-stone-50">',
+           '<span class="', $tone === 'red' ? 'text-red-700' : 'text-stone-700', '">', $h($title), '</span>',
+           '<span class="text-xs font-bold text-stone-500">', count($items), '</span></summary>',
+           '<div class="space-y-2 p-3 border-t border-stone-200">';
       foreach ($items as $t) echo $row($t, $showDate);
       if (!$items) echo '<p class="text-sm text-stone-500">', $h($empty), '</p>';
-      echo '</div></section>';
+      echo '</div></details>';
   };
-  $section('Late', $mine['overdue'], 'red', true);
-  $section('Today', $mine['today'], 'stone', false, $mine['overdue'] ? 'Nothing else due today.' : 'Nothing due today. 🐐');
+  $section('Late', $mine['overdue'], 'red', true, '', (bool)$mine['overdue']);
+  $section('Today', $mine['today'], 'stone', false, $mine['overdue'] ? 'Nothing else due today.' : 'Nothing due today. 🐐', true);
   $tmr = bcrf_tasks_add_days($today, 1);
   $section('Tomorrow', array_values(array_filter($mine['upcoming'], fn($t) => $t['due_date'] === $tmr)));
   $later = array_values(array_filter($mine['upcoming'], fn($t) => $t['due_date'] !== $tmr));
-  if ($later) {
-      echo '<details class="mb-5"><summary class="cursor-pointer min-h-11 flex items-center text-xs font-black uppercase tracking-widest text-stone-500">Later this week · ', count($later), '</summary><div class="space-y-2 mt-2">';
-      foreach ($later as $t) echo $row($t, true);
-      echo '</div></details>';
-  }
+  $section('Later this week', $later, 'stone', true);
   $section('No date', $mine['someday']);
   $section('Done today', $mine['done']);
   if ($v2 && bcrf_tasks_uid()):
