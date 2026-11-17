@@ -102,14 +102,14 @@ if (!isset($_GET['id']) && !isset($_GET['new'])) {
     ?>
   <div class="flex flex-wrap items-end justify-between gap-3 mb-1">
     <h1 class="text-2xl font-bold text-stone-800">Renewals</h1>
-    <a href="renewals.php?new=1" class="<?= $btnMain ?>">Add a renewal</a>
+    <a href="renewals.php?new=1" class="<?= $btnMain ?>"><span aria-hidden="true">＋</span> Add a renewal</a>
   </div>
   <p class="text-sm text-stone-500 mb-4">Domain, hosting, insurance, licenses and permits, subscriptions: anything that renews or runs out on a date. Each one is on the calendar, and the person who handles it gets a bell, an email and a task before it is due.</p>
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
 
   <div class="flex flex-wrap justify-end gap-2 mb-3" role="tablist" aria-label="Show">
     <?php foreach (['upcoming' => 'Coming up', 'finished' => 'Finished', 'deleted' => 'Deleted'] as $k => $v): ?>
-      <a href="renewals.php?show=<?= $k ?>" role="tab" aria-selected="<?= $show === $k ? 'true' : 'false' ?>" class="px-3 py-1.5 rounded-full text-sm border <?= $show === $k ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100' ?>"><?= $v ?></a>
+      <a href="renewals.php?show=<?= $k ?>" role="tab" aria-selected="<?= $show === $k ? 'true' : 'false' ?>" class="px-3 py-1.5 rounded-full text-sm border <?= $show === $k ? 'farmos-filter-selected' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100' ?>"><?= $v ?></a>
     <?php endforeach; ?>
   </div>
   <form method="GET" action="renewals.php" class="bg-white border border-stone-200 rounded-lg p-3 shadow-sm mb-4 flex flex-wrap gap-2 items-end">
@@ -117,7 +117,7 @@ if (!isset($_GET['id']) && !isset($_GET['new'])) {
     <div class="flex-1 min-w-[12rem]"><label for="rq" class="<?= $label ?>">Search</label>
       <input id="rq" type="search" name="q" value="<?= $h($q) ?>" placeholder="Name, provider, account, notes" class="<?= $input ?>"></div>
     <div class="w-36"><label for="rsort" class="<?= $label ?>">Sort</label><?= bcrf_list_sort_select($sortOpts, $sort, ['id' => 'rsort', 'class' => $input]) ?></div>
-    <button type="submit" class="<?= $btnSec ?>">Search</button>
+    <button type="submit" class="<?= $btnSec ?>"><span aria-hidden="true">⌕</span> Search</button>
   </form>
 
   <?php if (!$rows): ?>
