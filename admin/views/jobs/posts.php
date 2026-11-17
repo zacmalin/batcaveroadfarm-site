@@ -31,7 +31,6 @@ if (!$isNew && $editId === 0):
 <div class="max-w-4xl">
   <h1 class="text-2xl font-bold text-stone-800 mb-1">Hiring</h1>
   <p class="text-sm text-stone-500 mb-4">Reusable job postings. Open hiring on a job to post it; close it when you're done. Each time you open it again starts a new hiring round.</p>
-  <?php require __DIR__ . '/_tabs.php'; ?>
 
   <div class="flex items-center justify-between mb-4">
     <h2 class="font-semibold text-stone-700">Jobs (<?= count($jobs) ?>)</h2>
