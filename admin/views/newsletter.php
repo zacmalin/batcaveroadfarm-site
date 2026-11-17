@@ -9,9 +9,9 @@ $total_active    = $nl_segment_counts['all'];
 $total_inactive  = $total_subs - $total_active;
 ?>
 
-<div id="newsletter-root" data-segment-counts="<?= htmlspecialchars($segment_counts_json, ENT_QUOTES) ?>" class="flex justify-between items-center mb-6">
+<div id="newsletter-root" data-segment-counts="<?= htmlspecialchars($segment_counts_json, ENT_QUOTES) ?>" class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
     <h1 class="text-2xl font-bold text-stone-800">Newsletter</h1>
-    <div class="flex gap-3 text-xxs font-bold">
+    <div class="flex flex-wrap gap-2 text-xxs font-bold">
         <span class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-2 py-1 rounded">✅ <?= $total_active ?> Active</span>
         <span class="bg-red-50 border border-red-200 text-red-700 px-2 py-1 rounded">🚫 <?= $total_inactive ?> Unsubscribed</span>
         <span class="bg-stone-100 border border-stone-200 text-stone-600 px-2 py-1 rounded">Total: <?= $total_subs ?></span>
@@ -69,15 +69,15 @@ $nlPct = ($nlActive && $nlTotalActive > 0) ? (int)round($nlSent / $nlTotalActive
         </h3>
 
         <!-- Segment filter tabs -->
-        <div class="flex gap-1 mb-3 text-[9px] font-bold uppercase">
-            <button type="button" data-crm-filter="all"       id="crmtab-all"       class="crm-tab flex-1 py-1 rounded bg-amber-700 text-white border border-stone-200">All</button>
-            <button type="button" data-crm-filter="active"    id="crmtab-active"    class="crm-tab flex-1 py-1 rounded bg-stone-100 text-stone-600 border border-stone-200">Active</button>
-            <button type="button" data-crm-filter="nursery"   id="crmtab-nursery"   class="crm-tab flex-1 py-1 rounded bg-stone-100 text-stone-600 border border-stone-200">Nursery</button>
-            <button type="button" data-crm-filter="inventory" id="crmtab-inventory" class="crm-tab flex-1 py-1 rounded bg-stone-100 text-stone-600 border border-stone-200">Inv</button>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3 text-xs font-bold uppercase">
+            <button type="button" data-crm-filter="all"       id="crmtab-all"       class="crm-tab min-h-11 px-2 py-2 rounded bg-amber-700 text-white border border-stone-200">All</button>
+            <button type="button" data-crm-filter="active"    id="crmtab-active"    class="crm-tab min-h-11 px-2 py-2 rounded bg-stone-100 text-stone-600 border border-stone-200">Active</button>
+            <button type="button" data-crm-filter="nursery"   id="crmtab-nursery"   class="crm-tab min-h-11 px-2 py-2 rounded bg-stone-100 text-stone-600 border border-stone-200">Nursery</button>
+            <button type="button" data-crm-filter="inventory" id="crmtab-inventory" class="crm-tab min-h-11 px-2 py-2 rounded bg-stone-100 text-stone-600 border border-stone-200">Inv</button>
         </div>
 
         <input type="search" id="crmSearch"  placeholder="Search name or email…"
-            class="w-full mb-2 p-1.5 border border-stone-300 rounded bg-stone-50 text-[10px] outline-none focus:ring-2 focus:ring-stone-400">
+            class="w-full mb-2 p-2.5 border border-stone-300 rounded bg-stone-50 text-sm outline-none focus:ring-2 focus:ring-stone-400">
 
         <div id="crmList" class="flex-1 max-h-[55vh] overflow-y-auto space-y-1.5 pr-1">
             <?php foreach ($nl_subscribers as $sub):
