@@ -164,7 +164,6 @@ $need = jobs_certs_needed_count($pdo);
 <div class="max-w-4xl pb-16">
   <h1 class="text-2xl font-bold text-stone-800 mb-1">Staff</h1>
   <p class="text-sm text-stone-500 mb-4">People you've hired: their logins, jobs and paperwork.</p>
-  <?php require __DIR__ . '/_tabs.php'; ?>
 
   <?php if ($need): ?>
   <div class="bg-sky-50 border border-sky-200 text-sky-900 rounded-lg p-3 mb-4 text-sm"><?= $need ?> under-18 hire<?= $need === 1 ? '' : 's' ?> still need<?= $need === 1 ? 's' : '' ?> a youth employment certificate.</div>
