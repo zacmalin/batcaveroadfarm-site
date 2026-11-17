@@ -901,7 +901,15 @@
     $('cnHint').textContent = closing ? 'Count every bill and coin in the drawer.' : 'Count the starting cash (float) going into the drawer.';
     $('cnOk').textContent = closing ? 'Close drawer' : 'Open drawer';
     $('cnRows').replaceChildren.apply($('cnRows'), Object.keys(S.dinfo.denominations).map(Number).sort(function (a, b) { return b - a; }).map(function (c) {
-      return el('label', {}, [el('span', { text: S.dinfo.denominations[c] }), el('input', { type: 'number', inputmode: 'numeric', min: '0', step: '1', 'data-c': c, placeholder: '0', 'aria-label': S.dinfo.denominations[c] + ' count', oninput: countChanged })]);
+      var name = S.dinfo.denominations[c];
+      var input = el('input', { type: 'number', inputmode: 'numeric', min: '0', step: '1', 'data-c': c, value: '0', 'aria-label': name + ' count', oninput: function () { subtotal.textContent = money(c * Math.max(0, parseInt(input.value, 10) || 0)); countChanged(); } });
+      var subtotal = el('output', { class: 'count-subtotal', text: money(0), 'aria-label': name + ' subtotal' });
+      function adjust(delta) { input.value = String(Math.max(0, (parseInt(input.value, 10) || 0) + delta)); input.dispatchEvent(new Event('input', { bubbles: true })); }
+      return el('div', { class: 'count-line' }, [el('span', { class: 'count-name', text: name }), el('div', { class: 'count-stepper' }, [
+        el('button', { type: 'button', class: 'btn count-step', text: '−', 'aria-label': 'Subtract one ' + name, onclick: function () { adjust(-1); } }),
+        input,
+        el('button', { type: 'button', class: 'btn count-step', text: '+', 'aria-label': 'Add one ' + name, onclick: function () { adjust(1); } })
+      ]), subtotal]);
     }));
     $('cnExpRow').hidden = $('cnVarRow').hidden = !closing;
     if (closing) $('cnExp').textContent = money(S.drawer.expected_cents);
