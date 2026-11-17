@@ -103,8 +103,8 @@ $time = function (array $it): string {   // "9:30–11 AM", "11:30 AM–1 PM", "
     $e = strtotime($it['end']);
     return date('A', $s) === date('A', $e) ? $f($s) . '–' . $f($e) . ' ' . date('A', $e) : $f($s) . ' ' . date('A', $s) . '–' . $f($e) . ' ' . date('A', $e);
 };
-$btnSec  = 'px-3 py-2 rounded text-sm border border-stone-300 text-stone-700 hover:bg-stone-100 bg-white';
-$btnOn   = 'px-3 py-2 rounded text-sm border border-stone-800 bg-stone-800 text-white';
+$btnSec  = 'px-3 py-2 rounded-full text-sm border border-stone-300 text-stone-700 hover:bg-stone-100 bg-white';
+$btnOn   = 'px-3 py-2 rounded-full text-sm border border-stone-800 bg-stone-800 text-white';
 $btnMain = 'px-4 py-2 rounded text-sm bg-amber-700 hover:bg-amber-800 text-white font-semibold';
 $card    = 'bg-white border border-stone-200 rounded-lg p-4 shadow-sm mb-4';
 
@@ -115,14 +115,14 @@ bcrf_shell_open('Calendar', ['toast' => $toast, 'width' => 'max-w-5xl', 'js' => 
       <h1 class="text-2xl font-bold text-stone-800">Calendar</h1>
       <p class="text-sm text-stone-500">Everything on the farm in one place. Tap an item to open it.</p>
     </div>
-    <div class="flex gap-1">
+    <div class="flex flex-wrap justify-end gap-2">
       <a href="<?= $h($q(['view' => 'list'])) ?>" class="<?= $view === 'list' ? $btnOn : $btnSec ?>">Week list</a>
       <a href="<?= $h($q(['view' => 'month'])) ?>" class="<?= $view === 'month' ? $btnOn : $btnSec ?>">Month</a>
     </div>
   </div>
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
 
-  <form method="GET" action="calendar.php" class="<?= $card ?> flex flex-wrap gap-x-4 gap-y-2 items-center">
+  <form method="GET" action="calendar.php" class="<?= $card ?> flex flex-wrap justify-end gap-x-4 gap-y-2 items-center">
     <input type="hidden" name="view" value="<?= $h($view) ?>"><input type="hidden" name="date" value="<?= $h($date) ?>"><input type="hidden" name="l[]" value="">
     <?php foreach ($allowed as $l): ?>
       <label class="flex items-center gap-1.5 text-sm text-stone-700"><input type="checkbox" name="l[]" value="<?= $h($l) ?>" <?= in_array($l, $layers, true) ? 'checked' : '' ?>>
