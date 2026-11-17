@@ -103,13 +103,12 @@ function bcrf_admin_nav_sections(): array {
                                                        ['Chores',    '/admin/tasks.php?tab=chores',    'view', 'tasks_manage'],
                                                        ['Checklists','/admin/tasks.php?tab=templates', 'view', 'tasks_manage'],
                                                        ['Events',    '/admin/tasks.php?tab=events',    'view', 'tasks_manage']]],   // party/booking checklists (slice 3)
-        ['label'=>'Staff',      'icon'=>'🪪','tabs'=>[['Staff','?view=jobs_staff','view','jobs_staff']], 'match'=>['jobs_alerts','jobs_records']],
+        ['label'=>'Staff',      'icon'=>'🪪','tabs'=>[['Staff','?view=jobs_staff','view','jobs_staff']],
         ['label'=>'Time Clock', 'short'=>'Clock','icon'=>'⏰','tabs'=>[['Time Clock','?view=timecard','view','timecard']]],
         ['label'=>'Timesheets', 'icon'=>'🗓️','tabs'=>[['Timesheets','?view=timesheet','view','timesheet']]],
         ['label'=>'Hiring',     'icon'=>'📥','tabs'=>[
             ['Applicants',    '?view=jobs',            'view', 'jobs'],
             ['Emails',        '?view=jobs_emails',     'view', 'jobs_emails'],
-            ['Staff',         '?view=jobs_staff',      'view', 'jobs_staff'],
             ['Jobs',          '?view=jobs_posts',      'view', 'jobs_posts'],
             ['Alerts',        '?view=jobs_alerts',     'view', 'jobs_alerts'],
             ['Question Bank', '?view=jobs_questions',  'view', 'jobs_questions'],
