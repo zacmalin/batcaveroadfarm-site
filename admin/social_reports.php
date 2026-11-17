@@ -208,7 +208,7 @@ bcrf_shell_open('Social Media — Reports', ['width' => 'max-w-4xl', 'toast' => 
     </div>
     <p class="text-xs text-stone-500 mt-2 text-right"><?= $h($from->format('M j')) ?> – <?= $h($to->format('M j, Y')) ?> · vs the <?= $days ?> days before</p>
   </nav>
-  <p class="text-xs text-stone-500 mb-4">
+  <p class="text-xs text-stone-500 mb-4 text-right">
     Last refresh: <?= !empty($status['fetched_at']) ? $h(date('M j, g:i A', strtotime($status['fetched_at']))) : 'never' ?>
     <?php foreach (['facebook' => 'Facebook', 'instagram' => 'Instagram'] as $n => $lab): if (!empty($status[$n]) && $status[$n] !== 'ok'): ?>
       <br><span class="text-red-700"><?= $lab ?>: <?= $h($status[$n]) ?></span>
