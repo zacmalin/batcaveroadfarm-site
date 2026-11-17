@@ -425,7 +425,7 @@ if ($typeId) {
       <div data-feed-row class="border border-stone-200 rounded-lg p-3">
         <div class="flex justify-between items-center mb-2"><strong class="text-sm" data-feed-title>Feed 1</strong><button type="button" data-feed-remove class="<?= $btnSec ?> text-xs" hidden>Remove</button></div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div><label class="<?= $label ?>" for="lf">Feed</label><select id="lf" name="feeds[0][product]" class="<?= $input ?>"><option value="0">Choose feed</option>
+          <div class="min-w-0 w-full"><label class="<?= $label ?>" for="lf">Select feed</label><select id="lf" name="feeds[0][product]" aria-label="Select feed" class="<?= $input ?> block w-full min-w-0 appearance-auto" required><option value="">Choose feed</option>
             <?php foreach ($feeds as $p): ?><option value="<?= (int)$p['id'] ?>"<?php if ($p['units']): ?> data-units="<?= $h(json_encode(array_map(fn($u) => ['key' => $u['key'], 'label' => $u['label'], 'g' => round($u['g'], 3), 'name' => $u['name']], $p['units']))) ?>" data-unit-g="<?= $h(round((float)$p['unit_g'], 3)) ?>" data-word="<?= $h(bcrf_feed_stock_word($p)) ?>" data-last="<?= $h($p['last_unit']) ?>"<?php endif; ?>><?= $h($p['name']) ?><?= (int)$p['track_inventory'] === 1 ? ' (' . $h($p['stock_text']) . ' on hand)' : '' ?></option><?php endforeach; ?></select>
           </div>
           <div><div class="flex gap-2 items-end">
