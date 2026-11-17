@@ -164,6 +164,8 @@
   startBtn.addEventListener('click', function () {
     if (running) return;
     running = true; startBtn.disabled = true;
+    bar.classList.add('hidden');
+    applyNote.textContent = '';
     list.innerHTML = '';
     DATA.rows.forEach(makeRow);
     var i = 0;
@@ -213,7 +215,10 @@
           r._body.appendChild(el('p', 'text-red-700 mt-1', '⚠️ ' + d.message));
         }
         setVisible(r);
-      }).catch(function () { failed++; }).then(next);
+      }).catch(function () {
+        failed++;
+        r._body.appendChild(el('p', 'text-red-700 mt-1', '⚠️ Network error. Update not confirmed.'));
+      }).then(next);
     })();
   });
 })();
