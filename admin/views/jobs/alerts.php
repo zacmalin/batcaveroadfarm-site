@@ -64,7 +64,7 @@ $base  = 'show=' . $show . ($q !== '' ? '&q=' . rawurlencode($q) : '');
   <form method="GET" action="/admin/admin.php" class="flex gap-2 mb-4">
     <input type="hidden" name="view" value="jobs_alerts"><input type="hidden" name="show" value="<?= $h($show) ?>">
     <input type="search" name="q" value="<?= $h($q) ?>" placeholder="Search email" class="flex-1 min-w-0 border border-stone-300 rounded px-3 py-2 text-sm">
-    <button class="bg-stone-800 text-white text-sm font-semibold px-4 rounded">Find</button>
+    <button class="bg-stone-800 text-white text-sm font-semibold px-4 rounded"><span aria-hidden="true">⌕</span> Find</button>
   </form>
 
   <?php if (!$rows): ?>
