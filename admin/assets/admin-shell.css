@@ -28,6 +28,21 @@
 #adminSidebar.sb-collapsed [data-sec] > div[id^="sec-"] .sb-row{justify-content:flex-start !important;padding:.35rem .5rem !important;gap:.5rem !important}
 #adminSidebar.sb-collapsed [data-sec] > div[id^="sec-"] .sb-badge{display:inline-block !important}
 
+/* Compact desktop sidebar utilities: search and unread notifications. */
+.sb-utilities{display:flex;align-items:stretch;gap:6px;margin:8px 8px 2px}
+.sb-utilities a{display:flex;align-items:center;justify-content:center;min-height:38px;border:1px solid #44403c;border-radius:7px;color:#d6d3d1;text-decoration:none;background:#292524;transition:background .15s}
+.sb-utilities a:hover,.sb-utilities a.is-active{background:#44403c;color:white}
+.sb-utilities a:focus-visible{outline:2px solid #fbbf24;outline-offset:2px}
+.sb-utility-search{flex:1;min-width:0;gap:8px;padding:0 10px;font-size:12px}
+.sb-utility-search .sb-search-key{margin-left:auto;color:#a8a29e;font-size:10px}
+.sb-utility-bell{flex:none;position:relative;min-width:40px;padding:0 5px;font-size:15px;gap:3px}
+.sb-utility-count{font-size:10px;font-weight:700;color:#fff;background:#b45309;border-radius:999px;min-width:16px;padding:1px 4px;text-align:center;line-height:16px}
+#adminSidebar.sb-collapsed .sb-utilities{flex-direction:column;gap:6px;margin:8px 7px 2px}
+#adminSidebar.sb-collapsed .sb-utilities a{width:42px;min-height:40px;padding:0}
+#adminSidebar.sb-collapsed .sb-utilities .sb-text{display:none}
+#adminSidebar.sb-collapsed .sb-utility-bell{flex-wrap:wrap;gap:0}
+#adminSidebar.sb-collapsed .sb-utility-count{font-size:9px;line-height:13px;min-width:14px;padding:0 3px}
+
 /* ── Phone bottom bar ── */
 .nav-bar{display:flex}
 .nav-safe-bottom{padding-bottom:env(safe-area-inset-bottom)}
