@@ -25,7 +25,15 @@
             restore.hidden = hidden === 0;
             restore.textContent = 'Show ' + hidden + ' dismissed';
         }
-        if (allClear) allClear.hidden = visible > 0;
+        if (allClear) {
+            allClear.hidden = visible > 0;
+            var title = allClear.querySelector('[data-clear-title]');
+            var detail = allClear.querySelector('[data-clear-detail]');
+            if (title) title.textContent = hidden ? 'No alerts displayed' : 'All clear';
+            if (detail) detail.textContent = hidden
+                ? 'You have dismissed FYI alerts. Use Show dismissed to review them.'
+                : 'Anything that needs you (bookings, inquiries, low stock, system problems) shows up here.';
+        }
     }
 
     list.addEventListener('click', function (e) {
