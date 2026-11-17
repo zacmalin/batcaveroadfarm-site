@@ -71,7 +71,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $_SESSION['ac_flash'] = ['ok', 'Voided. Any feed went back into stock.'];
         } elseif ($act === 'type_active') {
             if (!$canEdit) throw new BcrfCareError('You can log care but not change the setup.');
-            $back = 'animal_care.php?tab=setup';
+            $back = 'animal_care.php?tab=setup&section=types';
             $want = bcrf_switch_wanted();
             $r = bcrf_switch_set($pdo, 'animal_care_types', 'active', (int)($_POST['type_id'] ?? 0), $want);
             if ($r === null) throw new BcrfCareError('That care type no longer exists.');
@@ -80,7 +80,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $_SESSION['ac_flash'] = ['ok', $msg];
         } elseif ($act === 'type' || $act === 'feed') {
             if (!$canEdit) throw new BcrfCareError('You can log care but not change the setup.');
-            $back = 'animal_care.php?tab=setup';
+            $back = 'animal_care.php?tab=setup&section=types';
             if ($act === 'type') {
                 $tid = (int)($_POST['type_id'] ?? 0);
                 // In use has its own switch (type_active) since Nov 14, 2026, so Save keeps whatever it is now.
@@ -91,14 +91,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 $_SESSION['ac_flash'] = ['ok', $tid ? 'Saved.' : 'Added.'];
             } else {
                 bcrf_care_update_feed_ids($pdo, (array)($_POST['shown'] ?? []), (array)($_POST['feed'] ?? []));   // only what was on screen changes
-                $back .= '&fcat=' . rawurlencode((string)($_POST['fcat'] ?? '')) . '&fq=' . rawurlencode((string)($_POST['fq'] ?? ''));
+                $back = 'animal_care.php?tab=setup&section=feed&fcat=' . rawurlencode((string)($_POST['fcat'] ?? '')) . '&fq=' . rawurlencode((string)($_POST['fq'] ?? ''));
                 if (function_exists('erp_audit')) erp_audit($pdo, 'update', 'site_settings', 0, 'Animal feed products changed');
                 $_SESSION['ac_flash'] = ['ok', 'Feed list saved.'];
             }
         } elseif (in_array($act, ['bags', 'measure', 'measure_rm'], true)) {
             if (!$canEdit) throw new BcrfCareError('You can log care but not change the setup.');
             if (!bcrf_feed_units_ready($pdo)) throw new BcrfCareError('Run migration 0071 in Settings › Database first.');
-            $back = 'animal_care.php?tab=setup#units';
+            $back = 'animal_care.php?tab=setup&section=units#units';
             if ($act === 'bags') {
                 $feedIds = bcrf_care_feed_ids($pdo);
                 foreach ((array)($_POST['bag'] ?? []) as $pid => $lb) if (in_array((int)$pid, $feedIds, true)) bcrf_feed_bag_save($pdo, (int)$pid, $lb);
@@ -117,7 +117,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             }
         } elseif ($act === 'sched' && function_exists('bcrf_sched_save')) {
             if (!$canEdit) throw new BcrfCareError('You can log care but not change the setup.');
-            $back = 'animal_care.php?tab=setup';
+            $back = 'animal_care.php?tab=setup&section=schedules';
             $sid = (int)($_POST['sched_id'] ?? 0);
             $saved = bcrf_sched_save($pdo, $sid, $_POST, $uid);
             if (function_exists('erp_audit')) erp_audit($pdo, $sid ? 'update' : 'create', 'animal_care_schedules', $saved, 'Care schedule saved');
@@ -162,11 +162,15 @@ $entryLine = function (array $r) use ($h, $local): string {
 if ($tab === 'setup' && $canEdit) {
     $types = bcrf_care_types($pdo, true);
     $feedIds = bcrf_care_feed_ids($pdo);
+    $section = (string)($_GET['section'] ?? 'types');
+    if (!in_array($section, ['types', 'schedules', 'feed', 'units'], true)) $section = 'types';
     bcrf_shell_open('Animal care', ['toast' => $toast, 'width' => 'max-w-3xl']);
     echo '<h1 class="text-2xl font-bold text-stone-800 mb-3">Animal care</h1>';
     if ($error) echo bcrf_shell_notice('err', $error); ?>
-  <div class="<?= $card ?>">
-    <h2 class="text-base font-semibold text-stone-800 mb-2">What staff can log</h2>
+  <details name="care-setup" class="site-info-section bg-white border border-stone-200 rounded-lg shadow-sm mb-4 overflow-hidden" <?= $section === 'types' ? 'open' : '' ?>>
+    <summary class="flex items-center justify-between gap-3 cursor-pointer font-semibold text-stone-800"><span>📋 Care Types</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
+    <div class="p-4">
+    <h2 class="sr-only">What staff can log</h2>
     <p class="text-sm text-stone-500 mb-3">Quick types get a big button on the phone. A feeding type asks which feed and how much.</p>
     <ul class="divide-y divide-stone-100">
     <?php foreach ($types as $t): ?>
@@ -186,12 +190,14 @@ if ($tab === 'setup' && $canEdit) {
       <label class="flex gap-1 items-center text-sm"><input type="checkbox" name="quick" value="1"> Quick</label>
       <label class="flex gap-1 items-center text-sm"><input type="checkbox" name="is_feeding" value="1"> Feeding</label>
       <button class="<?= $btnMain ?>">Add</button></form>
-  </div>
+    </div>
+  </details>
   <?php if (function_exists('bcrf_sched_ready') && bcrf_sched_ready($pdo)):
       $scheds = bcrf_sched_list($pdo); $species = bcrf_sched_species($pdo); $activeTypes = bcrf_care_types($pdo);
       $everyIn = function (array $s) { $d = (int)$s['every_days']; return $d % 7 === 0 ? [$d / 7, 'weeks'] : [$d, 'days']; }; ?>
-  <div class="<?= $card ?>">
-    <h2 class="text-base font-semibold text-stone-800 mb-2">Care schedules</h2>
+  <details name="care-setup" class="site-info-section bg-white border border-stone-200 rounded-lg shadow-sm mb-4 overflow-hidden" <?= $section === 'schedules' ? 'open' : '' ?>>
+    <summary class="flex items-center justify-between gap-3 cursor-pointer font-semibold text-stone-800"><span>📅 Care Schedules</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
+    <div class="p-4">
     <p class="text-sm text-stone-500 mb-3">Routines by species, like hoof trims every 8 weeks for goats. A week before each animal is due, a task shows up on Tasks. Finishing the task logs the care, and the next one is counted from that day.</p>
     <?php if ($scheds): ?>
     <ul class="divide-y divide-stone-100 mb-3">
@@ -225,7 +231,8 @@ if ($tab === 'setup' && $canEdit) {
       <button class="<?= $btnMain ?>">Add schedule</button>
     </form></details>
     <?php endif; ?>
-  </div>
+    </div>
+  </details>
   <?php endif; ?>
 <?php
     // Feed picker (Nov 12, 2026): filter by inventory category (opens on "Feed") and search; ticked products always show first.
@@ -234,10 +241,11 @@ if ($tab === 'setup' && $canEdit) {
     if ($fcat === '' || ($fcat !== 'all' && !isset($cats[(int)$fcat]))) { $fc = bcrf_care_feed_category($pdo); $fcat = $fc ? (string)$fc : 'all'; }
     $fq = mb_substr(trim((string)($_GET['fq'] ?? '')), 0, 60);
     $pick = bcrf_care_pick_products($pdo, $fcat === 'all' ? null : (int)$fcat, $fq); ?>
-  <div class="<?= $card ?>" id="feed">
-    <h2 class="text-base font-semibold text-stone-800 mb-2">Feed products</h2>
+  <details name="care-setup" class="site-info-section bg-white border border-stone-200 rounded-lg shadow-sm mb-4 overflow-hidden" id="feed" <?= $section === 'feed' ? 'open' : '' ?>>
+    <summary class="flex items-center justify-between gap-3 cursor-pointer font-semibold text-stone-800"><span>🌾 Feed Products</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
+    <div class="p-4">
     <p class="text-sm text-stone-500 mb-3">Tick the products you feed the animals. Logging a feeding takes the amount out of stock (as "Used on the farm") and records its cost. Products that aren't stocked are recorded without touching stock.</p>
-    <form method="GET" action="animal_care.php#feed" class="flex flex-wrap items-end justify-end gap-2 mb-3"><input type="hidden" name="tab" value="setup">
+    <form method="GET" action="animal_care.php#feed" class="flex flex-wrap items-end justify-end gap-2 mb-3"><input type="hidden" name="tab" value="setup"><input type="hidden" name="section" value="feed">
       <div><label class="<?= $label ?>" for="fcat">Category</label><select id="fcat" name="fcat" class="<?= $input ?>"><option value="all"<?= $fcat === 'all' ? ' selected' : '' ?>>All categories</option><?php foreach ($cats as $cid => $cn): ?><option value="<?= (int)$cid ?>"<?= $fcat === (string)$cid ? ' selected' : '' ?>><?= $h($cn) ?></option><?php endforeach; ?></select></div>
       <div class="flex-1 min-w-40"><label class="<?= $label ?>" for="fq">Search</label><input id="fq" name="fq" type="search" value="<?= $h($fq) ?>" class="<?= $input ?>" placeholder="Name or SKU"></div>
       <button class="<?= $btnSec ?>">Show</button>
@@ -257,7 +265,8 @@ if ($tab === 'setup' && $canEdit) {
     </div>
     <button class="<?= $btnMain ?>">Save feed list</button>
     </form>
-  </div>
+    </div>
+  </details>
 <?php
     // Feed in pounds and scoops (Nov 15, 2026; migration 0071).
     if (!bcrf_feed_units_ready($pdo)) {
@@ -266,8 +275,9 @@ if ($tab === 'setup' && $canEdit) {
     }
     $feedRows = bcrf_care_feed_products($pdo);
     $measures = bcrf_feed_measures($pdo); ?>
-  <div class="<?= $card ?>" id="units">
-    <h2 class="text-base font-semibold text-stone-800 mb-2">Bag weights and scoops</h2>
+  <details name="care-setup" class="site-info-section bg-white border border-stone-200 rounded-lg shadow-sm mb-4 overflow-hidden" id="units" <?= $section === 'units' ? 'open' : '' ?>>
+    <summary class="flex items-center justify-between gap-3 cursor-pointer font-semibold text-stone-800"><span>⚖️ Bag Weights &amp; Scoops</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
+    <div class="p-4">
     <p class="text-sm text-stone-500 mb-3">Stock and cost are counted in bags. Feedings can be logged in scoops, lb, oz or bags, and the app works out the share of a bag. A feed needs its bag weight for that; it's the same as Size on the product.</p>
     <?php if ($feedRows): ?>
     <form method="POST" action="animal_care.php" class="mb-4"><?= $hidden ?><input type="hidden" name="act" value="bags">
@@ -307,7 +317,8 @@ if ($tab === 'setup' && $canEdit) {
       <div class="w-24"><label class="<?= $label ?>" for="mun">Unit</label><select id="mun" name="weight_unit" class="<?= $input ?>"><option value="lb">lb</option><option value="oz">oz</option></select></div>
       <div class="flex-1 min-w-40"><label class="<?= $label ?>" for="mpn">For</label><select id="mpn" name="product_id" class="<?= $input ?>"><option value="0">Every feed</option><?php foreach ($feedRows as $p): ?><option value="<?= (int)$p['id'] ?>"><?= $h($p['name']) ?></option><?php endforeach; ?></select></div>
       <button class="<?= $btnMain ?>">Add</button></form>
-  </div>
+    </div>
+  </details>
 <?php
     bcrf_shell_close(); exit;
 }
