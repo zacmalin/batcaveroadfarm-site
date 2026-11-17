@@ -147,8 +147,9 @@ $is_filtered = !empty($search_q) || !empty($date_from) || !empty($date_to);
     </div>
 
     <!-- ── RECEIPTS TABLE ── -->
-    <div class="overflow-x-auto border border-stone-200 rounded">
-        <table class="w-full text-left border-collapse text-xs font-sans font-medium">
+    <p class="text-xs text-stone-500 mb-2 md:hidden">Swipe sideways to see all receipt columns.</p>
+    <div class="overflow-x-auto border border-stone-200 rounded" role="region" aria-label="Receipts table" tabindex="0">
+        <table class="w-full min-w-[680px] text-left border-collapse text-xs font-sans font-medium">
             <thead>
                 <tr class="bg-stone-50 border-b text-stone-500 uppercase tracking-wider text-[10px] font-bold">
                     <th class="p-3">Receipt #</th>
@@ -215,12 +216,12 @@ $is_filtered = !empty($search_q) || !empty($date_from) || !empty($date_to);
 
     <!-- Fix 8: Pagination -->
     <?php if ($total_pages > 1): ?>
-        <div class="flex items-center justify-between pt-2 text-xs">
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-2 text-xs">
             <span class="text-stone-400">
                 Page <?= $page ?> of <?= $total_pages ?>
                 &nbsp;&bull;&nbsp; <?= number_format($summary['filtered_count']) ?> records
             </span>
-            <div class="flex gap-1">
+            <div class="flex flex-wrap gap-1">
                 <?php if ($page > 1): ?>
                     <a href="<?= receipts_page_url(1) ?>"          class="px-2 py-1 border rounded bg-stone-50 hover:bg-stone-200 font-bold">&laquo;</a>
                     <a href="<?= receipts_page_url($page - 1) ?>"  class="px-2 py-1 border rounded bg-stone-50 hover:bg-stone-200 font-bold">&lsaquo; Prev</a>
