@@ -128,7 +128,6 @@ $archived = array_filter($all, fn($r) => (int)$r['is_archived']);
 <div class="max-w-4xl">
   <h1 class="text-2xl font-bold text-stone-800 mb-1">Hiring</h1>
   <p class="text-sm text-stone-500 mb-4">Write a question once, then attach it to any job. Don't ask about age beyond the age range, health conditions, religion, family plans or other protected traits.</p>
-  <?php require __DIR__ . '/_tabs.php'; ?>
 
   <div class="flex items-center justify-between mb-4">
     <h2 class="font-semibold text-stone-700">Questions (<?= count($active) ?>)</h2>
