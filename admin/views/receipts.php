@@ -116,9 +116,9 @@ $is_filtered = !empty($search_q) || !empty($date_from) || !empty($date_to);
         </div>
 
         <div class="flex gap-2">
-            <button type="submit" class="flex-1 bg-amber-700 text-white font-semibold py-2 rounded text-center text-xs">Apply filters</button>
+            <button type="submit" class="flex-1 bg-amber-700 text-white font-semibold py-2 rounded text-center text-xs"><span aria-hidden="true">✓</span> Apply filters</button>
             <?php if ($is_filtered): ?>
-                <a href="/admin/admin.php?view=receipts" class="flex-1 border border-stone-200 py-2 bg-stone-100 rounded font-semibold text-stone-600 text-center text-xs">Reset</a>
+                <a href="/admin/admin.php?view=receipts" class="flex-1 border border-stone-200 py-2 bg-stone-100 rounded font-semibold text-stone-600 text-center text-xs"><span aria-hidden="true">↺</span> Reset</a>
             <?php endif; ?>
         </div>
     </form>
