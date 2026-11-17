@@ -343,15 +343,19 @@ bcrf_shell_open('Quotes & payments', ['toast' => $toast]);
   <h1 class="text-2xl font-bold text-stone-800 mb-1">Quotes &amp; payments</h1>
   <p class="text-sm text-stone-500 mb-4">Upcoming group bookings and parties: the quote, any deposit, and what's left to pay. Tap one to price it, send it, or record a payment.</p>
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
-  <div id="quotes-list" class="flex flex-wrap items-center justify-end gap-2 mb-4 scroll-mt-4 text-sm">
-    <div class="flex flex-wrap justify-end gap-1.5" role="group" aria-label="Filter quotes by type">
+  <div id="quotes-list" class="flex flex-wrap items-end justify-end gap-3 mb-4 scroll-mt-4">
+    <div class="flex flex-wrap items-center justify-end gap-2" role="group" aria-label="Filter quotes by type">
       <?php foreach (['all' => 'Everything', 'party' => 'Parties', 'booking' => 'Group bookings'] as $k => $v): ?>
-        <a href="?kind=<?= $k ?>&amp;show=<?= $show ?>#quotes-list" <?= $kind === $k ? 'aria-current="true"' : '' ?> class="inline-flex min-h-9 items-center px-3 rounded-full border text-xs font-semibold <?= $kind === $k ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100' ?>"><?= $v ?></a>
+        <a href="?kind=<?= $k ?>&amp;show=<?= $show ?>#quotes-list" <?= $kind === $k ? 'aria-current="true"' : '' ?> class="inline-flex items-center justify-center min-h-10 px-4 py-2 rounded-full border text-sm font-semibold <?= $kind === $k ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100' ?>"><?= $v ?></a>
       <?php endforeach; ?>
+      <a href="?kind=<?= $kind ?>&amp;show=<?= $show === 'open' ? 'all' : 'open' ?>#quotes-list" class="inline-flex items-center justify-center min-h-10 px-4 py-2 rounded-full border text-sm font-semibold <?= $show === 'all' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100' ?>"><?= $show === 'open' ? 'Include past / cancelled' : 'Showing past / cancelled' ?></a>
     </div>
-    <a href="?kind=<?= $kind ?>&amp;show=<?= $show === 'open' ? 'all' : 'open' ?>#quotes-list" class="inline-flex min-h-9 items-center px-3 rounded-full border text-xs font-semibold <?= $show === 'all' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100' ?>"><?= $show === 'open' ? 'Include past / cancelled' : 'Showing past / cancelled' ?></a>
-    <form method="GET" action="quotes.php#quotes-list" class="flex flex-wrap gap-2 items-center"><input type="hidden" name="kind" value="<?= $h($kind) ?>"><input type="hidden" name="show" value="<?= $h($show) ?>">
-      <?= bcrf_list_sort_select($sortOpts, $sort, ['class' => $input]) ?><button type="submit" class="<?= $btnSec ?>">Sort</button></form>
+    <form method="GET" action="quotes.php#quotes-list" class="flex items-center gap-2">
+      <input type="hidden" name="kind" value="<?= $h($kind) ?>"><input type="hidden" name="show" value="<?= $h($show) ?>">
+      <label for="quotes-sort" class="text-sm text-stone-600">Sort</label>
+      <?= bcrf_list_sort_select($sortOpts, $sort, ['id' => 'quotes-sort', 'class' => 'min-h-10 px-3 py-2 border border-stone-300 rounded-lg bg-white text-sm']) ?>
+      <noscript><button type="submit" class="<?= $btnSec ?>">Apply</button></noscript>
+    </form>
   </div>
   <div class="grid grid-cols-2 gap-2 mb-4">
     <div class="bg-white border border-stone-200 rounded-lg p-3"><div class="text-xs text-stone-500">Still to collect</div><div class="text-lg font-bold text-stone-800"><?= $h($m($owed)) ?></div></div>
