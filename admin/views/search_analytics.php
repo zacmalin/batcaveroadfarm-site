@@ -31,6 +31,11 @@ $hub = [
 
 $rep     = bcrf_greports_cached($pdo);
 $missing = bcrf_greports_missing();
+$stale = [];
+foreach (['gsc' => 'Search Console', 'ga' => 'Analytics'] as $key => $label) {
+    $fetched = $rep[$key]['fetched_at'] ?? null;
+    if ($fetched && strtotime($fetched . ' UTC') < time() - 48 * 3600) $stale[] = $label;
+}
 $gsc     = $rep['gsc']['data'];
 $ga      = $rep['ga']['data'];
 $csrf    = $_SESSION['csrf_token'] ?? '';
@@ -106,7 +111,7 @@ $eventLabels = ['purchase' => 'Purchases', 'begin_checkout' => 'Started checkout
       </span>
     </div>
     <?php if ($hoursStr !== ''): ?>
-    <p class="text-xs text-stone-600">Every listing should show: <strong><?= $h($hoursStr) ?></strong> (from Settings › Hours &amp; Contacts).</p>
+    <p class="text-xs text-stone-600">Every listing should show: <strong><?= $h($hoursStr) ?></strong> (from Settings › Site Info).</p>
     <?php endif; ?>
 
     <div class="grid gap-3 md:grid-cols-3">
@@ -137,6 +142,12 @@ $eventLabels = ['purchase' => 'Purchases', 'begin_checkout' => 'Started checkout
       Who owns each account, the second admin and 2FA are in the password manager and the Notion account inventory.
       Apple and Bing have no data feed for a single business, so their numbers stay on their own dashboards.</p>
   </section>
+
+  <?php if ($stale): ?>
+  <div class="p-3 rounded border border-amber-300 bg-amber-50 text-amber-900 text-xs" role="status">
+    <strong>Cached data is over 48 hours old:</strong> <?= $h(implode(', ', $stale)) ?>. Figures below may not reflect recent activity. Check the last updated time above or use Refresh now.
+  </div>
+  <?php endif; ?>
 
   <?php if ($missing): ?>
   <div class="p-4 rounded border border-amber-300 bg-amber-50 text-amber-900">
