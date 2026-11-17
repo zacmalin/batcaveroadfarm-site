@@ -212,5 +212,5 @@ dialog.ui-modal::backdrop{background:transparent;overflow:hidden;overscroll-beha
 /* Animal care Recent: visible selected filter without relying on generated utility classes. */
 .care-filter-pill{display:inline-flex;align-items:center;padding:.375rem .75rem;border:1px solid #d6d3d1;border-radius:999px;background:#fff;color:#44403c;font-size:.875rem;line-height:1.25rem;text-decoration:none;white-space:nowrap}
 .care-filter-pill:hover{background:#f5f1e9}
-.care-filter-pill.is-active{background:#92400e;border-color:#92400e;color:#fff;font-weight:600}
+.care-filter-pill.is-active{background:#1c1917;border-color:#1c1917;color:#fff;font-weight:600}
 .care-filter-pill:focus-visible{outline:3px solid #4a6741;outline-offset:2px}
