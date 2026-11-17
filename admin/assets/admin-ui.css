@@ -214,3 +214,8 @@ dialog.ui-modal::backdrop{background:transparent;overflow:hidden;overscroll-beha
 .care-filter-pill:hover{background:#f5f1e9}
 .care-filter-pill.is-active{background:#1c1917;border-color:#1c1917;color:#fff;font-weight:600}
 .care-filter-pill:focus-visible{outline:3px solid #4a6741;outline-offset:2px}
+
+/* Roost Rewards: reserve equal room for Offered/Off so every track aligns. */
+.ui-switch-form.rewards-tier-switch{width:120px}
+.ui-switch-form.rewards-tier-switch button.ui-switch{width:100%;justify-content:flex-start}
+.ui-switch-form.rewards-tier-switch .ui-switch-track{flex:0 0 44px}
