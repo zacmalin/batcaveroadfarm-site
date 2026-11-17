@@ -161,4 +161,4 @@ document.addEventListener('keydown', function(e) {
 <!-- Phone boxes format as (828) 555-0100 while typing (Nov 15, 2026; same file as the public site) -->
 <script defer src="/js/min.phone.js?v=20261115a"></script>
 <!-- Shell chrome (sidebar rail, phone bar, More sheet, tabs) — moved out of sidebar.php Nov 11, 2026 -->
-<link rel="stylesheet" href="/admin/assets/admin-shell.css?v=20261116a">
+<link rel="stylesheet" href="/admin/assets/admin-shell.css?v=20261117b">
