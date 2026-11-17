@@ -77,7 +77,8 @@ $card    = 'bg-white border border-stone-200 rounded-lg p-4 shadow-sm mb-4';
 $m = fn(?float $c) => bcrf_kitchen_money($c);
 $pct = fn(?float $p) => $p === null ? '—' : number_format($p, 1) . '%';
 $alert = bcrf_kitchen_margin_alert($pdo);
-$alertTxt = rtrim(rtrim(number_format($alert, 1), '0'), '.') . '%';
+$alertValue = rtrim(rtrim(number_format($alert, 1), '0'), '.') ?: '0';
+$alertTxt = $alertValue . '%';
 $chips = [
     'ok' => ['OK', 'bg-green-100 text-green-800'], 'low' => ['Below ' . $alertTxt, 'bg-red-100 text-red-800'],
     'incomplete' => ['Missing costs', 'bg-amber-100 text-amber-900'], 'no_units' => ['No batch size', 'bg-stone-200 text-stone-700'],
@@ -165,13 +166,13 @@ if ($pid) {
     </ul>
     <?php endif; ?>
     <?php if ($canEdit): $pf = ($form && ($form['act'] ?? '') === 'packaging_add') ? $form : []; ?>
-    <form method="POST" class="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="packaging_add"><input type="hidden" name="product" value="<?= $pid ?>">
-      <div class="col-span-2"><label class="<?= $label ?>" for="ks">From a stock product (uses its average cost)</label><select id="ks" name="packaging_inventory_id" class="<?= $input ?>"><option value="">— none, enter a cost —</option>
+    <form method="POST" class="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="packaging_add"><input type="hidden" name="product" value="<?= $pid ?>">
+      <div class="sm:col-span-2"><label class="<?= $label ?>" for="ks">From a stock product (uses its average cost)</label><select id="ks" name="packaging_inventory_id" class="<?= $input ?>"><option value="">— none, enter a cost —</option>
         <?php foreach (bcrf_kitchen_stock_products($pdo) as $sp): if ((int)$sp['id'] === $pid) continue; ?><option value="<?= (int)$sp['id'] ?>"<?= (int)($pf['packaging_inventory_id'] ?? 0) === (int)$sp['id'] ? ' selected' : '' ?>><?= $h($sp['name']) ?></option><?php endforeach; ?></select></div>
-      <div class="col-span-2"><label class="<?= $label ?>" for="kn">Or a name</label><input id="kn" name="name" maxlength="100" value="<?= $h($pf['name'] ?? '') ?>" class="<?= $input ?>" placeholder="e.g. 8 oz jar"></div>
+      <div class="sm:col-span-2"><label class="<?= $label ?>" for="kn">Or a name</label><input id="kn" name="name" maxlength="100" value="<?= $h($pf['name'] ?? '') ?>" class="<?= $input ?>" placeholder="e.g. 8 oz jar"></div>
       <div><label class="<?= $label ?>" for="kc">Cost each $</label><input id="kc" name="cost" inputmode="decimal" value="<?= $h($pf['cost'] ?? '') ?>" class="<?= $input ?>" placeholder="0.80"></div>
       <div><label class="<?= $label ?>" for="kq">Per unit</label><input id="kq" name="qty_per_unit" inputmode="decimal" value="<?= $h($pf['qty_per_unit'] ?? '1') ?>" class="<?= $input ?>"></div>
-      <div class="col-span-2"><button class="<?= $btnMain ?>">Add packaging</button></div>
+      <div class="sm:col-span-2"><button class="<?= $btnMain ?>">Add packaging</button></div>
     </form>
     <?php endif; ?>
   </div>
@@ -208,7 +209,7 @@ bcrf_shell_open('Kitchen costing', ['toast' => $toast, 'width' => 'max-w-4xl']);
     <h2 class="text-base font-semibold text-stone-800 mb-1">Margin alert</h2>
     <?php if ($canEdit): ?>
     <form method="POST" class="flex flex-wrap gap-2 items-end"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="alert">
-      <div class="w-28"><label class="<?= $label ?>" for="ma">Flag below (%)</label><input id="ma" name="alert" inputmode="decimal" value="<?= $h($form['alert'] ?? rtrim(rtrim(number_format($alert, 1), '0'), '.')) ?>" class="<?= $input ?>"></div>
+      <div class="w-28"><label class="<?= $label ?>" for="ma">Flag below (%)</label><input id="ma" name="alert" inputmode="decimal" value="<?= $h($form['alert'] ?? $alertValue) ?>" class="<?= $input ?>"></div>
       <button class="<?= $btnSec ?>">Save</button>
     </form>
     <?php else: ?>
