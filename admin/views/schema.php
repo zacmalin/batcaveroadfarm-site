@@ -357,6 +357,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                     <div class="gap-1 md:gap-3 shrink-0 flex items-center">
                         <a href="/admin/admin.php?view=schema&table=<?= urlencode($target_table) ?>&edit_id=<?= (int)$rec['id'] ?>"
                             class="hidden md:inline text-stone-600 hover:text-stone-950 underline font-semibold">Edit</a>
+                        <?php if ($target_table !== 'mailing_list'): ?>
                         <a href="/admin/admin.php?view=schema&table=<?= urlencode($target_table) ?>&delete_id=<?= (int)$rec['id'] ?>"
                             data-confirm="Delete &quot;<?= htmlspecialchars($display_name, ENT_QUOTES) ?>&quot;? It is removed for good and cannot be undone."
                             data-confirm-title="Delete record" data-confirm-label="Delete"
@@ -364,6 +365,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                             class="inline-flex items-center min-h-9 md:min-h-0 text-red-600 hover:text-red-900 font-bold uppercase text-[9px] tracking-wider border border-red-100 bg-red-50/40 px-2 md:px-1.5 py-0.5 rounded">
                             Delete
                         </a>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php endforeach; ?>
