@@ -154,7 +154,7 @@ document.addEventListener('keydown', function(e) {
 
 </script>
 <!-- Admin list search + sort (external, CSP-safe) -->
-<script defer src="/admin/assets/admin-list.js?v=20260615b"></script>
+<script defer src="/admin/assets/admin-list.js?v=20261117a"></script>
 <!-- Shared UI kit (02 Navigation & UX): chips, phone card tables, common behaviours -->
 <link rel="stylesheet" href="/admin/assets/admin-ui.css?v=20261117a">
 <script defer src="/admin/assets/admin-ui.js?v=20261117a"></script>
