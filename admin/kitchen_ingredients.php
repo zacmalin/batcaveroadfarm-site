@@ -190,8 +190,8 @@ if ($error) echo bcrf_shell_notice('err', $error);
       <option value="attention"<?= $show === 'attention' ? ' selected' : '' ?>>Needs attention (<?= $counts['attention'] ?>)</option>
       <option value="unchecked"<?= $show === 'unchecked' ? ' selected' : '' ?>>Allergens not checked (<?= $counts['unchecked'] ?>)</option>
       <option value="all"<?= $show === 'all' ? ' selected' : '' ?>>All ingredients</option></select></div>
-    <div class="flex-1 min-w-48"><label class="<?= $label ?>" for="kq">Search</label><input id="kq" name="q" value="<?= $h($q) ?>" class="<?= $input ?>" placeholder="Name"></div>
-    <div><label class="<?= $label ?>" for="ksort">Sort</label><?= bcrf_list_sort_select($sortOpts, $sort, ['id' => 'ksort', 'class' => $input]) ?></div>
+    <div class="flex-1 min-w-40"><label class="<?= $label ?>" for="kq">Search</label><input id="kq" name="q" value="<?= $h($q) ?>" class="<?= $input ?>" placeholder="Name"></div>
+    <div class="ml-auto"><label class="<?= $label ?>" for="ksort">Sort by</label><?= bcrf_list_sort_select($sortOpts, $sort, ['id' => 'ksort', 'class' => $input]) ?></div>
     <button class="<?= $btnSec ?>">Show</button>
   </form>
   <?php if (!$rows): ?>
