@@ -83,7 +83,7 @@ $hidden  = fn(int $id) => '<input type="hidden" name="csrf_token" value="' . $h(
 $tabs = function () use ($h) {
     $out = '<nav aria-label="Customer filters" class="flex flex-wrap justify-end gap-2 mb-4">';
     foreach ([['Find', 'customers.php', false], ['Possible duplicates', 'customers.php?dupes=1', false], ['Organizations', 'organizations.php', true]] as [$t, $u, $on]) {
-        $out .= '<a href="' . $u . '" ' . ($on ? 'aria-current="page" ' : '') . 'class="inline-flex items-center min-h-9 px-3 py-2 rounded-full text-sm font-semibold border ' . ($on ? 'border-stone-800 bg-stone-800 text-white' : 'border-stone-300 text-stone-700 bg-stone-50 hover:bg-stone-100') . '">' . $h($t) . '</a>';
+        $out .= '<a href="' . $u . '" ' . ($on ? 'aria-current="page" ' : '') . 'class="inline-flex items-center min-h-9 px-3 py-2 rounded-full text-sm font-semibold border ' . ($on ? 'farmos-filter-selected' : 'border-stone-300 text-stone-700 bg-stone-50 hover:bg-stone-100') . '">' . $h($t) . '</a>';
     }
     return $out . '</nav>';
 };
