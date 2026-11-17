@@ -213,6 +213,13 @@ $_badge = fn(int $n): string => $n > 0
     <?php endif; ?>
 
     <?php foreach ($_nav as $_sk => $_sec): ?>
+    <?php if ($_sk === 'customers' && count($_sec['items']) === 1): $_direct = $_sec['items'][0]; ?>
+    <a href="<?= $_h($_direct['href']) ?>" title="Customers"<?= $_direct['active'] ? ' aria-current="page"' : '' ?>
+       class="sb-row flex items-center gap-2 px-3 py-2 rounded mb-1 transition <?= $_direct['active'] ? 'bg-stone-700 text-white font-bold' : 'text-stone-300 hover:bg-stone-800' ?>">
+      <span class="shrink-0"><?= $_sec['icon'] ?></span><span class="sb-text">Customers</span>
+      <?php if ($_direct['badge'] > 0): ?><span class="sb-badge ml-auto shrink-0 bg-amber-500 text-white text-[8px] font-black px-1 py-0.5 rounded"><?= (int)$_direct['badge'] ?></span><?php endif; ?>
+    </a>
+    <?php else: ?>
     <div class="mb-1" data-sec="<?= $_h($_sk) ?>">
       <button type="button" data-sb-toggle="<?= $_h($_sk) ?>" title="<?= $_h($_sec['label']) ?>"
         class="sb-row w-full flex items-center justify-between px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-widest
@@ -237,6 +244,7 @@ $_badge = fn(int $n): string => $n > 0
         <?php endforeach; ?>
       </div>
     </div>
+    <?php endif; ?>
     <?php endforeach; ?>
 
   </nav>
