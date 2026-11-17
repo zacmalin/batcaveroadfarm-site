@@ -171,7 +171,7 @@ $btn  = 'px-3 py-2 rounded border text-[11px] font-bold';
           <div class="text-[11px] text-stone-600 mt-1 line-clamp-4"><?= $e($r['description']) ?></div>
           <?php $bId = $r['board_id'] ?: ($defBoard[$r['board_key']] ?? ''); $bName = $bId !== '' && isset($pBoards[$bId]) ? $pBoards[$bId] : ($boards[$r['board_key']] ?? $r['board_key']); ?>
           <div class="text-[10px] text-stone-400 mt-1">Board: <?= $e($bName) ?><?= $r['board_id'] ? ' (this Pin only)' : '' ?> · <a class="underline" href="<?= $e($page_url) ?>" target="_blank" rel="noopener">page</a></div>
-          <?php if ($r['last_error']): ?><div class="text-[10px] text-red-700 mt-1">⚠ <?= $e(mb_substr((string)$r['last_error'], 0, 200)) ?></div><?php endif; ?>
+          <?php if ($r['last_error']): ?><div role="alert" class="text-[11px] text-red-800 bg-red-50 border border-red-200 rounded p-2 mt-2 break-words"><strong>⚠ Posting error:</strong> <?= $e(mb_substr((string)$r['last_error'], 0, 200)) ?></div><?php endif; ?>
           <?php if ($r['status'] === 'sent' && $r['external_url']): ?><div class="text-[10px] mt-1"><a class="underline text-emerald-700 font-bold" href="<?= $e($r['external_url']) ?>" target="_blank" rel="noopener">View on Pinterest</a></div><?php endif; ?>
         </div>
       </div>
