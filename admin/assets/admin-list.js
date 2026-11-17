@@ -172,7 +172,7 @@
     var sel = document.createElement('select');
     sel.setAttribute('aria-label', 'Sort records');
     sel.className = 'border border-stone-300 rounded px-2 py-1.5 text-[11px] bg-white text-stone-700 focus:outline-none focus:ring-2 focus:ring-stone-400';
-    var opts = [['', 'Sort\u2026'], ['az', 'A \u2192 Z'], ['za', 'Z \u2192 A']];
+    var opts = [['az', 'A \u2192 Z'], ['za', 'Z \u2192 A']];
     if (canDate) opts.push(['newest', 'Newest first'], ['oldest', 'Oldest first']);
     opts.forEach(function (o) { var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; sel.appendChild(op); });
     bar.appendChild(sel);
@@ -205,6 +205,8 @@
       });
       list.forEach(function (el) { container.appendChild(el); });
     });
+    sel.value = 'az';
+    sel.dispatchEvent(new Event('change'));
     updateCount();
   }
 
