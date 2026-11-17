@@ -43,7 +43,8 @@ $date = (string)($_REQUEST['date'] ?? $today);
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || !checkdate((int)substr($date, 5, 2), (int)substr($date, 8, 2), (int)substr($date, 0, 4))) $date = $today;
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
-    $back = 'weather.php?date=' . rawurlencode($date);
+    $section = in_array((string)($_POST['section'] ?? ''), ['website-closure', 'affected-events', 'previous-days'], true) ? (string)$_POST['section'] : 'affected-events';
+    $back = 'weather.php?date=' . rawurlencode($date) . '#' . $section;
     if (!hash_equals($csrf, (string)($_POST['csrf_token'] ?? ''))) { $_SESSION['w_flash'] = ['err', 'Security token expired; try again.']; header('Location: ' . $back); exit; }
     $act = (string)($_POST['act'] ?? '');
     try {
@@ -110,8 +111,10 @@ $error = ($flash && $flash[0] === 'err') ? $flash[1] : '';
 
 $day = bcrf_weather_day($pdo, $date);
 $told = [];
-if ($day) foreach ($day['items'] as $it) if ($it['sent_at'] || $it['email'] === '') $told[$it['subject_type'] . ':' . $it['subject_id']] = true;   // no email: listed above to call
+if ($day) foreach ($day['items'] as $it) if ($it['sent_at']) $told[$it['subject_type'] . ':' . $it['subject_id']] = true; // Only a successful email counts as notified
 $subjects = bcrf_weather_subjects($pdo, $date);
+$delivery = [];
+if ($day) foreach ($day['items'] as $it) $delivery[$it['subject_type'] . ':' . $it['subject_id']] = $it;
 $untold = array_values(array_filter($subjects, fn($s) => empty($told[$s['type'] . ':' . $s['id']])));
 $st = $pdo->prepare("SELECT 1 FROM booking_blackouts WHERE d_date = ?");
 $st->execute([$date]);
@@ -132,8 +135,9 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
 
   <?php $siteNote = function_exists('site_weather_closed_note') ? site_weather_closed_note() : ''; ?>
-  <div class="<?= $card ?>">
-    <h3 class="text-base font-semibold text-stone-800 mb-1">Website: closed today for weather</h3>
+  <details id="website-closure" class="<?= $card ?>" open>
+    <summary class="cursor-pointer text-base font-semibold text-stone-800 mb-2 hover:text-amber-800">🌧️ Website closure notice <?= $siteNote !== '' ? '· Active' : '· Off' ?></summary>
+    <p class="text-xs text-stone-500 mb-3">This notice affects today's public website only. It does not block bookings or notify customers.</p>
     <?php if ($siteNote !== ''): ?>
       <?= bcrf_shell_notice('warning', 'ON: every page of the website shows "Closed today for weather. ' . $siteNote . '" and the header says Closed. It turns off by itself at midnight.') ?>
       <?php if ($mgr): ?>
@@ -163,7 +167,7 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
         <button name="act" value="wx_refresh" class="<?= $btnSec ?>">Refresh weather now</button></form>
       <?php endif; ?>
     </div>
-  </div>
+  </details>
 
   <form method="GET" action="weather.php" class="flex flex-wrap gap-2 items-end mb-4">
     <div><label for="w_date" class="<?= $label ?>">Day</label><input id="w_date" type="date" name="date" value="<?= $h($date) ?>" class="<?= $input ?>"></div>
@@ -176,18 +180,18 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
   <?php if ($isClosed) echo bcrf_shell_notice('warning', 'This day is closed to new bookings (Bookings › blackout dates).'); ?>
 
   <?php if ($day): ?>
-  <div class="<?= $card ?>">
-    <h3 class="text-base font-semibold text-stone-800 mb-1">Called off</h3>
+  <details id="affected-events" class="<?= $card ?>" open>
+    <summary class="cursor-pointer text-base font-semibold text-stone-800 mb-2 hover:text-amber-800">📋 Affected bookings &amp; events · <?= count($day['items']) ?> recorded</summary>
     <p class="text-sm text-stone-600 mb-3">Sent <?= $h((new DateTimeImmutable($day['created_at'], new DateTimeZone('UTC')))->setTimezone(new DateTimeZone(date_default_timezone_get()))->format('M j, g:i A')) ?>. Mark what you did for each one; refunds are done in Quotes &amp; payments, new dates on the booking or party.</p>
     <div class="divide-y divide-stone-100">
     <?php foreach ($day['items'] as $it): ?>
       <div class="py-3">
         <div class="flex flex-wrap justify-between gap-2 text-sm">
           <span><strong class="text-stone-800"><?= $h($it['name']) ?></strong> <span class="text-stone-500">· <?= $h($it['what']) ?> · <?= $h($it['status']) ?><?= $it['now_date'] && $it['now_date'] !== $date ? ' · now ' . $h(date('M j', strtotime($it['now_date']))) : '' ?></span></span>
-          <span class="text-xs <?= $it['sent_at'] ? 'text-emerald-700' : 'text-red-700' ?>"><?= $it['sent_at'] ? 'Emailed ' . $h($it['email']) : $h($it['send_error'] ?: 'Not emailed') ?></span>
+          <span class="text-xs <?= $it['sent_at'] ? 'text-emerald-700' : 'text-red-700' ?>"><?= $it['sent_at'] ? '✓ Emailed ' . $h($it['email']) : ($it['email'] === '' ? '☎ Needs phone call' : '⚠ Email failed: ' . $h($it['send_error'] ?: 'Not sent')) ?><?= $it['outcome'] !== 'open' ? ' · ✓ ' . $h(BCRF_WEATHER_OUTCOMES[$it['outcome']] ?? $it['outcome']) : '' ?></span>
         </div>
         <form method="POST" action="weather.php" class="flex flex-wrap gap-2 items-end mt-2">
-          <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="date" value="<?= $h($date) ?>"><input type="hidden" name="item_id" value="<?= (int)$it['id'] ?>">
+          <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="section" value="affected-events"><input type="hidden" name="date" value="<?= $h($date) ?>"><input type="hidden" name="item_id" value="<?= (int)$it['id'] ?>">
           <div><label class="<?= $label ?>" for="wo<?= (int)$it['id'] ?>">What happened</label>
             <select id="wo<?= (int)$it['id'] ?>" name="outcome" class="<?= $input ?>" <?= $mgr ? '' : 'disabled' ?>>
               <?php foreach (BCRF_WEATHER_OUTCOMES as $k => $v): ?><option value="<?= $h($k) ?>" <?= $it['outcome'] === $k ? 'selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?>
@@ -201,18 +205,18 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
     <?php endforeach; ?>
     <?php if (!$day['items']): ?><p class="text-sm text-stone-500">Nobody was booked that day.</p><?php endif; ?>
     </div>
-  </div>
+  </details>
   <?php endif; ?>
 
   <div class="<?= $card ?>">
     <h3 class="text-base font-semibold text-stone-800 mb-1"><?= $day ? 'Not told yet' : 'Booked that day' ?></h3>
     <?php if (!$untold): ?>
-      <p class="text-sm text-stone-500"><?= $day ? 'Everyone booked that day has been told.' : 'No group bookings or parties that day.' ?> Online day tickets are good any open day, so they need nothing.</p>
+      <p class="text-sm text-stone-500"><?= $day ? 'No outstanding email notifications for current bookings or parties. Check the recorded outcomes above for follow-up.' : 'No group bookings or parties that day.' ?> Online day tickets are good any open day, so they need nothing.</p>
     <?php else: ?>
       <ul class="text-sm divide-y divide-stone-100 mb-3">
         <?php foreach ($untold as $s): ?>
         <li class="py-2 flex flex-wrap justify-between gap-2"><span><strong class="text-stone-800"><?= $h($s['name']) ?></strong> <span class="text-stone-500">· <?= $h($s['what']) ?> · <?= $h($s['when']) ?> · <?= (int)$s['guests'] ?> guests · <?= $h($s['status']) ?></span></span>
-          <span class="text-xs <?= $s['email'] ? 'text-stone-500' : 'text-red-700' ?>"><?= $s['email'] ? $h($s['email']) : 'No email: call them' ?></span></li>
+          <span class="text-xs <?= $s['email'] ? 'text-stone-500' : 'text-red-700' ?>"><?php $prev = $delivery[$s['type'] . ':' . $s['id']] ?? null; ?><?= !$s['email'] ? '☎ Needs phone call' : ($prev && !$prev['sent_at'] ? '⚠ Email failed: ' . $h($prev['send_error'] ?: 'Retry needed') : $h($s['email'])) ?></span></li>
         <?php endforeach; ?>
       </ul>
       <?php if ($past): ?>
@@ -226,7 +230,7 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
           <textarea id="w_msg" name="message" rows="6" maxlength="3000" required class="<?= $input ?>"><?= $h($day['message'] ?? bcrf_weather_default_message($pdo)) ?></textarea></div>
         <label class="flex items-center gap-2 text-sm text-stone-700"><input type="checkbox" name="close_day" value="1" <?= $isClosed ? 'checked disabled' : 'checked' ?>> Close this day to new bookings</label>
         <label class="flex items-center gap-2 text-sm text-stone-700"><input type="checkbox" name="save_default" value="1"> Save this wording for next time</label>
-        <p class="text-xs text-stone-500">Nothing is cancelled or refunded automatically. Online day tickets are good any open day, so they aren't emailed.</p>
+        <p class="text-xs text-stone-500">Sending email, blocking new bookings and showing the website closure banner are separate actions. Nothing is cancelled or refunded automatically. Online day tickets are not emailed.</p>
         <?php $withEmail = count(array_filter($untold, fn($s) => $s['email'] !== '')); ?>
         <button name="act" value="call" class="<?= $btnMain ?>" data-confirm="Email <?= $withEmail ?> customer<?= $withEmail === 1 ? '' : 's' ?> that <?= $h(date('l, M j', strtotime($date))) ?> is called off for weather?">Email <?= $withEmail ?> customer<?= $withEmail === 1 ? '' : 's' ?></button>
       </form>
@@ -235,15 +239,15 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
   </div>
 
   <?php $recent = bcrf_weather_recent($pdo); if ($recent): ?>
-  <div class="<?= $card ?>">
-    <h3 class="text-base font-semibold text-stone-800 mb-2">Days called off</h3>
+  <details id="previous-days" class="<?= $card ?>">
+    <summary class="cursor-pointer text-base font-semibold text-stone-800 mb-2 hover:text-amber-800">🗓️ Previous weather days</summary>
     <ul class="text-sm divide-y divide-stone-100">
       <?php foreach ($recent as $r): ?>
       <li class="py-2"><a class="underline" href="?date=<?= $h($r['business_date']) ?>"><?= $h(date('D, M j, Y', strtotime($r['business_date']))) ?></a>
         <span class="text-stone-500"> · <?= (int)$r['told'] ?> told<?= (int)$r['open_items'] ? ' · ' . (int)$r['open_items'] . ' not sorted yet' : '' ?></span></li>
       <?php endforeach; ?>
     </ul>
-  </div>
+  </details>
   <?php endif; ?>
 <?php
 bcrf_shell_close();
