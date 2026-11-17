@@ -135,24 +135,34 @@ async function submitCampaign(isTest) {
     }
 }
 
-// Lightweight inline toast for test send feedback
+// Use the shared Farm OS bottom-center toast for test-send feedback.
 function showNLToast(msg, isError = false) {
     let t = document.getElementById('nlToast');
     if (!t) {
         t = document.createElement('div');
-        t.id        = 'nlToast';
-        t.className = 'fixed bottom-5 right-5 z-50 px-4 py-2 rounded shadow-lg text-xs font-bold transition-opacity duration-300';
+        t.id = 'nlToast';
+        t.setAttribute('aria-live', 'polite');
         document.body.appendChild(t);
     }
-    t.textContent        = msg;
-    t.style.background   = isError ? '#fef2f2' : '#f0fdf4';
-    t.style.color        = isError ? '#991b1b' : '#166534';
-    t.style.border       = isError ? '1px solid #fecaca' : '1px solid #bbf7d0';
-    t.style.opacity      = '1';
     clearTimeout(t._timer);
-    t._timer = setTimeout(() => t.style.opacity = '0', 4000);
+    t.replaceChildren();
+    t.className = 'ui-toast' + (isError ? ' is-err' : '');
+    t.setAttribute('role', isError ? 'alert' : 'status');
+    const message = document.createElement('span');
+    message.textContent = msg;
+    t.appendChild(message);
+    if (isError) {
+        const close = document.createElement('button');
+        close.type = 'button';
+        close.className = 'ui-toast-x';
+        close.setAttribute('aria-label', 'Close');
+        close.textContent = '✕';
+        close.addEventListener('click', () => t.classList.remove('is-on'));
+        t.appendChild(close);
+    }
+    t.classList.add('is-on');
+    if (!isError) t._timer = setTimeout(() => t.classList.remove('is-on'), 5000);
 }
-
 
 async function openCampaignPreview(id, subject) {
     const url   = '/admin/handlers/view_campaign.php?id=' + id;
