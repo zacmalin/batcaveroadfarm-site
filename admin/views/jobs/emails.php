@@ -112,7 +112,7 @@ if ($tab === 'queue'):
           <label class="block text-xs text-stone-600">Message (HTML)
             <textarea name="body_html" rows="10" required class="mt-1 w-full border border-stone-300 rounded px-2 py-2 text-xs font-mono"><?= $h($q['rendered_body']) ?></textarea></label>
           <div class="flex gap-2">
-            <button class="bg-stone-800 text-white font-semibold px-4 py-2 rounded text-sm">Save changes</button>
+            <button class="bg-stone-800 text-white font-semibold px-4 py-2 rounded text-sm"><span aria-hidden="true">✓</span> Save changes</button>
             <a href="/admin/admin.php?view=jobs_emails&tab=queue#q<?= (int)$q['id'] ?>" class="px-4 py-2 rounded text-sm border border-stone-300 text-stone-700">Cancel edit</a>
           </div>
         </form>
