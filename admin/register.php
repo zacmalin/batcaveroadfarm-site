@@ -272,7 +272,7 @@ if ($view === 'drawer' || $view === 'drawers') {
     $tenders = bcrf_tenders();
     $head = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
           . '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">'
-          . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=10"><link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">';
+          . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=11"><link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">';
     if (!$drawersReady) { echo $head, '<title>Drawers</title></head><body class="page"><main class="narrow"><p class="flash err">Run migration 0010 in Settings › Database first.</p></main></body></html>'; exit; }
     if ($view === 'drawers') {
         $rows = $pdo->query("SELECT d.id FROM drawer_sessions d ORDER BY d.opened_at DESC LIMIT 60")->fetchAll(PDO::FETCH_COLUMN);
@@ -387,7 +387,7 @@ $boot = [
 <meta name="robots" content="noindex">
 <title>Register — <?= $h(bcrf_farm_name()) ?></title>
 <link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">
-<link rel="stylesheet" href="assets/register.css?v=10">
+<link rel="stylesheet" href="assets/register.css?v=11">
 <link rel="stylesheet" href="assets/pin.css?v=<?= bcrf_asset_v('/admin/assets/pin.css') ?>">
 <?= bcrf_pin_head_tags() ?>
 </head>
@@ -397,11 +397,15 @@ $boot = [
 <div id="app" class="app">
   <header class="top">
     <?= bcrf_pin_back_link() ?>
-    <div class="today" id="today" aria-live="polite">Today: …</div>
-    <?php if ($refundsReady && bcrf_admission_ready($pdo)): ?><a class="drawerbtn" href="gate.php">Gate</a><?php endif; ?>
-    <button type="button" class="drawerbtn" id="btnSales" hidden>Sales</button>
-    <button type="button" class="drawerbtn" id="btnDrawer" hidden>Drawer</button>
-        <div class="who"><?= $h($me) ?></div>
+    <nav class="register-nav" aria-label="Register tools">
+      <?php if ($refundsReady && bcrf_admission_ready($pdo)): ?><a class="drawerbtn" href="gate.php">Gate</a><?php endif; ?>
+      <button type="button" class="drawerbtn" id="btnSales" hidden>Sales</button>
+    </nav>
+    <div class="register-status">
+      <div class="today" id="today" aria-live="polite">Today: …</div>
+      <button type="button" class="drawerbtn" id="btnDrawer" hidden>Drawer</button>
+      <div class="who"><?= $h($me) ?></div>
+    </div>
   </header>
 
   <?php if (!$ready): ?>
