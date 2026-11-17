@@ -50,6 +50,11 @@
           border-radius:.25rem;background:#fafaf9;box-sizing:border-box;max-width:100%}
 .fos input:focus,.fos select:focus,.fos textarea:focus{outline:2px solid #b45309;outline-offset:0;border-color:#b45309}
 .fos input[type=checkbox],.fos input[type=radio]{width:1rem;height:1rem;accent-color:#b45309}
+/* Keep shared form switches intact inside legacy Farm OS forms. */
+.fos input.ui-form-switch{appearance:none;-webkit-appearance:none;flex:0 0 44px;width:44px;min-width:44px;height:26px;min-height:26px;margin:0;padding:0;border:0;border-radius:999px;background:#d6d3d1;accent-color:auto}
+.fos input.ui-form-switch:checked{background:#4a6741}
+.fos .stackf > label.ui-swrow{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:.65rem;font-size:.92em;font-weight:600}
+.fos .stackf > label.ui-swrow input.ui-form-switch{align-self:center}
 .fos .stackf > label,.fos .stackf .two label,.fos .stackf .grp > label{font-size:.75rem;font-weight:600;color:#57534e}
 .fos .stackf label.check,.fos .rform label.check{font-size:.875rem;font-weight:400;color:#57534e}
 .fos .stackf small.muted,.fos label small.muted{font-weight:400;color:#a8a29e}
