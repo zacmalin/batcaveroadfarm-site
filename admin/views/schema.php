@@ -1787,11 +1787,11 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                         <!-- name="post_status" means the clicked button's value is submitted -->
                         <?php if (!$__reviewLive): ?>
                         <button type="submit" name="post_status" value="draft"
-                            class="border-2 border-yellow-400 text-yellow-800 bg-yellow-50 font-mono font-bold uppercase tracking-wider py-2 px-5 rounded hover:bg-yellow-100 transition text-xs">
+                            class="border-2 border-yellow-400 text-yellow-800 bg-yellow-50 font-mono font-bold uppercase tracking-wider py-2 px-5 rounded hover:bg-yellow-100 transition text-xs" style="min-height:44px;">
                             💾 Save Draft
                         </button>
                         <button type="submit" name="post_status" value="published"
-                            class="bg-emerald-700 text-white font-mono font-bold uppercase tracking-wider py-2 px-5 rounded hover:bg-emerald-900 transition shadow-sm text-xs">
+                            class="bg-emerald-700 text-white font-mono font-bold uppercase tracking-wider py-2 px-5 rounded hover:bg-emerald-900 transition shadow-sm text-xs" style="min-height:44px;">
                             <?= $__review ? '📨 Send for review' : '🚀 Publish' ?>
                         </button>
                         <?php endif; ?>
