@@ -46,6 +46,8 @@ $_active = function(string $href) use ($_tv, $_tt): bool {
         if ($file === '' || $file === 'admin.php' || $file !== basename((string)($_SERVER['SCRIPT_NAME'] ?? ''))) return false;
         parse_str(parse_url($href, PHP_URL_QUERY) ?: '', $p);
         foreach ($p as $k => $v) if ((string)($_GET[$k] ?? '') !== (string)$v) return false;
+        // A base-page tab is not active while a named sibling tab is selected.
+        if (!array_key_exists('tab', $p) && (string)($_GET['tab'] ?? '') !== '') return false;
         return true;
     }
     parse_str(parse_url($href, PHP_URL_QUERY) ?: '', $p);
