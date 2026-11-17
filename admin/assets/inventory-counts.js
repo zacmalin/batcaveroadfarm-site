@@ -52,12 +52,14 @@
                 }
                 showInvToast('✓ Saved', false);
             } else {
+                input.value = original;
                 input.style.borderColor = '#ef4444';
-                showInvToast('❌ ' + (data.message || 'Save failed'), true);
+                showInvToast('❌ ' + (data.message || 'Save failed') + ' Count restored.', true);
             }
         } catch (err) {
+            input.value = original;
             input.style.borderColor = '#ef4444';
-            showInvToast('❌ Network error — change not saved.', true);
+            showInvToast('❌ Network error — change not saved. Count restored.', true);
         } finally {
             input.disabled = false;
             setTimeout(() => { input.style.borderColor = ''; }, 2500);
