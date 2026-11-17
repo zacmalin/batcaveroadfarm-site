@@ -193,7 +193,7 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
       <?php if ($quick): ?>
       <section aria-label="Quick actions" class="grid grid-cols-2 gap-2">
         <?php foreach ($quick as [$qi, $ql, $qh]): ?>
-        <a href="<?= $h($qh) ?>" class="<?= $card ?> flex flex-col items-center justify-center gap-1 min-h-20 p-3 text-center hover:border-stone-400 transition">
+        <a href="<?= $h($qh) ?>" class="<?= $card ?> flex flex-col items-center justify-center gap-1 min-h-20 p-3 text-center hover:border-stone-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700 transition">
           <span class="text-2xl leading-none"><?= $qi ?></span>
           <span class="text-xs font-bold text-stone-800"><?= $h($ql) ?></span>
         </a>
@@ -286,9 +286,9 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
     <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
       <h2 id="calHead" class="text-sm font-bold text-stone-700"><?= $h($cal_first->format('F Y')) ?></h2>
       <div class="flex items-center gap-2">
-        <a href="<?= $A ?>?view=dashboard&cal=<?= $cal_prev ?>" class="px-3 py-2 rounded bg-stone-100 text-stone-600 hover:bg-stone-200 text-xs" aria-label="Previous month">&larr;</a>
-        <a href="<?= $A ?>?view=dashboard" class="px-3 py-2 rounded bg-stone-100 text-stone-600 hover:bg-stone-200 text-xs">Today</a>
-        <a href="<?= $A ?>?view=dashboard&cal=<?= $cal_next ?>" class="px-3 py-2 rounded bg-stone-100 text-stone-600 hover:bg-stone-200 text-xs" aria-label="Next month">&rarr;</a>
+        <a href="<?= $A ?>?view=dashboard&cal=<?= $cal_prev ?>" class="px-3 py-2 rounded bg-stone-100 text-stone-600 hover:bg-stone-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700 text-xs" aria-label="Previous month">&larr;</a>
+        <a href="<?= $A ?>?view=dashboard" class="px-3 py-2 rounded bg-stone-100 text-stone-600 hover:bg-stone-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700 text-xs">Today</a>
+        <a href="<?= $A ?>?view=dashboard&cal=<?= $cal_next ?>" class="px-3 py-2 rounded bg-stone-100 text-stone-600 hover:bg-stone-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700 text-xs" aria-label="Next month">&rarr;</a>
       </div>
     </div>
     <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-stone-400 uppercase mb-1">
@@ -302,7 +302,7 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
           $dayHref = $cal_full ? '/admin/calendar.php?view=list&date=' . $ds : ($canV('bookings') ? "$A?view=bookings&day=$ds" : '');
           $dayLabel = date('M j', strtotime($ds)) . ($here ? ': ' . implode(', ', array_map(fn($l, $n) => $n . ' ' . BCRF_CAL_LAYERS[$l]['label'], array_keys($here), $here)) : ''); ?>
         <<?= $dayHref !== '' ? 'a href="' . $h($dayHref) . '"' : 'div' ?> aria-label="<?= $h($dayLabel) ?>" title="<?= $h($dayLabel) ?>"
-           class="aspect-square flex flex-col items-center justify-center rounded border text-xs transition <?= $isT ? 'border-amber-400 bg-amber-50 font-bold text-amber-800' : 'border-stone-100 hover:bg-stone-50 text-stone-600' ?>">
+           class="aspect-square flex flex-col items-center justify-center rounded border text-xs transition <?= $isT ? 'border-amber-400 bg-amber-50 font-bold text-amber-800' : 'border-stone-100 hover:bg-stone-50 text-stone-600' ?> <?= $dayHref !== '' ? 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700' : '' ?>">
           <span><?= $d ?></span>
           <span class="flex flex-wrap justify-center gap-0.5 mt-0.5 min-h-1.5 max-w-full px-0.5">
             <?php foreach (array_keys(BCRF_CAL_LAYERS) as $l): if (empty($here[$l])) continue; ?><span class="w-1.5 h-1.5 rounded-full <?= BCRF_CAL_LAYERS[$l]['dot'] ?>"></span><?php endforeach; ?>
