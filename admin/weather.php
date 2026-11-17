@@ -39,12 +39,13 @@ if (!bcrf_weather_ready($pdo)) {
 }
 
 $today = date('Y-m-d');
+$openSection = in_array((string)($_GET['section'] ?? ''), ['website-closure', 'affected-events', 'previous-days'], true) ? (string)$_GET['section'] : '';
 $date = (string)($_REQUEST['date'] ?? $today);
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || !checkdate((int)substr($date, 5, 2), (int)substr($date, 8, 2), (int)substr($date, 0, 4))) $date = $today;
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $section = in_array((string)($_POST['section'] ?? ''), ['website-closure', 'affected-events', 'previous-days'], true) ? (string)$_POST['section'] : 'affected-events';
-    $back = 'weather.php?date=' . rawurlencode($date) . '#' . $section;
+    $back = 'weather.php?date=' . rawurlencode($date) . '&section=' . rawurlencode($section) . '#' . $section;
     if (!hash_equals($csrf, (string)($_POST['csrf_token'] ?? ''))) { $_SESSION['w_flash'] = ['err', 'Security token expired; try again.']; header('Location: ' . $back); exit; }
     $act = (string)($_POST['act'] ?? '');
     try {
@@ -135,14 +136,14 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
 
   <?php $siteNote = function_exists('site_weather_closed_note') ? site_weather_closed_note() : ''; ?>
-  <details id="website-closure" class="<?= $card ?>" open>
+  <details id="website-closure" class="<?= $card ?>" <?= $openSection === '' || $openSection === 'website-closure' ? 'open' : '' ?>>
     <summary class="cursor-pointer text-base font-semibold text-stone-800 mb-2 hover:text-amber-800">🌧️ Website closure notice <?= $siteNote !== '' ? '· Active' : '· Off' ?></summary>
     <p class="text-xs text-stone-500 mb-3">This notice affects today's public website only. It does not block bookings or notify customers.</p>
     <?php if ($siteNote !== ''): ?>
       <?= bcrf_shell_notice('warning', 'ON: every page of the website shows "Closed today for weather. ' . $siteNote . '" and the header says Closed. It turns off by itself at midnight.') ?>
       <?php if ($mgr): ?>
       <form method="POST" action="weather.php" class="mt-3">
-        <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="date" value="<?= $h($date) ?>">
+        <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="section" value="website-closure"><input type="hidden" name="date" value="<?= $h($date) ?>">
         <button name="act" value="site_closed_off" class="<?= $btnSec ?>">Turn it off (we're open after all)</button>
       </form>
       <?php endif; ?>
@@ -150,7 +151,7 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
       <p class="text-sm text-stone-600 mb-3">Off. Turn it on to show a banner on every page of the website and set the header to Closed, for today only (<?= $h(date('l, M j')) ?>). It doesn't email anyone; use the section below for that.</p>
       <?php if ($mgr): ?>
       <form method="POST" action="weather.php" class="space-y-3">
-        <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="date" value="<?= $h($date) ?>">
+        <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="section" value="website-closure"><input type="hidden" name="date" value="<?= $h($date) ?>">
         <div><label for="w_site_note" class="<?= $label ?>">Banner message <span class="font-normal text-stone-400">shown after "Closed today for weather."</span></label>
           <input id="w_site_note" name="site_note" maxlength="300" class="<?= $input ?>" value="<?= $h(bcrf_wx_last_note($pdo)) ?>"></div>
         <button name="act" value="site_closed_on" class="<?= $btnMain ?>" data-confirm="Show &quot;Closed today for weather&quot; on the website for today?">Show "Closed today" on the website</button>
@@ -163,7 +164,7 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
     <div class="mt-4 pt-3 border-t border-stone-100 flex flex-wrap items-center gap-3 text-sm text-stone-600">
       <span>Website forecast: <?= $wxAt ? 'updated ' . $h(date('M j, g:i A', $wxAt)) . (time() - $wxAt > BCRF_WX_MAX_AGE ? ' (too old, hidden)' : '') : 'not fetched yet' ?>. It refreshes by itself every 30 minutes.</span>
       <?php if ($mgr): ?>
-      <form method="POST" action="weather.php"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="date" value="<?= $h($date) ?>">
+      <form method="POST" action="weather.php"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="section" value="website-closure"><input type="hidden" name="date" value="<?= $h($date) ?>">
         <button name="act" value="wx_refresh" class="<?= $btnSec ?>">Refresh weather now</button></form>
       <?php endif; ?>
     </div>
@@ -180,7 +181,7 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
   <?php if ($isClosed) echo bcrf_shell_notice('warning', 'This day is closed to new bookings (Bookings › blackout dates).'); ?>
 
   <?php if ($day): ?>
-  <details id="affected-events" class="<?= $card ?>" open>
+  <details id="affected-events" class="<?= $card ?>" <?= $openSection === '' || $openSection === 'affected-events' ? 'open' : '' ?>>
     <summary class="cursor-pointer text-base font-semibold text-stone-800 mb-2 hover:text-amber-800">📋 Affected bookings &amp; events · <?= count($day['items']) ?> recorded</summary>
     <p class="text-sm text-stone-600 mb-3">Sent <?= $h((new DateTimeImmutable($day['created_at'], new DateTimeZone('UTC')))->setTimezone(new DateTimeZone(date_default_timezone_get()))->format('M j, g:i A')) ?>. Mark what you did for each one; refunds are done in Quotes &amp; payments, new dates on the booking or party.</p>
     <div class="divide-y divide-stone-100">
@@ -225,7 +226,7 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
         <p class="text-sm text-stone-500">Only an Owner or Manager can call off a day.</p>
       <?php else: ?>
       <form method="POST" action="weather.php" class="space-y-3">
-        <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="date" value="<?= $h($date) ?>">
+        <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="section" value="website-closure"><input type="hidden" name="date" value="<?= $h($date) ?>">
         <div><label for="w_msg" class="<?= $label ?>">Message <span class="font-normal text-stone-400">each email also says which booking it's about, with the date and time</span></label>
           <textarea id="w_msg" name="message" rows="6" maxlength="3000" required class="<?= $input ?>"><?= $h($day['message'] ?? bcrf_weather_default_message($pdo)) ?></textarea></div>
         <label class="flex items-center gap-2 text-sm text-stone-700"><input type="checkbox" name="close_day" value="1" <?= $isClosed ? 'checked disabled' : 'checked' ?>> Close this day to new bookings</label>
@@ -239,7 +240,7 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
   </div>
 
   <?php $recent = bcrf_weather_recent($pdo); if ($recent): ?>
-  <details id="previous-days" class="<?= $card ?>">
+  <details id="previous-days" class="<?= $card ?>" <?= $openSection === 'previous-days' ? 'open' : '' ?>>
     <summary class="cursor-pointer text-base font-semibold text-stone-800 mb-2 hover:text-amber-800">🗓️ Previous weather days</summary>
     <ul class="text-sm divide-y divide-stone-100">
       <?php foreach ($recent as $r): ?>
