@@ -7,6 +7,10 @@ require_once __DIR__ . '/../../includes/record_tools.php';   // Call / Text / Em
 $csrf   = $_SESSION['csrf_token'] ?? '';
 $day    = (isset($_GET['day']) && strtotime((string)$_GET['day'])) ? date('Y-m-d', strtotime((string)$_GET['day'])) : date('Y-m-d');
 $warnId = (int)($_GET['warn'] ?? 0);
+$scheduleStatus = (string)($_GET['status'] ?? 'all');
+if (!in_array($scheduleStatus, ['all', 'confirmed', 'pending', 'completed', 'no_show', 'cancelled'], true)) $scheduleStatus = 'all';
+$scheduleSort = (string)($_GET['sort'] ?? 'time_asc');
+if (!in_array($scheduleSort, ['time_asc', 'time_desc', 'name_asc', 'name_desc'], true)) $scheduleSort = 'time_asc';
 $cap    = function_exists('booking_grounds_cap') ? booking_grounds_cap() : 25;
 
 $ready = function_exists('booking_tables_ready') ? booking_tables_ready($pdo) : false;
@@ -231,12 +235,48 @@ $allPendingPay = count(array_filter($pending,    fn($r) => ($r['payment_status']
     <p class="text-[11px] text-stone-400 mt-2">Peak concurrent guests per hour vs. cap of <?= (int)$cap ?>. Red = ≥90% or a private event blocks the grounds.</p>
   </div>
 
+  <?php
+    $visibleSchedule = array_values(array_filter($daySched, fn($r) => $scheduleStatus === 'all' || $r['status'] === $scheduleStatus));
+    usort($visibleSchedule, function ($a, $b) use ($scheduleSort) {
+        if ($scheduleSort === 'name_asc' || $scheduleSort === 'name_desc') {
+            $cmp = strcasecmp((string)$a['customer_name'], (string)$b['customer_name']);
+            return $scheduleSort === 'name_desc' ? -$cmp : $cmp;
+        }
+        $cmp = strcmp((string)$a['start_time'], (string)$b['start_time']);
+        return $scheduleSort === 'time_desc' ? -$cmp : $cmp;
+    });
+    $statusLabels = ['all' => 'All', 'confirmed' => 'Confirmed', 'pending' => 'Pending', 'completed' => 'Completed', 'no_show' => 'No-show', 'cancelled' => 'Cancelled'];
+  ?>
   <!-- Day schedule -->
   <div class="bg-white border border-stone-200 rounded-lg p-5 mb-8 shadow-sm">
-    <h2 class="font-semibold text-stone-700 mb-4">Schedule</h2>
+    <h2 class="font-semibold text-stone-700 mb-3">Schedule</h2>
+    <div class="flex flex-wrap items-center justify-end gap-2 mb-4">
+      <div class="flex flex-wrap justify-end gap-1.5" role="group" aria-label="Filter bookings by status">
+        <?php foreach ($statusLabels as $value => $labelText): ?>
+          <a href="/admin/admin.php?<?= htmlspecialchars(http_build_query(['view'=>'bookings', 'day'=>$day, 'status'=>$value, 'sort'=>$scheduleSort]), ENT_QUOTES) ?>"
+             class="inline-flex items-center min-h-9 px-3 rounded-full text-xs font-semibold border <?= $scheduleStatus === $value ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100' ?>"
+             <?= $scheduleStatus === $value ? 'aria-current="true"' : '' ?>><?= htmlspecialchars($labelText) ?></a>
+        <?php endforeach; ?>
+      </div>
+      <form method="GET" action="/admin/admin.php" class="flex items-center gap-2">
+        <input type="hidden" name="view" value="bookings">
+        <input type="hidden" name="day" value="<?= htmlspecialchars($day, ENT_QUOTES) ?>">
+        <input type="hidden" name="status" value="<?= htmlspecialchars($scheduleStatus, ENT_QUOTES) ?>">
+        <label for="bookingScheduleSort" class="text-xs text-stone-600">Sort</label>
+        <select id="bookingScheduleSort" name="sort" onchange="this.form.requestSubmit()" class="min-h-9 rounded-lg border border-stone-300 bg-white px-2 text-xs">
+          <option value="time_asc" <?= $scheduleSort === 'time_asc' ? 'selected' : '' ?>>Time: earliest first</option>
+          <option value="time_desc" <?= $scheduleSort === 'time_desc' ? 'selected' : '' ?>>Time: latest first</option>
+          <option value="name_asc" <?= $scheduleSort === 'name_asc' ? 'selected' : '' ?>>Name: A–Z</option>
+          <option value="name_desc" <?= $scheduleSort === 'name_desc' ? 'selected' : '' ?>>Name: Z–A</option>
+        </select>
+        <noscript><button type="submit" class="text-xs underline">Apply</button></noscript>
+      </form>
+    </div>
     <?php if (!$daySched): ?>
       <p class="text-sm text-stone-400">Nothing booked for this day.</p>
-    <?php else: foreach ($daySched as $r): ?>
+    <?php elseif (!$visibleSchedule): ?>
+      <p class="text-sm text-stone-500">No bookings match this status for the selected day.</p>
+    <?php else: foreach ($visibleSchedule as $r): ?>
       <div class="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 py-2 text-sm">
         <div class="text-stone-700">
           <span class="text-stone-500"><?= htmlspecialchars(booking_fmt_time($r['start_time'])) ?></span>
