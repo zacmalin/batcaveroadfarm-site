@@ -40,7 +40,7 @@ function crmApply() {
 function filterCRM(filter) {
     document.querySelectorAll('.crm-tab').forEach(t => {
         const selected = t.id === 'crmtab-' + filter;
-        t.classList.toggle('bg-amber-700', selected);
+        t.classList.toggle('farmos-filter-selected', selected);
         t.classList.toggle('text-white', selected);
         t.classList.toggle('bg-stone-100', !selected);
         t.classList.toggle('text-stone-600', !selected);
