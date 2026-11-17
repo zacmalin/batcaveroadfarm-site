@@ -108,6 +108,8 @@ foreach ($_sections as $_sk => $_sec) {
         $_tabs = [];
         foreach ($_it['tabs'] as [$_tl, $_th, $_tct, $_tcv]) {
             if (!$_can($_tct, $_tcv)) continue;
+            // Different permissions can open the same page; show only one tab.
+            if (in_array($_full_href($_th), array_column($_tabs, 'href'), true)) continue;
             $_tabs[] = ['label'=>$_tl, 'href'=>$_full_href($_th), 'active'=>$_active($_th),
                         'badge'=>(int)($_href_badges[$_th]['n'] ?? $_badges[$_tcv] ?? 0), 'badge_title'=>$_href_badges[$_th]['title'] ?? $_badge_titles[$_tcv] ?? ''];
         }
