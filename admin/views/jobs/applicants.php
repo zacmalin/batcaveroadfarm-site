@@ -218,7 +218,7 @@ if ($appId > 0):
       <input type="hidden" name="id" value="<?= (int)$a['id'] ?>">
       <input type="hidden" name="back" value="<?= $h($self) ?>#notes">
       <textarea name="body" rows="2" maxlength="4000" required class="w-full border border-stone-300 rounded px-2 py-2 text-sm" placeholder="Called, left a message…"></textarea>
-      <button class="mt-2 px-4 py-2 rounded text-sm border border-stone-300 text-stone-700 hover:bg-stone-100">Add note</button>
+      <button class="mt-2 px-4 py-2 rounded text-sm border border-stone-300 text-stone-700 hover:bg-stone-100"><span aria-hidden="true">＋</span> Add note</button>
     </form>
     <ul class="space-y-2">
       <?php foreach ($notes as $n): ?>
