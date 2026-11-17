@@ -375,7 +375,7 @@ $filtersOn = $F['job'] || $F['cat'] || $F['round'] !== 'current' || $F['flag'] !
         $q2 = $qs(['status' => $k]);
     ?>
       <a href="/admin/admin.php?view=jobs<?= $q2 !== '' ? '&' . $h($q2) : '' ?>"
-         class="shrink-0 text-sm px-3 py-1.5 rounded-full border whitespace-nowrap <?= $on ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50' ?>"
+         class="shrink-0 text-sm px-3 py-1.5 rounded-full border whitespace-nowrap <?= $on ? 'farmos-filter-selected' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50' ?>"
          <?= $on ? 'aria-current="page"' : '' ?>><?= $h($l) ?> <span class="<?= $on ? 'text-stone-300' : 'text-stone-400' ?>"><?= (int)$n ?></span></a>
     <?php endforeach; ?>
   </nav>
