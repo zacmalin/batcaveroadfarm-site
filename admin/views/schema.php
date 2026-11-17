@@ -741,7 +741,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                                         <option value="<?= (int)$pr['id'] ?>" <?= (int)$pr['id'] === (int)$apid ? 'selected' : '' ?>><?= htmlspecialchars($pr['title']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
-                                <button type="button" onclick="this.closest('.pairing-row').remove()" class="text-red-600 font-bold px-1 hover:text-red-900 shrink-0">✕</button>
+                                <button type="button" onclick="this.closest('.pairing-row').remove()" class="text-red-600 font-bold px-1 hover:text-red-900 shrink-0" aria-label="Remove pairing" title="Remove pairing"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 10v7"/><path d="M14 10v7"/></svg></button>
                             </div>
                             <?php endforeach; ?>
                         </div>
@@ -783,6 +783,9 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                             var rm = document.createElement('button');
                             rm.type = 'button'; rm.textContent = '\u2715';
                             rm.className = 'text-red-600 font-bold px-1 hover:text-red-900 shrink-0';
+                            rm.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 10v7"/><path d="M14 10v7"/></svg>';
+                            rm.setAttribute('aria-label', 'Remove pairing');
+                            rm.title = 'Remove pairing';
                             rm.onclick = function () { row.remove(); };
 
                             row.append(icon, sel, rm);
@@ -1112,7 +1115,7 @@ $ri_resolve = function ($row) use ($ri_ing_map, $ri_rec_map) {
                                     <button type="button" onclick="moveIngredientRow(this, 1)" title="Move down" aria-label="Move down"
                                         class="text-stone-500 font-bold px-1 hover:text-stone-900 shrink-0">↓</button>
                                     <button type="button" onclick="this.closest('.dynamic-ingredient-row').remove(); renumberIngredientRows()"
-                                        class="text-red-600 font-bold px-1 hover:text-red-900 shrink-0">✕</button>
+                                        class="text-red-600 font-bold px-1 hover:text-red-900 shrink-0" aria-label="Remove ingredient" title="Remove ingredient"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 10v7"/><path d="M14 10v7"/></svg></button>
                                 </div>
                                 <div class="flex items-center space-x-2 pl-7">
                                     <input type="text" maxlength="80"
@@ -2104,7 +2107,9 @@ function makeRiCombo(idx, ref, label){
 
         const removeBtn = document.createElement('button');
         removeBtn.type        = 'button';
-        removeBtn.textContent = '✕';
+        removeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 10v7"/><path d="M14 10v7"/></svg>';
+        removeBtn.setAttribute('aria-label', 'Remove ingredient');
+        removeBtn.title = 'Remove ingredient';
         removeBtn.className   = 'text-red-600 font-bold px-1 hover:text-red-900 shrink-0';
         removeBtn.onclick     = () => { row.remove(); renumberIngredientRows(); };
 
