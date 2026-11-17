@@ -91,6 +91,11 @@ $curRec = (string)($edit['recurrence'] ?? 'none');
         <input type="text" id="ev-image-url" name="image_url" value="<?= $v('image_url') ?>" class="w-full p-2 border border-stone-300 rounded bg-stone-50" placeholder="<?= bcrf_farm_url() ?>/img/...">
       </div>
       <div class="md:col-span-2">
+        <label for="ev-location" class="block text-xs font-semibold text-stone-600 mb-1">Location on the farm (optional)</label>
+        <input type="text" id="ev-location" name="location_note" maxlength="255" value="<?= $v('location_note') ?>" class="w-full p-2 border border-stone-300 rounded bg-stone-50" placeholder="e.g. Barn, picnic area, or farmstand">
+        <p class="text-xs text-stone-500 mt-1">Shown to visitors so they know where to meet.</p>
+      </div>
+      <div class="md:col-span-2">
         <label for="ev-description" class="block text-xs font-semibold text-stone-600 mb-1">Description</label>
         <textarea id="ev-description" name="description" rows="3" class="w-full p-2 border border-stone-300 rounded bg-stone-50"><?= htmlspecialchars((string)($edit['description'] ?? ''), ENT_QUOTES) ?></textarea>
       </div>
