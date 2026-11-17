@@ -33,6 +33,9 @@
 .srch-t { font-weight: 700; overflow-wrap: anywhere; }
 .srch-s { font-size: 12px; color: #78716c; overflow-wrap: anywhere; }
 .srch-more { display: inline-block; margin-top: 6px; font-size: 12px; font-weight: 700; color: #92400e; }
+.srch-extra > summary { cursor: pointer; width: fit-content; padding: 6px 2px; }
+.srch-extra > summary:focus-visible { outline: 2px solid #b45309; outline-offset: 2px; border-radius: 3px; }
+.srch-extra[open] > .srch-list { margin-top: 6px; }
 @media (max-width: 767px) {
   .srch-label { font-size: 18px; }
   .srch-go { display: none; } /* phones search with the keyboard's Search key */
