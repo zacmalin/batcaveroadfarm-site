@@ -730,7 +730,7 @@ if (!in_array($f, ['', 'off', 'gone', 'all'], true)) $f = '';
 $enc = (int)($_GET['enc'] ?? 0);
 $q = trim((string)($_GET['q'] ?? ''));
 $rows = bcrf_animals_list($pdo, $f, $enc, $q);
-$sortOpts = ['default' => ['By kind'], 'az' => ['Name A to Z', 'name', 'asc'], 'za' => ['Name Z to A', 'name', 'desc'],
+$sortOpts = ['default' => ['Name A to Z', 'name', 'asc'], 'za' => ['Name Z to A', 'name', 'desc'], 'kind' => ['By kind'],
              'young' => ['Youngest first', 'date_of_birth', 'desc'], 'old' => ['Oldest first', 'date_of_birth', 'asc'],
              'enc' => ['By enclosure', 'enclosure_name', 'asc'], 'newest' => ['Newest added', 'id', 'desc']];
 $sort = bcrf_list_sort_pick($pdo, 'animals', $sortOpts);
