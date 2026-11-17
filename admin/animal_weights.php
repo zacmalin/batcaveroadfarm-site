@@ -110,6 +110,7 @@ $clsName = '';
 foreach ($clsRows as $c) if ((int)$c['id'] === $cls) $clsName = $c['class_name'];
 $animals = $enc ? array_values(array_filter($all, fn($a) => (int)$a['enclosure_id'] === $enc))
          : ($clsName !== '' ? array_values(array_filter($all, fn($a) => $a['class_name'] === $clsName)) : $all);
+usort($animals, fn($a, $b) => strcasecmp((string)$a['name'], (string)$b['name']));
 $enclosures = array_values(array_filter(bcrf_enclosures($pdo), fn($e) => $e['animal_count'] > 0));
 $latest = bcrf_weight_latest($pdo);
 $alerts = bcrf_weight_alerts($pdo);
@@ -130,17 +131,22 @@ if ($error) echo bcrf_shell_notice('err', $error);
     </ul>
   </div>
   <?php endif; ?>
-  <form method="GET" action="animal_weights.php" class="flex flex-wrap gap-2 items-end mb-4">
+  <div class="flex flex-wrap gap-3 mb-4">
     <?php if ($enclosures): ?>
-    <div class="flex-1 min-w-40"><label class="<?= $label ?>" for="fe">Enclosure</label><select id="fe" name="enc" class="<?= $input ?>"><option value="0">Any</option>
-      <?php foreach ($enclosures as $e): ?><option value="<?= $e['id'] ?>" <?= $enc === $e['id'] ? 'selected' : '' ?>><?= $h($e['name']) ?> (<?= $e['animal_count'] ?>)</option><?php endforeach; ?></select></div>
+    <form method="GET" action="animal_weights.php" class="flex-1 min-w-40 flex flex-wrap gap-2 items-end">
+      <div class="flex-1 min-w-40"><label class="<?= $label ?>" for="fe">Enclosure</label><select id="fe" name="enc" class="<?= $input ?>"><option value="0">All animals</option>
+        <?php foreach ($enclosures as $e): ?><option value="<?= (int)$e['id'] ?>" <?= $enc === (int)$e['id'] ? 'selected' : '' ?>><?= $h($e['name']) ?> (<?= (int)$e['animal_count'] ?>)</option><?php endforeach; ?></select></div>
+      <button class="<?= $btnSec ?>">Show</button>
+    </form>
     <?php endif; ?>
     <?php if ($clsRows): ?>
-    <div class="flex-1 min-w-40"><label class="<?= $label ?>" for="fc">Or species</label><select id="fc" name="cls" class="<?= $input ?>"><option value="0">Any</option>
-      <?php foreach ($clsRows as $c): ?><option value="<?= (int)$c['id'] ?>" <?= $cls === (int)$c['id'] ? 'selected' : '' ?>><?= $h($c['class_name']) ?></option><?php endforeach; ?></select></div>
+    <form method="GET" action="animal_weights.php" class="flex-1 min-w-40 flex flex-wrap gap-2 items-end">
+      <div class="flex-1 min-w-40"><label class="<?= $label ?>" for="fc">Species</label><select id="fc" name="cls" class="<?= $input ?>"><option value="0">All animals</option>
+        <?php foreach ($clsRows as $c): ?><option value="<?= (int)$c['id'] ?>" <?= $cls === (int)$c['id'] ? 'selected' : '' ?>><?= $h($c['class_name']) ?></option><?php endforeach; ?></select></div>
+      <button class="<?= $btnSec ?>">Show</button>
+    </form>
     <?php endif; ?>
-    <button class="<?= $btnSec ?>">Show</button>
-  </form>
+  </div>
   <?php if (!$animals): ?>
   <p class="text-sm text-stone-500">No animals on the farm<?= $enc || $cls ? ' in that group' : '' ?>.</p>
   <?php else: ?>
