@@ -109,12 +109,12 @@ if ($editing !== null):
       <div><label class="<?= $label ?>" for="ps">Order in lists</label><input id="ps" name="sort_order" inputmode="numeric" value="<?= $h($v['sort_order']) ?>" class="<?= $input ?>"></div>
       <label class="flex items-center gap-2 text-sm text-stone-700 pt-5"><input type="checkbox" name="active" value="1" <?= !empty($v['active']) ? 'checked' : '' ?>> Offered (shows in the list)</label>
     </div>
-    <div class="flex gap-2 mt-4"><button class="<?= $btnMain ?>">Save package</button><a href="party_packages.php" class="<?= $btnSec ?>">Cancel</a></div>
+    <div class="flex flex-wrap gap-2 mt-4"><button class="<?= $btnMain ?> min-h-10">Save package</button><a href="party_packages.php" class="<?= $btnSec ?> inline-flex min-h-10 items-center">Cancel</a></div>
   </form>
 <?php endif;
 
 $all = bcrf_party_packages($pdo, true);
-if ($mgr && $editing === null) echo '<a href="party_packages.php?new=1" class="', $btnMain, ' inline-block mb-4">Add a package</a>';
+if ($mgr && $editing === null) echo '<div class="flex justify-end mb-4"><a href="party_packages.php?new=1" class="', $btnMain, ' inline-flex min-h-10 items-center">Add a package</a></div>';
 if (!$all) echo '<p class="text-sm text-stone-500">No packages yet.</p>';
 foreach ($all as $p): ?>
   <div class="<?= $card ?><?= $p['active'] ? '' : ' is-off' ?>" data-switch-row>
@@ -124,7 +124,7 @@ foreach ($all as $p): ?>
     </div>
     <?php if ($p['items']): ?><ul class="ui-swmain text-sm text-stone-600 mt-1"><?php foreach ($p['items'] as $it): ?><li>• <?= $h($it) ?></li><?php endforeach; ?></ul><?php endif; ?>
     <?php if ($mgr): ?>
-    <div class="flex items-center gap-2 mt-3">
+    <div class="flex flex-wrap items-center gap-2 mt-3">
       <a href="party_packages.php?edit=<?= $p['id'] ?>" class="<?= $btnSec ?>">Edit</a>
       <?= bcrf_switch(['action' => 'party_packages.php', 'csrf' => $csrf, 'fields' => ['act' => 'toggle', 'id' => (int)$p['id']],
                        'on' => (bool)$p['active'], 'label' => 'Offer ' . $p['name'], 'on_text' => 'Offered', 'off_text' => 'Off']) ?>
