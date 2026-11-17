@@ -21,6 +21,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 .app{display:grid;grid-template-columns:1fr;grid-template-rows:auto auto 1fr;min-height:100dvh;padding-bottom:72px}
 .top{display:flex;gap:.75rem;align-items:center;justify-content:space-between;padding:.5rem .75rem;background:var(--brand);color:#fff;font-size:.9em}
 .top a{color:#fde68a}.back{white-space:nowrap}.today{font-weight:700}.who{white-space:nowrap;opacity:.9}
+.register-nav,.register-status{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
 
 .shop{padding:.5rem .75rem;min-width:0}
 .tools{display:flex;gap:.5rem}
@@ -70,6 +71,13 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   .app > .top{position:sticky;top:0;z-index:25;height:52px;box-sizing:border-box}   /* the cart sits under the bar (slice 9 fix) */
   .cart{grid-area:cart;position:sticky;top:52px;bottom:auto;align-self:start;transform:none;height:calc(100dvh - 52px);border-left:1px solid var(--line)}
   .cart-head .link,.bar{display:none}
+  .top{justify-content:flex-start}
+  .register-nav{margin-left:1rem}
+  .register-status{margin-left:auto}
+  .cart .adjust{order:1;flex:0 0 auto;align-content:start;border-bottom:1px solid var(--line);padding:.5rem 0 .75rem;margin-bottom:.25rem}
+  .cart .lines{order:2;min-height:0}
+  .cart .totals{order:3}
+  .cart #btnPay{order:4}
 }
 
 /* Dialogs */
