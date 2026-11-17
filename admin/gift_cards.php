@@ -226,7 +226,7 @@ if (isset($_GET['id'])) {
       <input name="reason" maxlength="255" required placeholder="Reason (e.g. partial refund of the card)" aria-label="Reason" class="<?= $input ?>">
       <button type="submit" class="<?= $btnSec ?>">Change</button>
     </form>
-    <form method="POST" action="gift_cards.php" class="bg-white border border-red-200 rounded-lg p-4 shadow-sm space-y-2 sm:col-span-2">
+    <form method="POST" action="gift_cards.php" class="bg-white border border-red-200 rounded-lg p-4 shadow-sm space-y-2 sm:col-span-2" onsubmit="return confirm('Cancel this gift card? Its remaining balance will no longer be usable. This cannot be undone.')">
       <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="void"><input type="hidden" name="id" value="<?= (int)$c['id'] ?>">
       <h3 class="font-semibold text-red-800">Cancel this card</h3>
       <p class="text-xs text-stone-500">For a lost or stolen card: cancel it, then give a new one for what was left (<?= $h($m($c['balance_cents'])) ?>). It can't be undone.</p>
