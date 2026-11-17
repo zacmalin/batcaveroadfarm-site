@@ -228,8 +228,8 @@ echo '<p class="text-sm text-stone-500 mb-4">Whether each recipe has what a food
 if ($error) echo bcrf_shell_notice('err', $error);
 ?>
   <form method="GET" class="<?= $card ?> flex flex-wrap gap-3 items-end">
-    <div class="flex-1 min-w-48"><label class="<?= $label ?>" for="rq">Search</label><input id="rq" name="q" value="<?= $h($q) ?>" class="<?= $input ?>" placeholder="Recipe name"></div>
-    <div><label class="<?= $label ?>" for="rsort">Sort</label><?= bcrf_list_sort_select($sortOpts, $sort, ['id' => 'rsort', 'class' => $input]) ?></div>
+    <div class="flex-1 min-w-40"><label class="<?= $label ?>" for="rq">Search</label><input id="rq" name="q" value="<?= $h($q) ?>" class="<?= $input ?>" placeholder="Recipe name"></div>
+    <div class="ml-auto"><label class="<?= $label ?>" for="rsort">Sort by</label><?= bcrf_list_sort_select($sortOpts, $sort, ['id' => 'rsort', 'class' => $input]) ?></div>
     <button class="<?= $btnSec ?>">Show</button>
   </form>
   <div class="<?= $card ?>">
