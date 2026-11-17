@@ -94,7 +94,11 @@
       .catch(function () { if (my === seq) { out.textContent = ''; out.appendChild(el('p', 'srch-empty', 'Search did not answer. Check the connection and try again.')); } });
   }
 
-  box.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(run, 200); });
+  box.addEventListener('input', function () {
+    clearTimeout(timer);
+    ++seq; // Discard old responses immediately, including during the debounce delay.
+    timer = setTimeout(run, 200);
+  });
   // Enter submits the form: the server opens a code's record straight away, or shows the results.
   box.form.addEventListener('submit', function () { remember(box.value); });
   out.addEventListener('click', function (e) {
