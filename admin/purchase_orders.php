@@ -175,7 +175,7 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
         echo '<label>Note<input type="text" name="note" value="', $h($d['note'] ?? ''), '" maxlength="255"></label>';
         echo '<fieldset class="grp"><legend>Lines</legend>';
         for ($i = 0; $i < $lineCount; $i++) {
-            echo '<div class="card pline">';
+            echo '<div class="card pline"><strong>Line ', $i + 1, '</strong>'; 
             echo '<label>Product', $sel('product_id[]', $prodOpts, $d['product_id'][$i] ?? ''), '</label>';
             echo '<div class="two"><label>Qty<input type="number" name="qty[]" value="', $h($d['qty'][$i] ?? ''), '" min="0" step="any" inputmode="decimal"></label>',
                  '<label>Unit cost $<input type="number" name="unit_cost[]" value="', $h($d['unit_cost'][$i] ?? ''), '" min="0" step="0.01" inputmode="decimal"></label></div></div>';
@@ -204,7 +204,7 @@ if (!empty($_GET['new'])) {
     echo '<fieldset class="grp"><legend>Lines (', $lineCount, ')</legend>';
     echo '<p class="muted">Expected unit cost is optional; it becomes the default on receive.</p>';
     for ($i = 0; $i < $lineCount; $i++) {
-        echo '<div class="card pline">';
+        echo '<div class="card pline"><strong>Line ', $i + 1, '</strong>';
         echo '<label>Product', $sel('product_id[]', $prodOpts, $d['product_id'][$i] ?? ''), '</label>';
         echo '<div class="two"><label>Qty<input type="number" name="qty[]" value="', $h($d['qty'][$i] ?? ''), '" min="0" step="any" inputmode="decimal"></label>',
              '<label>Unit cost $<input type="number" name="unit_cost[]" value="', $h($d['unit_cost'][$i] ?? ''), '" min="0" step="0.01" inputmode="decimal"></label></div></div>';
