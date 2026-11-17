@@ -117,19 +117,20 @@ $eventLabels = [
         <!-- Actions -->
         <div class="px-5 py-3 border-t border-stone-100 flex flex-wrap gap-2 items-center">
             <!-- Status update -->
-            <form method="POST" action="/admin/admin.php?view=event_inquiries&status=<?= htmlspecialchars($statusFilter) ?>" class="flex gap-2 items-center">
+            <form method="POST" action="/admin/admin.php?view=event_inquiries&status=<?= htmlspecialchars($statusFilter) ?>" class="flex flex-wrap gap-2 items-center w-full lg:w-auto">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
                 <input type="hidden" name="inquiry_action" value="status">
                 <input type="hidden" name="id" value="<?= (int)$inq['id'] ?>">
                 <label class="sr-only" for="ev_date_<?= (int)$inq['id'] ?>">Party date</label>
                 <input type="date" id="ev_date_<?= (int)$inq['id'] ?>" name="event_date" value="<?= htmlspecialchars((string)($inq['preferred_date'] ?? ''), ENT_QUOTES) ?>" title="Party date (checklist tasks are dated from it)"
-                       class="min-h-10 md:min-h-8 px-2 text-xs border border-stone-300 rounded-lg bg-stone-50">
+                       class="min-h-10 px-2 text-sm border border-stone-300 rounded-lg bg-stone-50">
                 <?php if (array_key_exists('start_time', $inq)): // Phase 3 slice 5: start time for the capacity hold and the gate ?>
                 <label class="sr-only" for="ev_time_<?= (int)$inq['id'] ?>">Start time</label>
                 <input type="time" id="ev_time_<?= (int)$inq['id'] ?>" name="event_time" step="900" value="<?= htmlspecialchars(substr((string)($inq['start_time'] ?? ''), 0, 5), ENT_QUOTES) ?>" title="Start time (the gate holds space for the party from then)"
                        class="min-h-10 md:min-h-8 px-2 text-xs border border-stone-300 rounded-lg bg-stone-50">
                 <?php endif; ?>
-                <select name="new_status" class="min-h-10 md:min-h-8 px-2 text-xs border border-stone-300 rounded-lg bg-stone-50">
+                <label class="sr-only" for="ev_status_<?= (int)$inq['id'] ?>">Inquiry status</label>
+                <select id="ev_status_<?= (int)$inq['id'] ?>" name="new_status" class="min-h-10 px-2 text-sm border border-stone-300 rounded-lg bg-stone-50">
                     <?php foreach (['new','contacted','quoted','confirmed','declined','archived'] as $s): ?>
                     <option value="<?= $s ?>" <?= $inq['status'] === $s ? 'selected' : '' ?>><?= ucfirst($s) ?></option>
                     <?php endforeach; ?>
@@ -147,13 +148,14 @@ $eventLabels = [
             <?php endif; endif; ?>
 
             <!-- Add / edit note -->
-            <form method="POST" action="/admin/admin.php?view=event_inquiries&status=<?= htmlspecialchars($statusFilter) ?>" class="flex gap-2 items-center flex-1 min-w-[220px]">
+            <form method="POST" action="/admin/admin.php?view=event_inquiries&status=<?= htmlspecialchars($statusFilter) ?>" class="flex flex-wrap gap-2 items-center flex-1 min-w-0 w-full">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
                 <input type="hidden" name="inquiry_action" value="note">
                 <input type="hidden" name="id" value="<?= (int)$inq['id'] ?>">
-                <input type="text" name="admin_notes" placeholder="Add a note…"
+                <label class="sr-only" for="ev_note_<?= (int)$inq['id'] ?>">Admin note</label>
+                <input type="text" id="ev_note_<?= (int)$inq['id'] ?>" name="admin_notes" placeholder="Add a note…"
                        value="<?= htmlspecialchars($inq['admin_notes'] ?? '', ENT_QUOTES) ?>"
-                       class="flex-1 min-w-0 min-h-10 md:min-h-8 px-2 text-xs border border-stone-300 rounded-lg bg-stone-50">
+                       class="flex-1 min-w-[160px] min-h-10 px-2 text-sm border border-stone-300 rounded-lg bg-stone-50">
                 <button type="submit" class="<?= ui_btn('secondary') ?>">Save note</button>
             </form>
         </div>
