@@ -423,20 +423,20 @@ if ($typeId) {
     <?php if ($type['is_feeding']): ?>
     <div data-feed-rows class="space-y-3 mb-3">
       <div data-feed-row class="border border-stone-200 rounded-lg p-3">
-        <div class="flex justify-between items-center mb-2"><strong class="text-sm" data-feed-title>Feed 1</strong><button type="button" data-feed-remove class="<?= '$btnSec' ?> text-xs" hidden>Remove</button></div>
+        <div class="flex justify-between items-center mb-2"><strong class="text-sm" data-feed-title>Feed 1</strong><button type="button" data-feed-remove class="<?= $btnSec ?> text-xs" hidden>Remove</button></div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div><label class="<?= '$label' ?>" for="lf">Feed</label><select id="lf" name="feeds[0][product]" class="<?= '$input' ?>"><option value="0">Choose feed</option>
+          <div><label class="<?= $label ?>" for="lf">Feed</label><select id="lf" name="feeds[0][product]" class="<?= $input ?>"><option value="0">Choose feed</option>
             <?php foreach ($feeds as $p): ?><option value="<?= (int)$p['id'] ?>"<?php if ($p['units']): ?> data-units="<?= $h(json_encode(array_map(fn($u) => ['key' => $u['key'], 'label' => $u['label'], 'g' => round($u['g'], 3), 'name' => $u['name']], $p['units']))) ?>" data-unit-g="<?= $h(round((float)$p['unit_g'], 3)) ?>" data-word="<?= $h(bcrf_feed_stock_word($p)) ?>" data-last="<?= $h($p['last_unit']) ?>"<?php endif; ?>><?= $h($p['name']) ?><?= (int)$p['track_inventory'] === 1 ? ' (' . $h($p['stock_text']) . ' on hand)' : '' ?></option><?php endforeach; ?></select>
           </div>
           <div><div class="flex gap-2 items-end">
-            <div class="flex-1"><label class="<?= '$label' ?>" for="lq">Amount</label><input id="lq" name="feeds[0][qty]" inputmode="decimal" class="<?= '$input' ?>" placeholder="e.g. 2"></div>
-            <div class="flex-1" data-unit-wrap hidden><label class="<?= '$label' ?>" for="lu">Unit</label><select id="lu" name="feeds[0][unit]" class="<?= '$input' ?>" disabled></select></div>
+            <div class="flex-1"><label class="<?= $label ?>" for="lq">Amount</label><input id="lq" name="feeds[0][qty]" inputmode="decimal" class="<?= $input ?>" placeholder="e.g. 2"></div>
+            <div class="flex-1" data-unit-wrap hidden><label class="<?= $label ?>" for="lu">Unit</label><select id="lu" name="feeds[0][unit]" class="<?= $input ?>" disabled></select></div>
           </div><span data-feed-hint class="block text-xs text-stone-500 mt-1" aria-live="polite"></span></div>
         </div>
       </div>
     </div>
     <?php if (!$feeds && $canEdit): ?><p class="text-xs text-stone-500 mb-2">Pick feed products under <a class="underline text-amber-800" href="animal_care.php?tab=setup">Setup</a>.</p><?php endif; ?>
-    <button type="button" data-feed-add class="<?= '$btnSec' ?> mb-3">+ Add Another Feed</button>
+    <button type="button" data-feed-add class="<?= $btnSec ?> mb-3">+ Add Another Feed</button>
     <?php endif; ?>
     <div class="mb-3"><label class="<?= $label ?>" for="ln">Note (optional)</label><input id="ln" name="note" maxlength="500" class="<?= $input ?>" placeholder="<?= $type['is_feeding'] ? 'e.g. Hazel left half' : 'Anything worth noting' ?>"></div>
     <button class="<?= $btnMain ?> w-full sm:w-auto" data-care-save data-what="Log <?= $h(strtolower($type['name'])) ?>">Log <?= $h(strtolower($type['name'])) ?></button>
