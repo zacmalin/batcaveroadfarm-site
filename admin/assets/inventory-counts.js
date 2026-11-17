@@ -88,18 +88,28 @@
         let toast = $('invToast');
         if (!toast) {
             toast = document.createElement('div');
-            toast.id        = 'invToast';
-            toast.setAttribute('role', 'status');
-            toast.className = 'fixed bottom-24 md:bottom-5 right-5 z-50 px-4 py-2 rounded-lg shadow-lg font-mono text-xs font-bold transition-opacity duration-300';
+            toast.id = 'invToast';
+            toast.setAttribute('aria-live', 'polite');
             document.body.appendChild(toast);
         }
-        toast.textContent       = msg;
-        toast.style.background  = isError ? '#fef2f2' : '#f0fdf4';
-        toast.style.color       = isError ? '#991b1b' : '#166534';
-        toast.style.border      = isError ? '1px solid #fecaca' : '1px solid #bbf7d0';
-        toast.style.opacity     = '1';
         clearTimeout(toast._timer);
-        toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, isError ? 4000 : 1500);
+        toast.replaceChildren();
+        toast.className = 'ui-toast' + (isError ? ' is-err' : '');
+        toast.setAttribute('role', isError ? 'alert' : 'status');
+        const message = document.createElement('span');
+        message.textContent = msg;
+        toast.appendChild(message);
+        if (isError) {
+            const close = document.createElement('button');
+            close.type = 'button';
+            close.className = 'ui-toast-x';
+            close.setAttribute('aria-label', 'Close');
+            close.textContent = '✕';
+            close.addEventListener('click', () => toast.classList.remove('is-on'));
+            toast.appendChild(close);
+        }
+        toast.classList.add('is-on');
+        if (!isError) toast._timer = setTimeout(() => toast.classList.remove('is-on'), 5000);
     }
 
     // ── LABEL PRINT MODAL ────────────────────────────────────────────────────
