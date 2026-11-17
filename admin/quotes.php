@@ -343,12 +343,14 @@ bcrf_shell_open('Quotes & payments', ['toast' => $toast]);
   <h1 class="text-2xl font-bold text-stone-800 mb-1">Quotes &amp; payments</h1>
   <p class="text-sm text-stone-500 mb-4">Upcoming group bookings and parties: the quote, any deposit, and what's left to pay. Tap one to price it, send it, or record a payment.</p>
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
-  <div class="flex flex-wrap gap-2 mb-4 text-sm">
-    <?php foreach (['all' => 'Everything', 'party' => 'Parties', 'booking' => 'Group bookings'] as $k => $v): ?>
-      <a href="?kind=<?= $k ?>&amp;show=<?= $show ?>" class="px-3 py-2 rounded-lg border <?= $kind === $k ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-600 border-stone-200' ?>"><?= $v ?></a>
-    <?php endforeach; ?>
-    <a href="?kind=<?= $kind ?>&amp;show=<?= $show === 'open' ? 'all' : 'open' ?>" class="px-3 py-2 rounded-lg border bg-white text-stone-600 border-stone-200"><?= $show === 'open' ? 'Include cancelled and past 60 days' : 'Upcoming only' ?></a>
-    <form method="GET" action="quotes.php" class="flex gap-2 items-center"><input type="hidden" name="kind" value="<?= $h($kind) ?>"><input type="hidden" name="show" value="<?= $h($show) ?>">
+  <div id="quotes-list" class="flex flex-wrap items-center justify-end gap-2 mb-4 scroll-mt-4 text-sm">
+    <div class="flex flex-wrap justify-end gap-1.5" role="group" aria-label="Filter quotes by type">
+      <?php foreach (['all' => 'Everything', 'party' => 'Parties', 'booking' => 'Group bookings'] as $k => $v): ?>
+        <a href="?kind=<?= $k ?>&amp;show=<?= $show ?>#quotes-list" <?= $kind === $k ? 'aria-current="true"' : '' ?> class="inline-flex min-h-9 items-center px-3 rounded-full border text-xs font-semibold <?= $kind === $k ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100' ?>"><?= $v ?></a>
+      <?php endforeach; ?>
+    </div>
+    <a href="?kind=<?= $kind ?>&amp;show=<?= $show === 'open' ? 'all' : 'open' ?>#quotes-list" class="inline-flex min-h-9 items-center px-3 rounded-full border text-xs font-semibold <?= $show === 'all' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100' ?>"><?= $show === 'open' ? 'Include past / cancelled' : 'Showing past / cancelled' ?></a>
+    <form method="GET" action="quotes.php#quotes-list" class="flex flex-wrap gap-2 items-center"><input type="hidden" name="kind" value="<?= $h($kind) ?>"><input type="hidden" name="show" value="<?= $h($show) ?>">
       <?= bcrf_list_sort_select($sortOpts, $sort, ['class' => $input]) ?><button type="submit" class="<?= $btnSec ?>">Sort</button></form>
   </div>
   <div class="grid grid-cols-2 gap-2 mb-4">
