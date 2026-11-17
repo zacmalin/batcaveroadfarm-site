@@ -49,11 +49,11 @@ if ($tab === 'queue'):
                             WHERE $where ORDER BY $order LIMIT 200")->fetchAll(PDO::FETCH_ASSOC) ?: [];
     $SL = jobs_status_labels();
 ?>
-  <div class="flex gap-3 text-sm mb-3">
-    <?php foreach (['waiting' => 'Waiting', 'sent' => 'Sent', 'cancelled' => 'Cancelled'] as $k => $l): ?>
-      <a href="/admin/admin.php?view=jobs_emails&tab=queue&qs=<?= $k ?>" class="<?= $qs === $k ? 'font-semibold text-amber-800 underline' : 'text-stone-500 hover:text-stone-800' ?>"><?= $l ?></a>
+  <nav class="flex flex-wrap justify-end gap-1.5 mb-3" aria-label="Email queue status">
+    <?php foreach (['waiting' => 'Waiting', 'sent' => 'Sent', 'cancelled' => 'Cancelled'] as $k => $l): $on = $qs === $k; ?>
+      <a href="/admin/admin.php?view=jobs_emails&tab=queue&qs=<?= $k ?>" class="text-sm px-3 py-1.5 rounded-full border whitespace-nowrap <?= $on ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50' ?>" <?= $on ? 'aria-current="page"' : '' ?>><?= $l ?></a>
     <?php endforeach; ?>
-  </div>
+  </nav>
 
   <?php if ($qs === 'waiting'): ?>
   <p class="text-sm text-stone-600 mb-3">"Not selected" emails wait here so nobody gets one by accident. Read each one, then tap <strong>Send</strong>. Cancelling never emails anyone.</p>
