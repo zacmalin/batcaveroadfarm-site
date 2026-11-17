@@ -268,6 +268,13 @@ $allPendingPay = count(array_filter($pending,    fn($r) => ($r['payment_status']
     <?php endforeach; endif; ?>
   </div>
 
+  <!-- Setup is secondary to day-to-day booking operations. -->
+  <details class="ui-expand bg-white border border-stone-200 rounded-lg mb-8 shadow-sm overflow-hidden">
+    <summary class="flex flex-wrap items-center justify-between gap-3 px-5 py-4 bg-stone-50 cursor-pointer">
+      <span class="font-semibold text-stone-700">⚙️ Booking setup</span>
+      <span class="text-xs text-stone-500">Blackout dates and booking types <span class="ui-expand-hint">▼</span><span class="ui-expand-open">▲</span></span>
+    </summary>
+    <div class="p-4 md:p-5">
   <!-- Blackouts -->
   <div class="bg-white border border-stone-200 rounded-lg p-5 mb-8 shadow-sm">
     <h2 class="font-semibold text-stone-700 mb-4">🚫 Blackout dates</h2>
@@ -495,6 +502,9 @@ $allPendingPay = count(array_filter($pending,    fn($r) => ($r['payment_status']
       </form>
     </details>
   </div>
+
+    </div>
+  </details>
 
   <?php endif; ?>
 </div>
