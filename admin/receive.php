@@ -143,7 +143,7 @@ $sel = function (string $name, array $opts, $cur, string $blank = '') use ($h) {
     return $o . '</select>';
 };
 
-bcrf_shell_open('Receive', ['legacy' => true]);
+bcrf_shell_open('Receive', ['legacy' => true, 'js' => ['receive-lines.js']]);
 
 // Detail view
 if (!empty($_GET['id']) && empty($_GET['new'])) {
@@ -240,7 +240,7 @@ echo '<label>Vendor (optional)', $sel('vendor_id', $vendors, $d['vendor_id'] ?? 
 echo '<div class="two"><label>Invoice / packing slip #<input type="text" name="invoice_ref" value="', $h($d['invoice_ref'] ?? ''), '" maxlength="80" autocomplete="off"></label>',
      '<label>Note<input type="text" name="note" value="', $h($d['note'] ?? ''), '" maxlength="255" autocomplete="off"></label></div>';
 
-echo '<fieldset class="grp"><legend>Lines (', $lineCount, ')</legend>';
+echo '<fieldset class="grp" data-receive-lines><legend>Lines (<span data-receive-count>', $lineCount, '</span>)</legend>'; 
 echo '<p class="muted">Scan or type a <b>SKU</b>, or pick a product. Unit cost is what you paid per unit — the average on the product is shown in the list. Leave a row blank to skip it.</p>';
 
 for ($i = 0; $i < $lineCount; $i++) {
@@ -252,7 +252,7 @@ for ($i = 0; $i < $lineCount; $i++) {
     if ($pid && isset($byId[(int)$pid]) && $byId[(int)$pid]['avg_cost_cents'] !== null && $cost === '') {
         $hint = 'placeholder="' . $h(rtrim(rtrim(number_format(((int)$byId[(int)$pid]['avg_cost_cents']) / 100, 4, '.', ''), '0'), '.')) . '"';
     }
-    echo '<div class="card pline"><strong>Line ', $i + 1, '</strong>';
+    echo '<div class="card pline" data-receive-line><strong data-receive-number>Line ', $i + 1, '</strong>'; 
     echo '<label>SKU / barcode <small class="muted">(scan here — overrides the product pick)</small>',
          '<input type="text" name="sku[]" value="', $h($sku), '" maxlength="50" autocomplete="off" inputmode="text"></label>';
     echo '<label>Product', $sel('product_id[]', $prodOpts, $pid), '</label>';
@@ -267,7 +267,7 @@ if ($lineCount < 20) {
     $q = ['new' => 1, 'lines' => $more];
     if ($preProduct) $q['product'] = $preProduct;
     if ($defVendor) $q['vendor'] = $defVendor;
-    echo '<a href="receive.php?' . $h(http_build_query($q)) . '">Add more lines (', $more, ')</a> · ';
+    echo '<button type="button" class="btn sm" data-receive-add>Add 4 lines</button><noscript><a href="receive.php?' . $h(http_build_query($q)) . '">Add more lines (', $more, ')</a></noscript> · ';
 }
 echo 'Or submit this receive and start another.</p></fieldset>';
 if (bcrf_docs_ready($pdo)) {
