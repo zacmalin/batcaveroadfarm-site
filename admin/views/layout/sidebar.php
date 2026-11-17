@@ -48,6 +48,8 @@ $_active = function(string $href) use ($_tv, $_tt): bool {
         foreach ($p as $k => $v) if ((string)($_GET[$k] ?? '') !== (string)$v) return false;
         // A base-page tab is not active while a named sibling tab is selected.
         if (!array_key_exists('tab', $p) && (string)($_GET['tab'] ?? '') !== '') return false;
+        // Customers Find and Possible duplicates share customers.php; only one tab should be active.
+        if ($file === 'customers.php' && !array_key_exists('dupes', $p) && (string)($_GET['dupes'] ?? '') === '1') return false;
         // Quotes has two menu owners: the base list is Bookings, ?kind=party is Private Events.
         if ($file === 'quotes.php' && !array_key_exists('kind', $p) && (string)($_GET['kind'] ?? '') === 'party') return false;
         return true;
