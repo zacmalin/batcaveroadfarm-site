@@ -114,7 +114,7 @@ if (!$groups) {
         }
         echo '<label>Note <small class="muted">(optional, e.g. check #)</small><input type="text" name="note" maxlength="255" autocomplete="off"></label>';
         echo '<p class="muted">Select the items being paid. The amount recorded is calculated from the selected items when you submit.</p>';
-        echo '<div class="rbar"><button class="btn primary" type="submit">Record payout for selected items</button></div>';
+        echo '<div class="rbar"><button class="btn primary" type="submit" data-confirm="Confirm the selected items have actually been paid. Recording this payout will mark them settled and cannot be undone here. Continue?">Record payout for selected items</button></div>';
         echo '</form></div>';
     }
 }
