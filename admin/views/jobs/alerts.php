@@ -42,7 +42,6 @@ $base  = 'show=' . $show . ($q !== '' ? '&q=' . rawurlencode($q) : '');
 <div class="max-w-4xl pb-16">
   <h1 class="text-2xl font-bold text-stone-800 mb-1">Hiring</h1>
   <p class="text-sm text-stone-500 mb-4">People who signed up on the Jobs page to get an email when you post a job.</p>
-  <?php require __DIR__ . '/_tabs.php'; ?>
 
   <?php if (!$ready): ?>
   <div class="bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-3 mb-4 text-sm">Job alerts are off because the site's list secret (BCRF_LIST_SECRET) isn't set. The signup page shows "not available" until it is.</div>
@@ -57,7 +56,7 @@ $base  = 'show=' . $show . ($q !== '' ? '&q=' . rawurlencode($q) : '');
     To send alerts, open a job under <a class="text-amber-700 underline" href="/admin/admin.php?view=jobs_posts">Jobs</a> while hiring is open and tap <strong>Let people know</strong>. Signup page: <a class="text-amber-700 underline break-all" href="/jobs/alerts/" target="_blank" rel="noopener"><?= bcrf_farm_domain() ?>/jobs/alerts/</a>
   </div>
 
-  <div class="flex flex-wrap items-center gap-1.5 mb-3">
+  <div class="flex flex-wrap items-center justify-end gap-1.5 mb-3">
     <?php foreach (['active' => 'Getting alerts', 'stopped' => 'Stopped', 'all' => 'All'] as $k => $l): $on = $show === $k; ?>
       <a href="/admin/admin.php?view=jobs_alerts&show=<?= $k ?>" class="text-sm px-3 py-1.5 rounded-full border whitespace-nowrap <?= $on ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-50' ?>" <?= $on ? 'aria-current="page"' : '' ?>><?= $l ?></a>
     <?php endforeach; ?>
