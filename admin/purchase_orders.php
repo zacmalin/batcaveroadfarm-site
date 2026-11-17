@@ -149,7 +149,7 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
         echo '<form method="POST" action="purchase_orders.php" class="inline-form">',
              '<input type="hidden" name="csrf_token" value="', $h($csrf), '">',
              '<input type="hidden" name="id" value="', (int)$po['id'], '"><input type="hidden" name="act" value="cancel">',
-             '<button class="btn" type="submit">Cancel order</button></form>';
+             '<button class="btn" type="submit" onclick="return confirm(&quot;Cancel this purchase order? This will change its status to cancelled.&quot;)">Cancel order</button></form>';
     }
     echo '</div>';
     echo bcrf_doc_box_html($pdo, 'po', (int)$po['id'], '/admin/purchase_orders.php?id=' . (int)$po['id'], $csrf);
@@ -234,7 +234,7 @@ echo '<form class="rform" method="GET" action="purchase_orders.php"><input type=
      $sel('status', ['open' => 'Open', 'draft' => 'Draft', 'ordered' => 'Ordered', 'partial' => 'Partial', 'received' => 'Received', 'cancelled' => 'Cancelled', 'all' => 'All'], $f['status']),
      $sel('vendor', $vendors, $f['vendor_id'] ?? '', 'All vendors'),
      bcrf_list_sort_select($sortOpts, $sort),
-     '<button class="btn sm" type="submit">Show</button><a class="btn sm primary" href="purchase_orders.php?new=1">New order</a></form>';
+     '<button class="btn sm" type="submit">Apply filters</button><a class="btn sm" href="purchase_orders.php">Reset</a><a class="btn sm primary" href="purchase_orders.php?new=1">New order</a></form>';
 if (!$rows) echo '<p class="card muted">No orders match. <a href="purchase_orders.php?new=1">Create one</a>.</p>';
 else {
     echo '<div class="card hist">';
