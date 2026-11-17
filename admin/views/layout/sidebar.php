@@ -13,8 +13,8 @@ $_sections = bcrf_admin_nav_sections();
 
 // Phone bottom-bar defaults by role (02, Nov 5 2026). Owner set becomes Dashboard, POS, Gate, Tasks once those exist.
 $_defaults_by_role = [
-    'administrator' => ['dashboard', 'storefront.pos', 'visitors.bookings', 'team.tasks'],   // Tasks replaced Inventory (Phase 3, Nov 11)
-    'moderator'     => ['dashboard', 'storefront.pos', 'visitors.bookings', 'team.tasks'],
+    'administrator' => ['dashboard', 'storefront.pos', 'visitors.gate-check-in', 'team.tasks'],   // Tasks replaced Inventory (Phase 3, Nov 11)
+    'moderator'     => ['dashboard', 'storefront.pos', 'visitors.gate-check-in', 'team.tasks'],
     'Shopkeep'      => ['storefront.pos', 'storefront.products-inventory', 'team.tasks', 'team.time-clock'],
     'Media'         => ['content.blog', 'content.social-queue', 'content.comments', 'content.media-library'],
     'Staff'         => ['team.tasks', 'team.time-clock'],
