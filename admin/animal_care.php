@@ -432,7 +432,10 @@ if ($error) echo bcrf_shell_notice('err', $error);
     <?php foreach ($other as $t): ?><a class="<?= $btnSec ?>" href="animal_care.php?type=<?= $t['id'] ?><?= $encQ ?>"><?= $h($t['name']) ?></a><?php endforeach; ?>
   </div>
   <?php endif; ?>
-  <h2 class="text-base font-semibold text-stone-800 mb-2">Latest</h2>
+  <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+    <h2 class="text-base font-semibold text-stone-800">Latest care</h2>
+    <a href="animal_care.php?tab=log" class="text-sm text-amber-800 underline">View all recent entries</a>
+  </div>
   <?php if (!$recent): ?><p class="text-sm text-stone-500">Nothing logged yet.</p><?php else: ?>
   <div class="<?= $card ?> p-0 overflow-hidden"><ul class="divide-y divide-stone-100">
     <?php foreach ($recent as $r): ?><li class="px-4 py-2"><?= $entryLine($r) ?></li><?php endforeach; ?>
