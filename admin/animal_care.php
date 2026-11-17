@@ -41,7 +41,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         if (!hash_equals($csrf, (string)($_POST['csrf_token'] ?? ''))) throw new BcrfCareError('Security token expired; try again.');
         if ($act === 'log') {
             $ret = (int)($_POST['return_animal'] ?? 0);
-            if ($ret) $back = 'animals.php?id=' . $ret . '&tab=care';
+            $back = $ret ? 'animals.php?id=' . $ret . '&tab=care' : 'animal_care.php?type=' . (int)($_POST['type'] ?? 0);
             // One-time form key (Nov 16, 2026): a double tap or a resend on a slow connection can't log the feeding (and draw the
             // feed from stock) twice. PHP holds the session lock for the whole request, so a second copy waits and then sees the key.
             $once = (string)($_POST['once'] ?? '');
@@ -50,16 +50,19 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 $_SESSION['ac_flash'] = ['ok', 'Already logged. That form was sent twice, so it was saved once.'];
                 header('Location: ' . $back); exit;
             }
-            $r = bcrf_care_log($pdo, ['type' => $_POST['type'] ?? 0, 'animals' => (array)($_POST['animals'] ?? []), 'enclosure' => $_POST['enclosure'] ?? 0,
-                                      'note' => $_POST['note'] ?? '', 'feed_product' => $_POST['feed_product'] ?? 0, 'feed_qty' => $_POST['feed_qty'] ?? '',
-                                      'feed_unit' => $_POST['feed_unit'] ?? ''], $uid);
+            $careInput = ['type' => $_POST['type'] ?? 0, 'animals' => (array)($_POST['animals'] ?? []), 'enclosure' => $_POST['enclosure'] ?? 0,
+                          'note' => $_POST['note'] ?? '', 'feed_product' => $_POST['feed_product'] ?? 0, 'feed_qty' => $_POST['feed_qty'] ?? '',
+                          'feed_unit' => $_POST['feed_unit'] ?? ''];
+            $r = isset($_POST['feeds']) && is_array($_POST['feeds'])
+                ? bcrf_care_log_session($pdo, $careInput, $_POST['feeds'], $uid)
+                : bcrf_care_log($pdo, $careInput, $uid);
             if ($once !== '') {
                 $seen = (array)($_SESSION['care_once'] ?? []);
                 $seen[$once] = time();
                 $_SESSION['care_once'] = array_slice($seen, -30, null, true);
             }
             if (function_exists('erp_audit')) erp_audit($pdo, 'create', 'animal_care_logs', $r['id'], 'Care logged for ' . $r['animals'] . ' animal(s)');
-            $msg = 'Logged for ' . $r['animals'] . ' animal' . ($r['animals'] > 1 ? 's' : '') . '.';
+            $msg = 'Logged ' . (isset($r['ids_count']) ? $r['ids_count'] . ' feeds ' : 'care ') . 'for ' . $r['animals'] . ' animal' . ($r['animals'] > 1 ? 's' : '') . '.';
             $_SESSION['ac_flash'] = $r['stock_note'] ? ['err', $msg . ' ' . $r['stock_note']] : ['ok', $msg];
             if (function_exists('bcrf_sched_generate')) bcrf_sched_generate($pdo);   // closes schedule tasks this covered
         } elseif ($act === 'void') {
@@ -387,7 +390,7 @@ if ($typeId) {
     }
     if (!$pickGroups['species'] && !$pickGroups['breed']) $pickGroups = [];
     $feeds = $type['is_feeding'] ? bcrf_care_feed_products($pdo) : [];
-    $pageJs = array_merge($feeds ? ['feed-units.js'] : [], ['care-pick.js']);   // care-pick.js also keeps the "for N animals" count on the button
+    $pageJs = array_merge($type['is_feeding'] ? ['feed-units.js'] : [], ['care-pick.js']);   // care-pick.js also keeps the "for N animals" count on the button
     bcrf_shell_open('Log ' . $type['name'], ['toast' => $toast, 'width' => 'max-w-3xl', 'js' => $pageJs]);
     echo '<a href="', $oneAnimal ? 'animals.php?id=' . $oneAnimal . '&amp;tab=care' : 'animal_care.php', '" class="text-sm text-amber-800 underline">‹ Back</a>';
     echo '<h1 class="text-2xl font-bold text-stone-800 mt-2 mb-3">', $h($type['name']), '</h1>';
@@ -418,15 +421,22 @@ if ($typeId) {
       <?php endforeach; ?>
       </div></fieldset>
     <?php if ($type['is_feeding']): ?>
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-      <div><label class="<?= $label ?>" for="lf">Feed (optional)</label><select id="lf" name="feed_product" class="<?= $input ?>"><option value="0">Not recorded</option>
-        <?php foreach ($feeds as $p): ?><option value="<?= (int)$p['id'] ?>"<?php if ($p['units']): ?> data-units="<?= $h(json_encode(array_map(fn($u) => ['key' => $u['key'], 'label' => $u['label'], 'g' => round($u['g'], 3), 'name' => $u['name']], $p['units']))) ?>" data-unit-g="<?= $h(round((float)$p['unit_g'], 3)) ?>" data-word="<?= $h(bcrf_feed_stock_word($p)) ?>" data-last="<?= $h($p['last_unit']) ?>"<?php endif; ?>><?= $h($p['name']) ?><?= (int)$p['track_inventory'] === 1 ? ' (' . $h($p['stock_text']) . ' on hand)' : '' ?></option><?php endforeach; ?></select>
-        <?php if (!$feeds && $canEdit): ?><span class="block text-xs text-stone-500 mt-1">Pick your feed products under <a class="underline text-amber-800" href="animal_care.php?tab=setup">Setup</a>.</span><?php endif; ?></div>
-      <div><div class="flex gap-2 items-end">
-        <div class="flex-1"><label class="<?= $label ?>" for="lq">Amount</label><input id="lq" name="feed_qty" inputmode="decimal" class="<?= $input ?>" placeholder="e.g. 2"></div>
-        <div class="flex-1" data-unit-wrap hidden><label class="<?= $label ?>" for="lu">Unit</label><select id="lu" name="feed_unit" class="<?= $input ?>" disabled></select></div>
-      </div><span id="lqh" class="block text-xs text-stone-500 mt-1" aria-live="polite"></span></div>
+    <div data-feed-rows class="space-y-3 mb-3">
+      <div data-feed-row class="border border-stone-200 rounded-lg p-3">
+        <div class="flex justify-between items-center mb-2"><strong class="text-sm" data-feed-title>Feed 1</strong><button type="button" data-feed-remove class="<?= '$btnSec' ?> text-xs" hidden>Remove</button></div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div><label class="<?= '$label' ?>" for="lf">Feed</label><select id="lf" name="feeds[0][product]" class="<?= '$input' ?>"><option value="0">Choose feed</option>
+            <?php foreach ($feeds as $p): ?><option value="<?= (int)$p['id'] ?>"<?php if ($p['units']): ?> data-units="<?= $h(json_encode(array_map(fn($u) => ['key' => $u['key'], 'label' => $u['label'], 'g' => round($u['g'], 3), 'name' => $u['name']], $p['units']))) ?>" data-unit-g="<?= $h(round((float)$p['unit_g'], 3)) ?>" data-word="<?= $h(bcrf_feed_stock_word($p)) ?>" data-last="<?= $h($p['last_unit']) ?>"<?php endif; ?>><?= $h($p['name']) ?><?= (int)$p['track_inventory'] === 1 ? ' (' . $h($p['stock_text']) . ' on hand)' : '' ?></option><?php endforeach; ?></select>
+          </div>
+          <div><div class="flex gap-2 items-end">
+            <div class="flex-1"><label class="<?= '$label' ?>" for="lq">Amount</label><input id="lq" name="feeds[0][qty]" inputmode="decimal" class="<?= '$input' ?>" placeholder="e.g. 2"></div>
+            <div class="flex-1" data-unit-wrap hidden><label class="<?= '$label' ?>" for="lu">Unit</label><select id="lu" name="feeds[0][unit]" class="<?= '$input' ?>" disabled></select></div>
+          </div><span data-feed-hint class="block text-xs text-stone-500 mt-1" aria-live="polite"></span></div>
+        </div>
+      </div>
     </div>
+    <?php if (!$feeds && $canEdit): ?><p class="text-xs text-stone-500 mb-2">Pick feed products under <a class="underline text-amber-800" href="animal_care.php?tab=setup">Setup</a>.</p><?php endif; ?>
+    <button type="button" data-feed-add class="<?= '$btnSec' ?> mb-3">+ Add Another Feed</button>
     <?php endif; ?>
     <div class="mb-3"><label class="<?= $label ?>" for="ln">Note (optional)</label><input id="ln" name="note" maxlength="500" class="<?= $input ?>" placeholder="<?= $type['is_feeding'] ? 'e.g. Hazel left half' : 'Anything worth noting' ?>"></div>
     <button class="<?= $btnMain ?> w-full sm:w-auto" data-care-save data-what="Log <?= $h(strtolower($type['name'])) ?>">Log <?= $h(strtolower($type['name'])) ?></button>
