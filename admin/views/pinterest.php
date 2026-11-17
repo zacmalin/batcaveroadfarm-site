@@ -133,11 +133,13 @@ $btn  = 'px-3 py-2 rounded border text-[11px] font-bold';
   </div>
 
   <!-- Filters -->
-  <div class="flex flex-wrap gap-1.5 mb-2">
-    <?php foreach ($filters as $k => [$lbl]): ?>
-      <a href="<?= $e($url(['f' => $k] + ($tsel ? ['t' => $tsel] : []))) ?>" class="px-2.5 py-1.5 rounded-full border text-[11px] font-bold <?= $k === $f ? 'bg-amber-700 text-white border-amber-700' : 'bg-white text-stone-600 border-stone-300' ?>"><?= $e($lbl) ?> <span class="opacity-60"><?= $counts[$k] ?? 0 ?></span></a>
-    <?php endforeach; ?>
-  </div>
+  <nav class="social-period-nav" aria-label="Filter Pinterest drafts by status">
+    <div class="social-period-options">
+      <?php foreach ($filters as $k => [$lbl]): ?>
+        <a href="<?= $e($url(['f' => $k] + ($tsel ? ['t' => $tsel] : []))) ?>" <?= $k === $f ? 'aria-current="page"' : '' ?> class="social-period-pill<?= $k === $f ? ' is-active' : '' ?>"><?= $e($lbl) ?> <span class="opacity-60"><?= $counts[$k] ?? 0 ?></span></a>
+      <?php endforeach; ?>
+    </div>
+  </nav>
   <div class="flex gap-3 mb-4 text-[11px]">
     <?php foreach (['' => 'Everything', 'recipe' => '🍴 Recipes', 'animal' => '🐐 Animals'] as $k => $lbl): ?>
       <a href="<?= $e($url(['f' => $f] + ($k ? ['t' => $k] : []))) ?>" class="<?= $k === $tsel ? 'font-black text-stone-900 underline' : 'text-stone-500' ?>"><?= $lbl ?></a>
