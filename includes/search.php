@@ -230,7 +230,7 @@ function bcrf_search(PDO $pdo, string $q, callable $can, array $me = []): array 
     $pages = bcrf_search_pages($q, $can);
     if ($pages) $out['groups'][] = [
         'key' => 'pages', 'label' => 'Pages & settings', 'icon' => '🧭',
-        'rows' => array_map(fn($r) => ['title' => (string)$r[0], 'sub' => (string)$r[1], 'url' => (string)$r[2]], array_slice($pages, 0, BCRF_SEARCH_PER_GROUP + 1)),
+        'rows' => array_map(fn($r) => ['title' => (string)$r[0], 'sub' => (string)$r[1], 'url' => (string)$r[2]], $pages),
         'more' => null,
     ];
 
