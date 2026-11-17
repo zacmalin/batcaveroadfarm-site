@@ -222,7 +222,7 @@ if ($tab === 'find') {
         $p = (int)$t['points'];
         echo '<div class="lrow ui-swrow', (int)$t['active'] ? '' : ' is-off', '" data-switch-row><span class="ui-swmain">', $n($p), ' points', $t['benefit'] !== '' ? ': ' . $h($t['benefit']) : ' (no reward written in yet)', '</span>',
              bcrf_switch(['action' => 'rewards.php', 'csrf' => $csrf, 'fields' => ['act' => 'tier', 'points' => $p, 'back' => 'rewards.php?tab=settings'],
-                          'on' => (int)$t['active'] === 1, 'label' => 'Offer the ' . $n($p) . '-point reward', 'on_text' => 'Offered', 'off_text' => 'Off']), '</div>';
+                          'class' => 'rewards-tier-switch', 'on' => (int)$t['active'] === 1, 'label' => 'Offer the ' . $n($p) . '-point reward', 'on_text' => 'Offered', 'off_text' => 'Off']), '</div>';
     }
     echo '</section>';
 }
