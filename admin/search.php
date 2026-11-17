@@ -56,10 +56,19 @@ bcrf_shell_open('Search', ['width' => 'max-w-3xl', 'css' => ['search.css'], 'js'
     <section class="srch-group">
       <h2 class="srch-gh"><?= $g['icon'] ?> <?= $h($g['label']) ?></h2>
       <ul class="srch-list">
-<?php foreach ($g['rows'] as $r): ?>
+<?php foreach (array_slice($g['rows'], 0, 5) as $r): ?>
         <li><a class="srch-item" href="<?= $h($r['url']) ?>"><span class="srch-t"><?= $h($r['title']) ?></span><?php if ($r['sub'] !== ''): ?><span class="srch-s"><?= $h($r['sub']) ?></span><?php endif; ?></a></li>
 <?php endforeach; ?>
       </ul>
+<?php if ($g['key'] === 'pages' && count($g['rows']) > 5): ?>
+      <details class="srch-extra"><summary class="srch-more">Show <?= count($g['rows']) - 5 ?> more pages</summary>
+        <ul class="srch-list">
+<?php foreach (array_slice($g['rows'], 5) as $r): ?>
+          <li><a class="srch-item" href="<?= $h($r['url']) ?>"><span class="srch-t"><?= $h($r['title']) ?></span><?php if ($r['sub'] !== ''): ?><span class="srch-s"><?= $h($r['sub']) ?></span><?php endif; ?></a></li>
+<?php endforeach; ?>
+        </ul>
+      </details>
+<?php endif; ?>
 <?php if ($g['more']): ?>
       <a class="srch-more" href="<?= $h($g['more']) ?>">See all <?= $h(mb_strtolower($g['label'])) ?> →</a>
 <?php endif; ?>
