@@ -62,12 +62,14 @@ $badge = function (string $s): string {
   <?php $sh_always = true; include __DIR__ . '/layout/social_health_banner.php'; ?>
 
   <?php if ($social_ready): ?>
-    <nav aria-label="Filter social queue by status" class="flex flex-wrap gap-2 mb-4">
-      <?php foreach ($social_statuses as $status_key => $status_label): ?>
-        <a href="/admin/admin.php?<?= htmlspecialchars(http_build_query(['view' => 'social', 'status' => $status_key]), ENT_QUOTES, 'UTF-8') ?>"
-           <?= $social_filter === $status_key ? 'aria-current="page"' : '' ?>
-           class="px-3 py-2 rounded border text-xs font-bold <?= $social_filter === $status_key ? 'bg-amber-700 text-white border-amber-700' : 'bg-white text-stone-600 border-stone-300' ?>"><?= htmlspecialchars($status_label, ENT_QUOTES, 'UTF-8') ?></a>
-      <?php endforeach; ?>
+    <nav aria-label="Filter social queue by status" class="social-period-nav">
+      <div class="social-period-options">
+        <?php foreach ($social_statuses as $status_key => $status_label): ?>
+          <a href="/admin/admin.php?<?= htmlspecialchars(http_build_query(['view' => 'social', 'status' => $status_key]), ENT_QUOTES, 'UTF-8') ?>"
+             <?= $social_filter === $status_key ? 'aria-current="page"' : '' ?>
+             class="social-period-pill<?= $social_filter === $status_key ? ' is-active' : '' ?>"><?= htmlspecialchars($status_label, ENT_QUOTES, 'UTF-8') ?></a>
+        <?php endforeach; ?>
+      </div>
     </nav>
   <?php endif; ?>
   <?php if (!$social_ready): ?>
