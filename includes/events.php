@@ -200,6 +200,8 @@ if (!function_exists('bcrf_events_render')) {
             $h .= '<div class="event-body">';
             $h .= '<h2 class="event-title">' . htmlspecialchars($title) . '</h2>';
             if ($when !== '') $h .= '<p class="event-when">📅 ' . htmlspecialchars($when) . '</p>';
+            $locationNote = trim((string)($ev['location_note'] ?? ''));
+            if ($locationNote !== '') $h .= '<p class="event-when">📍 ' . htmlspecialchars($locationNote) . '</p>';
             $h .= '<p class="event-cost">' . ($free ? 'Free' : ($price > 0 ? '$' . number_format($price, 2) : 'See details')) . '</p>';
             if ($desc !== '') $h .= '<p class="event-desc">' . htmlspecialchars($desc) . '</p>';
             $h .= '</div></article>';
