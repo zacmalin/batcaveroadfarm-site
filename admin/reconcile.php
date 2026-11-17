@@ -79,7 +79,8 @@ if ($tab === 'flagged') echo '<p class="muted">Payments marked as a problem. If 
 if ($tab === 'matched') {
     echo '<form class="rform" method="GET" action="reconcile.php"><input type="hidden" name="tab" value="matched">',
          '<input type="date" name="from" value="', $h($from), '" aria-label="From"><span>to</span><input type="date" name="to" value="', $h($to), '" aria-label="To">',
-         '<button class="btn sm" type="submit">Show</button></form>';
+         '<button class="btn sm" type="submit">Apply filters</button>',
+         (($from !== date('Y-m-d', strtotime($today . ' -13 days')) || $to !== $today) ? '<a class="btn sm" href="reconcile.php?tab=matched">Reset</a>' : ''), '</form>'; 
 }
 
 if (!$groups) {
@@ -113,7 +114,7 @@ foreach ($groups as $date => $byT) {
             } elseif ($tab === 'flagged') {
                 echo $one, $btn('match', 'Found it', [], 'btn sm primary'), '</form>', $one, $btn('reopen', 'Clear flag'), '</form>';
             } else {
-                echo $one, $btn('reopen', 'Undo'), '</form>';
+                echo $one, $btn('reopen', 'Reopen'), '</form>';
             }
             echo '</div></div>';
         }
