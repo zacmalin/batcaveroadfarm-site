@@ -94,7 +94,7 @@ foreach ($groups as $date => $byT) {
         if ($tab === 'open' && count($list) > 1) {
             echo '<form method="POST" action="reconcile.php">', $hidden;
             foreach ($list as $p) echo '<input type="hidden" name="ids[]" value="', (int)$p['id'], '">';
-            echo $btn('match', 'All ' . count($list) . ' matched'), '</form>';
+            echo $btn('match', 'All ' . count($list) . ' matched', ['data-confirm' => 'Have you verified every payment in this group against the payment app? This will mark all of them as matched.']), '</form>';
         }
         echo '</div>';
         foreach ($list as $p) {
