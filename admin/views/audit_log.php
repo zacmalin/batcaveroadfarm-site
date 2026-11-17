@@ -80,11 +80,11 @@ $actorIcon = ['agent' => '🤖 ', 'system' => '⚙️ ', 'anonymous' => '❔ ', 
 
 <!-- Quick filters: one swipeable row on phones (mobile tidy, Nov 5, 2026) -->
 <div class="flex justify-end gap-2 mb-3 overflow-x-auto pb-1 -mx-1 px-1">
-    <a href="?view=audit_log" class="inline-flex items-center shrink-0 border border-stone-200 px-3 min-h-9 md:min-h-8 rounded-full uppercase tracking-wider text-[10px] font-bold <?= ($filter_table === '' && $filter_action === '' && $filter_user === '') ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 hover:bg-stone-100' ?>">All</a>
-    <a href="?view=audit_log&amp;tbl=staff_login" class="inline-flex items-center shrink-0 border border-stone-200 px-3 min-h-9 md:min-h-8 rounded-full uppercase tracking-wider text-[10px] font-bold <?= $filter_table === 'staff_login' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 hover:bg-stone-100' ?>">Staff logins</a>
-    <a href="?view=audit_log&amp;tbl=site_info" class="inline-flex items-center shrink-0 border border-stone-200 px-3 min-h-9 md:min-h-8 rounded-full uppercase tracking-wider text-[10px] font-bold <?= $filter_table === 'site_info' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 hover:bg-stone-100' ?>">Site Info</a>
-    <a href="?view=audit_log&amp;action=failed" class="inline-flex items-center shrink-0 border border-stone-200 px-3 min-h-9 md:min-h-8 rounded-full uppercase tracking-wider text-[10px] font-bold <?= $filter_action === 'failed' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 hover:bg-stone-100' ?>">Failed</a>
-    <a href="?view=audit_log&amp;action=delete" class="inline-flex items-center shrink-0 border border-stone-200 px-3 min-h-9 md:min-h-8 rounded-full uppercase tracking-wider text-[10px] font-bold <?= $filter_action === 'delete' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 hover:bg-stone-100' ?>">Deletes</a>
+    <a href="?view=audit_log" class="inline-flex items-center shrink-0 border border-stone-200 px-3 min-h-9 md:min-h-8 rounded-full uppercase tracking-wider text-[10px] font-bold <?= ($filter_table === '' && $filter_action === '' && $filter_user === '') ? 'bg-[#79523a] text-white border-[#79523a]' : 'bg-white text-stone-600 hover:bg-stone-100' ?>">All</a>
+    <a href="?view=audit_log&amp;tbl=staff_login" class="inline-flex items-center shrink-0 border border-stone-200 px-3 min-h-9 md:min-h-8 rounded-full uppercase tracking-wider text-[10px] font-bold <?= $filter_table === 'staff_login' ? 'bg-[#79523a] text-white border-[#79523a]' : 'bg-white text-stone-600 hover:bg-stone-100' ?>">Staff logins</a>
+    <a href="?view=audit_log&amp;tbl=site_info" class="inline-flex items-center shrink-0 border border-stone-200 px-3 min-h-9 md:min-h-8 rounded-full uppercase tracking-wider text-[10px] font-bold <?= $filter_table === 'site_info' ? 'bg-[#79523a] text-white border-[#79523a]' : 'bg-white text-stone-600 hover:bg-stone-100' ?>">Site Info</a>
+    <a href="?view=audit_log&amp;action=failed" class="inline-flex items-center shrink-0 border border-stone-200 px-3 min-h-9 md:min-h-8 rounded-full uppercase tracking-wider text-[10px] font-bold <?= $filter_action === 'failed' ? 'bg-[#79523a] text-white border-[#79523a]' : 'bg-white text-stone-600 hover:bg-stone-100' ?>">Failed</a>
+    <a href="?view=audit_log&amp;action=delete" class="inline-flex items-center shrink-0 border border-stone-200 px-3 min-h-9 md:min-h-8 rounded-full uppercase tracking-wider text-[10px] font-bold <?= $filter_action === 'delete' ? 'bg-[#79523a] text-white border-[#79523a]' : 'bg-white text-stone-600 hover:bg-stone-100' ?>">Deletes</a>
 </div>
 
 <!-- Filters: folded away on phones until opened, always open on larger screens -->
@@ -178,7 +178,7 @@ $actorIcon = ['agent' => '🤖 ', 'system' => '⚙️ ', 'anonymous' => '❔ ', 
     <?php $prev = 0; foreach ($win as $p):
         if ($prev && $p > $prev + 1): ?><span class="px-2 py-1.5 text-stone-400">…</span><?php endif;
         $q = http_build_query(array_merge($_GET, ['page' => $p, 'view' => 'audit_log'])); ?>
-    <a href="?<?= $h($q) ?>" class="px-3 py-1.5 rounded border <?= $p === $page ? 'bg-stone-900 text-white border-stone-900' : 'hover:bg-stone-100 text-stone-600' ?>"><?= $p ?></a>
+    <a href="?<?= $h($q) ?>" class="px-3 py-1.5 rounded border <?= $p === $page ? 'bg-[#79523a] text-white border-[#79523a]' : 'hover:bg-stone-100 text-stone-600' ?>"><?= $p ?></a>
     <?php $prev = $p; endforeach; ?>
 </div>
 <?php endif; ?>
