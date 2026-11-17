@@ -112,24 +112,30 @@ echo '<p class="text-sm text-stone-500 mb-3">What visitors see on the website\'s
 if ($error) echo bcrf_shell_notice('err', $error);
 if ($todo) echo bcrf_shell_notice('info', $todo . ' page' . ($todo > 1 ? 's are' : ' is') . ' on the website but missing something (listed below).');
 $list = function (array $rows, string $title, string $empty) use ($h, $card, $site, $slug, $btnSec): void { ?>
-  <div class="<?= $card ?>">
-    <h2 class="text-base font-semibold text-stone-800 mb-2"><?= $h($title) ?> (<?= count($rows) ?>)</h2>
+  <details class="<?= $card ?> group" open>
+    <summary class="cursor-pointer list-none flex items-center justify-between gap-3 text-base font-semibold text-stone-800 [&::-webkit-details-marker]:hidden">
+      <span><?= $h($title) ?> (<?= count($rows) ?>)</span>
+      <span aria-hidden="true" class="text-stone-500 text-sm group-open:hidden">Show ▾</span>
+      <span aria-hidden="true" class="text-stone-500 text-sm hidden group-open:inline">Hide ▴</span>
+    </summary>
+    <div class="mt-3">
     <?php if (!$rows): ?><p class="text-sm text-stone-500"><?= $h($empty) ?></p><?php else: ?>
     <ul class="divide-y divide-stone-100">
       <?php foreach ($rows as $r): ?>
-      <li class="py-2 text-sm flex gap-3 items-start">
+      <li class="py-3 text-sm flex flex-wrap sm:flex-nowrap gap-3 items-start">
         <?php if (trim((string)$r['photo_url']) !== ''): ?><img src="<?= $h($r['photo_url']) ?>" alt="" class="w-14 h-14 object-cover rounded border border-stone-200" loading="lazy"><?php else: ?><span class="w-14 h-14 rounded border border-dashed border-stone-300 bg-stone-50 text-xs text-stone-400 flex items-center justify-center">No photo</span><?php endif; ?>
-        <span class="flex-1">
+        <span class="flex-1 min-w-0">
           <a class="underline text-amber-800 font-semibold" href="animals.php?id=<?= (int)$r['id'] ?>&amp;tab=public"><?= $h($r['name']) ?></a>
           <span class="text-stone-500"> · <?= $h(trim(($r['class_name'] ?? '') . ' · ' . ($r['breed_name'] ?? ''), ' ·')) ?><?= (int)$r['photo_count'] ? ' · ' . (int)$r['photo_count'] . ' more photo' . ((int)$r['photo_count'] > 1 ? 's' : '') : '' ?></span>
           <?php if ($r['missing']): ?><span class="block text-xs text-amber-800">Missing <?= $h(implode(', ', $r['missing'])) ?>.</span><?php else: ?><span class="block text-xs text-green-700">Complete.</span><?php endif; ?>
         </span>
-        <a class="<?= $btnSec ?> whitespace-nowrap" href="<?= $h($site . '/petting-zoo/animals/' . (int)$r['id'] . '/' . $slug($r['name']) . '/' . ((int)$r['is_active'] ? '' : '?preview=1')) ?>" target="_blank" rel="noopener"><?= (int)$r['is_active'] ? 'View' : 'Preview' ?></a>
+        <a class="<?= $btnSec ?> whitespace-nowrap ml-auto sm:ml-0" href="<?= $h($site . '/petting-zoo/animals/' . (int)$r['id'] . '/' . $slug($r['name']) . '/' . ((int)$r['is_active'] ? '' : '?preview=1')) ?>" target="_blank" rel="noopener"><?= (int)$r['is_active'] ? 'View' : 'Preview' ?></a>
       </li>
       <?php endforeach; ?>
     </ul>
     <?php endif; ?>
-  </div>
+    </div>
+  </details>
 <?php };
 $list($on, 'On the website', 'No animals are on the website yet.');
 $list($off, 'Not on the website', 'Every animal on the farm has a page.');
