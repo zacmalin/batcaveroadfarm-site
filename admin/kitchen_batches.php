@@ -88,7 +88,7 @@ if ($id) {
     echo '<p class="text-sm text-stone-500 mb-4">', $h(bcrf_kitchen_q($b['units_made'])), ' × ', $h($b['product_name']), ' · recorded ', $h($when($b['created_at'])),
          trim((string)$b['by_name']) !== '' ? ' by ' . $h($b['by_name']) : '', '</p>';
     if ($error) echo bcrf_shell_notice('err', $error);
-    if ($b['voided_at']) echo bcrf_shell_notice('warning', 'Voided ' . $when($b['voided_at']) . (trim((string)$b['voided_by_name']) !== '' ? ' by ' . $b['voided_by_name'] : '') . ': ' . $b['void_reason'] . '. Its stock changes were reversed.');
+    if ($b['voided_at']) echo bcrf_shell_notice('warning', 'Voided ' . $h($when($b['voided_at'])) . (trim((string)$b['voided_by_name']) !== '' ? ' by ' . $h($b['voided_by_name']) : '') . ': ' . $h($b['void_reason']) . '. Its stock changes were reversed.');
     ?>
   <div class="<?= $card ?>">
     <dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
