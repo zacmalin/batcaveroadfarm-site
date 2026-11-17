@@ -169,9 +169,12 @@ if ($pid) {
   </div>
 
   <?php if ($history): ?>
-  <div class="<?= $card ?>">
-    <h2 class="text-base font-semibold text-stone-800 mb-2">History</h2>
-    <ul class="divide-y divide-stone-100 text-sm">
+  <details class="site-info-section mt-3 mb-4 overflow-hidden border bg-white">
+    <summary class="flex cursor-pointer items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-stone-800">
+      <span class="flex items-center gap-2"><span aria-hidden="true">📚</span> Label history (<?= count($history) ?>)</span>
+      <span class="site-info-chevron text-stone-600" aria-hidden="true">⌄</span>
+    </summary>
+    <ul class="divide-y divide-stone-100 px-4 pb-3 text-sm">
       <?php foreach ($history as $l): ?>
       <li class="py-2">
         <div class="flex flex-wrap justify-between gap-2"><span>#<?= (int)$l['id'] ?> · <?= $h($l['product_name']) ?> · version <?= (int)$l['version_no'] ?></span><?= $chip($l['status']) ?></div>
@@ -182,7 +185,7 @@ if ($pid) {
       </li>
       <?php endforeach; ?>
     </ul>
-  </div>
+  </details>
   <?php endif; ?>
 <?php
     bcrf_shell_close(); exit;
