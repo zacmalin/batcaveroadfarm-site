@@ -439,10 +439,11 @@ function bcrf_care_void(PDO $pdo, int $logId, string $reason, ?int $uid = null):
  * Recent entries, newest first. $animalId limits to one animal; $since (UTC Y-m-d H:i:s) to recent ones.
  * Each row has type_name, is_feeding, enclosure_name, feed_name, unit, by_name and animals (list of names).
  */
-function bcrf_care_recent(PDO $pdo, int $animalId = 0, int $limit = 50, bool $withVoided = true): array {
+function bcrf_care_recent(PDO $pdo, int $animalId = 0, int $limit = 50, bool $withVoided = true, int $careTypeId = 0): array {
     $where = []; $args = [];
     if ($animalId) { $where[] = 'l.id IN (SELECT log_id FROM animal_care_log_animals WHERE animal_id = ?)'; $args[] = $animalId; }
     if (!$withVoided) $where[] = 'l.voided_at IS NULL';
+    if ($careTypeId > 0) { $where[] = 'l.care_type_id = ?'; $args[] = $careTypeId; }
     $limit = max(1, min(500, $limit));
     $st = $pdo->prepare("SELECT l.*, t.name AS type_name, t.is_feeding, e.name AS enclosure_name, i.name AS feed_name,
                                 CONCAT(u.first_name, ' ', u.last_name) AS by_name
