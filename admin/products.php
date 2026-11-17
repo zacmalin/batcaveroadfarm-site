@@ -115,7 +115,7 @@ if (!$editing) {
           'status' => in_array($_GET['status'] ?? '', ['active', 'off', 'all'], true) ? $_GET['status'] : 'all'];
     $rows = bcrf_product_list($pdo, $f);
     $stockOf = fn($r) => (int)$r['track_inventory'] ? (float)$r['stock_quantity'] : null;   // not-stocked items go last
-    $sortOpts = ['default' => ['By category'], 'az' => ['Name A to Z', 'name', 'asc'], 'za' => ['Name Z to A', 'name', 'desc'],
+    $sortOpts = ['default' => ['Name A to Z', 'name', 'asc'], 'category' => ['By category', 'category_id', 'asc'], 'za' => ['Name Z to A', 'name', 'desc'],
                  'newest' => ['Newest first', 'id', 'desc'], 'oldest' => ['Oldest first', 'id', 'asc'],
                  'price_lo' => ['Price low to high', 'price', 'asc'], 'price_hi' => ['Price high to low', 'price', 'desc'],
                  'stock_lo' => ['Stock low to high', $stockOf, 'asc'], 'stock_hi' => ['Stock high to low', $stockOf, 'desc']];
@@ -128,7 +128,7 @@ if (!$editing) {
          $sel('type', bcrf_product_types() + ['admission' => 'Admission'], $f['type'], 'All types', ['aria-label' => 'Type']),
          $sel('status', ['all' => 'On and off', 'active' => 'On only', 'off' => 'Turned off only'], $f['status'], '', ['aria-label' => 'Status']),
          bcrf_list_sort_select($sortOpts, $sort),
-         '<button class="btn sm" type="submit">Show</button><a class="btn sm primary" href="products.php?new=1">Add a product</a></form>';
+         '<button class="btn sm" type="submit">Apply filters</button><a class="btn sm" href="products.php">Reset</a><a class="btn sm primary" href="products.php?new=1">Add a product</a></form>';
     if (!$rows) echo '<p class="card muted">No products match.</p>';
     else {
         $backQs = 'products.php' . ($_SERVER['QUERY_STRING'] ?? '' ? '?' . (string)$_SERVER['QUERY_STRING'] : '');
