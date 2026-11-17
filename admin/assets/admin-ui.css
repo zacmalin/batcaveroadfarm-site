@@ -76,14 +76,14 @@ details.ui-expand[open] .ui-expand-hint{display:none}
 details.ui-expand:not([open]) .ui-expand-open{display:none}
 
 /* ── On/off switch (includes/admin_switch.php, Nov 14, 2026) ─────────────────
-   Saves on tap (admin-ui.js). Brand: Barn Red when on, stone when off. 44px tap target. */
+   Saves on tap (admin-ui.js). Brand: sage green when on, stone when off. 44px tap target. */
 .ui-switch-form{display:inline-flex;margin:0;flex:0 0 auto}
 /* form-scoped selectors so page button styles (.fset button, .fs-pay button) can't repaint the switch */
 .ui-switch-form button.ui-switch,.ui-switch-form button.ui-switch:hover{display:inline-flex;align-items:center;justify-content:flex-start;gap:.45rem;min-height:44px;min-width:0;margin:0;padding:0 .25rem;background:none;border:0;border-radius:0;box-shadow:none;cursor:pointer;font:inherit;font-size:12px;font-weight:700;line-height:1;color:#57534e;-webkit-tap-highlight-color:transparent}
 .ui-switch-track{position:relative;display:inline-block;width:44px;height:26px;border-radius:999px;background:#d6d3d1;transition:background .15s}
 .ui-switch-knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
-.ui-switch-form button.ui-switch[aria-checked="true"]{color:#8A3324}
-.ui-switch[aria-checked="true"] .ui-switch-track{background:#8A3324}
+.ui-switch-form button.ui-switch[aria-checked="true"]{color:#4a6741}
+.ui-switch[aria-checked="true"] .ui-switch-track{background:#4a6741}
 .ui-switch[aria-checked="true"] .ui-switch-knob{transform:translateX(18px)}
 .ui-switch:focus-visible{outline:none}
 .ui-switch:focus-visible .ui-switch-track{box-shadow:0 0 0 3px #D9A441}
@@ -212,7 +212,7 @@ dialog.ui-modal::backdrop{background:transparent;overflow:hidden;overscroll-beha
 /* Animal care Recent: visible selected filter without relying on generated utility classes. */
 .care-filter-pill{display:inline-flex;align-items:center;padding:.375rem .75rem;border:1px solid #d6d3d1;border-radius:999px;background:#fff;color:#44403c;font-size:.875rem;line-height:1.25rem;text-decoration:none;white-space:nowrap}
 .care-filter-pill:hover{background:#f5f1e9}
-.care-filter-pill.is-active{background:#1c1917;border-color:#1c1917;color:#fff;font-weight:600}
+.care-filter-pill.is-active{background:#79523a;border-color:#79523a;color:#fff;font-weight:600}
 .care-filter-pill:focus-visible{outline:3px solid #4a6741;outline-offset:2px}
 
 /* Roost Rewards: reserve equal room for Offered/Off so every track aligns. */
