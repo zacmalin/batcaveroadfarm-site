@@ -204,7 +204,7 @@ if (isset($_GET['id'])) {
 
   <?php if ($c['status'] === 'active'): ?>
   <div class="flex flex-wrap gap-2 mb-4">
-    <?php if ($mgr): ?><a href="gift_card_print.php?id=<?= (int)$c['id'] ?>" target="_blank" rel="noopener" class="<?= $btnSec ?>">Print card</a>
+    <?php if ($mgr): ?><a href="gift_card_print.php?id=<?= (int)$c['id'] ?>" target="_blank" rel="noopener" class="<?= $btnSec ?>"><span aria-hidden="true">🖨</span> Print card</a>
     <a href="<?= $h(bcrf_gc_url($c['code'])) ?>" target="_blank" rel="noopener" class="<?= $btnSec ?>">Open the card page</a><?php endif; ?>
   </div>
   <?php if ($mgr): ?>
@@ -296,8 +296,8 @@ bcrf_shell_open('Gift Cards', ['toast' => $toast, 'width' => 'max-w-3xl']);
         <?php foreach ($sources as $k => $v): ?><option value="<?= $k ?>"<?= $f['source'] === $k ? ' selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?>
       </select></div>
     <div class="w-36"><label class="<?= $label ?>" for="gsort">Sort</label><?= bcrf_list_sort_select($sortOpts, $sort, ['id' => 'gsort', 'class' => $input]) ?></div>
-    <button type="submit" class="<?= $btnSec ?>">Apply filters</button>
-    <?php if ($f['q'] !== '' || $f['status'] !== 'open' || $f['source'] !== '' || $sort !== 'default'): ?><a href="gift_cards.php" class="<?= $btnSec ?>">Reset</a><?php endif; ?>
+    <button type="submit" class="<?= $btnSec ?>"><span aria-hidden="true">✓</span> Apply filters</button>
+    <?php if ($f['q'] !== '' || $f['status'] !== 'open' || $f['source'] !== '' || $sort !== 'default'): ?><a href="gift_cards.php" class="<?= $btnSec ?>"><span aria-hidden="true">↺</span> Reset</a><?php endif; ?>
   </form>
 
   <?php if (!$rows): ?>
