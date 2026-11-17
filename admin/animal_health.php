@@ -70,11 +70,17 @@ bcrf_med_generate($pdo);   // backstop for the nightly run
 $d = bcrf_health_due($pdo);
 $card = 'bg-white border border-stone-200 rounded-lg p-4 shadow-sm mb-4';
 $day = fn($ymd) => date('D M j', strtotime($ymd));
+$overdueVaccinations = count(array_filter($d['vaccinations'], fn($v) => $v['next_due'] < $d['today']));
+$overdueFollowUps = count(array_filter($d['follow_ups'], fn($f) => $f['follow_up_date'] < $d['today']));
+$overdueTotal = $overdueVaccinations + $overdueFollowUps;
 bcrf_shell_open('Animal health', ['width' => 'max-w-3xl']);
 echo '<h1 class="text-2xl font-bold text-stone-800 mb-3">Animal health</h1>';
 ?>
+  <?php if ($overdueTotal): ?>
+    <?= bcrf_shell_notice('warning', '⚠️ ' . $overdueTotal . ' overdue animal health item' . ($overdueTotal === 1 ? ' needs' : 's need') . ' attention. Review the dates highlighted below.') ?>
+  <?php endif; ?>
   <div class="<?= $card ?>">
-    <h2 class="text-base font-semibold text-stone-800 mb-2">Vaccinations due in the next <?= BCRF_HEALTH_DUE_DAYS ?> days</h2>
+    <h2 class="text-base font-semibold text-stone-800 mb-2">💉 Vaccinations due in the next <?= BCRF_HEALTH_DUE_DAYS ?> days</h2>
     <?php if (!$d['vaccinations']): ?><p class="text-sm text-stone-500">Nothing due.</p><?php else: ?>
     <ul class="divide-y divide-stone-100">
       <?php foreach ($d['vaccinations'] as $v): $late = $v['next_due'] < $d['today']; ?>
@@ -85,7 +91,7 @@ echo '<h1 class="text-2xl font-bold text-stone-800 mb-3">Animal health</h1>';
     <?php endif; ?>
   </div>
   <div class="<?= $card ?>">
-    <h2 class="text-base font-semibold text-stone-800 mb-2">Follow-ups</h2>
+    <h2 class="text-base font-semibold text-stone-800 mb-2">📋 Follow-ups</h2>
     <?php if (!$d['follow_ups']): ?><p class="text-sm text-stone-500">None coming up.</p><?php else: ?>
     <ul class="divide-y divide-stone-100">
       <?php foreach ($d['follow_ups'] as $f): ?>
@@ -96,7 +102,7 @@ echo '<h1 class="text-2xl font-bold text-stone-800 mb-3">Animal health</h1>';
     <?php endif; ?>
   </div>
   <div class="<?= $card ?>">
-    <h2 class="text-base font-semibold text-stone-800 mb-2">On medication now</h2>
+    <h2 class="text-base font-semibold text-stone-800 mb-2">💊 On medication now</h2>
     <?php if (!$d['medications']): ?><p class="text-sm text-stone-500">Nobody.</p><?php else: ?>
     <ul class="divide-y divide-stone-100">
       <?php foreach ($d['medications'] as $m): ?>
