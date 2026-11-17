@@ -16,11 +16,19 @@ if ($social_ready) gbp_schema($pdo);
 $gbp_auth  = gbp_configured() ? gbp_auth_row($pdo) : [];
 $gbp_on    = gbp_ready($pdo);
 
+$social_statuses = ['all' => 'All', 'pending' => 'Pending', 'failed' => 'Failed', 'partial' => 'Partial', 'sent' => 'Sent', 'skipped' => 'Skipped'];
+$social_filter = (string)($_GET['status'] ?? 'all');
+if (!isset($social_statuses[$social_filter])) $social_filter = 'all';
 $rows = [];
 if ($social_ready) {
     try {
-        $rows = $pdo->query("SELECT * FROM social_queue ORDER BY created_at DESC, id DESC LIMIT 100")
-                    ->fetchAll(PDO::FETCH_ASSOC);
+        if ($social_filter === 'all') {
+            $rows = $pdo->query("SELECT * FROM social_queue ORDER BY created_at DESC, id DESC LIMIT 100")->fetchAll(PDO::FETCH_ASSOC);
+        } else {
+            $st = $pdo->prepare("SELECT * FROM social_queue WHERE status = ? ORDER BY created_at DESC, id DESC LIMIT 100");
+            $st->execute([$social_filter]);
+            $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+        }
     } catch (Throwable $e) { $rows = []; }
 }
 
@@ -53,14 +61,27 @@ $badge = function (string $s): string {
   </div>
   <?php $sh_always = true; include __DIR__ . '/layout/social_health_banner.php'; ?>
 
+  <?php if ($social_ready): ?>
+    <nav aria-label="Filter social queue by status" class="flex flex-wrap gap-2 mb-4">
+      <?php foreach ($social_statuses as $status_key => $status_label): ?>
+        <a href="/admin/admin.php?<?= htmlspecialchars(http_build_query(['view' => 'social', 'status' => $status_key]), ENT_QUOTES, 'UTF-8') ?>"
+           <?= $social_filter === $status_key ? 'aria-current="page"' : '' ?>
+           class="px-3 py-2 rounded border text-xs font-bold <?= $social_filter === $status_key ? 'bg-amber-700 text-white border-amber-700' : 'bg-white text-stone-600 border-stone-300' ?>"><?= htmlspecialchars($status_label, ENT_QUOTES, 'UTF-8') ?></a>
+      <?php endforeach; ?>
+    </nav>
+  <?php endif; ?>
   <?php if (!$social_ready): ?>
     <div class="bg-amber-50 border border-amber-200 rounded p-4 text-sm text-amber-800">
       The <code>social_queue</code> table doesn't exist yet. Run <code>sql/social_module.sql</code> to enable social sharing.
     </div>
   <?php elseif (empty($rows)): ?>
     <div class="bg-white border border-stone-200 rounded p-6 text-center text-sm text-stone-500">
-      Nothing queued yet. When you publish a recipe or blog post for the first time and leave
-      “Share to Facebook &amp; Instagram” checked, the approved post lands here.
+      <?php if ($social_filter !== 'all'): ?>
+        No <?= htmlspecialchars(strtolower($social_statuses[$social_filter]), ENT_QUOTES, 'UTF-8') ?> posts found. <a class="underline font-bold" href="/admin/admin.php?view=social">Show all posts</a>.
+      <?php else: ?>
+        Nothing queued yet. When you publish a recipe or blog post for the first time and leave
+        “Share to Facebook &amp; Instagram” checked, the approved post lands here.
+      <?php endif; ?>
     </div>
   <?php else: ?>
     <p class="text-[11px] text-stone-500 mb-3">
