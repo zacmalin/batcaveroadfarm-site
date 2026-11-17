@@ -107,7 +107,7 @@ if (!isset($_GET['id']) && !isset($_GET['new'])) {
   <p class="text-sm text-stone-500 mb-4">Domain, hosting, insurance, licenses and permits, subscriptions: anything that renews or runs out on a date. Each one is on the calendar, and the person who handles it gets a bell, an email and a task before it is due.</p>
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
 
-  <div class="flex flex-wrap gap-2 mb-3" role="tablist" aria-label="Show">
+  <div class="flex flex-wrap justify-end gap-2 mb-3" role="tablist" aria-label="Show">
     <?php foreach (['upcoming' => 'Coming up', 'finished' => 'Finished', 'deleted' => 'Deleted'] as $k => $v): ?>
       <a href="renewals.php?show=<?= $k ?>" role="tab" aria-selected="<?= $show === $k ? 'true' : 'false' ?>" class="px-3 py-1.5 rounded-full text-sm border <?= $show === $k ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100' ?>"><?= $v ?></a>
     <?php endforeach; ?>
