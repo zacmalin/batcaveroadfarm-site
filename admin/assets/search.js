@@ -143,8 +143,11 @@
     }
   });
   out.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { box.focus(); return; }
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-    var links = Array.prototype.slice.call(out.querySelectorAll('a'));
+    var links = Array.prototype.slice.call(out.querySelectorAll('a')).filter(function (a) {
+      return !a.closest('details:not([open])');
+    });
     var i = links.indexOf(document.activeElement);
     if (i < 0) return;
     e.preventDefault();
