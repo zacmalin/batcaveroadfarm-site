@@ -99,7 +99,7 @@ if ($bid) {
     echo '<p class="text-sm mb-2"><a class="underline text-amber-800" href="kitchen_trace.php">← Trace another lot</a> · <a class="underline text-amber-800" href="kitchen_batches.php?id=', (int)$b['id'], '">Batch record</a></p>';
     echo '<h1 class="text-2xl font-bold text-stone-800 mb-1">Lot ', $h($b['lot_code']), '</h1>';
     echo '<p class="text-sm text-stone-500 mb-4">', $h(bcrf_kitchen_q($b['units_made'])), ' × ', $h($b['product_name']), ' · made ', $h($day($b['made_on'])), ' · best by ', $h($day($b['best_by'])), '</p>';
-    if ($b['voided_at']) echo bcrf_shell_notice('warning', 'This batch was voided: ' . $b['void_reason'] . '.');
+    if ($b['voided_at']) echo bcrf_shell_notice('warning', 'This batch was voided: ' . $h($b['void_reason']) . '.');
     if ($t['note'] !== '') echo bcrf_shell_notice('warning', $t['note']);
     $contacts = bcrf_kitchen_trace_contacts($t);
     ?>
