@@ -13,7 +13,7 @@
         var unit = row.querySelector('select[name$="[unit]"]');
         var wrap = row.querySelector('[data-unit-wrap]');
         var hint = row.querySelector('[data-feed-hint]');
-        var qtyLabel = row.querySelector('label[for$="-qty"]') || row.querySelector('label[for="lq"]');
+        var qtyLabel = row.querySelector('label[for^="lq"]');
         function show() {
             var o = feed.options[feed.selectedIndex];
             var u = unit.options[unit.selectedIndex];
@@ -37,7 +37,7 @@
             });
             wrap.hidden = !units.length;
             unit.disabled = !units.length;
-            if (qtyLabel) qtyLabel.textContent = o.value !== '0' && !units.length ? "Amount (in product's unit)" : 'Amount';
+            if (qtyLabel) qtyLabel.textContent = o.value !== '' && !units.length ? "Amount (in product's unit)" : 'Amount';
             show();
         }
         feed.addEventListener('change', rebuild);

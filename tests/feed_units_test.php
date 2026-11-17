@@ -138,6 +138,18 @@ foreach ([$pellets, $corn, $minerals, $chow] as $pid) {
     $sum = (float)$one("SELECT COALESCE(SUM(quantity_change), 0) FROM inventory_adjustments WHERE product_id = ?", [$pid]);
     $ok(abs($start + $sum - (float)$one("SELECT stock_quantity FROM inventory WHERE id = ?", [$pid])) < 0.0005, "product $pid: first count + ledger = stock on hand");
 }
+// Several feeds in one form (Nov 17, 2026): all saved together, or none if one row is bad; no rows = feeding without feed.
+$before = (int)$one("SELECT COUNT(*) FROM animal_care_logs");
+$stockP = (float)$one("SELECT stock_quantity FROM inventory WHERE id = ?", [$pellets]);
+$r = bcrf_care_log_session($pdo, ['type' => $feeding, 'animals' => [$hazel]], [['product' => $pellets, 'qty' => '1', 'unit' => 'm1'], ['product' => $corn, 'qty' => '1', 'unit' => 'lb'], ['product' => '', 'qty' => '', 'unit' => '']], 1);
+$ok($r['ids_count'] === 2 && (int)$one("SELECT COUNT(*) FROM animal_care_logs") === $before + 2, 'two feeds = two entries, empty row skipped');
+$before += 2; $stockP = (float)$one("SELECT stock_quantity FROM inventory WHERE id = ?", [$pellets]);
+try { bcrf_care_log_session($pdo, ['type' => $feeding, 'animals' => [$hazel]], [['product' => $pellets, 'qty' => '1', 'unit' => 'm1'], ['product' => $corn, 'qty' => '', 'unit' => '']], 1); $threw = false; }
+catch (BcrfCareError $e) { $threw = true; }
+$ok($threw && (int)$one("SELECT COUNT(*) FROM animal_care_logs") === $before && (float)$one("SELECT stock_quantity FROM inventory WHERE id = ?", [$pellets]) === $stockP, 'a bad row saves nothing and takes no stock');
+$r = bcrf_care_log_session($pdo, ['type' => $feeding, 'animals' => [$hazel]], [['product' => '', 'qty' => '', 'unit' => '']], 1);
+$ok(!isset($r['ids_count']) && (int)$one("SELECT COUNT(*) FROM animal_care_logs") === $before + 1, 'no feed rows filled still logs the feeding');
+
 // Animal expenses: the Feed total equals the un-voided feed costs, split across animals to the cent.
 $lines = bcrf_expense_lines($pdo, '2000-01-01', '2100-01-01');
 $feedSum = array_sum(array_map(fn($l) => $l['cents'], array_filter($lines, fn($l) => $l['source'] === 'feed')));

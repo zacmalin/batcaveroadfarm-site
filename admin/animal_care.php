@@ -62,7 +62,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 $_SESSION['care_once'] = array_slice($seen, -30, null, true);
             }
             if (function_exists('erp_audit')) erp_audit($pdo, 'create', 'animal_care_logs', $r['id'], 'Care logged for ' . $r['animals'] . ' animal(s)');
-            $msg = 'Logged ' . (isset($r['ids_count']) ? $r['ids_count'] . ' feeds ' : 'care ') . 'for ' . $r['animals'] . ' animal' . ($r['animals'] > 1 ? 's' : '') . '.';
+            $msg = 'Logged ' . (isset($r['ids_count']) ? $r['ids_count'] . ' feed' . ($r['ids_count'] === 1 ? ' ' : 's ') : 'care ') . 'for ' . $r['animals'] . ' animal' . ($r['animals'] > 1 ? 's' : '') . '.';
             $_SESSION['ac_flash'] = $r['stock_note'] ? ['err', $msg . ' ' . $r['stock_note']] : ['ok', $msg];
             if (function_exists('bcrf_sched_generate')) bcrf_sched_generate($pdo);   // closes schedule tasks this covered
         } elseif ($act === 'void') {
@@ -423,9 +423,9 @@ if ($typeId) {
     <?php if ($type['is_feeding']): ?>
     <div data-feed-rows class="space-y-3 mb-3">
       <div data-feed-row class="border border-stone-200 rounded-lg p-3">
-        <div class="flex justify-between items-center mb-2"><strong class="text-sm" data-feed-title>Feed 1</strong><button type="button" data-feed-remove class="inline-flex items-center justify-center w-8 h-8 rounded-md text-red-600 hover:text-red-800 hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600" aria-label="Remove this feed" title="Remove this feed" style="display:none"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 10v7"/><path d="M14 10v7"/></svg></button></div>
+        <div class="flex justify-between items-center mb-2"><strong class="text-sm" data-feed-title>Feed 1</strong><button type="button" data-feed-remove class="inline-flex items-center justify-center w-8 h-8 rounded-md text-red-600 hover:text-red-800 hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600" aria-label="Remove this feed" title="Remove this feed" hidden><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 10v7"/><path d="M14 10v7"/></svg></button></div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div class="min-w-0 w-full"><label class="<?= $label ?>" for="lf">Select feed</label><select id="lf" name="feeds[0][product]" aria-label="Select feed" class="<?= $input ?> block w-full min-w-0 appearance-auto" required><option value="">Choose feed</option>
+          <div class="min-w-0 w-full"><label class="<?= $label ?>" for="lf">Select feed</label><select id="lf" name="feeds[0][product]" aria-label="Select feed" class="<?= $input ?> block w-full min-w-0 appearance-auto"<?= $feeds ? ' required' : '' ?>><option value=""><?= $feeds ? 'Choose feed' : 'No feed products set up' ?></option>
             <?php foreach ($feeds as $p): ?><option value="<?= (int)$p['id'] ?>"<?php if ($p['units']): ?> data-units="<?= $h(json_encode(array_map(fn($u) => ['key' => $u['key'], 'label' => $u['label'], 'g' => round($u['g'], 3), 'name' => $u['name']], $p['units']))) ?>" data-unit-g="<?= $h(round((float)$p['unit_g'], 3)) ?>" data-word="<?= $h(bcrf_feed_stock_word($p)) ?>" data-last="<?= $h($p['last_unit']) ?>"<?php endif; ?>><?= $h($p['name']) ?><?= (int)$p['track_inventory'] === 1 ? ' (' . $h($p['stock_text']) . ' on hand)' : '' ?></option><?php endforeach; ?></select>
           </div>
           <div><div class="flex gap-2 items-end">

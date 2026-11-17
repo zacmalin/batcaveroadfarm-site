@@ -424,7 +424,7 @@ function bcrf_care_log_session(PDO $pdo, array $in, array $feeds, ?int $uid = nu
         if (!$product || $quantity === '') throw new BcrfCareError('Choose a feed and amount for each row, or remove the empty row.');
         $clean[] = ['feed_product' => $product, 'feed_qty' => $quantity, 'feed_unit' => $unit];
     }
-    if (!$clean) throw new BcrfCareError('Choose at least one feed and amount.');
+    if (!$clean) return bcrf_care_log($pdo, $in, $uid);   // feed stays optional: no feed rows filled = log the feeding without stock (Nov 17, 2026)
     $own = !$pdo->inTransaction();
     if ($own) $pdo->beginTransaction();
     try {
