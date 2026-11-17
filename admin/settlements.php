@@ -113,7 +113,8 @@ if (!$groups) {
                  ' · ', $m($it['sale_net_cents']), ' × ', $h(number_format(((int)$it['share_bp']) / 100, 0)), '% = <b>', $m($it['consignor_cents']), '</b></small></label>';
         }
         echo '<label>Note <small class="muted">(optional, e.g. check #)</small><input type="text" name="note" maxlength="255" autocomplete="off"></label>';
-        echo '<div class="rbar"><button class="btn primary" type="submit">Record payout · ', $m($g['consignor_cents']), '</button></div>';
+        echo '<p class="muted">Select the items being paid. The amount recorded is calculated from the selected items when you submit.</p>';
+        echo '<div class="rbar"><button class="btn primary" type="submit">Record payout for selected items</button></div>';
         echo '</form></div>';
     }
 }
