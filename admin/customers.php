@@ -123,7 +123,7 @@ $hidden  = fn(int $id) => '<input type="hidden" name="csrf_token" value="' . $h(
 $tabs = function (string $on) use ($h) {
     $out = '<nav aria-label="Customer filters" class="flex flex-wrap justify-end gap-2 mb-4">';
     foreach (['find' => ['Find', 'customers.php'], 'dupes' => ['Possible duplicates', 'customers.php?dupes=1'], 'orgs' => ['Organizations', 'organizations.php']] as $k => [$t, $u]) {
-        $out .= '<a href="' . $u . '" ' . ($k === $on ? 'aria-current="page" ' : '') . 'class="inline-flex items-center min-h-9 px-3 py-2 rounded-full text-sm font-semibold border transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800 ' . ($k === $on ? 'border-amber-900 bg-amber-900 text-white' : 'border-stone-300 text-stone-700 bg-stone-50 hover:bg-amber-50 hover:border-amber-700 hover:text-amber-900') . '">' . $h($t) . '</a>';
+        $out .= '<a href="' . $u . '" ' . ($k === $on ? 'aria-current="page" ' : '') . 'class="inline-flex items-center min-h-9 px-3 py-2 rounded-full text-sm font-semibold border transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800 ' . ($k === $on ? 'border-stone-800 bg-stone-800 text-white' : 'border-stone-300 text-stone-700 bg-stone-50 hover:bg-stone-100 hover:border-stone-500') . '">' . $h($t) . '</a>';
     }
     return $out . '</nav>';
 };
