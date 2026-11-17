@@ -109,12 +109,12 @@ if ($editing !== null):
       <div><label class="<?= $label ?>" for="ps">Order in lists</label><input id="ps" name="sort_order" inputmode="numeric" value="<?= $h($v['sort_order']) ?>" class="<?= $input ?>"></div>
       <label class="flex items-center gap-2 text-sm text-stone-700 pt-5"><input type="checkbox" name="active" value="1" <?= !empty($v['active']) ? 'checked' : '' ?>> Offered (shows in the list)</label>
     </div>
-    <div class="flex flex-wrap gap-2 mt-4"><button class="<?= $btnMain ?> min-h-10">Save package</button><a href="party_packages.php" class="<?= $btnSec ?> inline-flex min-h-10 items-center">Cancel</a></div>
+    <div class="flex flex-wrap gap-2 mt-4"><button class="<?= $btnMain ?> min-h-10"><span aria-hidden="true">✓</span> Save package</button><a href="party_packages.php" class="<?= $btnSec ?> inline-flex min-h-10 items-center">Cancel</a></div>
   </form>
 <?php endif;
 
 $all = bcrf_party_packages($pdo, true);
-if ($mgr && $editing === null) echo '<div class="flex justify-end mb-4"><a href="party_packages.php?new=1" class="', $btnMain, ' inline-flex min-h-10 items-center">Add a package</a></div>';
+if ($mgr && $editing === null) echo '<div class="flex justify-end mb-4"><a href="party_packages.php?new=1" class="', $btnMain, ' inline-flex min-h-10 items-center"><span aria-hidden="true">＋</span> Add a package</a></div>';
 if (!$all) echo '<p class="text-sm text-stone-500">No packages yet.</p>';
 foreach ($all as $p): ?>
   <div class="<?= $card ?><?= $p['active'] ? '' : ' is-off' ?>" data-switch-row>
