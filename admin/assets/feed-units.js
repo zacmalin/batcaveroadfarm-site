@@ -26,7 +26,7 @@
         function rebuild() {
             var o = feed.options[feed.selectedIndex], units = [];
             try { units = JSON.parse(o.getAttribute('data-units') || '[]'); } catch (e) {}
-            unit.replaceChildren();
+            unit.innerHTML = '';
             units.forEach(function (u) {
                 var option = document.createElement('option');
                 option.value = u.key; option.textContent = u.label;
@@ -60,7 +60,7 @@
         var row = holder.querySelector('[data-feed-row]').cloneNode(true);
         var index = serial++;
         row.querySelectorAll('[name]').forEach(function (field) {
-            field.name = field.name.replace(/feeds\\[\\d+\\]/, 'feeds[' + index + ']');
+            field.name = field.name.replace(/^feeds\[[0-9]+\]/, 'feeds[' + index + ']');
             if (field.tagName === 'SELECT') field.selectedIndex = 0;
             else field.value = '';
             field.removeAttribute('id');
