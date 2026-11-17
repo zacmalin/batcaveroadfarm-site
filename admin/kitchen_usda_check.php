@@ -25,7 +25,7 @@ try {
                i.density_g_per_ml AS density, i.weight_per_unit_g AS weight,
                (SELECT COUNT(DISTINCT ri.recipe_id) FROM recipe_ingredients ri WHERE ri.ingredient_id = i.id) AS recipes
         FROM ingredients i
-        ORDER BY recipes = 0, i.singular_name
+        ORDER BY i.singular_name
     ")->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
     error_log('[kitchen_usda_check] list: ' . $e->getMessage());
