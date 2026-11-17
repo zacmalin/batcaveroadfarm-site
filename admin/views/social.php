@@ -41,7 +41,8 @@ $badge = function (string $s): string {
         'skipped' => 'bg-stone-100 text-stone-600 border-stone-200',
     ];
     $cls = $map[$s] ?? 'bg-stone-100 text-stone-600 border-stone-200';
-    return '<span class="text-[9px] font-black uppercase tracking-wider border border-stone-200 px-1.5 py-0.5 rounded ' . $cls . '">' . htmlspecialchars($s) . '</span>';
+    $label = $s === 'sent' ? 'posted' : $s;
+    return '<span class="text-[9px] font-black uppercase tracking-wider border border-stone-200 px-1.5 py-0.5 rounded ' . $cls . '">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</span>';
 };
 ?>
 <div class="max-w-5xl">
@@ -126,7 +127,7 @@ $badge = function (string $s): string {
           </div>
         <?php endif; ?>
         <?php if (!empty($r['last_error'])): ?>
-          <div class="text-[10px] text-red-700 mt-2">⚠ <?= htmlspecialchars((string)$r['last_error']) ?></div>
+          <div role="alert" class="text-[11px] text-red-800 bg-red-50 border border-red-200 rounded p-2 mt-2 break-words"><strong>⚠ Posting error:</strong> <?= htmlspecialchars((string)$r['last_error'], ENT_QUOTES, 'UTF-8') ?></div>
         <?php endif; ?>
         <?php if (!empty($r['fb_post_id']) || !empty($r['ig_media_id']) || !empty($r['gbp_post_id'])): ?>
           <div class="text-[9px] text-stone-400 mt-1">
