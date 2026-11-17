@@ -131,6 +131,15 @@ $link = fn(string $type, int $id, string $date) => $type === 'booking' ? '/admin
 
 bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' => ['quotes.js']]);
 ?>
+  <style>
+    .wx-switch-input { position:absolute; width:1px; height:1px; opacity:0; }
+    .wx-switch-track { position:relative; display:inline-block; flex:none; width:48px; height:28px; border-radius:999px; background:#78716c; transition:background .15s; }
+    .wx-switch-track::after { content:""; position:absolute; top:4px; left:4px; width:20px; height:20px; border-radius:50%; background:white; box-shadow:0 1px 3px #0003; transition:transform .15s; }
+    .wx-switch-input:checked + .wx-switch-track { background:#15803d; }
+    .wx-switch-input:checked + .wx-switch-track::after { transform:translateX(20px); }
+    .wx-switch-input:focus-visible + .wx-switch-track { outline:3px solid #b45309; outline-offset:3px; }
+    .wx-switch-input:disabled + .wx-switch-track { opacity:.65; }
+  </style>
   <h1 class="text-2xl font-bold text-stone-800 mb-1">Weather day</h1>
   <p class="text-sm text-stone-500 mb-4">Call off a day: email every group booking and party on it at once, and close it to new bookings. Then note what you did for each one.</p>
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
@@ -152,9 +161,9 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
         </div>
         <label class="inline-flex items-center gap-2 cursor-pointer">
           <span class="text-sm font-semibold text-stone-700"><?= $siteNote !== '' ? 'On' : 'Off' ?></span>
-          <input id="wx-closure-switch" type="checkbox" role="switch" aria-label="Website weather closure" aria-checked="<?= $siteNote !== '' ? 'true' : 'false' ?>" class="peer sr-only" <?= $siteNote !== '' ? 'checked' : '' ?>
+          <input id="wx-closure-switch" type="checkbox" role="switch" aria-label="Website weather closure" aria-checked="<?= $siteNote !== '' ? 'true' : 'false' ?>" class="wx-switch-input" <?= $siteNote !== '' ? 'checked' : '' ?>
             onchange="if(this.checked && !confirm('Show Closed today for weather on the public website?')){this.checked=false;return;}this.disabled=true;this.form.requestSubmit();">
-          <span aria-hidden="true" class="relative inline-block h-7 w-12 rounded-full bg-stone-400 peer-checked:bg-emerald-700 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-amber-700 transition-colors after:absolute after:left-1 after:top-1 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow after:transition-transform peer-checked:after:translate-x-5"></span>
+          <span aria-hidden="true" class="wx-switch-track"></span>
         </label>
       </div>
       <?php if ($siteNote === ''): ?>
