@@ -62,7 +62,7 @@ $eventLabels = [
             $active = $statusFilter === $val;
         ?>
         <a href="?view=event_inquiries&amp;status=<?= $val ?>#private-event-list"
-           class="inline-flex items-center min-h-10 px-4 py-2 rounded-full text-sm font-semibold border whitespace-nowrap <?= $active ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100' ?>">
+           class="inline-flex items-center min-h-10 px-4 py-2 rounded-full text-sm font-semibold border whitespace-nowrap <?= $active ? 'farmos-filter-selected' : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100' ?>">
             <?= $label ?> <?php if ($cnt > 0): ?><span class="ml-1 opacity-70">(<?= $cnt ?>)</span><?php endif; ?>
         </a>
         <?php endforeach; ?>
