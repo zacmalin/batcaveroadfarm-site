@@ -121,11 +121,11 @@ $chip    = fn(string $t, string $c = 'bg-stone-100 text-stone-600') => '<span cl
 $date    = fn($d) => $d ? date('M j, Y', strtotime((string)$d)) : '';
 $hidden  = fn(int $id) => '<input type="hidden" name="csrf_token" value="' . $h($csrf) . '"><input type="hidden" name="id" value="' . $id . '">';
 $tabs = function (string $on) use ($h) {
-    $out = '<div class="flex gap-1 mb-4">';
+    $out = '<nav aria-label="Customer filters" class="flex flex-wrap justify-end gap-2 mb-4">';
     foreach (['find' => ['Find', 'customers.php'], 'dupes' => ['Possible duplicates', 'customers.php?dupes=1'], 'orgs' => ['Organizations', 'organizations.php']] as $k => [$t, $u]) {
-        $out .= '<a href="' . $u . '" class="px-3 py-2 rounded text-sm border ' . ($k === $on ? 'border-stone-800 bg-stone-800 text-white' : 'border-stone-300 text-stone-700 bg-white hover:bg-stone-100') . '">' . $h($t) . '</a>';
+        $out .= '<a href="' . $u . '" ' . ($k === $on ? 'aria-current="page" ' : '') . 'class="inline-flex items-center min-h-9 px-3 py-2 rounded-full text-sm font-semibold border transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800 ' . ($k === $on ? 'border-amber-900 bg-amber-900 text-white' : 'border-stone-300 text-stone-700 bg-stone-50 hover:bg-amber-50 hover:border-amber-700 hover:text-amber-900') . '">' . $h($t) . '</a>';
     }
-    return $out . '</div>';
+    return $out . '</nav>';
 };
 $badge = function (array $c) use ($chip): string {
     $out = '';
