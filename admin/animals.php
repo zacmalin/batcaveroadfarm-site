@@ -693,10 +693,12 @@ if ($tab === 'enclosures') {
     if ($error) echo bcrf_shell_notice('err', $error);
     foreach ($all as $e): $over = $e['capacity'] !== null && $e['animal_count'] > $e['capacity']; ?>
   <form method="POST" action="animals.php" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="enclosure"><input type="hidden" name="enclosure_id" value="<?= $e['id'] ?>">
-    <div class="flex flex-wrap items-baseline justify-between gap-2 mb-2">
+    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
       <h2 class="text-base font-semibold text-stone-800"><?= $h($e['name']) ?><?= $e['active'] ? '' : ' (not in use)' ?></h2>
-      <?php if ($e['animal_count'] && function_exists('bcrf_care_ready') && bcrf_care_ready($pdo)): ?><a class="text-sm underline text-amber-800" href="animal_care.php?enc=<?= $e['id'] ?>">Log care</a><?php endif; ?>
-      <a class="text-sm underline <?= $over ? 'text-red-700' : 'text-amber-800' ?>" href="animals.php?enc=<?= $e['id'] ?>"><?= $e['animal_count'] ?> animal<?= $e['animal_count'] === 1 ? '' : 's' ?><?= $e['capacity'] !== null ? ' of ' . $e['capacity'] : '' ?><?= $over ? ', over capacity' : '' ?></a>
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <a class="text-sm underline <?= $over ? 'text-red-700 font-semibold' : 'text-amber-800' ?>" href="animals.php?enc=<?= $e['id'] ?>"><?= $e['animal_count'] ?> animal<?= $e['animal_count'] === 1 ? '' : 's' ?><?= $e['capacity'] !== null ? ' of ' . $e['capacity'] : '' ?><?= $over ? ', over capacity' : '' ?></a>
+        <?php if ($e['animal_count'] && function_exists('bcrf_care_ready') && bcrf_care_ready($pdo)): ?><a class="text-sm underline text-amber-800" href="animal_care.php?enc=<?= $e['id'] ?>">Log care</a><?php endif; ?>
+      </div>
     </div>
     <?php if ($canEdit): ?>
     <fieldset class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
