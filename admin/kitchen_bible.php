@@ -109,14 +109,43 @@ if ($id) {
 // ── The list ──
 $q = trim((string)($_GET['q'] ?? ''));
 $list = bcrf_bible_list($pdo, $q);
+$sortOptions = [
+    'az' => 'Name: A to Z',
+    'za' => 'Name: Z to A',
+    'oldest' => 'Oldest to newest',
+    'newest' => 'Newest to oldest',
+];
+$sort = (string)($_GET['sort'] ?? 'az');
+if (!isset($sortOptions[$sort])) $sort = 'az';
+usort($list, static function (array $a, array $b) use ($sort): int {
+    if ($sort === 'oldest' || $sort === 'newest') {
+        // Recipe IDs reflect creation order; do not rely on an optional date field.
+        $cmp = (int)$a['id'] <=> (int)$b['id'];
+        return $sort === 'newest' ? -$cmp : $cmp;
+    }
+    $cmp = strnatcasecmp((string)$a['title'], (string)$b['title']);
+    if ($cmp === 0) $cmp = (int)$a['id'] <=> (int)$b['id'];
+    return $sort === 'za' ? -$cmp : $cmp;
+});
 bcrf_shell_open('Recipe Bible', ['width' => 'max-w-3xl']);
 ?>
   <h1 class="text-2xl font-bold text-stone-800 mb-1">Recipe Bible</h1>
   <p class="text-sm text-stone-600 mb-4">The house recipes, for cooking. Staff only; nothing here is on the website unless it's also published there.
     To add a recipe, open it in the recipe editor and tick <strong>Keep in the house Recipe Bible</strong>.</p>
-  <form method="GET" class="flex gap-2 mb-4">
-    <input name="q" value="<?= $h($q) ?>" class="<?= $input ?>" placeholder="Search recipes" aria-label="Search recipes">
-    <button class="<?= $btnSec ?>">Search</button>
+  <form method="GET" class="flex flex-wrap items-end gap-2 mb-4">
+    <div class="flex-1 min-w-40">
+      <label for="bibleSearch" class="block text-xs font-semibold text-stone-600 mb-1">Search</label>
+      <input id="bibleSearch" name="q" value="<?= $h($q) ?>" class="<?= $input ?>" placeholder="Search recipes">
+    </div>
+    <div class="ml-auto">
+      <label for="bibleSort" class="block text-xs font-semibold text-stone-600 mb-1">Sort by</label>
+      <select id="bibleSort" name="sort" class="<?= $input ?>">
+        <?php foreach ($sortOptions as $key => $label): ?>
+          <option value="<?= $h($key) ?>"<?= $sort === $key ? ' selected' : '' ?>><?= $h($label) ?></option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <button class="<?= $btnSec ?>">Show</button>
   </form>
   <?php if (!$list): ?>
     <div class="<?= $card ?> text-center">
