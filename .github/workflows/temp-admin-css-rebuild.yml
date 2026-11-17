@@ -27,3 +27,5 @@ jobs:
             git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Rebuild generated admin styles'
             git push
           fi
+
+# Trigger branch build after workflow registration.
