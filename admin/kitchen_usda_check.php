@@ -53,7 +53,7 @@ bcrf_shell_open('USDA check', ['js' => ['usda-picker.js', 'kitchen-usda-check.js
 
 <div id="ucBar" class="hidden fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 p-3 shadow-sm z-50">
     <div class="max-w-5xl mx-auto flex items-center gap-3">
-        <button type="button" id="ucApply" class="px-4 py-2 rounded text-sm bg-amber-700 hover:bg-amber-800 text-white font-semibold">Update ticked</button>
+        <button type="button" id="ucApply" class="px-4 py-2 rounded text-sm bg-amber-700 hover:bg-amber-800 text-white font-semibold"><span aria-hidden="true">✓</span> Update ticked</button>
         <span id="ucApplyNote" class="text-sm text-stone-600"></span>
     </div>
 </div>
