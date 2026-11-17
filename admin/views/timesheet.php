@@ -189,6 +189,41 @@ if (empty($ts_staff) && empty($ts_shifts)) {
     }
 }
 
+// CSV uses the same authorized, filtered shift rows as the on-screen timesheet.
+// Escape spreadsheet formulas so staff-entered notes cannot execute in Excel.
+if (($_GET['export'] ?? '') === 'csv') {
+    $csvCell = static function ($value): string {
+        $value = (string)($value ?? '');
+        return preg_match('/^[\\x00-\\x20]*[=+@-]/', $value) ? "'" . $value : $value;
+    };
+    while (ob_get_level() > 0) ob_end_clean();
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="bcrf-timesheet-' . $ts_date_from . '-to-' . $ts_date_to . '.csv"');
+    header('Cache-Control: private, no-store');
+    $output = fopen('php://output', 'w');
+    fputcsv($output, ['Staff', 'Role', 'Shift date', 'Clock in', 'Clock out', 'Hours worked', 'Status', 'Notes']);
+    $totalSeconds = 0;
+    foreach ($ts_shifts as $shift) {
+        $start = strtotime((string)$shift['clock_in']);
+        $end = !empty($shift['clock_out']) ? strtotime((string)$shift['clock_out']) : false;
+        $seconds = $end !== false ? max(0, $end - $start) : 0;
+        $totalSeconds += $seconds;
+        fputcsv($output, [
+            $csvCell(trim($shift['first_name'] . ' ' . $shift['last_name'])),
+            $csvCell($shift['role']),
+            date('Y-m-d', $start),
+            $shift['clock_in'],
+            $shift['clock_out'] ?? '',
+            number_format($seconds / 3600, 4, '.', ''),
+            $end === false ? 'Active' : 'Completed',
+            $csvCell($shift['notes'] ?? ''),
+        ]);
+    }
+    fputcsv($output, ['TOTAL', '', '', '', '', number_format($totalSeconds / 3600, 4, '.', ''), '', '']);
+    fclose($output);
+    exit;
+}
+
 // ── PRINT MODE ───────────────────────────────────────────────────────────────
 // When ?print=1 is set, output a clean standalone document and exit.
 // This runs inside admin.php's scope so auth + data are already loaded.
@@ -336,10 +371,10 @@ $preset_labels = [
 
 <div class="flex justify-between items-center mb-6 print:hidden">
     <h1 class="text-2xl font-bold text-stone-800">Staff Timesheet</h1>
-    <button id="staffTimesheetPrint" type="button"
-        class="border border-stone-200 font-bold uppercase text-[10px] tracking-wider px-4 py-2 rounded text-stone-600 hover:bg-stone-900 hover:text-white transition">
-        🖨 Print / Export
-    </button>
+    <div class="flex flex-wrap justify-end gap-2">
+        <button id="staffTimesheetPrint" type="button" class="inline-flex items-center justify-center px-4 py-2 rounded-full border border-stone-300 bg-white text-sm font-semibold text-stone-700 hover:bg-stone-50">🖨 Print</button>
+        <a href="/admin/admin.php?<?= htmlspecialchars(http_build_query(array_merge($_GET, ['view' => 'timesheet', 'export' => 'csv'])), ENT_QUOTES) ?>" class="inline-flex items-center justify-center px-4 py-2 rounded-full bg-stone-800 text-white text-sm font-semibold hover:bg-stone-700">↓ Export CSV</a>
+    </div>
 </div>
 
 <!-- ── FILTERS ── -->
