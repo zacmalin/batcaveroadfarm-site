@@ -156,6 +156,7 @@
     if (!items().length) return;
 
     function idOf(el) { var n = parseInt(el.getAttribute('data-id'), 10); return isNaN(n) ? null : n; }
+    function dateOf(el) { var n = parseInt(el.getAttribute('data-date'), 10); return isNaN(n) || n <= 0 ? (idOf(el) || 0) : n; }
     function key(el) { return (el.getAttribute('data-name') || el.textContent || '').toLowerCase().trim(); }
     var canDate = items().some(function (el) { return idOf(el) != null; });
 
@@ -200,7 +201,7 @@
           var c = key(a).localeCompare(key(b), undefined, { numeric: true, sensitivity: 'base' });
           return mode === 'az' ? c : -c;
         }
-        var av = idOf(a) || 0, bv = idOf(b) || 0;
+        var av = dateOf(a), bv = dateOf(b);
         return mode === 'newest' ? bv - av : av - bv;
       });
       list.forEach(function (el) { container.appendChild(el); });
