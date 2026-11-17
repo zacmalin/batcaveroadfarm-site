@@ -365,7 +365,7 @@ $filtersOn = $F['job'] || $F['cat'] || $F['round'] !== 'current' || $F['flag'] !
   <?php endif; ?>
 
   <!-- Status chips -->
-  <nav class="flex justify-end gap-1.5 overflow-x-auto pb-2 mb-2 -mx-1 px-1" aria-label="Status">
+  <nav class="flex flex-wrap justify-end gap-1.5 pb-2 mb-2" aria-label="Status">
     <?php
       $chipList = [['active', 'In progress', $activeN]];
       foreach ($SL as $k => $l) $chipList[] = [$k, $l, $counts[$k] ?? 0];
