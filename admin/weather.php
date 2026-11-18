@@ -92,6 +92,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         error_log('[weather] ' . $act . ': ' . $e->getMessage());
         $_SESSION['w_flash'] = ['err', 'Could not do that. Try again.'];
     }
+    if (isset($_SESSION['w_flash']) && ($_SESSION['w_flash'][0] ?? '') === 'err') {
+        $_SESSION['w_error_action'] = $act;
+        if (in_array($act, ['call', 'site_closed_on', 'outcome'], true)) $_SESSION['w_form'] = $_POST;
+    }
     header('Location: ' . $back); exit;
 }
 
@@ -107,6 +111,8 @@ function bcrf_wx_last_note(PDO $pdo): string {
 }
 
 $flash = $_SESSION['w_flash'] ?? null; unset($_SESSION['w_flash']);
+$errorAction = (string)($_SESSION['w_error_action'] ?? ''); unset($_SESSION['w_error_action']);
+$typed = $_SESSION['w_form'] ?? []; unset($_SESSION['w_form']);
 $toast = ($flash && $flash[0] === 'ok') ? $flash : null;
 $error = ($flash && $flash[0] === 'err') ? $flash[1] : '';
 
@@ -141,7 +147,7 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
     <summary class="cursor-pointer text-base font-semibold text-stone-800 mb-2 hover:text-amber-800">🌧️ Website closure notice <span class="inline-block align-middle ml-1 rounded-full px-2 py-0.5 text-xs <?= $siteNote !== '' ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-200 text-stone-700' ?>"><?= $siteNote !== '' ? 'ON' : 'OFF' ?></span></summary>
     <p class="text-xs text-stone-500 mb-3">This notice affects today's public website only. It does not block bookings or notify customers.</p>
     <?php if ($mgr): ?>
-    <form method="POST" action="weather.php" class="mb-3" id="wx-closure-form">
+    <form method="POST" action="weather.php" data-submit-once class="mb-3" id="wx-closure-form">
       <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
       <input type="hidden" name="section" value="website-closure">
       <input type="hidden" name="date" value="<?= $h($date) ?>">
@@ -163,7 +169,7 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
       </div>
       <?php if ($siteNote === ''): ?>
       <div class="mt-3"><label for="w_site_note" class="<?= $label ?>">Banner message <span class="font-normal text-stone-400">shown after "Closed today for weather."</span></label>
-        <input id="w_site_note" name="site_note" maxlength="300" class="<?= $input ?>" value="<?= $h(bcrf_wx_last_note($pdo)) ?>"></div>
+        <input id="w_site_note" name="site_note" maxlength="300" class="<?= $input ?>" value="<?= $h($typed['site_note'] ?? bcrf_wx_last_note($pdo)) ?>"></div>
       <?php else: ?>
       <p class="text-sm text-stone-600 mt-3">Current banner: <?= $h($siteNote) ?></p>
       <?php endif; ?>
@@ -238,10 +244,10 @@ bcrf_shell_open('Weather day', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' 
       <?php elseif (!$mgr): ?>
         <p class="text-sm text-stone-500">Only an Owner or Manager can call off a day.</p>
       <?php else: ?>
-      <form method="POST" action="weather.php" class="space-y-3">
+      <form id="weather-call-form" method="POST" action="weather.php" data-submit-once class="space-y-3">
         <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="section" value="affected-events"><input type="hidden" name="date" value="<?= $h($date) ?>">
         <div><label for="w_msg" class="<?= $label ?>">Message <span class="font-normal text-stone-400">each email also says which booking it's about, with the date and time</span></label>
-          <textarea id="w_msg" name="message" rows="6" maxlength="3000" required class="<?= $input ?>"><?= $h($day['message'] ?? bcrf_weather_default_message($pdo)) ?></textarea></div>
+          <textarea id="w_msg" name="message" rows="6" maxlength="3000" required class="<?= $input ?>"><?= $h($typed['message'] ?? $day['message'] ?? bcrf_weather_default_message($pdo)) ?></textarea></div>
         <label class="flex items-center gap-2 text-sm text-stone-700"><input type="checkbox" name="close_day" value="1" <?= $isClosed ? 'checked disabled' : 'checked' ?>> Close this day to new bookings</label>
         <label class="flex items-center gap-2 text-sm text-stone-700"><input type="checkbox" name="save_default" value="1"> Save this wording for next time</label>
         <p class="text-xs text-stone-500">Sending email, blocking new bookings and showing the website closure banner are separate actions. Nothing is cancelled or refunded automatically. Online day tickets are not emailed.</p>
