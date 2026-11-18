@@ -54,6 +54,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         error_log('[kitchen_ingredients] save ' . $id . ': ' . $e->getMessage());
         $_SESSION['ki_flash'] = ['err', 'Could not save. Try again.'];
     }
+    if (($_SESSION['ki_flash'][0] ?? '') === 'err') $back .= '#kitchen-ingredient-form';
     header('Location: ' . $back); exit;
 }
 
@@ -105,7 +106,7 @@ if ($id) {
          $ing['allergens_checked_at'] ? ' · checked ' . $h(date('M j, Y', strtotime($ing['allergens_checked_at'] . ' UTC'))) . (trim((string)$ing['checked_by_name']) !== '' ? ' by ' . $h($ing['checked_by_name']) : '') : '', '</p>';
     if ($error) echo bcrf_shell_notice('err', $error);
     ?>
-  <form method="POST" class="<?= $card ?>"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="save"><input type="hidden" name="id" value="<?= $id ?>">
+  <form id="kitchen-ingredient-form" data-submit-once method="POST" class="<?= $card ?>"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="save"><input type="hidden" name="id" value="<?= $id ?>">
     <?php if ($backRecipe): ?><input type="hidden" name="back" value="recipe:<?= $backRecipe ?>"><?php endif; ?>
     <fieldset class="mb-4"<?= $canEdit ? '' : ' disabled' ?>>
       <legend class="text-base font-semibold text-stone-800 mb-1">Allergens</legend>
