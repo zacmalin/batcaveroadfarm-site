@@ -183,15 +183,31 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         if ($ajax) { header('Content-Type: application/json'); http_response_code(422); echo json_encode(['ok' => false, 'error' => $e->getMessage()]); exit; }
         $_SESSION['task_flash'] = ['err', $e->getMessage()];
         $_SESSION['task_form'] = $_POST;
-        if ($act === 'add' && empty($_POST['quick'])) $back = 'tasks.php?new=1';
-        if ($act === 'edit') $back = 'tasks.php?edit=' . $id;
-        if ($act === 'rec_save') $back = 'tasks.php?tab=chores&rec=' . ($id ?: 'new');
-        if ($act === 'tpl_save') $back = 'tasks.php?tab=templates&tpl_edit=' . ($id ?: 'new');
-        if ($act === 'step_save') $back = 'tasks.php?tab=events&step=' . ($id ?: 'new&plan=' . rawurlencode((string)($_POST['plan'] ?? '')));
+        if (in_array($act, ['add', 'edit', 'rec_save', 'step_save', 'tpl_save'], true)) {
+            $formRoutes = [
+                'add' => 'tasks.php?new=1',
+                'edit' => 'tasks.php?edit=' . $id,
+                'rec_save' => 'tasks.php?tab=chores&rec=' . ($id ?: 'new'),
+                'step_save' => 'tasks.php?tab=events&step=' . ($id ?: 'new&plan=' . rawurlencode((string)($_POST['plan'] ?? ''))),
+                'tpl_save' => 'tasks.php?tab=templates&tpl_edit=' . ($id ?: 'new'),
+            ];
+            if ($act !== 'add' || empty($_POST['quick'])) $back = $formRoutes[$act] . '#task-entry-form';
+        }
     } catch (Throwable $e) {
         error_log('[tasks] ' . $act . ': ' . $e->getMessage());
         if ($ajax) { header('Content-Type: application/json'); http_response_code(500); echo json_encode(['ok' => false, 'error' => 'Could not save. Try again.']); exit; }
         $_SESSION['task_flash'] = ['err', 'Could not save. Try again.'];
+        $_SESSION['task_form'] = $_POST;
+        if (in_array($act, ['add', 'edit', 'rec_save', 'step_save', 'tpl_save'], true)) {
+            $formRoutes = [
+                'add' => 'tasks.php?new=1',
+                'edit' => 'tasks.php?edit=' . $id,
+                'rec_save' => 'tasks.php?tab=chores&rec=' . ($id ?: 'new'),
+                'step_save' => 'tasks.php?tab=events&step=' . ($id ?: 'new&plan=' . rawurlencode((string)($_POST['plan'] ?? ''))),
+                'tpl_save' => 'tasks.php?tab=templates&tpl_edit=' . ($id ?: 'new'),
+            ];
+            if ($act !== 'add' || empty($_POST['quick'])) $back = $formRoutes[$act] . '#task-entry-form';
+        }
     }
     header('Location: ' . $back);
     exit;
@@ -513,13 +529,14 @@ if (isset($_GET['new']) || isset($_GET['edit'])) {
     ?>
   <a href="<?= $t ? 'tasks.php?id=' . (int)$t['id'] : 'tasks.php' ?>" class="inline-flex items-center min-h-10 text-sm text-stone-500 hover:text-stone-800 mb-1">← <?= $t ? 'Back to the task' : 'My tasks' ?></a>
   <h1 class="text-2xl font-bold text-stone-800 mb-3"><?= $t ? 'Change task' : 'New task' ?></h1>
-  <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
+
   <?php if ($tpls): ?>
   <div class="flex flex-wrap items-center gap-2 mb-3 text-sm"><span class="text-stone-500">Start from a saved checklist:</span>
     <?php foreach ($tpls as $tp): ?><a href="tasks.php?new=1&amp;tpl=<?= (int)$tp['id'] ?><?= $relGet ? '&amp;related=' . $h($relGet[0] . ':' . $relGet[1]) : '' ?>" class="px-2 py-1 rounded border border-stone-300 bg-white hover:bg-stone-100 <?= ($tpl['id'] ?? 0) == $tp['id'] ? 'font-bold' : '' ?>"><?= $h($tp['title']) ?></a><?php endforeach; ?>
   </div>
   <?php endif; ?>
-  <form method="POST" action="tasks.php" data-submit-once class="<?= $card ?> p-4 space-y-3">
+  <form id="task-entry-form" method="POST" action="tasks.php" data-submit-once class="<?= $card ?>
+     <?php if ($error) echo bcrf_shell_notice('err', $error); ?> p-4 space-y-3">
     <?= $hidden($t ? 'edit' : 'add', $t ? (int)$t['id'] : 0) ?>
     <?php if (!empty($d['template_id'])): ?><input type="hidden" name="template_id" value="<?= (int)$d['template_id'] ?>"><?php endif; ?>
     <div><label for="f_title" class="<?= $label ?>">What needs doing</label>
@@ -579,8 +596,9 @@ if ($tab === 'chores') {
   <a href="tasks.php?tab=chores" class="inline-flex items-center min-h-10 text-sm text-stone-500 hover:text-stone-800 mb-1">← Chores</a>
   <h1 class="text-2xl font-bold text-stone-800 mb-1"><?= $r ? 'Change chore' : 'New chore' ?></h1>
   <p class="text-sm text-stone-500 mb-3">Each day it falls on gets its own task, made a week ahead. Saving updates the days ahead that nobody has started; finished days and history stay as they were.</p>
-  <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
-  <form method="POST" action="tasks.php" data-submit-once class="<?= $card ?> p-4 space-y-3">
+
+  <form id="task-entry-form" method="POST" action="tasks.php" data-submit-once class="<?= $card ?>
+     <?php if ($error) echo bcrf_shell_notice('err', $error); ?> p-4 space-y-3">
     <?= $hidden('rec_save', $r ? (int)$r['id'] : 0) ?>
     <div><label for="c_title" class="<?= $label ?>">Chore</label><input id="c_title" name="title" maxlength="150" required value="<?= $h($d['title'] ?? '') ?>" class="<?= $input ?>"></div>
     <div class="grid gap-3 sm:grid-cols-2">
@@ -690,8 +708,9 @@ if ($tab === 'events') {
   <a href="tasks.php?tab=events" class="inline-flex items-center min-h-10 text-sm text-stone-500 hover:text-stone-800 mb-1">← Event checklists</a>
   <h1 class="text-2xl font-bold text-stone-800 mb-1"><?= $r ? 'Change step' : 'New step' ?></h1>
   <p class="text-sm text-stone-500 mb-3"><?= $h($plans[$plan] ?? $plan) ?>. Every confirmed <?= $isBooking ? 'booking of this kind' : 'party' ?> gets this as a task, with the <?= $isBooking ? 'booking' : 'party' ?> details in its notes. Saving updates upcoming tasks nobody has started.</p>
-  <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
-  <form method="POST" action="tasks.php" data-submit-once class="<?= $card ?> p-4 space-y-3">
+
+  <form id="task-entry-form" method="POST" action="tasks.php" data-submit-once class="<?= $card ?>
+     <?php if ($error) echo bcrf_shell_notice('err', $error); ?> p-4 space-y-3">
     <?= $hidden('step_save', $r ? (int)$r['id'] : 0) ?><input type="hidden" name="plan" value="<?= $h($plan) ?>">
     <div><label for="e_title" class="<?= $label ?>">Step</label><input id="e_title" name="title" maxlength="120" required value="<?= $h($d['title'] ?? '') ?>" class="<?= $input ?>" placeholder="e.g. Party prep">
       <p class="text-xs text-stone-500 mt-1">The task is named “<?= $h(($d['title'] ?? '') ?: 'Step') ?>: <i>customer name</i>”.</p></div>
@@ -799,8 +818,9 @@ if ($tab === 'templates') {
   <a href="tasks.php?tab=templates" class="inline-flex items-center min-h-10 text-sm text-stone-500 hover:text-stone-800 mb-1">← Checklists</a>
   <h1 class="text-2xl font-bold text-stone-800 mb-1"><?= $r ? 'Change checklist' : 'New checklist' ?></h1>
   <p class="text-sm text-stone-500 mb-3">A saved checklist for jobs that come up now and then (a vet visit, a birthday party setup). Pick it when adding a task.</p>
-  <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
-  <form method="POST" action="tasks.php" data-submit-once class="<?= $card ?> p-4 space-y-3">
+
+  <form id="task-entry-form" method="POST" action="tasks.php" data-submit-once class="<?= $card ?>
+     <?php if ($error) echo bcrf_shell_notice('err', $error); ?> p-4 space-y-3">
     <?= $hidden('tpl_save', $r ? (int)$r['id'] : 0) ?>
     <div><label for="p_title" class="<?= $label ?>">Name</label><input id="p_title" name="title" maxlength="150" required value="<?= $h($d['title'] ?? '') ?>" class="<?= $input ?>"></div>
     <div class="grid gap-3 sm:grid-cols-2">
