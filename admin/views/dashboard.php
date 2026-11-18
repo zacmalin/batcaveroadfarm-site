@@ -143,7 +143,7 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
         <h2 id="acHead" class="text-sm font-black uppercase tracking-widest text-stone-500">Action Center</h2>
         <div class="flex flex-wrap items-center gap-1.5 text-[10px] font-bold">
           <?php foreach ($prioStyle as $pk => $ps): if (empty($prioCount[$pk])) continue; ?>
-            <span class="px-2 py-0.5 rounded-full <?= $ps['chip'] ?>"><?= (int)$prioCount[$pk] ?> <?= $ps['label'] ?></span>
+            <span data-priority-count="<?= $h($pk) ?>" class="px-2 py-0.5 rounded-full <?= $ps['chip'] ?>"><?= (int)$prioCount[$pk] ?> <?= $ps['label'] ?></span>
           <?php endforeach; ?>
         </div>
       </div>
@@ -157,7 +157,7 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
 
         <?php foreach ($alerts as $al): $ps = $prioStyle[$al['priority']]; $dis = $al['priority'] === 'fyi'; ?>
         <article class="<?= $card ?> border-l-4 <?= $ps['bar'] ?> p-4"
-                 data-alert="<?= $h($al['id']) ?>" data-sig="<?= $h((string)$al['count']) ?>"<?= $dis ? ' data-dismissible' : '' ?>>
+                 data-alert="<?= $h($al['id']) ?>" data-priority="<?= $h($al['priority']) ?>" data-sig="<?= $h((string)$al['count']) ?>"<?= $dis ? ' data-dismissible' : '' ?>>
           <div class="flex items-start gap-3">
             <div class="text-xl leading-none mt-0.5 shrink-0"><?= $al['icon'] ?></div>
             <div class="flex-1 min-w-0">
@@ -320,4 +320,4 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
   <?php endif; ?>
   </div>
 </div>
-<script src="/admin/assets/admin-dashboard.js?v=20261117b"></script>
+<script src="/admin/assets/admin-dashboard.js?v=20261117c"></script>
