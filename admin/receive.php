@@ -110,7 +110,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $back = 'receive.php?new=1';
     if (!empty($_POST['_lines'])) $back .= '&lines=' . max(3, min(20, (int)$_POST['_lines']));
     if (!empty($_POST['_product'])) $back .= '&product=' . (int)$_POST['_product'];
-    header('Location: ' . $back); exit;
+    header('Location: ' . $back . '#receive-form'); exit;
 }
 
 $flash = $_SESSION['recv_flash'] ?? null; unset($_SESSION['recv_flash']);
@@ -180,7 +180,7 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
 
 // List + form
 echo '<h1>Receive stock</h1>';
-if ($flash) echo bcrf_shell_flash($flash);
+if ($flash && ($flash[0] ?? '') !== 'err') echo bcrf_shell_flash($flash);
 
 $preProduct = (int)($_GET['product'] ?? 0);
 if ($preProduct && !isset($byId[$preProduct])) $preProduct = 0;
@@ -231,6 +231,8 @@ if ($poRow) {
     echo '<p class="muted">Against <a href="purchase_orders.php?id=', (int)$poRow['id'], '">PO #', (int)$poRow['id'], '</a> (', $h($poRow['vendor_name']), '). Remaining quantities are prefilled; adjust if the delivery differs.</p>';
     echo '<p class="muted"><strong>Check unexpected items or overages:</strong> all received quantities increase stock, but quantities beyond the order and products not on it do not count toward completing this PO.</p>';
 }
+echo '<div id="receive-form"></div>';
+if ($flash && ($flash[0] ?? '') === 'err') echo bcrf_shell_flash($flash);
 echo '<form class="stackf" method="POST" action="receive.php" data-submit-once autocomplete="off" enctype="multipart/form-data">';
 echo '<input type="hidden" name="csrf_token" value="', $h($csrf), '">';
 echo '<input type="hidden" name="_lines" value="', $lineCount, '">';
