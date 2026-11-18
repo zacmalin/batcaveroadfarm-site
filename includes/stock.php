@@ -41,6 +41,7 @@ function bcrf_stock_reason_label(string $r): string {
         'sale' => 'Sold', 'void' => 'Sale voided', 'refund_restock' => 'Refund, back in stock', 'count' => 'Count',
         'opening' => 'Opening balance', 'transfer_out' => 'Moved out', 'transfer_in' => 'Moved in', 'sync' => 'Changed outside Stock',
         'produced' => 'Made in the kitchen', 'batch_use' => 'Used in a kitchen batch', 'batch_void' => 'Kitchen batch voided',   // Phase 4 slice 3
+        'harvest' => 'Picked in the garden',   // Garden, Nov 18, 2026
     ];
     return $m[$r] ?? $r;
 }

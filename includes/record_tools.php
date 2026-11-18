@@ -37,6 +37,7 @@ function bcrf_record_kinds(): array {
         'receive'        => ['label' => 'Receive',        'need' => [['table', 'inventory', 'edit']], 'audit' => ['receives'],         'notes' => false],
         'event'          => ['label' => 'Event',          'need' => [['view', 'events']],             'audit' => ['events'],           'notes' => false],
         'renewal'        => ['label' => 'Renewal',        'need' => [['view', 'renewals']],           'audit' => ['renewals'],         'notes' => true],   // Nov 15, 2026
+        'garden_area'    => ['label' => 'Garden bed',     'need' => [['view', 'garden']],             'audit' => ['garden'],           'notes' => false],  // Nov 18, 2026
     ];
 }
 
@@ -44,7 +45,7 @@ function bcrf_record_kinds(): array {
 function bcrf_record_task_kinds(): array {
     $k = bcrf_record_kinds();
     $out = [];
-    foreach (['animal', 'booking', 'customer', 'event', 'incident', 'organization', 'event_inquiry', 'inventory', 'purchase_order', 'vendor'] as $t) $out[$t] = $k[$t]['label'];
+    foreach (['animal', 'booking', 'customer', 'event', 'garden_area', 'incident', 'organization', 'event_inquiry', 'inventory', 'purchase_order', 'vendor'] as $t) $out[$t] = $k[$t]['label'];
     return $out;
 }
 
@@ -81,6 +82,7 @@ function bcrf_record_row(PDO $pdo, string $type, $id): ?array {
         'receive'        => "SELECT r.id, CONCAT('Receive #', r.id, IF(v.name IS NULL, '', CONCAT(' · ', v.name))) AS name, r.business_date AS on_date FROM receives r LEFT JOIN vendors v ON v.id = r.vendor_id WHERE r.id = ?",
         'event'          => "SELECT id, title AS name FROM events WHERE id = ?",
         'renewal'        => "SELECT id, title AS name, renews_on AS on_date FROM renewals WHERE id = ?",
+        'garden_area'    => "SELECT id, name FROM garden_growing_locations WHERE id = ?",
     ][$type] ?? null;
     if (!$sql) return null;
     try { $st = $pdo->prepare($sql); $st->execute([$id]); $r = $st->fetch(PDO::FETCH_ASSOC); return $r ?: null; }
@@ -109,6 +111,11 @@ function bcrf_record_url(PDO $pdo, string $type, $id): string {
         return '/admin/admin.php?view=bookings' . (!empty($r['on_date']) ? '&day=' . rawurlencode((string)$r['on_date']) : '');
     }
     if ($type === 'event') return '/admin/admin.php?view=events';
+    if ($type === 'garden_area') {   // beds are listed per garden on Beds & areas
+        try { $st = $pdo->prepare("SELECT site_id FROM garden_growing_locations WHERE id = ?"); $st->execute([$id]); $site = (int)$st->fetchColumn(); }
+        catch (Throwable $e) { $site = 0; }
+        return $site ? '/admin/garden/areas.php?site=' . $site . '#area-' . $id : '';
+    }
     return '';
 }
 

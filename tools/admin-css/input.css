@@ -53,3 +53,5 @@
 @source "../../admin/organizations.php";
 @source "../../admin/waivers.php";
 @source "../../admin/notifications.php";
+@source "../../admin/garden";   /* Garden pages (Nov 18, 2026) */
+@source "../../includes/garden.php";

@@ -35,6 +35,10 @@ function bcrf_permission_sections(): array {
             ['view',  'animal_expenses', '🧾', 'Expenses (costs)'],
             ['view',  'incidents',       '🚑', 'Incidents (see, change and close every report)'],
         ]],
+        'garden' => ['label' => 'Garden', 'icon' => '🌱', 'items' => [   // Nov 18, 2026
+            ['view', 'garden',        '🌱', 'Garden (log plantings, care, watering, harvests)'],
+            ['view', 'garden_manage', '🗺️', 'Garden setup (gardens, beds, crops, growing guides)'],
+        ]],
         'kitchen' => ['label' => 'Kitchen', 'icon' => '🍳', 'items' => [
             ['table', 'recipes',           '📖', 'Recipes'],
             ['table', 'cuisines',          '🌍', 'Cuisines'],
