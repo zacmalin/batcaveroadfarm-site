@@ -128,7 +128,7 @@ if (!$editing) {
          $sel('type', bcrf_product_types() + ['admission' => 'Admission'], $f['type'], 'All types', ['aria-label' => 'Type']),
          $sel('status', ['all' => 'On and off', 'active' => 'On only', 'off' => 'Turned off only'], $f['status'], '', ['aria-label' => 'Status']),
          bcrf_list_sort_select($sortOpts, $sort),
-         '<button class="btn sm" type="submit">Apply filters</button><a class="btn sm" href="products.php">Reset</a><a class="btn sm primary" href="products.php?new=1">Add a product</a></form>';
+         '<button class="btn sm" type="submit"><span aria-hidden="true">✓</span> Apply filters</button><a class="btn sm" href="products.php">Reset</a><a class="btn sm primary" href="products.php?new=1">Add a product</a></form>';
     if (!$rows) echo '<p class="card muted">No products match.</p>';
     else {
         $backQs = 'products.php' . ($_SERVER['QUERY_STRING'] ?? '' ? '?' . (string)$_SERVER['QUERY_STRING'] : '');
@@ -168,7 +168,7 @@ $num = fn(string $k) => isset($d[$k]) && $d[$k] !== null && $d[$k] !== '' ? $h(i
 
 echo '<p><a href="products.php">← All products</a></p><h1>', $p ? $h($p['name']) : 'Add a product', '</h1>';
 if ($flash) echo bcrf_shell_flash($flash);
-echo '<form class="card stackf" method="POST" action="products.php"><input type="hidden" name="csrf_token" value="', $h($csrf), '"><input type="hidden" name="id" value="', $id ?: '', '">';
+echo '<form class="card stackf" method="POST" action="products.php" data-submit-once><input type="hidden" name="csrf_token" value="', $h($csrf), '"><input type="hidden" name="id" value="', $id ?: '', '">';
 echo '<label>Name<input type="text" name="name" value="', $val('name'), '" maxlength="255" required></label>';
 if ($isAdm) echo '<p class="muted">Admission product: its ticket type, check-ins and capacity come from the Admissions category. Price, tax, name and photo can be changed here.</p><input type="hidden" name="product_type" value="admission">';
 elseif ($p && $p['product_type'] === 'gift_card') echo '<p class="muted">Gift card product: staff type the amount on the register, it issues a gift card, and it keeps no stock. Keep its tax category on Exempt (tax is charged when the card is spent). Name and photo can be changed here; to stop selling gift cards on the register, untick On sale.</p><input type="hidden" name="product_type" value="gift_card">';
@@ -235,7 +235,7 @@ if ($feedReady && !$isAdm && !($p && $p['product_type'] === 'gift_card')) {   //
          '> Animal feed (offer it when logging a feeding in Animal care; feedings take it out of stock)</label>';
 }
 echo '<label class="check"><input type="checkbox" name="is_active" value="1"', $chk('is_active'), '> On (things we sell: on the register, and on the website when in stock. In-house supplies: still in use; they never go on the register or website)</label>',
-     '<div class="rbar"><button class="btn primary" type="submit">', $p ? 'Save' : 'Add product', '</button>',
+     '<div class="rbar"><button class="btn primary" type="submit" data-submit-label="Saving…"><span aria-hidden="true">', $p ? '✓' : '＋', '</span> ', $p ? 'Save' : 'Add product', '</button>',
      $p ? '<a class="btn" href="print_label.php?item_id=' . (int)$p['id'] . '">Print label</a>' : '', '</div></form>';
 if ($p && in_array(($_SESSION['user_role'] ?? ''), ['administrator'], true)) echo '<p class="muted">Other fields: <a href="admin.php?view=schema&amp;table=inventory">Full editor</a> (administrators).</p>';
 if ($p) echo '<div class="mt-4"></div>', bcrf_record_tasks_box_html($pdo, 'inventory', (int)$p['id']), bcrf_record_changes_html($pdo, 'inventory', (int)$p['id']);
