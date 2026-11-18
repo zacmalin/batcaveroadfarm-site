@@ -405,16 +405,16 @@
         var button = e.submitter;
         if (button && button.tagName === 'BUTTON') {
             button.setAttribute('aria-disabled', 'true');
-            button.dataset.originalText = button.textContent;
-            button.textContent = 'Saving…';
+            button.dataset.originalHtml = button.innerHTML;
+            button.textContent = button.getAttribute('data-submit-label') || 'Saving…';
         }
     });
     window.addEventListener('pageshow', function () {
         Array.prototype.forEach.call(document.querySelectorAll('form[data-submit-once]'), function (form) {
             delete form.dataset.bcrfSubmitting;
-            Array.prototype.forEach.call(form.querySelectorAll('button[data-original-text]'), function (button) {
-                button.textContent = button.dataset.originalText;
-                button.removeAttribute('data-original-text');
+            Array.prototype.forEach.call(form.querySelectorAll('button[data-original-html]'), function (button) {
+                button.innerHTML = button.dataset.originalHtml;
+                button.removeAttribute('data-original-html');
                 button.removeAttribute('aria-disabled');
             });
         });
