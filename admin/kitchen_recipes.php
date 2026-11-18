@@ -52,10 +52,16 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         error_log('[kitchen_recipes] save_version ' . $rid . ': ' . $e->getMessage());
         $_SESSION['kr_flash'] = ['err', 'Could not save. Try again.'];
     }
-    header('Location: kitchen_recipes.php?id=' . $rid); exit;
+    $back = 'kitchen_recipes.php?id=' . $rid;
+    if (($_SESSION['kr_flash'][0] ?? '') === 'err') {
+        $_SESSION['kr_note'] = (string)($_POST['note'] ?? '');
+        $back .= '#recipe-version-form';
+    }
+    header('Location: ' . $back); exit;
 }
 
 $flash = $_SESSION['kr_flash'] ?? null; unset($_SESSION['kr_flash']);
+$draftNote = $_SESSION['kr_note'] ?? null; unset($_SESSION['kr_note']);
 $toast = ($flash && $flash[0] === 'ok') ? $flash : null;
 $error = ($flash && $flash[0] === 'err') ? $flash[1] : '';
 $input   = 'p-2 border border-stone-300 rounded bg-stone-50 text-base md:text-sm w-full';
@@ -138,7 +144,7 @@ if ($id) {
     <?php endif; ?>
     <?php if ($canEditRecipe && (!$vs['latest'] || !$vs['current'])): ?>
       <?php if ($res['ready']): ?>
-      <form method="POST" class="flex flex-wrap gap-2 items-end"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="save_version"><input type="hidden" name="id" value="<?= $id ?>">
+      <form id="recipe-version-form" data-submit-once method="POST" class="flex flex-wrap gap-2 items-end"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="save_version"><input type="hidden" name="id" value="<?= $id ?>">
         <div class="flex-1 min-w-48"><label class="<?= $label ?>" for="vn">Note (optional)</label><input id="vn" name="note" maxlength="255" class="<?= $input ?>" placeholder="e.g. less sugar"></div>
         <button class="<?= $btnMain ?>">Save as version <?= $vs['latest'] ? (int)$vs['latest']['version_no'] + 1 : 1 ?></button></form>
       <?php else: ?><p class="text-xs text-stone-500">Fix what's listed below, then save a version.</p><?php endif; ?>
