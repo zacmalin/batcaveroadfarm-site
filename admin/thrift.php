@@ -42,7 +42,7 @@ if (!bcrf_thrift_ready($pdo)) {
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!hash_equals($csrf, (string)($_POST['csrf_token'] ?? ''))) {
         $_SESSION['thrift_flash'] = ['err', 'Security token expired; try again.'];
-        header('Location: thrift.php?new=1'); exit;
+        header('Location: thrift.php?new=1#intake-form'); exit;
     }
     try {
         $id = bcrf_thrift_intake($pdo, $_POST, $uid);
@@ -118,7 +118,7 @@ if (!empty($_GET['new'])) {
     $d = $typed ?: ['source' => 'donated', 'condition' => 'good', 'consignor_share_pct' => '60'];
     echo '<p><a href="thrift.php">← All thrift</a></p><h1>Thrift intake</h1>';
     if ($flash) echo bcrf_shell_flash($flash);
-    echo '<form class="card stackf" method="POST" action="thrift.php" data-submit-once><input type="hidden" name="csrf_token" value="', $h($csrf), '">';
+    echo '<form id="intake-form" class="card stackf" method="POST" action="thrift.php" data-submit-once><input type="hidden" name="csrf_token" value="', $h($csrf), '">';
     echo '<label>Title<input type="text" name="name" value="', $h($d['name'] ?? ''), '" maxlength="255" required autofocus></label>';
     echo '<label>Source', $sel('source', bcrf_thrift_sources(), $d['source'] ?? 'donated'), '</label>';
     echo '<label>Condition', $sel('condition', bcrf_thrift_conditions(), $d['condition'] ?? 'good'), '</label>';
