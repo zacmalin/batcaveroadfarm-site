@@ -212,7 +212,7 @@ if ($tab === 'item') {
              '<fieldset class="seg"><legend>For a correction</legend><label class="check"><input type="radio" name="direction" value="add" checked> Add</label><label class="check"><input type="radio" name="direction" value="remove"> Remove</label></fieldset>',
              '<label>How many<input type="number" name="qty" min="0" step="any" inputmode="decimal" required></label>',
              '<label>Note <small class="muted">(needed for corrections and lost or stolen)</small><input type="text" name="note" maxlength="200" autocomplete="off"></label>',
-             '<button class="btn primary" type="submit">Save</button></form></section>';
+             '<button class="btn primary" type="submit" data-submit-label="Saving…"><span aria-hidden="true">✓</span> Save</button></form></section>';
         if (count($locById) > 1) {
             $fromDef = array_key_first(array_filter($p['levels'], fn($q) => $q > 0)) ?? bcrf_location_default($pdo);
             echo '<section class="card"><h3>Move between locations</h3><form class="stackf" method="POST" action="stock.php" data-submit-once>', $hid($back),
@@ -221,7 +221,7 @@ if ($tab === 'item') {
                  '<label>To', $sel('to', $locNames, array_key_first(array_diff_key($locNames, [$fromDef => 1])), 'To'), '</label>',
                  '<label>How many<input type="number" name="qty" min="0" step="any" inputmode="decimal" required></label>',
                  '<label>Note (optional)<input type="text" name="note" maxlength="200" autocomplete="off"></label>',
-                 '<button class="btn primary" type="submit"><span aria-hidden="true">⇄</span> Move</button></form></section>';
+                 '<button class="btn primary" type="submit" data-submit-label="Moving…"><span aria-hidden="true">⇄</span> Move</button></form></section>';
         }
         echo '<h3>History</h3>', $histTable(bcrf_stock_history($pdo, ['product_id' => (int)$p['id']], 40), false),
              '<p><a href="', $h($self(['tab' => 'history', 'product' => (int)$p['id'], 'from' => date('Y-m-d', strtotime('-90 days'))])), '">All history for this item</a></p>';
@@ -237,7 +237,7 @@ if ($tab === 'counts') {
          '<label>Category <small class="muted">(for "One category")</small>', $sel('category_id', $cats, '', 'Category', '—'), '</label>',
          '<label class="check"><input type="checkbox" name="full" value="1"> Full count: when I finish, anything I didn\'t count is set to 0</label>',
          '<label>Note (optional)<input type="text" name="note" maxlength="200" autocomplete="off" placeholder="e.g. Saturday close"></label>',
-         '<button class="btn primary" type="submit"><span aria-hidden="true">＋</span> Start counting</button></form></section>';
+         '<button class="btn primary" type="submit" data-submit-label="Starting…"><span aria-hidden="true">＋</span> Start counting</button></form></section>';
     $list = bcrf_counts_list($pdo);
     if (!$list) echo '<p class="card muted">No counts yet.</p>';
     foreach ($list as $c) {
@@ -280,7 +280,7 @@ if ($tab === 'count') {
                          '</small>', $done ? '<br><small class="' . ((int)$i['flagged'] ? 'off' : 'even') . '">Counted ' . $h($q3($i['counted_qty'])) . ((float)$i['difference'] != 0 ? ' (' . ((float)$i['difference'] > 0 ? '+' : '') . $h($q3($i['difference'])) . ')' : ', no change') . ((int)$i['flagged'] ? ' · check again' : '') . '</small>' : '',
                          '</span><input type="number" name="c[', (int)$i['id'], ']" min="0" step="any" inputmode="decimal" aria-label="Count for ', $h($i['name']), '" placeholder="', $done ? $h($q3($i['counted_qty'])) : '', '"></label>';
                 }
-                echo '</div><div class="rbar sticky"><button class="btn primary" type="submit"><span aria-hidden="true">✓</span> Save counts</button></div></form>';
+                echo '</div><div class="rbar sticky"><button class="btn primary" type="submit" data-submit-label="Saving counts…"><span aria-hidden="true">✓</span> Save counts</button></div></form>';
             }
             $todo = bcrf_count_uncounted($pdo, $c);
             echo '<section class="card"><h3>Finish</h3><p class="muted">', (int)$c['lines_n'], ' counted so far', (int)$c['flagged_n'] ? ', <span class="off">' . (int)$c['flagged_n'] . ' with a big difference</span>' : '', '.</p>',
