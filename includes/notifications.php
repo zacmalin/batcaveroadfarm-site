@@ -211,8 +211,8 @@ function bcrf_notify_sweep(PDO $pdo): int {
         }
     });
     $safe(function () use ($pdo, &$added, $farmToday) {   // low stock, one line a day (Nov 14, 2026)
-        $rows = $pdo->query("SELECT name FROM inventory WHERE is_active = 1 AND track_inventory = 1 AND min_stock_level IS NOT NULL AND min_stock_level > 0
-                             AND stock_quantity <= min_stock_level ORDER BY name LIMIT 200")->fetchAll(PDO::FETCH_COLUMN);
+        require_once __DIR__ . '/low_stock.php';   // the one low-stock rule (Nov 18, 2026)
+        $rows = $pdo->query("SELECT name FROM inventory WHERE " . bcrf_low_stock_where() . " ORDER BY name LIMIT 200")->fetchAll(PDO::FETCH_COLUMN);
         if (!$rows) return;
         $n = count($rows);
         $added += bcrf_notify($pdo, ['kind' => 'low_stock', 'dedupe' => 'low_stock:' . $farmToday, 'link' => '/admin/stock.php?low=1',

@@ -102,15 +102,8 @@ if ($target_view === 'dashboard') {
     // (track_inventory = 1); gift cards, admissions and other untracked items sit at 0.
     // Same rule as Stock › Low only (includes/stock.php): at or below the item's own minimum.
     try {
-        $low_stock_items = $pdo->query("
-            SELECT category AS cat, name, stock_quantity, min_stock_level
-            FROM   inventory
-            WHERE  is_active = 1
-              AND  track_inventory = 1
-              AND  min_stock_level IS NOT NULL AND min_stock_level > 0
-              AND  stock_quantity <= min_stock_level
-            ORDER  BY stock_quantity ASC
-        ")->fetchAll();
+        require_once dirname(__DIR__, 2) . '/includes/low_stock.php';   // the one low-stock rule (Nov 18, 2026)
+        $low_stock_items = bcrf_low_stock_items($pdo);
     } catch (Throwable $e) {
         error_log('[ERP] Dashboard: low stock query failed: ' . $e->getMessage());
     }

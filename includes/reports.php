@@ -484,26 +484,11 @@ function bcrf_rpt_register_detail(PDO $pdo, string $from, string $to, int $topN 
 /** Cents as a plain decimal for CSV (no $ or commas, so spreadsheets read it as a number). */
 function bcrf_rpt_csv_money(int $c): string { return number_format($c / 100, 2, '.', ''); }
 
-/** Send a CSV download and log the export (13: exports are logged). */
+/** Send a CSV download and log the export (13: exports are logged). Since Nov 18, 2026 this hands off to the one CSV
+ *  sender, bcrf_csv_send() in includes/record_tools.php (stronger formula guard, Excel-friendly accents). */
 function bcrf_rpt_send_csv(PDO $pdo, string $filename, array $header, array $rows, string $what): void {
-    if (function_exists('bcrf_audit_event') && function_exists('bcrf_audit_actor')) {
-        [$type, $uid, $name, $ip] = bcrf_audit_actor();
-        bcrf_audit_event($pdo, ['actor_type' => $type, 'actor_id' => $uid, 'actor_label' => $name, 'ip' => $ip,
-                                'action' => 'export', 'object_type' => 'report', 'object_id' => null, 'object_label' => $what . ' (' . count($rows) . ' rows)']);
-    }
-    while (ob_get_level() > 0) ob_end_clean();
-    header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="' . preg_replace('/[^A-Za-z0-9._-]/', '-', $filename) . '"');
-    header('Cache-Control: no-store');
-    $f = fopen('php://output', 'w');
-    fputcsv($f, $header);
-    foreach ($rows as $r) {
-        // Guard against spreadsheet formula injection in free-text cells (names, reasons)
-        $r = array_map(fn($v) => is_string($v) && $v !== '' && strpbrk($v[0], '=+-@') !== false && !is_numeric($v) ? "'" . $v : $v, $r);
-        fputcsv($f, $r);
-    }
-    fclose($f);
-    exit;
+    if (!function_exists('bcrf_csv_send')) require_once __DIR__ . '/record_tools.php';
+    bcrf_csv_send($pdo, $filename, $header, $rows, $what);
 }
 
 }

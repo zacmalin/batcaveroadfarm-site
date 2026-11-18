@@ -34,10 +34,9 @@ function bcrf_action_alerts(PDO $pdo, string $role, array $ctx = []): array {
     $pending_comments_count = $email ? 0 : (int)($ctx['pending_comments_count'] ?? 0);
     $low_stock_items = $ctx['low_stock_items'] ?? null;
     if ($low_stock_items === null) {
-        try {   // same rule as admin/data/loader.php and Stock › Low only
-            $low_stock_items = $pdo->query("SELECT category AS cat, name, stock_quantity, min_stock_level FROM inventory
-                                            WHERE is_active = 1 AND track_inventory = 1 AND min_stock_level IS NOT NULL AND min_stock_level > 0
-                                              AND stock_quantity <= min_stock_level ORDER BY stock_quantity ASC")->fetchAll(PDO::FETCH_ASSOC);
+        try {   // the one low-stock rule (includes/low_stock.php, Nov 18, 2026)
+            require_once __DIR__ . '/low_stock.php';
+            $low_stock_items = bcrf_low_stock_items($pdo);
         } catch (Throwable $e) { $low_stock_items = []; }
     }
 

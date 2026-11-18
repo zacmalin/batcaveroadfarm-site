@@ -8,9 +8,9 @@
     <title>Bat Cave Road Farm — Farm OS</title>
     <!-- Farm OS tab icon (Nov 15, 2026): same icons as the public site -->
     <link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">
-    <?php // Compiled Tailwind 4.3.5 (tools/admin-css). Falls back to the CDN script only while console.css isn't uploaded yet (Nov 15, 2026).
-    if (is_file(dirname(__DIR__, 2) . '/assets/console.css')): ?><link rel="stylesheet" href="/admin/assets/console.css?v=20261118a">
-    <?php else: ?><script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script><?php endif; ?>
+    <?php // Compiled Tailwind 4.3.5 (tools/admin-css). Admin asset versions come from each file's date (bcrf_shell_asset,
+    // Nov 18, 2026), so a new upload is picked up without hand-typing ?v= in each page.
+    require_once dirname(__DIR__, 3) . '/includes/admin_shell.php'; ?><link rel="stylesheet" href="<?= htmlspecialchars(bcrf_shell_asset('console.css'), ENT_QUOTES) ?>">
     <style>
         @media print {
             body, html { background: #fff !important; color: #000 !important; width: 3in; height: auto; margin: 0; padding: 10px; }
@@ -154,11 +154,11 @@ document.addEventListener('keydown', function(e) {
 
 </script>
 <!-- Admin list search + sort (external, CSP-safe) -->
-<script defer src="/admin/assets/admin-list.js?v=20261117a"></script>
+<script defer src="<?= htmlspecialchars(bcrf_shell_asset('admin-list.js'), ENT_QUOTES) ?>"></script>
 <!-- Shared UI kit (02 Navigation & UX): chips, phone card tables, common behaviours -->
-<link rel="stylesheet" href="/admin/assets/admin-ui.css?v=20261117c">
-<script defer src="/admin/assets/admin-ui.js?v=20261118a"></script>
+<link rel="stylesheet" href="<?= htmlspecialchars(bcrf_shell_asset('admin-ui.css'), ENT_QUOTES) ?>">
+<script defer src="<?= htmlspecialchars(bcrf_shell_asset('admin-ui.js'), ENT_QUOTES) ?>"></script>
 <!-- Phone boxes format as (828) 555-0100 while typing (Nov 15, 2026; same file as the public site) -->
 <script defer src="/js/min.phone.js?v=20261115a"></script>
 <!-- Shell chrome (sidebar rail, phone bar, More sheet, tabs) — moved out of sidebar.php Nov 11, 2026 -->
-<link rel="stylesheet" href="/admin/assets/admin-shell.css?v=20261117b">
+<link rel="stylesheet" href="<?= htmlspecialchars(bcrf_shell_asset('admin-shell.css'), ENT_QUOTES) ?>">

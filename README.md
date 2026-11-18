@@ -1,7 +1,7 @@
 # batcaveroadfarm.com
 
-Custom PHP 8 + MySQL site for Bat Cave Road Farm (Marion, NC): public site, farm stand, petting zoo,
-bookings, passes, events, recipes, blog/newsletter, and a staff admin (ERP) console.
+Custom PHP 8 + MySQL site for Bat Cave Road Farm (Old Fort, NC): public site, farm stand, petting zoo,
+bookings, passes, events, recipes, blog/newsletter, and a staff admin (Farm OS).
 
 Hosting: Bluehost cPanel, LiteSpeed, PHP 8.5, behind Cloudflare.
 Live path: `/home2/ddailnmy/public_html/batcaveroadfarm/` (this repo = that folder).
@@ -20,14 +20,12 @@ Keys: `DB_HOST DB_USER DB_PASS DB_NAME LIST_SECRET USDA_API_KEY SMTP_* STRIPE_PK
 `vendor/` (PHPMailer), uploads/images, logs, zips. See `.gitignore`.
 
 ## Cron (cPanel, PHP CLI path)
-- `admin/handlers/check_stock_alerts.php` daily 8:00 Boise time
+- `admin/handlers/check_stock_alerts.php` daily 8:00 AM (cron.php queue)
 - `admin/cron/send_newsletter.php`, `send_booking_reminders.php`, `send_review_requests.php`, `send_social.php`
 
 ## Change history
-See `docs/PROJECT-STATUS.md` and `docs/BUG-REPORT.md`. Fix packs installed 2026-10-23:
-A security/bug pack, B farm-stand rich results, C cron key, D audit log (all modules),
-E cleanup (.htaccess redirects, secure cookie, print CSS), F SameSite=Lax + same-site delete check,
-G secrets moved above public_html, H one-tap unsubscribe (RFC 8058).
+Git history. The Oct 2026 fix-pack notes, bug report and status page are kept in `docs/archive/` for reference.
+Public JS bundle: `node tools/build-js.mjs` (or the "Build JS" workflow) builds `js/min.site.js`.
 
 ## Deploy
 Follow docs/DEPLOY.md: connector lane for most files, "Deploy pack" workflow + cPanel for the files the connector can't write.

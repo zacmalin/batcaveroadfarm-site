@@ -47,7 +47,7 @@ $ok(str_contains($src, "? \$_GET['status'] : 'all'"), 'products page defaults to
 // 3. Never sold: register list, sale check, public pages
 $sellSql = "SELECT i.id FROM inventory i WHERE i.is_active = 1 AND i.product_type <> 'supply'";
 $ok(!in_array($feedId, array_map('intval', $pdo->query($sellSql)->fetchAll(PDO::FETCH_COLUMN)), true), 'supply filter keeps it out');
-foreach (['admin/register.php', 'admin/pos.php', 'farm-stand/index.php', 'farm-stand/items/item.php', 'farm-stand/inventory.php', 'sitemap.php',
+foreach (['admin/register.php', 'farm-stand/index.php', 'farm-stand/items/item.php', 'farm-stand/inventory.php', 'sitemap.php',
           'includes/related.php', 'recipes/recipe_detail.php', 'includes/nav.php'] as $f) {
     $ok(str_contains(file_get_contents($root . '/' . $f), "product_type <> 'supply'"), "$f leaves in-house supplies out");
 }

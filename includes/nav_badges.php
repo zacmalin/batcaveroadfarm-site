@@ -41,8 +41,8 @@ function bcrf_nav_badges_compute(PDO $pdo, string $role, callable $can, callable
 
     // Storefront › Products & Inventory › Stock: items at or below their own minimum (same rule as Stock › Low only)
     if ($can('view', 'inventory_update')) $try('low stock', function () use ($pdo, $set) {
-        $n = (int)$pdo->query("SELECT COUNT(*) FROM inventory WHERE is_active = 1 AND track_inventory = 1
-                               AND min_stock_level IS NOT NULL AND min_stock_level > 0 AND stock_quantity <= min_stock_level")->fetchColumn();
+        require_once __DIR__ . '/low_stock.php';   // the one low-stock rule (Nov 18, 2026)
+        $n = (int)$pdo->query("SELECT COUNT(*) FROM inventory WHERE " . bcrf_low_stock_where())->fetchColumn();
         $set('/admin/stock.php', $n, 'Items low on stock');
     });
 

@@ -5,7 +5,7 @@
 admin.php               # the console itself (renders the shell directly)
 index.php               # redirect
 register.php            # POS till: full screen
-pos.php                 # legacy till (?legacy=1), being retired
+pos.php                 # retired till: redirects to register.php (Nov 18, 2026)
 gate.php                # gate check-in: full screen
 waiver_sign.php         # gate device: the visitor signs the waiver full screen
 calendar_feed.php       # phone calendar feed (ICS text, not a page)
