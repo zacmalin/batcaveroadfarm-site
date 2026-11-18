@@ -65,10 +65,20 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         error_log('[animal_weights] ' . $act . ': ' . $e->getMessage());
         $_SESSION[$key] = ['err', 'Could not save. Try again.'];
     }
+    if (isset($_SESSION[$key]) && ($_SESSION[$key][0] ?? '') === 'err' && in_array($act, ['weigh', 'setting'], true)) {
+        // A saved weighing can also return an alert; do not retain or resubmit it.
+        if ($act === 'setting' || !isset($r['saved'])) {
+            $_SESSION['aw_error_action'] = $act;
+            $_SESSION['aw_form'] = $_POST;
+            if (!$ret) $back .= $act === 'setting' ? '#weight-setting-form' : '#weight-entry-form';
+        }
+    }
     header('Location: ' . $back); exit;
 }
 
 $flash = $_SESSION['aw_flash'] ?? null; unset($_SESSION['aw_flash']);
+$errorAction = (string)($_SESSION['aw_error_action'] ?? ''); unset($_SESSION['aw_error_action']);
+$typed = $_SESSION['aw_form'] ?? []; unset($_SESSION['aw_form']);
 $toast = ($flash && $flash[0] === 'ok') ? $flash : null;
 $error = ($flash && $flash[0] === 'err') ? $flash[1] : '';
 $input   = 'p-2 border border-stone-300 rounded bg-stone-50 text-base md:text-sm w-full';
@@ -85,12 +95,13 @@ $pctTxt = rtrim(rtrim(number_format($alertPct, 1, '.', ''), '0'), '.');
 if ($tab === 'setup' && $canEdit) {
     bcrf_shell_open('Animal weights', ['toast' => $toast, 'width' => 'max-w-3xl']);
     echo '<h1 class="text-2xl font-bold text-stone-800 mb-3">Weights</h1>';
-    if ($error) echo bcrf_shell_notice('err', $error); ?>
-  <form method="POST" action="animal_weights.php" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="setting">
+    if ($error && $errorAction !== 'setting') echo bcrf_shell_notice('err', $error); ?>
+  <form id="weight-setting-form" method="POST" action="animal_weights.php" data-submit-once class="<?= $card ?>">
+    <?php if ($error && $errorAction === 'setting') echo bcrf_shell_notice('err', $error); ?><?= $hidden ?><input type="hidden" name="act" value="setting">
     <h2 class="text-base font-semibold text-stone-800 mb-2">When to flag a change</h2>
     <p class="text-sm text-stone-500 mb-3">A weighing that is this much up or down from the animal's last one shows as an alert on its page and here.</p>
     <div class="flex flex-wrap gap-2 items-end">
-      <div class="w-32"><label class="<?= $label ?>" for="ap">Percent</label><input id="ap" name="alert_pct" type="number" min="1" max="100" step="0.5" required value="<?= $h($pctTxt) ?>" class="<?= $input ?>"></div>
+      <div class="w-32"><label class="<?= $label ?>" for="ap">Percent</label><input id="ap" name="alert_pct" type="number" min="1" max="100" step="0.5" required value="<?= $h($typed['alert_pct'] ?? $pctTxt) ?>" class="<?= $input ?>"></div>
       <button class="<?= $btnMain ?>"><span aria-hidden="true">✓</span> Save</button>
     </div>
   </form>
@@ -150,8 +161,9 @@ if ($error) echo bcrf_shell_notice('err', $error);
   <?php if (!$animals): ?>
   <p class="text-sm text-stone-500">No animals on the farm<?= $enc || $cls ? ' in that group' : '' ?>.</p>
   <?php else: ?>
-  <form method="POST" action="animal_weights.php" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="weigh"><input type="hidden" name="enc" value="<?= $enc ?>"><input type="hidden" name="cls" value="<?= $cls ?>">
-    <div class="mb-3 max-w-xs"><label class="<?= $label ?>" for="wd">Weighed on</label><input id="wd" name="weighed_on" type="date" required max="<?= $h($today) ?>" value="<?= $h($today) ?>" class="<?= $input ?>"></div>
+  <form id="weight-entry-form" method="POST" action="animal_weights.php" data-submit-once class="<?= $card ?>">
+    <?php if ($error && $errorAction === 'weigh') echo bcrf_shell_notice('err', $error); ?><?= $hidden ?><input type="hidden" name="act" value="weigh"><input type="hidden" name="enc" value="<?= $enc ?>"><input type="hidden" name="cls" value="<?= $cls ?>">
+    <div class="mb-3 max-w-xs"><label class="<?= $label ?>" for="wd">Weighed on</label><input id="wd" name="weighed_on" type="date" required max="<?= $h($today) ?>" value="<?= $h($typed['weighed_on'] ?? $today) ?>" class="<?= $input ?>"></div>
     <p class="text-sm text-stone-500 mb-2">Pounds. Leave an animal blank to skip it. Body condition is optional (1 thin to 5 fat).</p>
     <ul class="divide-y divide-stone-100 mb-3">
       <?php foreach ($animals as $a): $l = $latest[(int)$a['id']] ?? null; $aid = (int)$a['id']; ?>
