@@ -248,7 +248,7 @@ bcrf_shell_open($v ? $v['name'] . ' — Vendors' : 'Add a vendor', ['toast' => $
       Active (shown when picking a preferred vendor on a product)
     </label>
     <div class="flex gap-2 pt-1">
-      <button type="submit" class="<?= $btnMain ?>"><span aria-hidden="true"><?= $v ? '✓' : '＋' ?></span> <?= $v ? 'Save' : 'Add vendor' ?></button>
+      <button type="submit" data-submit-label="Saving…" class="<?= $btnMain ?>"><span aria-hidden="true"><?= $v ? '✓' : '＋' ?></span> <?= $v ? 'Save' : 'Add vendor' ?></button>
       <a href="vendors.php" class="<?= $btnSec ?>">Cancel</a>
     </div>
   </form>
