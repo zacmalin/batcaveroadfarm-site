@@ -120,7 +120,7 @@ bcrf_shell_open('Calendar', ['toast' => $toast, 'width' => 'max-w-5xl', 'js' => 
       <a href="<?= $h($q(['view' => 'month'])) ?>" class="<?= $view === 'month' ? $btnOn : $btnSec ?>">Month</a>
     </div>
   </div>
-  <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
+
 
   <form method="GET" action="calendar.php" class="<?= $card ?> flex flex-wrap justify-end gap-x-4 gap-y-2 items-center">
     <input type="hidden" name="view" value="<?= $h($view) ?>"><input type="hidden" name="date" value="<?= $h($date) ?>"><input type="hidden" name="l[]" value="">
@@ -189,6 +189,7 @@ bcrf_shell_open('Calendar', ['toast' => $toast, 'width' => 'max-w-5xl', 'js' => 
 
   <div class="<?= $card ?>" id="feed">
     <h2 class="text-base font-semibold text-stone-800 mb-1">On your phone</h2>
+    <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
     <?php if (!$feedReady): ?>
       <p class="text-sm text-stone-500">Run migration 0034 in Settings › Database to turn on phone calendar links.</p>
     <?php elseif ($newFeed !== ''): ?>
