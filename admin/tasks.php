@@ -519,7 +519,7 @@ if (isset($_GET['new']) || isset($_GET['edit'])) {
     <?php foreach ($tpls as $tp): ?><a href="tasks.php?new=1&amp;tpl=<?= (int)$tp['id'] ?><?= $relGet ? '&amp;related=' . $h($relGet[0] . ':' . $relGet[1]) : '' ?>" class="px-2 py-1 rounded border border-stone-300 bg-white hover:bg-stone-100 <?= ($tpl['id'] ?? 0) == $tp['id'] ? 'font-bold' : '' ?>"><?= $h($tp['title']) ?></a><?php endforeach; ?>
   </div>
   <?php endif; ?>
-  <form method="POST" action="tasks.php" class="<?= $card ?> p-4 space-y-3">
+  <form method="POST" action="tasks.php" data-submit-once class="<?= $card ?> p-4 space-y-3">
     <?= $hidden($t ? 'edit' : 'add', $t ? (int)$t['id'] : 0) ?>
     <?php if (!empty($d['template_id'])): ?><input type="hidden" name="template_id" value="<?= (int)$d['template_id'] ?>"><?php endif; ?>
     <div><label for="f_title" class="<?= $label ?>">What needs doing</label>
@@ -580,7 +580,7 @@ if ($tab === 'chores') {
   <h1 class="text-2xl font-bold text-stone-800 mb-1"><?= $r ? 'Change chore' : 'New chore' ?></h1>
   <p class="text-sm text-stone-500 mb-3">Each day it falls on gets its own task, made a week ahead. Saving updates the days ahead that nobody has started; finished days and history stay as they were.</p>
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
-  <form method="POST" action="tasks.php" class="<?= $card ?> p-4 space-y-3">
+  <form method="POST" action="tasks.php" data-submit-once class="<?= $card ?> p-4 space-y-3">
     <?= $hidden('rec_save', $r ? (int)$r['id'] : 0) ?>
     <div><label for="c_title" class="<?= $label ?>">Chore</label><input id="c_title" name="title" maxlength="150" required value="<?= $h($d['title'] ?? '') ?>" class="<?= $input ?>"></div>
     <div class="grid gap-3 sm:grid-cols-2">
@@ -691,7 +691,7 @@ if ($tab === 'events') {
   <h1 class="text-2xl font-bold text-stone-800 mb-1"><?= $r ? 'Change step' : 'New step' ?></h1>
   <p class="text-sm text-stone-500 mb-3"><?= $h($plans[$plan] ?? $plan) ?>. Every confirmed <?= $isBooking ? 'booking of this kind' : 'party' ?> gets this as a task, with the <?= $isBooking ? 'booking' : 'party' ?> details in its notes. Saving updates upcoming tasks nobody has started.</p>
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
-  <form method="POST" action="tasks.php" class="<?= $card ?> p-4 space-y-3">
+  <form method="POST" action="tasks.php" data-submit-once class="<?= $card ?> p-4 space-y-3">
     <?= $hidden('step_save', $r ? (int)$r['id'] : 0) ?><input type="hidden" name="plan" value="<?= $h($plan) ?>">
     <div><label for="e_title" class="<?= $label ?>">Step</label><input id="e_title" name="title" maxlength="120" required value="<?= $h($d['title'] ?? '') ?>" class="<?= $input ?>" placeholder="e.g. Party prep">
       <p class="text-xs text-stone-500 mt-1">The task is named “<?= $h(($d['title'] ?? '') ?: 'Step') ?>: <i>customer name</i>”.</p></div>
@@ -800,7 +800,7 @@ if ($tab === 'templates') {
   <h1 class="text-2xl font-bold text-stone-800 mb-1"><?= $r ? 'Change checklist' : 'New checklist' ?></h1>
   <p class="text-sm text-stone-500 mb-3">A saved checklist for jobs that come up now and then (a vet visit, a birthday party setup). Pick it when adding a task.</p>
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
-  <form method="POST" action="tasks.php" class="<?= $card ?> p-4 space-y-3">
+  <form method="POST" action="tasks.php" data-submit-once class="<?= $card ?> p-4 space-y-3">
     <?= $hidden('tpl_save', $r ? (int)$r['id'] : 0) ?>
     <div><label for="p_title" class="<?= $label ?>">Name</label><input id="p_title" name="title" maxlength="150" required value="<?= $h($d['title'] ?? '') ?>" class="<?= $input ?>"></div>
     <div class="grid gap-3 sm:grid-cols-2">
