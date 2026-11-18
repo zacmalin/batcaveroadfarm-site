@@ -78,7 +78,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $_SESSION['po_flash'] = ['err', 'Could not save. Try again.'];
         $_SESSION['po_form'] = $_POST;
     }
-    header('Location: purchase_orders.php' . ($id ? '?id=' . $id . '&edit=1' : '?new=1')); exit;
+    header('Location: purchase_orders.php' . ($id ? '?id=' . $id . '&edit=1#edit-draft' : '?new=1')); exit;
 }
 
 $flash = $_SESSION['po_flash'] ?? null; unset($_SESSION['po_flash']);
@@ -113,7 +113,7 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
         exit;
     }
     echo '<p><a href="purchase_orders.php">← All orders</a> · <a href="purchase_orders.php?new=1"><span aria-hidden="true">＋</span> New order</a></p>';
-    if ($flash) echo bcrf_shell_flash($flash);
+    if ($flash && ($flash[0] ?? '') !== 'err') echo bcrf_shell_flash($flash);
     echo '<h1>PO #', (int)$po['id'], '</h1>';
     echo '<p class="muted">', $h($statusLabel[$po['status']] ?? $po['status']), ' · ', $h($po['vendor_name']),
          $po['po_ref'] ? ' · ref ' . $h($po['po_ref']) : '',
@@ -167,7 +167,9 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
             'unit_cost' => array_map(fn($l) => $l['unit_cost_cents'] !== null ? rtrim(rtrim(number_format(((int)$l['unit_cost_cents']) / 100, 4, '.', ''), '0'), '.') : '', $po['lines']),
         ];
         $lineCount = max(3, count($d['product_id'] ?? []) + 1, 6);
-        echo '<h2>Edit draft</h2><form class="card stackf" method="POST" action="purchase_orders.php" data-submit-once>';
+        echo '<h2 id="edit-draft">Edit draft</h2>';
+        if ($flash && ($flash[0] ?? '') === 'err') echo bcrf_shell_flash($flash);
+        echo '<form class="card stackf" method="POST" action="purchase_orders.php" data-submit-once>';
         echo '<input type="hidden" name="csrf_token" value="', $h($csrf), '"><input type="hidden" name="id" value="', (int)$po['id'], '"><input type="hidden" name="act" value="save">';
         echo '<label>Vendor', $sel('vendor_id', $vendors, $d['vendor_id'] ?? ''), '</label>';
         echo '<div class="two"><label>Our / vendor ref #<input type="text" name="po_ref" value="', $h($d['po_ref'] ?? ''), '" maxlength="80"></label>',
