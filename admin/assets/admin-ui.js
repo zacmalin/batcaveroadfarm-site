@@ -442,30 +442,25 @@
         update();
     }
 
-    // Site Info: open only the selected section, including after a save redirects to #site-*.
+    // Site Info uses native <details name="site-info"> for exclusive opening.
+    // A save redirects to #site-*, so expand that section before scrolling.
     function initSiteInfoSections() {
-        var sections = document.querySelectorAll('.site-info-section');
+        var sections = document.querySelectorAll('details.site-info-section');
         if (!sections.length) return;
-        function openOnly(selected) {
+        function restoreHash() {
+            var id = location.hash.slice(1);
+            var selected = id && document.getElementById(id);
+            if (!selected || !selected.classList.contains('site-info-section')) return;
+            selected.open = true;
             Array.prototype.forEach.call(sections, function (section) {
-                section.open = section === selected;
+                if (section !== selected) section.open = false;
+            });
+            requestAnimationFrame(function () {
+                selected.scrollIntoView({ block: 'start' });
             });
         }
-        var selected = location.hash && document.getElementById(location.hash.slice(1));
-        if (selected && selected.classList.contains('site-info-section')) {
-            openOnly(selected);
-            // The browser may try to scroll to the hash before the closed section opens.
-            requestAnimationFrame(function () { selected.scrollIntoView({ block: 'start' }); });
-        }
-        Array.prototype.forEach.call(sections, function (section) {
-            var summary = section.querySelector('summary');
-            if (!summary) return;
-            summary.addEventListener('click', function (e) {
-                e.preventDefault();
-                if (section.open) section.open = false;
-                else openOnly(section);
-            });
-        });
+        restoreHash();
+        window.addEventListener('hashchange', restoreHash);
     }
 
     function init() {
