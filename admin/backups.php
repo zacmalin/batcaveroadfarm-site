@@ -117,7 +117,7 @@ foreach (['bcrf-db-' => 'Last Drive copy: database', 'bcrf-files-' => 'Last Driv
     <li>Choose your account and tap <b>Allow</b> (if Google says the app isn't verified: Advanced → Go to BCRF Backups — it's your own app).</li>
   </ol>
   <p id="dev-status" style="color:#57534e;margin:6px 0">Waiting for you to approve… this page will update by itself.</p>
-  <form method="POST" style="display:inline"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
+  <form data-submit-once method="POST" style="display:inline"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
     <button class="plain" name="action" value="check">I've approved it — check now</button>
     <button class="danger" name="action" value="cancel_connect">Cancel</button>
   </form>
@@ -139,7 +139,7 @@ foreach (['bcrf-db-' => 'Last Drive copy: database', 'bcrf-files-' => 'Last Driv
 </div>
 <?php else: ?>
 <div class="card">
-  <form method="POST" style="display:inline"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
+  <form data-submit-once method="POST" style="display:inline"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
     <button class="primary" name="action" value="connect" <?= bcrf_gdrive_configured() ? '' : 'disabled' ?>><?= bcrf_gdrive_connected() ? 'Reconnect Google Drive' : 'Connect Google Drive' ?></button>
     <?php if (bcrf_gdrive_connected()): ?>
       <button class="plain" name="action" value="test">Test connection</button>
