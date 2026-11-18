@@ -14,12 +14,18 @@
     var allClear = document.getElementById('acAllClear');
 
     function apply() {
-        var d = load(), hidden = 0, visible = 0;
+        var d = load(), hidden = 0, visible = 0, counts = { urgent: 0, today: 0, fyi: 0 };
         Array.prototype.forEach.call(list.querySelectorAll('[data-alert]'), function (card) {
             var id = card.getAttribute('data-alert'), sig = card.getAttribute('data-sig');
             var off = card.hasAttribute('data-dismissible') && d[id] === sig;
             card.hidden = off;
-            if (off) hidden++; else visible++;
+            if (off) hidden++; else { visible++; var priority = card.getAttribute('data-priority'); if (Object.prototype.hasOwnProperty.call(counts, priority)) counts[priority]++; }
+        });
+        Array.prototype.forEach.call(document.querySelectorAll('[data-priority-count]'), function (chip) {
+            var priority = chip.getAttribute('data-priority-count');
+            var count = counts[priority] || 0;
+            chip.hidden = count === 0;
+            chip.textContent = count + ' ' + (priority === 'fyi' ? 'FYI' : priority === 'urgent' ? 'Urgent' : 'Today');
         });
         if (restore) {
             restore.hidden = hidden === 0;
