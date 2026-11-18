@@ -78,7 +78,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $_SESSION['po_flash'] = ['err', 'Could not save. Try again.'];
         $_SESSION['po_form'] = $_POST;
     }
-    header('Location: purchase_orders.php' . ($id ? '?id=' . $id . '&edit=1#edit-draft' : '?new=1')); exit;
+    header('Location: purchase_orders.php' . ($id ? '?id=' . $id . '&edit=1#edit-draft' : '?new=1#new-order')); exit;
 }
 
 $flash = $_SESSION['po_flash'] ?? null; unset($_SESSION['po_flash']);
@@ -198,7 +198,7 @@ if (!empty($_GET['new'])) {
         echo '<p class="card muted">Add a <a href="vendors.php?new=1">vendor</a> first.</p></div></main></body></html>';
         exit;
     }
-    echo '<form class="card stackf" method="POST" action="purchase_orders.php" data-submit-once><input type="hidden" name="csrf_token" value="', $h($csrf), '"><input type="hidden" name="act" value="save">';
+    echo '<form id="new-order" class="card stackf" method="POST" action="purchase_orders.php" data-submit-once><input type="hidden" name="csrf_token" value="', $h($csrf), '"><input type="hidden" name="act" value="save">';
     echo '<label>Vendor', $sel('vendor_id', $vendors, $d['vendor_id'] ?? '', '— pick —'), '</label>';
     echo '<div class="two"><label>Our / vendor ref #<input type="text" name="po_ref" value="', $h($d['po_ref'] ?? ''), '" maxlength="80" autocomplete="off"></label>',
          '<label>Expected date<input type="date" name="expected_date" value="', $h($d['expected_date'] ?? ''), '"></label></div>';
