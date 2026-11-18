@@ -388,12 +388,12 @@
         var alerts = document.querySelectorAll('[role="alert"]:not(.ui-toast)');
         requestAnimationFrame(function () {
             requestAnimationFrame(function () {
-                var top = target.getBoundingClientRect().top;
                 Array.prototype.some.call(alerts, function (alert) {
                     if (alert.contains(target) || target.contains(alert)) return false;
-                    var rect = alert.getBoundingClientRect();
-                    if (rect.height === 0 || (rect.bottom >= 0 && rect.top < window.innerHeight)) return false;
-                    if (top < 0 || top >= window.innerHeight) return false;
+                    // Anchored sections can scroll inside <main>, not the window.
+                    // Viewport checks are unreliable there. Repeat an earlier alert
+                    // regardless of current scroll position so the form has feedback.
+                    if (!(alert.compareDocumentPosition(target) & Node.DOCUMENT_POSITION_FOLLOWING)) return false;
                     var message = (alert.textContent || '').trim();
                     if (!message) return false;
                     toast(message, true);
