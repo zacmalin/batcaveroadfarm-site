@@ -178,7 +178,7 @@ if ($isNew) {
     echo '<h1 class="text-2xl font-bold text-stone-800 mb-1">Report an incident</h1>',
          '<p class="text-sm text-stone-500 mb-3">Write down what happened and what was done, as plainly as you can. Saving emails the Owners right away.</p>';
     if ($error) echo bcrf_shell_notice('err', $error); ?>
-  <form method="POST" action="<?= $h($url('new')) ?>" enctype="multipart/form-data" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="add">
+  <form method="POST" action="<?= $h($url('new')) ?>" enctype="multipart/form-data" data-submit-once class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="add">
     <?php $fields($d, true); ?>
     <div class="mb-4"><label class="<?= $label ?>" for="i_ph">Photos (optional, up to <?= BCRF_INCIDENT_PHOTO_MAX ?>)</label><input id="i_ph" name="photos[]" type="file" accept="image/*" multiple class="text-sm"></div>
     <button class="<?= $btnMain ?> w-full sm:w-auto">Save report</button>
@@ -215,7 +215,7 @@ if ($id) {
 
   <?php if ($all && !empty($_GET['edit'])):
     $d = $i; $d['date'] = $lt->format('Y-m-d'); $d['time'] = $lt->format('H:i'); $d['animals'] = array_column($i['animals'], 'id'); ?>
-  <form method="POST" action="<?= $h($url($id)) ?>" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="edit"><input type="hidden" name="id" value="<?= $id ?>">
+  <form method="POST" action="<?= $h($url($id)) ?>" data-submit-once class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="edit"><input type="hidden" name="id" value="<?= $id ?>">
     <h2 class="text-base font-semibold text-stone-800 mb-3">Change the report</h2>
     <?php $fields($d, false); ?>
     <p class="text-xs text-stone-500 mb-3">The old wording stays in the change history below.</p>
