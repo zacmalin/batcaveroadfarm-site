@@ -42,7 +42,7 @@ bcrf_shell_open('Search', ['width' => 'max-w-3xl', 'css' => ['search.css'], 'js'
   </form>
 
   <div id="srchRecent" class="srch-recent" hidden></div>
-  <p id="srchStatus" class="srch-status" role="status" aria-live="polite" aria-atomic="true"><?php if (mb_strlen($q) >= 2): ?><?= array_sum(array_map(fn($g) => count($g['rows']), $res['groups'])) + ($res['jump'] ? 1 : 0) ?> matching results<?= $res['groups'] ? ' across ' . count($res['groups']) . ' categories' : '' ?><?php endif; ?></p>
+  <p id="srchStatus" class="srch-status" role="status" aria-live="polite" aria-atomic="true"><?php if (mb_strlen($q) >= 2): ?><?= array_sum(array_map(fn($g) => count($g['rows']), $res['groups'])) + ($res['jump'] ? 1 : 0) ?> matching results<?= !empty($res['partial']) ? ' (incomplete)' : '' ?><?= $res['groups'] ? ' across ' . count($res['groups']) . ' categories' : '' ?><?php endif; ?></p>
   <div id="srchOut">
 <?php if ($q !== '' && mb_strlen($q) < 2): ?>
     <p class="srch-empty">Type at least 2 letters.</p>
@@ -50,7 +50,10 @@ bcrf_shell_open('Search', ['width' => 'max-w-3xl', 'css' => ['search.css'], 'js'
 <?php if ($res['jump']): ?>
     <a class="srch-jump" href="<?= $h($res['jump']['url']) ?>">Open <?= $h($res['jump']['label']) ?> →</a>
 <?php endif; ?>
-<?php if (!$res['groups'] && !$res['jump']): ?>
+<?php if (!empty($res['partial'])): ?>
+    <p class="srch-empty" role="alert">Some records could not be searched right now. Results may be incomplete. Try again shortly.</p>
+<?php endif; ?>
+<?php if (!$res['groups'] && !$res['jump'] && empty($res['partial'])): ?>
     <p class="srch-empty">Nothing found for “<?= $h($q) ?>” in the pages and records you can open.</p>
 <?php endif; ?>
 <?php foreach ($res['groups'] as $g): ?>
