@@ -114,7 +114,7 @@ if ($isOwner && $ready) {
 bcrf_shell_open('PIN sign-in', ['width' => 'max-w-3xl', 'css' => ['pin.css']]);
 ?>
 <div class="pins">
-<?php if ($flash && (!$inlinePinError || !in_array($flashAction, ['set_pin', 'clear_mine', 'device_add', 'device_revoke', 'clear_pin', 'unlock'], true))) echo bcrf_shell_flash([$flash[1] ? 'err' : 'ok', $flash[0]]); ?>
+<?php if ($flash && (!$inlinePinError || !in_array($flashAction, ['set_pin', 'clear_mine', 'device_add', 'device_revoke', 'clear_pin', 'unlock'], true) || (in_array($flashAction, ['set_pin', 'clear_mine'], true) && !$canPin) || (in_array($flashAction, ['device_add', 'device_revoke', 'clear_pin', 'unlock'], true) && !$isOwner) || ($flashAction === 'device_add' && $here) || ($flashAction === 'clear_mine' && !$me['has_pin']))) echo bcrf_shell_flash([$flash[1] ? 'err' : 'ok', $flash[0]]); ?>
 <?php if (!$ready): ?>
   <div class="pins-card"><h2>Waiting for migration 0058</h2><p>An Owner runs it in Settings › Database. Then PINs and shared devices can be set up here.</p></div>
 <?php else: ?>
