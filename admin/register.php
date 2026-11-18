@@ -272,7 +272,7 @@ if ($view === 'drawer' || $view === 'drawers') {
     $tenders = bcrf_tenders();
     $head = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
           . '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">'
-          . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=14"><link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">';
+          . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=15"><link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">';
     if (!$drawersReady) { echo $head, '<title>Drawers</title></head><body class="page"><main class="narrow"><p class="flash err">Run migration 0010 in Settings › Database first.</p></main></body></html>'; exit; }
     if ($view === 'drawers') {
         $rows = $pdo->query("SELECT d.id FROM drawer_sessions d ORDER BY d.opened_at DESC LIMIT 60")->fetchAll(PDO::FETCH_COLUMN);
@@ -387,7 +387,7 @@ $boot = [
 <meta name="robots" content="noindex">
 <title>Register — <?= $h(bcrf_farm_name()) ?></title>
 <link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">
-<link rel="stylesheet" href="assets/register.css?v=14">
+<link rel="stylesheet" href="assets/register.css?v=15">
 <link rel="stylesheet" href="assets/pin.css?v=<?= bcrf_asset_v('/admin/assets/pin.css') ?>">
 <?= bcrf_pin_head_tags() ?>
 </head>
@@ -510,7 +510,7 @@ $boot = [
     <button type="button" class="btn danger big" id="btnCapOverride">Override and complete sale</button>
   </div>
   <button type="button" class="btn big" id="btnRetry" hidden>Retry saving</button>
-  <button type="button" class="link" id="payClose">Back to cart</button>
+  <button type="button" class="btn pay-back" id="payClose">← Back to cart</button>
 </dialog>
 
 <dialog id="dlgDone" class="sheet">
