@@ -51,11 +51,11 @@ function bcrf_receive_resolve_product(PDO $pdo, $pidRaw, $skuRaw): array {
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!$_POST && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
         $_SESSION['recv_flash'] = ['err', 'Nothing was saved: the invoice photos were too big to send together. Receive first, then add the invoice on the receive.'];
-        header('Location: receive.php?new=1'); exit;
+        header('Location: receive.php?new=1#receive-form'); exit;
     }
     if (!hash_equals($csrf, (string)($_POST['csrf_token'] ?? ''))) {
         $_SESSION['recv_flash'] = ['err', 'Security token expired; try again.'];
-        header('Location: receive.php'); exit;
+        header('Location: receive.php?new=1#receive-form'); exit;
     }
     try {
         $lines = [];
