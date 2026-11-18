@@ -71,7 +71,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
         Signed in by <?= $h($r['by_name'] ?: '—') ?> · last sign-in <?= $h($local($r['last_signin'])) ?> · last used <?= $h($local($r['last_used'])) ?></div>
     </div>
     <?php if ($live): ?>
-    <form method="post">
+    <form method="post" data-submit-once data-confirm="Disconnect this AI app? It will need to sign in again.">
       <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="revoke_client">
       <input type="hidden" name="client_id" value="<?= $h($r['client_id']) ?>"><button>Disconnect</button>
     </form>
@@ -80,7 +80,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
 <?php endforeach; ?>
 
 <?php if ($rows): ?>
-<form method="post" style="margin-top:18px">
+<form method="post" data-submit-once data-confirm="Disconnect every AI app? All connected apps will need to sign in again." style="margin-top:18px">
   <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="revoke_all">
   <button class="all">Disconnect all</button>
 </form>
