@@ -439,7 +439,7 @@ if (isset($_GET['id'])) {
   <form method="POST" action="tasks.php" class="mb-4"><?= $hidden('set', (int)$t['id']) ?><input type="hidden" name="to" value="reopen">
     <button type="submit" class="<?= $btnSec ?>">Reopen</button></form>
   <?php else: ?>
-  <form method="POST" action="tasks.php" enctype="multipart/form-data" class="<?= $card ?> p-4 mb-4 space-y-3">
+  <form id="task-photos" method="POST" action="tasks.php" enctype="multipart/form-data" class="<?= $card ?> p-4 mb-4 space-y-3">
     <?= $hidden('set', (int)$t['id']) ?><input type="hidden" name="next" value="1"><input type="hidden" name="force" value="1">
     <?php if ($t['form']): ?>
     <fieldset class="space-y-3">
