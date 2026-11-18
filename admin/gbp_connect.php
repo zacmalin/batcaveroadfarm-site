@@ -152,8 +152,8 @@ $h    = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
       <a class="btn" href="/admin/gbp_connect.php?start=1"><?= $signed ? 'Reconnect Google' : 'Connect Google' ?></a>
     <?php endif; ?>
     <?php if ($signed): ?>
-      <form method="post" style="display:inline"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="check"><button class="ghost">Check connection</button></form>
-      <form method="post" style="display:inline" data-confirm="Disconnect Google Business Profile?"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="disconnect"><button class="danger">Disconnect</button></form>
+      <form data-submit-once method="post" style="display:inline"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="check"><button class="ghost">Check connection</button></form>
+      <form data-submit-once method="post" style="display:inline" data-confirm="Disconnect Google Business Profile?"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="disconnect"><button class="danger">Disconnect</button></form>
     <?php endif; ?>
   </div>
 </div>
@@ -162,7 +162,7 @@ $h    = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
 <div class="card<?= $locErr ? ' err' : '' ?>">
   <?php if ($locErr): ?>
     <div style="color:#8b2018;margin-bottom:10px">Google's location lookup isn't available right now: <?= $h($locErr) ?></div>
-    <form method="post"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="manual">
+    <form id="gbp-manual-form" data-submit-once method="post"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="manual">
       <strong>Enter the IDs instead</strong>
       <p class="meta" style="margin:6px 0 10px">Business Profile ID: search the farm's name on Google (signed in) → <em>Edit profile</em> → ⋮ → <em>Business Profile settings</em> → <em>Advanced settings</em>. Leave the account ID blank and the site will try to find it.</p>
       <label class="meta">Business Profile ID<br><input name="location_id" inputmode="numeric" required style="width:100%;padding:8px;font:inherit;border:1px solid #ccc;border-radius:8px"></label><br>
@@ -173,7 +173,7 @@ $h    = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
   <?php elseif (!$locs): ?>
     This Google account doesn't manage any Business Profile locations.
   <?php else: ?>
-    <form method="post"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="pick">
+    <form id="gbp-location-form" data-submit-once method="post"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="pick">
       <strong>Post to which location?</strong>
       <?php foreach ($locs as $i => $l): ?>
         <label class="loc"><input type="radio" name="location" value="<?= $h($l['location']) ?>"<?= $i === 0 ? ' checked' : '' ?>> <?= $h($l['title']) ?><br><span class="meta"><?= $h($l['address']) ?></span></label>
@@ -192,7 +192,7 @@ $h    = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
     <div style="border-top:1px solid #eee;padding:8px 0">
       <div class="meta"><?= $h(ucfirst($f['content_type'])) ?> #<?= (int)$f['content_id'] ?> · <?= $h($when($f['processed_at'])) ?> · <?= $h(mb_substr((string)$f['gbp_caption'], 0, 80)) ?>…</div>
       <?php if (!empty($f['last_error'])): ?><div class="meta" style="color:#8b2018"><?= $h(mb_substr((string)$f['last_error'], 0, 200)) ?></div><?php endif; ?>
-      <form method="post"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="retry"><input type="hidden" name="id" value="<?= (int)$f['id'] ?>"><button class="ghost">Retry on Google</button></form>
+      <form data-submit-once method="post"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="retry"><input type="hidden" name="id" value="<?= (int)$f['id'] ?>"><button class="ghost">Retry on Google</button></form>
     </div>
   <?php endforeach; ?>
 </div>
