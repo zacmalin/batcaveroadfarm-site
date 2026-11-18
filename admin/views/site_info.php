@@ -36,6 +36,10 @@ if (!$tablesMissing) {
     $g = fn($k, $d = '') => htmlspecialchars((string)($settings[$k] ?? $d), ENT_QUOTES);
 }
 
+$openSection = (string)($_GET['section'] ?? 'announcement');
+if (!in_array($openSection, ['announcement', 'address', 'phones', 'emails', 'socials', 'hours', 'season'], true)) {
+    $openSection = 'announcement';
+}
 $sectionCls = "site-info-section bg-white border border-stone-200 rounded-lg mb-4 overflow-hidden";
 $sumCls     = "cursor-pointer select-none px-5 py-4 font-bold text-stone-800 flex items-center justify-between hover:bg-stone-50";
 $inputCls   = "w-full px-3 py-2 border border-stone-300 rounded text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-400";
@@ -57,7 +61,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
 
 
     <!-- ── BUSINESS & ADDRESS ── -->
-    <details id="site-announcement" name="site-info" class="<?= $sectionCls ?>" open>
+    <details id="site-announcement" name="site-info" class="<?= $sectionCls ?>" <?= $openSection === 'announcement' ? 'open' : '' ?>>
         <summary class="<?= $sumCls ?>"><span>📢 Announcement Bar</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
         <form method="POST" action="/admin/admin.php?view=site_info" data-submit-once class="p-5">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
@@ -81,7 +85,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
         </form>
     </details>
 
-    <details id="site-address" name="site-info" class="<?= $sectionCls ?>">
+    <details id="site-address" name="site-info" class="<?= $sectionCls ?>" <?= $openSection === 'address' ? 'open' : '' ?>>
         <summary class="<?= $sumCls ?>"><span>📍 Business &amp; Address</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
         <form method="POST" action="/admin/admin.php?view=site_info" data-submit-once class="px-5 pb-5 pt-1">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
@@ -132,7 +136,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
     </details>
 
     <!-- ── PHONES ── -->
-    <details id="site-phones" name="site-info" class="<?= $sectionCls ?>">
+    <details id="site-phones" name="site-info" class="<?= $sectionCls ?>" <?= $openSection === 'phones' ? 'open' : '' ?>>
         <summary class="<?= $sumCls ?>"><span>📞 Phones</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
         <form method="POST" action="/admin/admin.php?view=site_info" data-submit-once class="px-5 pb-5 pt-1">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
@@ -155,7 +159,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
     </details>
 
     <!-- ── EMAILS ── -->
-    <details id="site-emails" name="site-info" class="<?= $sectionCls ?>">
+    <details id="site-emails" name="site-info" class="<?= $sectionCls ?>" <?= $openSection === 'emails' ? 'open' : '' ?>>
         <summary class="<?= $sumCls ?>"><span>✉️ Emails</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
         <form method="POST" action="/admin/admin.php?view=site_info" data-submit-once class="px-5 pb-5 pt-1">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
@@ -179,7 +183,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
 
     <!-- ── SOCIAL LINKS ── -->
     <?php $socials = site_socials(); ?>
-    <details id="site-socials" name="site-info" class="<?= $sectionCls ?>">
+    <details id="site-socials" name="site-info" class="<?= $sectionCls ?>" <?= $openSection === 'socials' ? 'open' : '' ?>>
         <summary class="<?= $sumCls ?>"><span>🔗 Social Links</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
         <form method="POST" action="/admin/admin.php?view=site_info" data-submit-once class="px-5 pb-5 pt-1">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
@@ -232,7 +236,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
     </details>
 
     <!-- ── HOURS ── -->
-    <details id="site-hours" name="site-info" class="<?= $sectionCls ?>">
+    <details id="site-hours" name="site-info" class="<?= $sectionCls ?>" <?= $openSection === 'hours' ? 'open' : '' ?>>
         <summary class="<?= $sumCls ?>"><span>🕒 Hours</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
         <form method="POST" action="/admin/admin.php?view=site_info" data-submit-once class="px-5 pb-5 pt-1">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
@@ -277,7 +281,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
     </details>
 
     <!-- ── SEASON ── -->
-    <details id="site-season" name="site-info" class="<?= $sectionCls ?>">
+    <details id="site-season" name="site-info" class="<?= $sectionCls ?>" <?= $openSection === 'season' ? 'open' : '' ?>>
         <summary class="<?= $sumCls ?>"><span>🍂 Season</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
         <form method="POST" action="/admin/admin.php?view=site_info" data-submit-once class="px-5 pb-5 pt-1">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
