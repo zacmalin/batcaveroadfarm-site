@@ -118,7 +118,7 @@ if (!empty($_GET['new'])) {
     $d = $typed ?: ['source' => 'donated', 'condition' => 'good', 'consignor_share_pct' => '60'];
     echo '<p><a href="thrift.php">← All thrift</a></p><h1>Thrift intake</h1>';
     if ($flash) echo bcrf_shell_flash($flash);
-    echo '<form class="card stackf" method="POST" action="thrift.php"><input type="hidden" name="csrf_token" value="', $h($csrf), '">';
+    echo '<form class="card stackf" method="POST" action="thrift.php" data-submit-once><input type="hidden" name="csrf_token" value="', $h($csrf), '">';
     echo '<label>Title<input type="text" name="name" value="', $h($d['name'] ?? ''), '" maxlength="255" required autofocus></label>';
     echo '<label>Source', $sel('source', bcrf_thrift_sources(), $d['source'] ?? 'donated'), '</label>';
     echo '<label>Condition', $sel('condition', bcrf_thrift_conditions(), $d['condition'] ?? 'good'), '</label>';
@@ -135,7 +135,7 @@ if (!empty($_GET['new'])) {
          '<label>Consignor share %<input type="number" name="consignor_share_pct" value="', $h($d['consignor_share_pct'] ?? '60'), '" min="0" max="100" step="1"></label></div></fieldset>';
     echo '<label>Description<textarea name="description" rows="2" maxlength="5000">', $h($d['description'] ?? ''), '</textarea></label>';
     echo '<label>Photo address <small class="muted">(https://… or /media/…)</small><input type="text" name="image_url" value="', $h($d['image_url'] ?? ''), '" maxlength="255" autocomplete="off"></label>';
-    echo '<div class="rbar"><button class="btn primary" type="submit">Take in</button></div></form>';
+    echo '<div class="rbar"><button class="btn primary" type="submit"><span aria-hidden="true">＋</span> Take in</button></div></form>';
     echo '<p class="muted">Creates a quantity-1 product (SKU THR-…) on the register. After a consigned item sells, pay the consignor on <a href="settlements.php">Settlements</a>.</p>';
     echo '</div></main></body></html>';
     exit;
@@ -160,7 +160,7 @@ echo '<form class="rform" method="GET" action="thrift.php"><input type="search" 
      $sel('status', ['available' => 'For sale', 'sold' => 'Sold', 'all' => 'All', 'returned' => 'Returned', 'withdrawn' => 'Withdrawn'], $f['status']),
      $sel('source', bcrf_thrift_sources(), $f['source'] ?? '', 'All sources'),
      bcrf_list_sort_select($sortOpts, $sort),
-     '<button class="btn sm" type="submit">Apply filters</button>',
+     '<button class="btn sm" type="submit"><span aria-hidden="true">✓</span> Apply filters</button>',
      ($f['q'] !== '' || $f['status'] !== 'available' || $f['source'] !== null || $sort !== 'default' ? '<a class="btn sm" href="thrift.php">Reset</a>' : ''),
      '<a class="btn sm primary" href="thrift.php?new=1">Intake</a></form>';
 if (!$rows) echo '<p class="card muted">No thrift items match. <a href="thrift.php?new=1">Take one in</a>.</p>';
