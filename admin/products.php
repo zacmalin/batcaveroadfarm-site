@@ -72,7 +72,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $id = (int)($_POST['id'] ?? 0) ?: null;
     if (!hash_equals($csrf, (string)($_POST['csrf_token'] ?? ''))) {
         $_SESSION['prod_flash'] = ['err', 'Security token expired; try again.'];
-        header('Location: products.php' . ($id ? '?id=' . $id : '?new=1')); exit;
+        header('Location: products.php' . ($id ? '?id=' . $id . '#product-form' : '?new=1#product-form')); exit;
     }
     try {
         $saved = bcrf_product_save($pdo, $id, $_POST, $uid);
@@ -91,7 +91,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $_SESSION['prod_flash'] = ['err', 'Could not save. Try again.'];
         $_SESSION['prod_form'] = $_POST;
     }
-    header('Location: products.php' . ($id ? '?id=' . $id : '?new=1')); exit;
+    header('Location: products.php' . ($id ? '?id=' . $id . '#product-form' : '?new=1#product-form')); exit;
 }
 
 $flash = $_SESSION['prod_flash'] ?? null; unset($_SESSION['prod_flash']);
@@ -168,7 +168,7 @@ $num = fn(string $k) => isset($d[$k]) && $d[$k] !== null && $d[$k] !== '' ? $h(i
 
 echo '<p><a href="products.php">← All products</a></p><h1>', $p ? $h($p['name']) : 'Add a product', '</h1>';
 if ($flash) echo bcrf_shell_flash($flash);
-echo '<form class="card stackf" method="POST" action="products.php" data-submit-once><input type="hidden" name="csrf_token" value="', $h($csrf), '"><input type="hidden" name="id" value="', $id ?: '', '">';
+echo '<form id="product-form" class="card stackf" method="POST" action="products.php" data-submit-once><input type="hidden" name="csrf_token" value="', $h($csrf), '"><input type="hidden" name="id" value="', $id ?: '', '">';
 echo '<label>Name<input type="text" name="name" value="', $val('name'), '" maxlength="255" required></label>';
 if ($isAdm) echo '<p class="muted">Admission product: its ticket type, check-ins and capacity come from the Admissions category. Price, tax, name and photo can be changed here.</p><input type="hidden" name="product_type" value="admission">';
 elseif ($p && $p['product_type'] === 'gift_card') echo '<p class="muted">Gift card product: staff type the amount on the register, it issues a gift card, and it keeps no stock. Keep its tax category on Exempt (tax is charged when the card is spent). Name and photo can be changed here; to stop selling gift cards on the register, untick On sale.</p><input type="hidden" name="product_type" value="gift_card">';
