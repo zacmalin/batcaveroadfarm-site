@@ -86,6 +86,7 @@ if ($canV('pos'))              $quick[] = ['💳', 'New sale',         '/admin/r
 if ($canV('pos') || $canV('passes')) $quick[] = ['🎟️', 'Check in guest', '/admin/gate.php'];
 if ($canV('inventory_update')) $quick[] = ['📦', 'Count inventory',  "$A?view=inventory_update"];
 if ($canV('bookings'))         $quick[] = ['📋', "Today's bookings", "$A?view=bookings&day=$today"];
+if ($canV('bookings') || $canV('event_inquiries')) $quick[] = ['🌧️', 'Weather day', '/admin/weather.php'];   // Nov 18: call off a day / website closed notice
 if ($canV('timecard'))         $quick[] = ['⏰', 'Clock in / out',   "$A?view=timecard"];
 if ($canV('tasks'))            $quick[] = ['✅', 'My tasks',         '/admin/tasks.php'];
 

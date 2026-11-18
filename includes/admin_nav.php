@@ -38,7 +38,8 @@ function bcrf_admin_nav_sections(): array {
                                                          ['Weather day','/admin/weather.php','view','bookings']]],             // slice 5 (Nov 12)
         ['label'=>'Private Events', 'short'=>'Parties','icon'=>'🎉','tabs'=>[['Private Events','?view=event_inquiries','view','event_inquiries'],
                                                                          ['Party quotes','/admin/quotes.php?kind=party','view','event_inquiries'],
-                                                                         ['Party packages','/admin/party_packages.php','view','event_inquiries']]],   // Nov 12
+                                                                         ['Party packages','/admin/party_packages.php','view','event_inquiries'],   // Nov 12
+                                                                         ['Weather day','/admin/weather.php','view','event_inquiries']]],   // Nov 18: the page lets Private Events staff in too
         ['label'=>'Annual Passes',  'short'=>'Passes','icon'=>'🎫','tabs'=>[['Annual Passes','?view=passes','view','passes']]],
         ['label'=>'Roost Rewards',  'short'=>'Rewards','icon'=>'🐓','tabs'=>[['Roost Rewards','/admin/rewards.php','view','pos']]],   // lean rewards, Nov 2026
     ]],
