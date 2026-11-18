@@ -220,7 +220,7 @@ bcrf_shell_open($v ? $v['name'] . ' — Vendors' : 'Add a vendor', ['toast' => $
   <h1 class="text-2xl font-bold text-stone-800 mb-4"><?= $v ? $h($v['name']) : 'Add a vendor' ?></h1>
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
 
-  <form method="POST" action="vendors.php" class="bg-white border border-stone-200 rounded-lg p-4 shadow-sm space-y-3">
+  <form method="POST" action="vendors.php" data-submit-once class="bg-white border border-stone-200 rounded-lg p-4 shadow-sm space-y-3">
     <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
     <input type="hidden" name="id" value="<?= $id ?: '' ?>">
     <?= $field('name', 'Name', 'text', 120, ' required') ?>
@@ -248,7 +248,7 @@ bcrf_shell_open($v ? $v['name'] . ' — Vendors' : 'Add a vendor', ['toast' => $
       Active (shown when picking a preferred vendor on a product)
     </label>
     <div class="flex gap-2 pt-1">
-      <button type="submit" class="<?= $btnMain ?>"><?= $v ? 'Save' : 'Add vendor' ?></button>
+      <button type="submit" class="<?= $btnMain ?>"><span aria-hidden="true"><?= $v ? '✓' : '＋' ?></span> <?= $v ? 'Save' : 'Add vendor' ?></button>
       <a href="vendors.php" class="<?= $btnSec ?>">Cancel</a>
     </div>
   </form>
