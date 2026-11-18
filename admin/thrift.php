@@ -135,7 +135,7 @@ if (!empty($_GET['new'])) {
          '<label>Consignor share %<input type="number" name="consignor_share_pct" value="', $h($d['consignor_share_pct'] ?? '60'), '" min="0" max="100" step="1"></label></div></fieldset>';
     echo '<label>Description<textarea name="description" rows="2" maxlength="5000">', $h($d['description'] ?? ''), '</textarea></label>';
     echo '<label>Photo address <small class="muted">(https://… or /media/…)</small><input type="text" name="image_url" value="', $h($d['image_url'] ?? ''), '" maxlength="255" autocomplete="off"></label>';
-    echo '<div class="rbar"><button class="btn primary" type="submit"><span aria-hidden="true">＋</span> Take in</button></div></form>';
+    echo '<div class="rbar"><button class="btn primary" type="submit" data-submit-label="Adding…"><span aria-hidden="true">＋</span> Take in</button></div></form>';
     echo '<p class="muted">Creates a quantity-1 product (SKU THR-…) on the register. After a consigned item sells, pay the consignor on <a href="settlements.php">Settlements</a>.</p>';
     echo '</div></main></body></html>';
     exit;
