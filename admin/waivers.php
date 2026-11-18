@@ -133,7 +133,7 @@ if ($id) {
   </details>
   <?php if (!$w['voided_at']): ?>
   <form id="waiver-void-form" data-submit-once method="POST" action="waivers.php" class="<?= $card ?> flex flex-wrap gap-2 items-end">
-    <?php if ($error && $errorAction === 'void') echo bcrf_shell_notice('err', $error); ?><?= $hidden ?><input type="hidden" name="act" value="void"><input type="hidden" name="id" value="<?= (int)$w['id'] ?>">
+    <?php if ($error && $errorAction === 'void') echo '<div class="w-full">', bcrf_shell_notice('err', $error), '</div>'; ?><?= $hidden ?><input type="hidden" name="act" value="void"><input type="hidden" name="id" value="<?= (int)$w['id'] ?>">
     <div class="flex-1 min-w-48"><label class="<?= $label ?>" for="vr">Void it (it stays on file)</label><input id="vr" name="reason" maxlength="255" value="<?= $h($typed['reason'] ?? '') ?>" required placeholder="Why (e.g. signed under the wrong email)" class="<?= $input ?>"></div>
     <button class="<?= $btnSec ?>" data-confirm="Void this waiver? It stays on file but no longer counts at the gate.">Void</button>
   </form>

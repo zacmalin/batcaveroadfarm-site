@@ -75,7 +75,8 @@ jobs:
       - name: JavaScript syntax check
         run: |
           fail=0
-          for f in js/*.js; do node --check "$f" || { echo "::error file=$f::syntax error"; fail=1; }; done
+          # admin/assets added Nov 18, 2026: a broken comment line in admin-ui.js went live unnoticed for ~15 hours.
+          for f in js/*.js admin/assets/*.js; do node --check "$f" || { echo "::error file=$f::syntax error"; fail=1; }; done
           exit $fail
 
       - name: Combined script is up to date

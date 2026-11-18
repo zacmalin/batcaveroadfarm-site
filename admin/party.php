@@ -161,7 +161,7 @@ bcrf_shell_open('Party: ' . $inq['customer_name'], ['toast' => $toast, 'width' =
     <?php endif; ?>
     <?php if ($full): ?>
     <form id="party-package-form" method="POST" action="party.php" data-submit-once class="flex flex-wrap gap-2 items-end mt-2">
-      <?php if ($error && $errorAction === 'package') echo bcrf_shell_notice('err', $error); ?><?= $hidden ?><input type="hidden" name="act" value="package">
+      <?php if ($error && $errorAction === 'package') echo '<div class="w-full">', bcrf_shell_notice('err', $error), '</div>'; ?><?= $hidden ?><input type="hidden" name="act" value="package">
       <div class="flex-1 min-w-48"><label class="<?= $label ?>" for="pk">Change package</label>
         <select id="pk" name="package_id" class="<?= $input ?>">
           <option value="">No package</option>
@@ -192,7 +192,7 @@ bcrf_shell_open('Party: ' . $inq['customer_name'], ['toast' => $toast, 'width' =
     <?php endif; ?>
     <?php if ($full && $people): ?>
     <form id="party-staff-form" method="POST" action="party.php" data-submit-once class="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
-      <?php if ($error && $errorAction === 'staff_add') echo bcrf_shell_notice('err', $error); ?><?= $hidden ?><input type="hidden" name="act" value="staff_add">
+      <?php if ($error && $errorAction === 'staff_add') echo '<div class="sm:col-span-3">', bcrf_shell_notice('err', $error), '</div>'; ?><?= $hidden ?><input type="hidden" name="act" value="staff_add">
       <div><label class="<?= $label ?>" for="su">Person</label>
         <select id="su" name="user_id" class="<?= $input ?>"><?php foreach ($people as $p): ?><option value="<?= (int)$p['id'] ?>"><?= $h($p['name']) ?></option><?php endforeach; ?></select></div>
       <div><label class="<?= $label ?>" for="sj">Job (optional)</label><input id="sj" name="job" maxlength="80" placeholder="Lead, animals, food…" class="<?= $input ?>"></div>

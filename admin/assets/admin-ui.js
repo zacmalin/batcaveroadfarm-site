@@ -18,7 +18,7 @@
 //    the list as it was before. Any save (form POST or background switch) is noted for this tab, and a page
 //    brought back from memory that is older than the last save reloads itself. Page scripts: bcrfMarkChanged().
 //  - form[data-submit-once]: blocks accidental repeated standard POST saves on opted-in forms.
-  - select[data-sort-auto]: the Sort box on lists (Nov 15, 2026; includes/list_sort.php) reloads the list when changed.
+//  - select[data-sort-auto]: the Sort box on lists (Nov 15, 2026; includes/list_sort.php) reloads the list when changed.
 (function () {
     'use strict';
 

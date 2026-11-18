@@ -150,7 +150,7 @@ if ($id || isset($_GET['new'])) {
     </ul>
     <?php endif; ?>
     <form id="organization-contact-form" method="POST" action="organizations.php" data-submit-once class="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
-      <?php if ($error && $errorAction === 'contact_add') echo bcrf_shell_notice('err', $error); ?><?= $hidden($id) ?><input type="hidden" name="act" value="contact_add">
+      <?php if ($error && $errorAction === 'contact_add') echo '<div class="sm:col-span-4">', bcrf_shell_notice('err', $error), '</div>'; ?><?= $hidden($id) ?><input type="hidden" name="act" value="contact_add">
       <div><label class="<?= $label ?>" for="cn">Name</label><input id="cn" name="name" maxlength="100" value="<?= $h($contactTyped['name'] ?? '') ?>" class="<?= $input ?>"></div>
       <div><label class="<?= $label ?>" for="ce">Email</label><input id="ce" name="email" type="email" required value="<?= $h($contactTyped['email'] ?? '') ?>" class="<?= $input ?>"></div>
       <div><label class="<?= $label ?>" for="cp">Contact primary phone (optional)</label><input id="cp" name="phone" type="tel" maxlength="20" autocomplete="tel" value="<?= $h($contactTyped['phone'] ?? '') ?>" class="<?= $input ?>"></div>
@@ -175,7 +175,7 @@ if ($id || isset($_GET['new'])) {
     <?php endif; ?>
     <?php if ($open): ?>
     <form id="organization-link-form" method="POST" action="organizations.php" class="flex flex-wrap gap-2">
-      <?php if ($error && $errorAction === 'link') echo bcrf_shell_notice('err', $error); ?><?= $hidden($id) ?><input type="hidden" name="act" value="link">
+      <?php if ($error && $errorAction === 'link') echo '<div class="w-full">', bcrf_shell_notice('err', $error), '</div>'; ?><?= $hidden($id) ?><input type="hidden" name="act" value="link">
       <select name="record" aria-label="Booking or party" class="<?= $input ?>"><?php foreach ($open as [$v, $t]): ?><option value="<?= $h($v) ?>"><?= $h($t) ?></option><?php endforeach; ?></select>
       <button class="<?= $btnSec ?> shrink-0">Add</button></form>
     <?php endif; ?>

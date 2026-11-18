@@ -201,10 +201,10 @@ if ($signedIn) {
     <title>Two-step sign-in · Farm Console</title>
     <link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">
     <?php // Compiled Tailwind 4.3.5 (tools/admin-css). Falls back to the CDN script only while console.css isn't uploaded yet (Nov 15, 2026).
-    if (is_file(__DIR__ . '/assets/console.css')): ?><link rel="stylesheet" href="/admin/assets/console.css?v=20261117c">
+    if (is_file(__DIR__ . '/assets/console.css')): ?><link rel="stylesheet" href="/admin/assets/console.css?v=20261118a">
     <?php else: ?><script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script><?php endif; ?>
     <link rel="stylesheet" href="/admin/assets/admin-ui.css?v=20261115d">
-    <script defer src="/admin/assets/admin-ui.js?v=20261115a"></script>
+    <script defer src="/admin/assets/admin-ui.js?v=20261118a"></script>
 </head>
 <body class="bg-stone-100 min-h-screen p-4 flex items-start sm:items-center justify-center">
 <div class="bg-white p-6 sm:p-8 rounded shadow-md max-w-md w-full border border-stone-200 my-6">
