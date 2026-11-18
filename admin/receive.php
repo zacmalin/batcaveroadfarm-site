@@ -231,7 +231,7 @@ if ($poRow) {
     echo '<p class="muted">Against <a href="purchase_orders.php?id=', (int)$poRow['id'], '">PO #', (int)$poRow['id'], '</a> (', $h($poRow['vendor_name']), '). Remaining quantities are prefilled; adjust if the delivery differs.</p>';
     echo '<p class="muted"><strong>Check unexpected items or overages:</strong> all received quantities increase stock, but quantities beyond the order and products not on it do not count toward completing this PO.</p>';
 }
-echo '<form class="stackf" method="POST" action="receive.php" autocomplete="off" enctype="multipart/form-data">';
+echo '<form class="stackf" method="POST" action="receive.php" data-submit-once autocomplete="off" enctype="multipart/form-data">';
 echo '<input type="hidden" name="csrf_token" value="', $h($csrf), '">';
 echo '<input type="hidden" name="_lines" value="', $lineCount, '">';
 if ($preProduct) echo '<input type="hidden" name="_product" value="', $preProduct, '">';
@@ -276,7 +276,7 @@ if (bcrf_docs_ready($pdo)) {
     echo '<fieldset class="grp"><legend>Invoice / receipt (optional)</legend>', bcrf_doc_inputs_html('doc', true),
          '<p class="muted">Snap the invoice or packing slip. It\'s saved with this receive; vendor, date and total are copied over.</p></fieldset>';
 }
-echo '<div class="rbar"><button class="btn primary" type="submit">Receive</button></div></form></section>';
+echo '<div class="rbar"><button class="btn primary" type="submit"><span aria-hidden="true">↓</span> Receive</button></div></form></section>';
 
 $rows = bcrf_receive_list($pdo, [], 30);
 $withDoc = bcrf_docs_ready($pdo) ? bcrf_doc_map($pdo, 'receive', array_column($rows, 'id')) : [];
