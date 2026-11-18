@@ -187,14 +187,14 @@ if ($id) {
       <?= bcrf_shell_notice('warning', $why) ?>
       <?php if (bcrf_crm_merge_blocker($pdo, $dupRow, $c) === ''): ?><a href="customers.php?id=<?= (int)$dupRow['id'] ?>&amp;merge=<?= $id ?>" class="<?= $btnSec ?> inline-block">Keep <?= $h(bcrf_crm_name($dupRow)) ?>'s record instead</a><?php endif; ?>
     <?php else: ?>
-    <form method="POST" action="customers.php" class="flex gap-2"><?= $hidden($id) ?><input type="hidden" name="act" value="merge"><input type="hidden" name="dup_id" value="<?= (int)$dupRow['id'] ?>">
+    <form data-submit-once method="POST" action="customers.php" class="flex gap-2"><?= $hidden($id) ?><input type="hidden" name="act" value="merge"><input type="hidden" name="dup_id" value="<?= (int)$dupRow['id'] ?>">
       <button class="<?= $btnMain ?>">Merge into this one</button><a href="customers.php?id=<?= $id ?>" class="<?= $btnSec ?>">Cancel</a></form>
     <?php endif; ?>
   </div>
   <?php endif; ?>
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <form method="POST" action="customers.php" class="<?= $card ?> mb-0"><?= $hidden($id) ?><input type="hidden" name="act" value="save">
+    <form data-submit-once method="POST" action="customers.php" class="<?= $card ?> mb-0"><?= $hidden($id) ?><input type="hidden" name="act" value="save">
       <h2 class="text-base font-semibold text-stone-800 mb-2">Details</h2>
       <div class="grid grid-cols-2 gap-2 mb-2">
         <div><label class="<?= $label ?>" for="fn">First name</label><input id="fn" name="first_name" maxlength="50" value="<?= $h($c['first_name']) ?>" class="<?= $input ?>"></div>
@@ -209,25 +209,25 @@ if ($id) {
       <h2 class="text-base font-semibold text-stone-800 mb-2">Household<?= $p['household'] ? ': ' . $h($p['household']['name']) : '' ?></h2>
       <?php if (!$p['household']): ?>
         <p class="text-sm text-stone-500 mb-2">Not in a household yet. A household groups family members for family passes and shared history.</p>
-        <form method="POST" action="customers.php" class="flex gap-2 mb-3"><?= $hidden($id) ?><input type="hidden" name="act" value="household_new">
+        <form data-submit-once method="POST" action="customers.php" class="flex gap-2 mb-3"><?= $hidden($id) ?><input type="hidden" name="act" value="household_new">
           <input name="name" maxlength="120" placeholder="<?= $h(($c['last_name'] ?: $c['first_name']) . ' family') ?>" aria-label="Household name" class="<?= $input ?>"><button class="<?= $btnSec ?> shrink-0">Make household</button></form>
       <?php else: ?>
         <ul class="text-sm mb-2">
           <?php foreach ($p['members'] as $mb): ?>
           <li class="flex items-center justify-between gap-2 py-1"><span><?= (int)$mb['id'] === $id ? '<strong>' . $h(bcrf_crm_name($mb)) . '</strong>' : '<a class="underline text-amber-800" href="customers.php?id=' . (int)$mb['id'] . '">' . $h(bcrf_crm_name($mb)) . '</a>' ?> <span class="text-xs text-stone-500">adult</span></span>
-            <form method="POST" action="customers.php"><?= $hidden($id) ?><input type="hidden" name="act" value="household_leave"><input type="hidden" name="member_id" value="<?= (int)$mb['id'] ?>">
+            <form data-submit-once method="POST" action="customers.php"><?= $hidden($id) ?><input type="hidden" name="act" value="household_leave"><input type="hidden" name="member_id" value="<?= (int)$mb['id'] ?>">
               <button class="text-xs underline text-stone-500" data-confirm="Take <?= $h($mb['first_name']) ?> out of this household?">Remove</button></form></li>
           <?php endforeach; ?>
           <?php foreach ($p['children'] as $ch): ?>
           <li class="flex items-center justify-between gap-2 py-1"><span><?= $h($ch['first_name']) ?> <span class="text-xs text-stone-500">child, <?= $h(BCRF_CRM_AGES[$ch['age_range']] ?? $ch['age_range']) ?></span></span>
-            <form method="POST" action="customers.php"><?= $hidden($id) ?><input type="hidden" name="act" value="child_remove"><input type="hidden" name="child_id" value="<?= (int)$ch['id'] ?>">
+            <form data-submit-once method="POST" action="customers.php"><?= $hidden($id) ?><input type="hidden" name="act" value="child_remove"><input type="hidden" name="child_id" value="<?= (int)$ch['id'] ?>">
               <button class="text-xs underline text-stone-500" data-confirm="Remove <?= $h($ch['first_name']) ?>?">Remove</button></form></li>
           <?php endforeach; ?>
         </ul>
-        <form method="POST" action="customers.php" class="flex gap-2 mb-2"><?= $hidden($id) ?><input type="hidden" name="act" value="household_join">
+        <form data-submit-once method="POST" action="customers.php" class="flex gap-2 mb-2"><?= $hidden($id) ?><input type="hidden" name="act" value="household_join">
           <input name="other_email" type="email" placeholder="Add an adult by email" aria-label="Adult's email" class="<?= $input ?>"><button class="<?= $btnSec ?> shrink-0">Add adult</button></form>
       <?php endif; ?>
-      <form method="POST" action="customers.php" class="flex gap-2"><?= $hidden($id) ?><input type="hidden" name="act" value="child_add">
+      <form data-submit-once method="POST" action="customers.php" class="flex gap-2"><?= $hidden($id) ?><input type="hidden" name="act" value="child_add">
         <input name="first_name" maxlength="50" placeholder="Child's first name" aria-label="Child's first name" class="<?= $input ?>">
         <select name="age" aria-label="Age range" class="<?= $input ?> w-28"><?php foreach (BCRF_CRM_AGES as $k => $v): ?><option value="<?= $k ?>"><?= $h($v) ?></option><?php endforeach; ?></select>
         <button class="<?= $btnSec ?> shrink-0">Add child</button></form>
@@ -273,7 +273,7 @@ if ($id) {
       <li class="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
         <span><?= $h($def[0]) ?> <?= $ep[$k] ? $chip('On', 'bg-green-100 text-green-800') : $chip('Off') ?></span>
         <?php if ($ep[$k]): ?>
-        <form method="POST" action="customers.php"><?= $hidden($id) ?><input type="hidden" name="act" value="email_off"><input type="hidden" name="setting" value="<?= $h($k) ?>">
+        <form data-submit-once method="POST" action="customers.php"><?= $hidden($id) ?><input type="hidden" name="act" value="email_off"><input type="hidden" name="setting" value="<?= $h($k) ?>">
           <button class="text-xs underline text-stone-500" data-confirm="Turn off <?= $h(strtolower($def[0])) ?> for <?= $h($c['first_name']) ?>?">Turn off</button></form>
         <?php endif; ?>
       </li>
@@ -300,7 +300,7 @@ if ($id) {
       <li class="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
         <span><?= $h(bcrf_crm_name($mg)) ?> &lt;<?= $h($mg['email']) ?>&gt; · <?= $h($date($mg['merged_at'])) ?><?= $mg['undone_at'] ? ' · undone' : '' ?></span>
         <?php if (!$mg['undone_at'] && $mgr): ?>
-        <form method="POST" action="customers.php"><?= $hidden($id) ?><input type="hidden" name="act" value="undo_merge"><input type="hidden" name="merge_id" value="<?= (int)$mg['id'] ?>">
+        <form data-submit-once method="POST" action="customers.php"><?= $hidden($id) ?><input type="hidden" name="act" value="undo_merge"><input type="hidden" name="merge_id" value="<?= (int)$mg['id'] ?>">
           <button class="<?= $btnSec ?>" data-confirm="Split <?= $h($mg['first_name']) ?> back out into their own record?">Undo</button></form>
         <?php endif; ?>
       </li>
