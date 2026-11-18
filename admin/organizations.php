@@ -105,7 +105,7 @@ if ($id || isset($_GET['new'])) {
     bcrf_shell_open($o ? $o['name'] : 'New organization', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' => ['quotes.js']]);
     echo '<a href="organizations.php" class="text-sm text-amber-800 underline">‹ Organizations</a>';
     echo '<h1 class="text-2xl font-bold text-stone-800 mt-2 mb-3">', $h($o ? $o['name'] : 'New organization'), $o ? ' <span class="text-sm font-normal text-stone-500">' . $h(BCRF_CRM_ORG_KINDS[$o['kind']] ?? '') . '</span>' : '', '</h1>';
-    if ($error && !in_array($errorAction, ['save', 'contact_add', 'link'], true)) echo bcrf_shell_notice('err', $error);
+    if ($error && (!in_array($errorAction, ['save', 'contact_add', 'link'], true) || ($errorAction === 'contact_add' && !$o))) echo bcrf_shell_notice('err', $error);
     if ($o) echo bcrf_contact_buttons_html($typed['phone'] ?? $o['phone'] ?? '', $typed['email'] ?? $o['email'] ?? '', (string)$o['name'], $typed['address'] ?? $o['address'] ?? '');
 ?>
   <form id="organization-form" method="POST" action="organizations.php" data-submit-once class="<?= $card ?>">
@@ -154,7 +154,7 @@ if ($id || isset($_GET['new'])) {
       <div><label class="<?= $label ?>" for="cn">Name</label><input id="cn" name="name" maxlength="100" value="<?= $h($contactTyped['name'] ?? '') ?>" class="<?= $input ?>"></div>
       <div><label class="<?= $label ?>" for="ce">Email</label><input id="ce" name="email" type="email" required value="<?= $h($contactTyped['email'] ?? '') ?>" class="<?= $input ?>"></div>
       <div><label class="<?= $label ?>" for="cp">Contact primary phone (optional)</label><input id="cp" name="phone" type="tel" maxlength="20" autocomplete="tel" value="<?= $h($contactTyped['phone'] ?? '') ?>" class="<?= $input ?>"></div>
-      <div><label class="<?= $label ?>" for="cr">Role</label><select id="cr" name="role" class="<?= $input ?>"><?php foreach (BCRF_CRM_CONTACT_ROLES as $k => $v): ?><option value="<?= $k ?>"><?= $h($v) ?></option><?php endforeach; ?></select></div>
+      <div><label class="<?= $label ?>" for="cr">Role</label><select id="cr" name="role" class="<?= $input ?>"><?php foreach (BCRF_CRM_CONTACT_ROLES as $k => $v): ?><option value="<?= $k ?>" <?= ($contactTyped['role'] ?? 'booking') === $k ? 'selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?></select></div>
       <div class="sm:col-span-4"><button class="<?= $btnSec ?> w-full sm:w-auto">Add contact</button></div>
     </form>
   </div>
