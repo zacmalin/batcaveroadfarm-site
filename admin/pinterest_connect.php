@@ -165,12 +165,12 @@ $ok      = $signed && !(int)($a['needs_reconnect'] ?? 0);
   <div style="margin-top:10px">
     <a class="btn" href="/admin/pinterest_connect.php?start=1"><?= $signed ? 'Reconnect Pinterest' : 'Connect Pinterest' ?></a>
     <?php if ($signed): ?>
-      <form method="post" style="display:inline"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="check"><button class="ghost">Check connection</button></form>
-      <form method="post" style="display:inline" data-confirm="Disconnect Pinterest? Auto-posting will be switched off."><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="disconnect"><button class="danger">Disconnect</button></form>
+      <form data-submit-once method="post" style="display:inline"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="check"><button class="ghost">Check connection</button></form>
+      <form data-submit-once method="post" style="display:inline" data-confirm="Disconnect Pinterest? Auto-posting will be switched off."><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="disconnect"><button class="danger">Disconnect</button></form>
     <?php endif; ?>
   </div>
   <?php if (!$signed): ?>
-    <form method="post" class="meta" style="margin-top:12px"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="env">
+    <form id="pinterest-environment-form" data-submit-once method="post" class="meta" style="margin-top:12px"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="env">
       <strong>Environment</strong><br>
       <label><input type="radio" name="env" value="sandbox"<?= $env === 'sandbox' ? ' checked' : '' ?>> Sandbox: while the app has Trial access. Pins are visible only to you.</label><br>
       <label><input type="radio" name="env" value="production"<?= $env === 'production' ? ' checked' : '' ?>> Production: after Pinterest grants Standard access. Pins are public.</label><br>
@@ -184,15 +184,15 @@ $ok      = $signed && !(int)($a['needs_reconnect'] ?? 0);
 <?php if ($signed): ?>
 <div class="card">
   <h2>Boards and auto-posting</h2>
-  <form method="post" style="display:inline"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="sync"><button class="ghost">Sync boards from Pinterest</button></form>
+  <form data-submit-once method="post" style="display:inline"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="sync"><button class="ghost">Sync boards from Pinterest</button></form>
   <?php foreach (['recipes', 'animals'] as $k): if (in_array($names[$k] ?? '', $boards, true)) continue; ?>
-    <form method="post" style="display:inline"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="create_board"><input type="hidden" name="key" value="<?= $k ?>"><button class="ghost">Create “<?= $h($names[$k] ?? '') ?>”</button></form>
+    <form data-submit-once method="post" style="display:inline"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="create_board"><input type="hidden" name="key" value="<?= $k ?>"><button class="ghost">Create “<?= $h($names[$k] ?? '') ?>”</button></form>
   <?php endforeach; ?>
   <?php if ($env === 'sandbox'): ?><p class="meta" style="margin:6px 0 0">Sandbox has its own boards, separate from the ones you see on Pinterest: create them here.</p><?php endif; ?>
   <?php if (!$boards): ?>
     <p class="meta">No boards found yet. Create <strong><?= $h($names['recipes'] ?? 'Farmhouse Recipes') ?></strong> and <strong><?= $h($names['animals'] ?? 'Meet Our Farm Animals') ?></strong> with the buttons above (or on Pinterest, in Production), then sync.</p>
   <?php else: ?>
-    <form method="post"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="settings">
+    <form id="pinterest-settings-form" data-submit-once method="post"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="do" value="settings">
       <?php foreach (['recipes' => '🍴 Recipes go to', 'animals' => '🐐 Animals go to'] as $k => $lbl): ?>
         <label class="row meta"><?= $lbl ?> (suggested: <?= $h($names[$k] ?? '') ?>)<br>
           <select name="board_<?= $k ?>">
