@@ -164,7 +164,7 @@ if ($tab === 'find') {
                          '<a class="btn sm primary" href="rewards.php?id=', (int)$r['id'], '">Open</a></div>';
                 } else {
                     echo '<div class="w-full"><p class="text-sm text-stone-600 mb-2">Not enrolled</p>',
-                         '<form class="rform flex flex-wrap gap-2" method="POST" action="rewards.php">', $hid('rewards.php?q=' . rawurlencode($q), (int)$r['id']),
+                         '<form data-submit-once class="rform flex flex-wrap gap-2" method="POST" action="rewards.php">', $hid('rewards.php?q=' . rawurlencode($q), (int)$r['id']),
                          '<input type="hidden" name="act" value="enroll"><input type="tel" name="phone" value="', $h($r['phone_number']), '" placeholder="Phone" aria-label="Phone for ', $h($name), '" required>',
                          '<button class="btn sm" type="submit">Enroll</button></form></div>';
                 }
@@ -183,21 +183,21 @@ if ($tab === 'find') {
          '<p>', $h($phone($m['phone_key'])), ' · ', $h($m['email']), '</p>',
          '<p class="big"><strong>', $n($bal), '</strong> points', $bal < 0 ? ' (negative after a refund; earning brings it back up)' : '', '</p>',
          '<p><small>Member since ', $h($local($m['enrolled_at'])), $m['last_activity_at'] ? ' · last earned ' . $h($local($m['last_activity_at'])) : '', '</small></p>',
-         '<form method="POST" action="rewards.php">', $hid($back, $cid), '<input type="hidden" name="act" value="visit"><button class="btn" type="submit">Visit today (+25)</button></form></section>';
+         '<form data-submit-once method="POST" action="rewards.php">', $hid($back, $cid), '<input type="hidden" name="act" value="visit"><button class="btn" type="submit">Visit today (+25)</button></form></section>';
 
     echo '<details class="card ui-expand" open><summary class="font-semibold cursor-pointer">🎁 Use a reward</summary><div class="mt-3">';
     $tiers = bcrf_rewards_tiers($pdo, true);
     if (!$tiers) echo '<p>No rewards are set up yet.', $isAdmin ? ' Add them in <a href="rewards.php?tab=settings">Settings</a>.' : '', '</p>';
     foreach ($tiers as $t) {
         $ok = $bal >= (int)$t['points'];
-        echo '<form class="rform" method="POST" action="rewards.php">', $hid($back, $cid),
+        echo '<form data-submit-once class="rform" method="POST" action="rewards.php">', $hid($back, $cid),
              '<input type="hidden" name="act" value="redeem"><input type="hidden" name="tier" value="', (int)$t['points'], '"><input type="hidden" name="key" value="', $tok(), '">',
              '<button class="btn', $ok ? ' primary' : '', '" type="submit"', $ok ? '' : ' disabled', '>', $n($t['points']), ' pts — ', $h($t['benefit']), '</button></form>';
     }
     echo '</div></details>';
 
     if ($canAdjust) {
-        echo '<details class="card ui-expand"><summary class="font-semibold cursor-pointer">✏️ Adjust points</summary><div class="mt-3"><form class="stackf" method="POST" action="rewards.php">', $hid($back, $cid),
+        echo '<details class="card ui-expand"><summary class="font-semibold cursor-pointer">✏️ Adjust points</summary><div class="mt-3"><form data-submit-once class="stackf" method="POST" action="rewards.php">', $hid($back, $cid),
              '<input type="hidden" name="act" value="adjust"><input type="hidden" name="key" value="', $tok(), '">',
              '<label>Points (minus to remove) <input type="number" name="points" step="1" required></label>',
              '<label>Reason <input type="text" name="reason" maxlength="200" required placeholder="e.g. points missed on receipt R-2026-000123"></label>',
@@ -211,7 +211,7 @@ if ($tab === 'find') {
     }
     echo '</table></div></details>';
 } else {   // settings
-    echo '<section class="card"><h2>Settings</h2><form class="stackf" method="POST" action="rewards.php">', $hid('rewards.php?tab=settings'),
+    echo '<section class="card"><h2>Settings</h2><form data-submit-once class="stackf" method="POST" action="rewards.php">', $hid('rewards.php?tab=settings'),
          '<input type="hidden" name="act" value="settings">',
          '<label class="ui-swrow"><input type="checkbox" class="ui-form-switch" name="enabled" value="1"', $on ? ' checked' : '',
          ' data-confirm-on="Turn Roost Rewards ON? Register sales start earning points and the customer page opens."',
