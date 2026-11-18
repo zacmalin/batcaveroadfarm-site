@@ -20,7 +20,7 @@ if (!function_exists('_si_done')) {
         $section = (string)($_POST['site_info_action'] ?? '');
         $allowed = ['announcement', 'address', 'phones', 'emails', 'socials', 'hours', 'season'];
         $valid = in_array($section, $allowed, true);
-        $target = $valid ? '&section=' . rawurlencode($section) . '#site-' . $section : '';
+        $target = $valid ? '&section=' . rawurlencode($section) : '';
         header('Location: /admin/admin.php?view=site_info' . $target);
         exit;
     }
