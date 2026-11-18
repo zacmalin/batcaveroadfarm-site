@@ -680,6 +680,11 @@ function bcrf_doc_box_html(PDO $pdo, string $type, int $id, string $back, string
                     : '📎 Invoices &amp; receipts';
     $o = '<section class="bg-white border border-stone-200 rounded-lg p-4 shadow-sm my-4" id="papers">'
        . '<h2 class="text-base font-semibold text-stone-800 mb-2">' . $title . '</h2>';
+    $inline = $_SESSION['doc_inline_flash'] ?? null;
+    if (is_array($inline) && ($inline['back'] ?? '') === $back) {
+        unset($_SESSION['doc_inline_flash']);
+        $o .= '<div role="alert" class="p-3 mb-3 border rounded text-sm bg-red-50 border-red-200 text-red-800">' . $e($inline['message'] ?? 'Could not save. Try again.') . '</div>';
+    }
     if ($docs) {
         $o .= '<ul class="divide-y divide-stone-100 mb-3">';
         foreach ($docs as $d) {
