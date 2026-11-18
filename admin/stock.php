@@ -92,6 +92,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $say('err', 'Could not save. Try again.');
         }
     }
+    if (($_SESSION['stock_flash'][0] ?? '') === 'err' && ($_POST['act'] ?? '') === 'count_start') {
+        $_SESSION['stock_error_action'] = 'count_start';
+        if (str_contains($back, 'tab=counts')) $back .= '#start-count';
+    }
     header('Location: ' . $back); exit;
 }
 
@@ -102,6 +106,7 @@ $locs = bcrf_locations($pdo);
 $locById = []; foreach ($locs as $l) $locById[(int)$l['id']] = $l;
 $cats = $pdo->query("SELECT id, name FROM inventory_categories ORDER BY sort_order, name")->fetchAll(PDO::FETCH_KEY_PAIR);
 $flash = $_SESSION['stock_flash'] ?? null; unset($_SESSION['stock_flash']);
+$errorAction = $_SESSION['stock_error_action'] ?? ''; unset($_SESSION['stock_error_action']);
 $hid = fn(string $back) => '<input type="hidden" name="csrf_token" value="' . $h($csrf) . '"><input type="hidden" name="back" value="' . $h($back) . '">';
 $sel = function (string $name, array $opts, $cur, string $label, string $blank = '') use ($h) {
     $o = '<select name="' . $h($name) . '" aria-label="' . $h($label) . '">' . ($blank !== '' ? '<option value="">' . $h($blank) . '</option>' : '');
@@ -145,7 +150,7 @@ $histTable = function (array $rows, bool $showItem = true) use ($h, $q3, $pdo) {
 $title = ['stock' => 'Stock', 'item' => 'Stock', 'counts' => 'Counts', 'count' => 'Count', 'history' => 'Stock history', 'locations' => 'Locations'][$tab];
 bcrf_shell_open($title, ['legacy' => true]);
 echo '<h1>Stock</h1>';
-if ($flash) echo bcrf_shell_flash($flash);
+if ($flash && !(($flash[0] ?? '') === 'err' && $tab === 'counts' && $errorAction === 'count_start')) echo bcrf_shell_flash($flash);
 if ($synced) echo '<p class="flash">', $synced, ' item', $synced === 1 ? '' : 's', ' had been changed outside Stock (old register, Full Editor or connector); the difference is now on ', $h($locById[bcrf_location_default($pdo)]['name'] ?? 'the default location'), ' and in the history.</p>';
 $cur = in_array($tab, ['item'], true) ? 'stock' : ($tab === 'count' ? 'counts' : $tab);
 $openCounts = (int)$pdo->query("SELECT COUNT(*) FROM inventory_counts WHERE status = 'open'")->fetchColumn();
@@ -230,7 +235,7 @@ if ($tab === 'item') {
 
 // -- Counts --
 if ($tab === 'counts') {
-    echo '<section class="card"><h3>Start a count</h3><form class="stackf" method="POST" action="stock.php" data-submit-once>', $hid('stock.php?tab=counts'),
+    echo '<section id="start-count" class="card"><h3>Start a count</h3>', (($flash && ($flash[0] ?? '') === 'err' && $errorAction === 'count_start') ? bcrf_shell_flash($flash) : ''), '<form class="stackf" method="POST" action="stock.php" data-submit-once>', $hid('stock.php?tab=counts'),
          '<input type="hidden" name="act" value="count_start">',
          '<label>Where', $sel('location_id', $locNames, bcrf_location_default($pdo), 'Location'), '</label>',
          '<label>What', $sel('scope', bcrf_count_scopes(), 'all', 'What to count'), '</label>',
