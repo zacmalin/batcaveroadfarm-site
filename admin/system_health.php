@@ -185,7 +185,7 @@ $imgTools = (function (): array {
           <?php if (!bcrf_runner_can_spawn()): ?><br><span style="color:#8b2018">This server doesn't allow the runner to start other scripts (proc_open is disabled), so leave this off.</span><?php endif; ?>
         </div>
       </div>
-      <form method="post" style="align-self:center">
+      <form data-submit-once method="post" style="align-self:center">
         <input type="hidden" name="csrf_token" value="<?= $h($csrfTok) ?>">
         <input type="hidden" name="qa" value="<?= $schedOn ? 'schedule_off' : 'schedule_on' ?>">
         <button type="submit" style="padding:8px 14px;border-radius:8px;border:1px solid #4a6741;background:<?= $schedOn ? '#fff' : '#4a6741' ?>;color:<?= $schedOn ? '#4a6741' : '#fff' ?>;font-weight:700"
@@ -204,7 +204,7 @@ $imgTools = (function (): array {
         </div>
         <div style="display:flex;gap:6px;align-self:center">
           <?php foreach (['retry' => 'Retry', 'discard' => 'Discard'] as $qa => $lbl): ?>
-            <form method="post"><input type="hidden" name="csrf_token" value="<?= $h($csrfTok) ?>"><input type="hidden" name="qa" value="<?= $qa ?>"><input type="hidden" name="id" value="<?= (int)$d['id'] ?>">
+            <form data-submit-once method="post"><input type="hidden" name="csrf_token" value="<?= $h($csrfTok) ?>"><input type="hidden" name="qa" value="<?= $qa ?>"><input type="hidden" name="id" value="<?= (int)$d['id'] ?>">
               <button type="submit" style="padding:6px 10px;border-radius:8px;border:1px solid #c9b89c;background:#fff;font-weight:700"><?= $lbl ?></button></form>
           <?php endforeach; ?>
         </div>
