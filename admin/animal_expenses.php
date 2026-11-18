@@ -77,6 +77,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         error_log('[animal_expenses] ' . $act . ': ' . $e->getMessage());
         $_SESSION[$key] = ['err', 'Could not save. Try again.'];
     }
+    if (!$animal && $act === 'add' && ($_SESSION[$key][0] ?? '') === 'err') $back .= '#add-expense';
     header('Location: ' . $back); exit;
 }
 
@@ -117,7 +118,7 @@ $thead = fn(string $first) => '<thead><tr class="text-left text-xs text-stone-50
     . '</th><th class="py-2 px-2 text-right">Vet</th><th class="py-2 px-2 text-right">Feed</th><th class="py-2 px-2 text-right">Other</th><th class="py-2 pl-2 text-right">Total</th></tr></thead>';
 bcrf_shell_open('Animal expenses', ['toast' => $toast, 'width' => 'max-w-4xl', 'js' => ['quotes.js']]);
 echo '<h1 class="text-2xl font-bold text-stone-800 mb-3">Animal expenses</h1>';
-if ($error) echo bcrf_shell_notice('err', $error);
+if ($error && !$canEdit) echo bcrf_shell_notice('err', $error);
 if ($warning) echo bcrf_shell_notice('warning', $warning);
 ?>
   <form method="GET" class="<?= $card ?> flex flex-wrap gap-3 items-end">
@@ -135,7 +136,8 @@ if ($warning) echo bcrf_shell_notice('warning', $warning);
   <p class="text-xs text-stone-500 mb-4">Vet is the cost on medical records. Feed is each feeding's cost (amount × the product's average cost), split across the animals fed. Other is what's added below.</p>
 
   <?php if ($canEdit): ?>
-  <details class="<?= $card ?>" <?= $lines ? '' : 'open' ?>><summary class="cursor-pointer text-base font-semibold text-stone-800">➕ Add an expense</summary>
+  <details id="add-expense" class="<?= $card ?>" <?= ($error || !$lines) ? 'open' : '' ?>><summary class="cursor-pointer text-base font-semibold text-stone-800">➕ Add an expense</summary>
+    <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
     <form method="POST" class="mt-3" enctype="multipart/form-data"><?= $hidden ?><input type="hidden" name="act" value="add">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
         <div><label class="<?= $label ?>" for="ed">Date</label><input id="ed" name="spent_on" type="date" required max="<?= $h($today) ?>" value="<?= $h($today) ?>" class="<?= $input ?>"></div>
