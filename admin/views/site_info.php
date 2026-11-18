@@ -39,7 +39,7 @@ if (!$tablesMissing) {
 $sectionCls = "site-info-section bg-white border border-stone-200 rounded-lg mb-4 overflow-hidden";
 $sumCls     = "cursor-pointer select-none px-5 py-4 font-bold text-stone-800 flex items-center justify-between hover:bg-stone-50";
 $inputCls   = "w-full px-3 py-2 border border-stone-300 rounded text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-400";
-$btnCls     = "mt-4 px-4 py-2 rounded bg-amber-700 text-white text-xs font-semibold hover:bg-amber-800";
+$btnCls     = "mt-4 inline-flex items-center justify-center min-h-11 px-4 py-2 rounded bg-amber-700 text-white text-xs font-semibold hover:bg-amber-800";
 $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
 ?>
 
@@ -77,7 +77,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
                     <p class="text-[10px] text-stone-400 mt-1">Banner disappears automatically after this date. Leave blank to show indefinitely.</p>
                 </div>
             </div>
-            <button type="submit" class="px-5 py-2 bg-amber-700 text-white rounded text-sm font-semibold hover:bg-amber-800">Save announcement</button>
+            <button type="submit" class="inline-flex items-center justify-center min-h-11 px-5 py-2 bg-amber-700 text-white rounded text-sm font-semibold hover:bg-amber-800">Save announcement</button>
         </form>
     </details>
 
