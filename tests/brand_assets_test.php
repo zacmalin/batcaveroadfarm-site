@@ -44,6 +44,8 @@ $links = bcrf_brand_icon_links();
 $ok(str_contains($links, 'href="/img/favicon.ico"') && str_contains($links, 'href="/img/icon.svg"') && str_contains($links, 'apple-touch-icon" href="/img/icon.png"'), 'tab icon links are the original ones');
 $ok(bcrf_brand_logo_size() === [400, 299], 'original header logo size');
 $ok(!bcrf_brand_has('logo') && !bcrf_brand_has('round') && !bcrf_brand_has('icon'), 'nothing uploaded yet');
+bcrf_brand_icon_links();   // first page view makes the fixed copies for static files
+$ok(@file_get_contents($site . '/img/brand/current/favicon.ico') === 'x' && @file_get_contents($site . '/img/brand/current/logo.png') === 'x', 'fixed copies of the original files made on first use');
 
 // ICO writer (pure PHP): header says icon, 2 images, PNG data where the directory points
 $ico = bcrf_brand_ico([32 => "\x89PNG-b", 16 => "\x89PNG-a"]);
@@ -111,6 +113,8 @@ if (!function_exists('imagecreatetruecolor')) {
     $ok((($c >> 24) & 0x7F) === 0 && ($c & 0xFFFFFF) === 0xFFFFFF, 'phone home-screen icon sits on white');
     $links = bcrf_brand_icon_links('https://farm.example');
     $ok(str_contains($links, 'https://farm.example' . bcrf_brand_dir('icon', $i1) . '/favicon.ico') && !str_contains($links, 'icon.svg') && str_contains($links, '/icon-180.png'), 'tab icon links follow the upload (old SVG dropped)');
+    $ok(md5_file($site . '/img/brand/current/favicon.ico') === md5_file($id . '/favicon.ico'), '500 page icon copy follows the upload');
+    $ok(md5_file($site . '/img/brand/current/logo.png') === md5_file($rd . '/round-512.png'), 'agents.json logo copy is the round logo');
     $mi = bcrf_brand_manifest_icons();
     $ok(count($mi) === 2 && $mi[1]['sizes'] === '512x512', 'manifest icons 192 + 512');
 
@@ -131,6 +135,7 @@ if (!function_exists('imagecreatetruecolor')) {
     $ok(bcrf_brand_undo($pdo, 'logo') === '' && bcrf_brand_url('logo_png') === '/img/logo.png', 'undo again: original files');
     bcrf_brand_reset($pdo, 'icon');
     $ok(!bcrf_brand_has('icon') && str_contains(bcrf_brand_icon_links(), '/img/icon.svg'), 'reset icon: original links back');
+    $ok(file_get_contents($site . '/img/brand/current/favicon.ico') === 'x', 'reset icon: 500 page icon copy back to the original');
     $st = bcrf_brand_state(true);
     $ok(count($st['logo']['hist']) === 2 && $st['logo']['hist'][0]['name'] === 'second.png' && $st['logo']['hist'][0]['by'] === 'Tester', 'upload list kept with names');
 

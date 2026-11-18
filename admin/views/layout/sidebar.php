@@ -192,7 +192,13 @@ $_badge = fn(int $n): string => $n > 0
       <div class="font-serif font-black text-sm text-white leading-snug"><?= htmlspecialchars(bcrf_farm_name(), ENT_QUOTES) ?></div>
       <div class="text-[9px] font-mono text-stone-500 uppercase tracking-widest mt-0.5">Farm OS</div>
     </div>
+<?php // Round logo from Site Info → Logos & Icon on the folded sidebar (Nov 18, 2026); the goat until one is uploaded
+    require_once dirname(__DIR__, 3) . '/includes/brand.php';
+    if (bcrf_brand_has('round')): ?>
+    <div class="sb-brand-mark"><img src="<?= htmlspecialchars(bcrf_brand_url('round_png'), ENT_QUOTES) ?>" alt="" width="32" height="32" class="w-8 h-8 rounded-full mx-auto"></div>
+<?php else: ?>
     <div class="sb-brand-mark text-lg">🐐</div>
+<?php endif; ?>
   </a>
 
   <button type="button" id="sbCollapseBtn"

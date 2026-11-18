@@ -12,6 +12,8 @@
 // "Undo last upload" steps back one version and "Reset to the original files" goes back to the files below.
 // With nothing uploaded every helper returns this install's current files, so nothing changes until a farm
 // uploads its own (resale: no logo is written into the code).
+// Static files that can't run PHP (500.html, agents.json) use fixed copies in /img/brand/current/
+// (favicon.ico, logo.png), rewritten on every upload, undo and reset (bcrf_brand_sync_current).
 
 if (!function_exists('bcrf_brand_url')) {
 
@@ -161,6 +163,8 @@ function bcrf_brand_logo_size(): array {
 
 /** The tab-icon link tags for any page head. $base: '' for same-site paths, or bcrf_farm_url() for full URLs. */
 function bcrf_brand_icon_links(string $base = ''): string {
+    static $checked = false;
+    if (!$checked) { $checked = true; if (!is_file(bcrf_brand_root() . '/img/brand/current/favicon.ico')) bcrf_brand_sync_current(); }   // first page view after install
     $e = fn(string $u) => htmlspecialchars($base . $u, ENT_QUOTES, 'UTF-8');
     $out = '<link rel="icon" href="' . $e(bcrf_brand_url('favicon')) . '" sizes="any">';
     if (bcrf_brand_has('icon')) $out .= '<link rel="icon" href="' . $e(bcrf_brand_url('icon_32')) . '" type="image/png" sizes="32x32">';
@@ -334,11 +338,36 @@ function bcrf_brand_generate(string $kind, string $srcFile): array {
     return ['v' => $ver, 'w' => $w, 'h' => $h];
 }
 
-/** Save the state JSON. */
+/** Save the state JSON, then refresh the fixed copies for static files. */
 function bcrf_brand_save_state(PDO $pdo, array $state): void {
     $pdo->prepare("INSERT INTO site_settings (setting_key, setting_value) VALUES ('brand_assets', ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)")
         ->execute([json_encode($state, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)]);
     bcrf_brand_state(true);
+    bcrf_brand_sync_current();
+}
+
+/**
+ * Fixed copies for files that can't ask PHP (500.html's tab icon, agents.json's logo): /img/brand/current/favicon.ico
+ * and logo.png (the search logo: round, else main). Copies whatever is in use, the original files included.
+ * Runs on every change, and once on its own if the folder is missing. Never throws.
+ */
+function bcrf_brand_sync_current(): bool {
+    try {
+        $dir = bcrf_brand_root() . '/img/brand/current';
+        if (!is_dir($dir) && !@mkdir($dir, 0755, true)) return false;
+        $ok = true;
+        foreach (['favicon.ico' => bcrf_brand_file('favicon'), 'logo.png' => bcrf_brand_file('schema_logo')] as $name => $src) {
+            if ($src === '') { $ok = false; continue; }
+            $bytes = @file_get_contents($src);
+            if ($bytes === false || $bytes === '') { $ok = false; continue; }
+            if (is_file($dir . '/' . $name) && @md5_file($dir . '/' . $name) === md5($bytes)) continue;
+            bcrf_brand_put($dir . '/' . $name, $bytes);
+        }
+        return $ok;
+    } catch (Throwable $e) {
+        error_log('[brand] current copies: ' . $e->getMessage());
+        return false;
+    }
 }
 
 /** Upload: make the files and put the new version in use. Returns the new version. */
