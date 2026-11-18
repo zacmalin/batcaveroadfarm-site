@@ -109,7 +109,7 @@ $curRec = (string)($edit['recurrence'] ?? 'none');
     </div>
 
     <div class="mt-5 flex gap-3">
-      <button type="submit" class="bg-amber-700 hover:bg-amber-800 text-white font-semibold px-5 py-2 rounded text-sm"><span aria-hidden="true"><?= $edit ? '✓' : '＋' ?></span> <?= $edit ? 'Update event' : 'Add event' ?></button>
+      <button type="submit" class="inline-flex items-center justify-center gap-2 min-h-11 bg-amber-700 hover:bg-amber-800 text-white font-semibold px-5 py-2 rounded text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700"><span aria-hidden="true"><?= $edit ? '✓' : '＋' ?></span> <?= $edit ? 'Update event' : 'Add event' ?></button>
       <?php if ($edit): ?><a href="/admin/admin.php?view=events" class="px-5 py-2 rounded text-sm border border-stone-300 text-stone-600 hover:bg-stone-100">Cancel</a><?php endif; ?>
     </div>
   </form>
@@ -135,12 +135,12 @@ $curRec = (string)($edit['recurrence'] ?? 'none');
             <form method="POST" action="/admin/admin.php?view=events" class="inline">
               <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
               <input type="hidden" name="event_action" value="toggle"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
-              <button type="submit" class="text-stone-500 hover:underline mr-2"><?= $r['status']==='published'?'Unpublish':'Publish' ?></button>
+              <button type="submit" class="inline-flex items-center min-h-11 px-2 text-stone-700 hover:underline mr-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-700"><?= $r['status']==='published'?'Unpublish':'Publish' ?></button>
             </form>
             <form method="POST" action="/admin/admin.php?view=events" class="inline" >
               <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
               <input type="hidden" name="event_action" value="delete"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
-              <button type="submit" class="text-red-600 hover:underline" data-confirm="Delete this event? This cannot be undone." data-confirm-danger>Delete</button>
+              <button type="submit" class="inline-flex items-center min-h-11 px-2 text-red-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-700" data-confirm="Delete this event? This cannot be undone." data-confirm-danger>Delete</button>
             </form>
           </td>
         </tr>
