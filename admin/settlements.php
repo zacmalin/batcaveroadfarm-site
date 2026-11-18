@@ -28,7 +28,8 @@ if (!bcrf_settlements_ready($pdo)) {
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!hash_equals($csrf, (string)($_POST['csrf_token'] ?? ''))) {
         $_SESSION['set_flash'] = ['err', 'Security token expired; try again.'];
-        header('Location: settlements.php'); exit;
+        $_SESSION['set_error_cid'] = (int)($_POST['consignor_customer_id'] ?? 0);
+        header('Location: settlements.php' . ($_SESSION['set_error_cid'] ? '#settle-' . $_SESSION['set_error_cid'] : '')); exit;
     }
     $act = (string)($_POST['act'] ?? '');
     try {
@@ -47,10 +48,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         error_log('[settlements] ' . $e->getMessage());
         $_SESSION['set_flash'] = ['err', 'Could not save. Try again.'];
     }
-    header('Location: settlements.php'); exit;
+    $_SESSION['set_error_cid'] = (int)($_POST['consignor_customer_id'] ?? 0);
+    header('Location: settlements.php' . ($_SESSION['set_error_cid'] ? '#settle-' . $_SESSION['set_error_cid'] : '')); exit;
 }
 
 $flash = $_SESSION['set_flash'] ?? null; unset($_SESSION['set_flash']);
+$errorCid = (int)($_SESSION['set_error_cid'] ?? 0); unset($_SESSION['set_error_cid']);
 
 bcrf_shell_open('Settlements', ['legacy' => true]);
 
@@ -87,16 +90,18 @@ if (!empty($_GET['id'])) {
 
 // Main: payable groups + history
 echo '<h1>Consignor settlements</h1>';
-if ($flash) echo bcrf_shell_flash($flash);
+if ($flash && !$errorCid) echo bcrf_shell_flash($flash);
 
 $groups = bcrf_settlement_payable_by_consignor($pdo);
 if (!$groups) {
+    if ($flash && $errorCid) echo bcrf_shell_flash($flash);
     echo '<p class="card muted">No sold consigned items waiting to be paid out. Take items in on <a href="thrift.php">Thrift</a> with source Consigned, sell them on the register, then settle here.</p>';
 } else {
     echo '<h2>Ready to pay</h2>';
     foreach ($groups as $g) {
         $cid = (int)$g['consignor_customer_id'];
-        echo '<div class="card group">';
+        echo '<div class="card group" id="settle-', $cid, '">';
+        if ($flash && $errorCid === $cid) echo bcrf_shell_flash($flash);
         echo '<p><b>', $h($g['consignor_name']), '</b>',
              $g['consignor_email'] ? ' <small class="muted">' . $h($g['consignor_email']) . '</small>' : '',
              '<br><small class="muted">', count($g['items']), ' item', count($g['items']) === 1 ? '' : 's',
