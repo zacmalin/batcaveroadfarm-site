@@ -208,7 +208,7 @@ if ($id) {
       <li class="py-2 text-sm"><strong><?= $h($m['name'] . ' ' . $m['dose']) ?></strong><?= $m['route'] ? ' · ' . $h(strtolower(BCRF_MED_ROUTES[$m['route']] ?? $m['route'])) : '' ?> · <?= $h(bcrf_med_freq_text($m)) ?>
         <span class="block text-xs text-stone-500"><?= $h($dd($m['start_date'])) ?> – <?= $m['end_date'] ? $h($dd($m['end_date'])) : 'until stopped' ?><?= $m['stopped_at'] ? ' · stopped ' . $h($local($m['stopped_at'], 'M j')) . ($m['stop_reason'] ? ': ' . $h($m['stop_reason']) : '') : ($m['active'] ? ' · active' : ($m['start_date'] > $today ? ' · starts later' : ' · finished')) ?><?= $m['notes'] ? ' · ' . $h($m['notes']) : '' ?></span>
         <?php if (!$m['stopped_at'] && (!$m['end_date'] || $m['end_date'] >= $today)): ?>
-        <form method="POST" action="animal_health.php" class="flex flex-wrap gap-2 items-end mt-1"><?= $hhidden ?><input type="hidden" name="act" value="med_stop"><input type="hidden" name="med_id" value="<?= (int)$m['id'] ?>">
+        <form data-submit-once method="POST" action="animal_health.php" class="flex flex-wrap gap-2 items-end mt-1"><?= $hhidden ?><input type="hidden" name="act" value="med_stop"><input type="hidden" name="med_id" value="<?= (int)$m['id'] ?>">
           <input name="reason" maxlength="255" aria-label="Why stop" placeholder="Why stop (optional)" class="<?= $input ?> flex-1 min-w-48"><button class="<?= $btnSec ?>" data-confirm="Stop <?= $h($m['name']) ?>? Upcoming dose tasks are cancelled.">Stop</button></form>
         <?php endif; ?></li>
       <?php endforeach; ?>
@@ -216,7 +216,7 @@ if ($id) {
     <?php endif; ?>
     <?php if (!$gone): ?>
     <details><summary class="cursor-pointer text-sm text-amber-800 underline">Add a medication</summary>
-    <form method="POST" action="animal_health.php" class="mt-3"><?= $hhidden ?><input type="hidden" name="act" value="med">
+    <form data-submit-once method="POST" action="animal_health.php" class="mt-3"><?= $hhidden ?><input type="hidden" name="act" value="med">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
         <div><label class="<?= $label ?>" for="mdn">Medication</label><input id="mdn" name="name" maxlength="120" required class="<?= $input ?>" placeholder="e.g. Penicillin"></div>
         <div><label class="<?= $label ?>" for="mdd">One dose</label><input id="mdd" name="dose" maxlength="60" required class="<?= $input ?>" placeholder="e.g. 2 ml"></div>
@@ -243,7 +243,7 @@ if ($id) {
     </ul>
     <?php endif; ?>
     <details><summary class="cursor-pointer text-sm text-amber-800 underline">Record a vaccination</summary>
-    <form method="POST" action="animal_health.php" class="mt-3"><?= $hhidden ?><input type="hidden" name="act" value="vacc">
+    <form data-submit-once method="POST" action="animal_health.php" class="mt-3"><?= $hhidden ?><input type="hidden" name="act" value="vacc">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
         <div><label class="<?= $label ?>" for="vcv">Vaccine</label><input id="vcv" name="vaccine" maxlength="120" required class="<?= $input ?>" placeholder="e.g. CDT" list="vaccList">
           <datalist id="vaccList"><?php foreach (array_unique(array_column($vaccs, 'vaccine')) as $vn): ?><option value="<?= $h($vn) ?>"><?php endforeach; ?></datalist></div>
@@ -267,7 +267,7 @@ if ($id) {
         <?php if ($r['diagnosis']): ?><p class="mt-1"><span class="font-semibold">Diagnosis:</span> <?= nl2br($h($r['diagnosis'])) ?></p><?php endif; ?>
         <?php if ($r['treatment']): ?><p class="mt-1"><span class="font-semibold">Treatment:</span> <?= nl2br($h($r['treatment'])) ?></p><?php endif; ?>
         <p class="mt-1 text-xs text-stone-500">Added <?= $h($local($r['created_at'], 'M j, Y')) ?><?= $r['by_name'] ? ' by ' . $h($r['by_name']) : '' ?><?= $r['updated_at'] ? ' · edited ' . $h($local($r['updated_at'], 'M j, Y')) : '' ?></p>
-        <form method="POST" action="animal_health.php" class="mt-3 border-t border-stone-100 pt-3"><?= $hhidden ?><input type="hidden" name="act" value="medical"><input type="hidden" name="record_id" value="<?= (int)$r['id'] ?>">
+        <form data-submit-once method="POST" action="animal_health.php" class="mt-3 border-t border-stone-100 pt-3"><?= $hhidden ?><input type="hidden" name="act" value="medical"><input type="hidden" name="record_id" value="<?= (int)$r['id'] ?>">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             <div><label class="<?= $label ?>" for="mt<?= (int)$r['id'] ?>">Title</label><input id="mt<?= (int)$r['id'] ?>" name="title" maxlength="150" required value="<?= $h($r['title']) ?>" class="<?= $input ?>"></div>
             <div><label class="<?= $label ?>" for="mk<?= (int)$r['id'] ?>">Kind</label><select id="mk<?= (int)$r['id'] ?>" name="kind" class="<?= $input ?>"><?php foreach (BCRF_MED_KINDS as $k => $v): ?><option value="<?= $k ?>" <?= $r['kind'] === $k ? 'selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?></select></div>
@@ -284,7 +284,7 @@ if ($id) {
     </ul>
     <?php endif; ?>
     <details <?= $recs ? '' : 'open' ?>><summary class="cursor-pointer text-sm text-amber-800 underline">Add a record</summary>
-    <form method="POST" action="animal_health.php" class="mt-3"><?= $hhidden ?><input type="hidden" name="act" value="medical"><input type="hidden" name="record_id" value="0">
+    <form data-submit-once method="POST" action="animal_health.php" class="mt-3"><?= $hhidden ?><input type="hidden" name="act" value="medical"><input type="hidden" name="record_id" value="0">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
         <div><label class="<?= $label ?>" for="nmt">Title</label><input id="nmt" name="title" maxlength="150" required class="<?= $input ?>" placeholder="e.g. Limping, back left"></div>
         <div><label class="<?= $label ?>" for="nmk">Kind</label><select id="nmk" name="kind" class="<?= $input ?>"><?php foreach (BCRF_MED_KINDS as $k => $v): ?><option value="<?= $k ?>"><?= $h($v) ?></option><?php endforeach; ?></select></div>
@@ -308,7 +308,7 @@ if ($id) {
         $chart = bcrf_weight_chart_svg($hist);
         $whidden = $hidden . '<input type="hidden" name="return_animal" value="' . $id . '">'; ?>
   <?php if (!$gone): ?>
-  <form method="POST" action="animal_weights.php" class="<?= $card ?>"><?= $whidden ?><input type="hidden" name="act" value="weigh">
+  <form data-submit-once method="POST" action="animal_weights.php" class="<?= $card ?>"><?= $whidden ?><input type="hidden" name="act" value="weigh">
     <h2 class="text-base font-semibold text-stone-800 mb-2">Weigh <?= $h($a['name']) ?></h2>
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
       <div><label class="<?= $label ?>" for="ww">Pounds</label><input id="ww" name="w[<?= $id ?>][weight]" inputmode="decimal" required class="<?= $input ?>" placeholder="e.g. 48.5"></div>
@@ -330,7 +330,7 @@ if ($id) {
         <span class="block text-xs text-stone-500"><?= $w['by_name'] ? $h($w['by_name']) : '' ?><?= $w['note'] ? ($w['by_name'] ? ' · ' : '') . $h($w['note']) : '' ?><?= $w['voided_at'] ? ' · voided: ' . $h($w['void_reason']) : '' ?></span>
         <?php if ($canEdit && !$w['voided_at']): ?>
         <details class="mt-1"><summary class="cursor-pointer text-xs text-amber-800 underline">Void</summary>
-          <form method="POST" action="animal_weights.php" class="flex flex-wrap gap-2 items-end mt-2"><?= $whidden ?><input type="hidden" name="act" value="void"><input type="hidden" name="weight_id" value="<?= (int)$w['id'] ?>">
+          <form data-submit-once method="POST" action="animal_weights.php" class="flex flex-wrap gap-2 items-end mt-2"><?= $whidden ?><input type="hidden" name="act" value="void"><input type="hidden" name="weight_id" value="<?= (int)$w['id'] ?>">
             <div class="flex-1 min-w-48"><label class="<?= $label ?>" for="wv<?= (int)$w['id'] ?>">Why</label><input id="wv<?= (int)$w['id'] ?>" name="reason" maxlength="255" required class="<?= $input ?>" placeholder="e.g. wrong animal"></div>
             <button class="<?= $btnSec ?>" data-confirm="Void this weighing? It stays on file.">Void</button></form></details>
         <?php endif; ?></li>
@@ -363,7 +363,7 @@ if ($id) {
   </div>
   <?php if ($canEdit): ?>
   <details class="<?= $card ?>"><summary class="cursor-pointer text-base font-semibold text-stone-800">Add an expense for <?= $h($a['name']) ?></summary>
-    <form method="POST" action="animal_expenses.php" class="mt-3" enctype="multipart/form-data"><?= $xhidden ?><input type="hidden" name="act" value="add">
+    <form data-submit-once method="POST" action="animal_expenses.php" class="mt-3" enctype="multipart/form-data"><?= $xhidden ?><input type="hidden" name="act" value="add">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
         <div><label class="<?= $label ?>" for="xd">Date</label><input id="xd" name="spent_on" type="date" required max="<?= $h($today) ?>" value="<?= $h($today) ?>" class="<?= $input ?>"></div>
         <div><label class="<?= $label ?>" for="xa">Amount ($)</label><input id="xa" name="amount" inputmode="decimal" required class="<?= $input ?>" placeholder="e.g. 42.50"></div>
@@ -386,7 +386,7 @@ if ($id) {
         <span class="block text-xs text-stone-500"><?= $h($l['description']) ?><?= ($l['expense_id'] && isset($receipts[(int)$l['expense_id']])) ? ' · <a class="underline text-amber-800" href="documents.php?id=' . (int)$receipts[(int)$l['expense_id']] . '">📎 Receipt</a>' : '' ?></span>
         <?php if ($canEdit && $l['expense_id']): ?>
         <details class="mt-1"><summary class="cursor-pointer text-xs text-amber-800 underline">Void</summary>
-          <form method="POST" action="animal_expenses.php" class="flex flex-wrap gap-2 items-end mt-2"><?= $xhidden ?><input type="hidden" name="act" value="void"><input type="hidden" name="expense_id" value="<?= (int)$l['expense_id'] ?>">
+          <form data-submit-once method="POST" action="animal_expenses.php" class="flex flex-wrap gap-2 items-end mt-2"><?= $xhidden ?><input type="hidden" name="act" value="void"><input type="hidden" name="expense_id" value="<?= (int)$l['expense_id'] ?>">
             <div class="flex-1 min-w-48"><label class="<?= $label ?>" for="xx<?= (int)$l['expense_id'] ?>">Why</label><input id="xx<?= (int)$l['expense_id'] ?>" name="reason" maxlength="255" required class="<?= $input ?>" placeholder="e.g. entered twice"></div>
             <button class="<?= $btnSec ?>" data-confirm="Void this expense? It stays on file.">Void</button></form></details>
         <?php endif; ?></li>
@@ -417,7 +417,7 @@ if ($id) {
       · Sire: <?= $a['sire_id'] ? '<a class="underline text-amber-800" href="animals.php?id=' . (int)$a['sire_id'] . '&amp;tab=breeding">' . $h($names[$a['sire_id']] ?? 'animal #' . (int)$a['sire_id']) . '</a>' : '<span class="text-stone-500">not set</span>' ?></p>
     <?php if ($canEdit && ($females || $males)): ?>
     <details class="mt-2"><summary class="cursor-pointer text-sm text-amber-800 underline">Set parents</summary>
-    <form method="POST" action="animal_breeding.php" class="mt-3"><?= $bhidden ?><input type="hidden" name="act" value="parents">
+    <form data-submit-once method="POST" action="animal_breeding.php" class="mt-3"><?= $bhidden ?><input type="hidden" name="act" value="parents">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
         <div><label class="<?= $label ?>" for="pd">Dam (mother)</label><select id="pd" name="dam_id" class="<?= $input ?>"><option value="0">Not known / not ours</option><?php foreach ($females as $o): ?><option value="<?= (int)$o['id'] ?>" <?= (int)$a['dam_id'] === (int)$o['id'] ? 'selected' : '' ?>><?= $h($o['name']) ?></option><?php endforeach; ?></select></div>
         <div><label class="<?= $label ?>" for="ps">Sire (father)</label><select id="ps" name="sire_id" class="<?= $input ?>"><option value="0">Not known / not ours</option><?php foreach ($males as $o): ?><option value="<?= (int)$o['id'] ?>" <?= (int)$a['sire_id'] === (int)$o['id'] ? 'selected' : '' ?>><?= $h($o['name']) ?></option><?php endforeach; ?></select></div>
@@ -443,7 +443,7 @@ if ($id) {
         <?php if ($b['notes']): ?><span class="block text-xs text-stone-500"><?= nl2br($h($b['notes'])) ?></span><?php endif; ?>
         <?php if ($isOpen && $isDam && $canEdit): ?>
         <details class="mt-2"><summary class="cursor-pointer text-sm text-amber-800 underline">Record the birth</summary>
-        <form method="POST" action="animal_breeding.php" class="mt-3"><?= $bhidden ?><input type="hidden" name="act" value="birth"><input type="hidden" name="breeding_id" value="<?= $bid ?>">
+        <form data-submit-once method="POST" action="animal_breeding.php" class="mt-3"><?= $bhidden ?><input type="hidden" name="act" value="birth"><input type="hidden" name="breeding_id" value="<?= $bid ?>">
           <div class="grid grid-cols-2 gap-3 mb-3">
             <div><label class="<?= $label ?>" for="bb<?= $bid ?>">Born on</label><input id="bb<?= $bid ?>" name="born_on" type="date" required max="<?= $h($today) ?>" value="<?= $h($today) ?>" class="<?= $input ?>"></div>
             <div><label class="<?= $label ?>" for="bl<?= $bid ?>">Born dead</label><input id="bl<?= $bid ?>" name="lost" type="number" min="0" max="20" value="0" class="<?= $input ?>"></div>
@@ -459,7 +459,7 @@ if ($id) {
           <button class="<?= $btnMain ?>">Record birth</button>
         </form></details>
         <details class="mt-1"><summary class="cursor-pointer text-sm text-amber-800 underline">Other update</summary>
-        <form method="POST" action="animal_breeding.php" class="mt-3"><?= $bhidden ?><input type="hidden" name="act" value="status"><input type="hidden" name="breeding_id" value="<?= $bid ?>">
+        <form data-submit-once method="POST" action="animal_breeding.php" class="mt-3"><?= $bhidden ?><input type="hidden" name="act" value="status"><input type="hidden" name="breeding_id" value="<?= $bid ?>">
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
             <div><label class="<?= $label ?>" for="bs<?= $bid ?>">What happened</label><select id="bs<?= $bid ?>" name="status" class="<?= $input ?>">
               <?php if ($b['status'] === 'bred'): ?><option value="confirmed">Confirmed pregnant</option><?php endif; ?>
@@ -476,7 +476,7 @@ if ($id) {
     <?php endif; ?>
     <?php if ($canEdit && !$gone && ($a['sex'] ?? '') === 'female' && !$hasOpen): ?>
     <details <?= $breedings ? '' : 'open' ?>><summary class="cursor-pointer text-sm text-amber-800 underline">Record a breeding</summary>
-    <form method="POST" action="animal_breeding.php" class="mt-3"><?= $bhidden ?><input type="hidden" name="act" value="add">
+    <form data-submit-once method="POST" action="animal_breeding.php" class="mt-3"><?= $bhidden ?><input type="hidden" name="act" value="add">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
         <div><label class="<?= $label ?>" for="ns">Sire</label><select id="ns" name="sire_id" class="<?= $input ?>"><option value="0">Outside sire (type below)</option><?php foreach ($males as $o): if (bcrf_animal_is_leaving((string)$o['status'])) continue; ?><option value="<?= (int)$o['id'] ?>"><?= $h($o['name']) ?></option><?php endforeach; ?></select></div>
         <div><label class="<?= $label ?>" for="no">Outside sire's name</label><input id="no" name="sire_outside" maxlength="120" class="<?= $input ?>" placeholder="e.g. Smith Farm's buck, Duke"></div>
@@ -509,9 +509,9 @@ if ($id) {
       <a class="<?= $btnSec ?>" href="<?= $h($pageUrl) ?>" target="_blank" rel="noopener"><?= $live ? 'View page' : 'Preview' ?></a>
       <?php $pubReview = function_exists('bcrf_needs_review') && bcrf_needs_review((string)($_SESSION['user_role'] ?? ''), 'animals');   // extra access: review first (Nov 14) ?>
       <?php if ($canEdit && !$gone && $pubReview && !$live): ?>
-      <form method="POST" action="animal_public.php"><?= $phidden ?><input type="hidden" name="act" value="publish"><button class="<?= $btnMain ?>">Send for review</button></form>
+      <form data-submit-once method="POST" action="animal_public.php"><?= $phidden ?><input type="hidden" name="act" value="publish"><button class="<?= $btnMain ?>">Send for review</button></form>
       <?php elseif ($canEdit && !$gone && !$pubReview): ?>
-      <form method="POST" action="animal_public.php"><?= $phidden ?><input type="hidden" name="act" value="<?= $live ? 'unpublish' : 'publish' ?>">
+      <form data-submit-once method="POST" action="animal_public.php"><?= $phidden ?><input type="hidden" name="act" value="<?= $live ? 'unpublish' : 'publish' ?>">
         <button class="<?= $live ? $btnSec : $btnMain ?>"<?= $live ? ' data-confirm="Take ' . $h($a['name']) . '\'s page off the website?"' : '' ?>><?= $live ? 'Take off the website' : 'Put on the website' ?></button></form>
       <?php endif; ?>
     </div>
@@ -522,7 +522,7 @@ if ($id) {
     <?php if (!empty($pubReview)): ?><p class="text-xs text-amber-800 mt-1"><?= $live ? 'This page is live, so an Owner or Manager has to change it.' : 'When it looks ready, tap Send for review. An Owner or Manager puts it on the website.' ?></p><?php endif; ?>
   </div>
 
-  <form method="POST" action="animal_public.php" class="<?= $card ?>"><?= $phidden ?><input type="hidden" name="act" value="save">
+  <form data-submit-once method="POST" action="animal_public.php" class="<?= $card ?>"><?= $phidden ?><input type="hidden" name="act" value="save">
     <h2 class="text-base font-semibold text-stone-800 mb-2">Words</h2>
     <div class="mb-3"><label class="<?= $label ?>" for="pt">Tagline (one short line under its name)</label><input id="pt" name="tagline" maxlength="255" value="<?= $h($a['tagline'] ?? '') ?>" class="<?= $input ?>" placeholder="e.g. The gentlest goat on the farm"<?= $canEdit ? '' : ' disabled' ?>></div>
     <div class="mb-3"><label class="<?= $label ?>" for="pb">Bio</label><textarea id="pb" name="bio" rows="5" maxlength="5000" class="<?= $input ?>" placeholder="A few friendly sentences: personality, favorite snack, how it came to the farm."<?= $canEdit ? '' : ' disabled' ?>><?= $h($a['bio'] ?? '') ?></textarea></div>
@@ -549,13 +549,13 @@ if ($id) {
         <figcaption class="mt-1 text-stone-600"><?= $p['alt_text'] ? $h($p['alt_text']) : '<span class="text-amber-800">No description</span>' ?></figcaption>
         <?php if ($canEdit): ?>
         <details class="mt-1"><summary class="cursor-pointer text-amber-800 underline">Change</summary>
-          <form method="POST" action="animal_public.php" class="mt-1"><?= $phidden ?><input type="hidden" name="act" value="photo_alt"><input type="hidden" name="photo_id" value="<?= (int)$p['id'] ?>">
+          <form data-submit-once method="POST" action="animal_public.php" class="mt-1"><?= $phidden ?><input type="hidden" name="act" value="photo_alt"><input type="hidden" name="photo_id" value="<?= (int)$p['id'] ?>">
             <label class="<?= $label ?>" for="pal<?= (int)$p['id'] ?>">Description</label><input id="pal<?= (int)$p['id'] ?>" name="alt_text" maxlength="255" value="<?= $h($p['alt_text'] ?? '') ?>" class="<?= $input ?>"><button class="<?= $btnSec ?> mt-1">Save</button></form>
           <div class="flex flex-wrap gap-1 mt-1">
-            <form method="POST" action="animal_public.php"><?= $phidden ?><input type="hidden" name="act" value="photo_main"><input type="hidden" name="photo_id" value="<?= (int)$p['id'] ?>"><button class="<?= $btnSec ?>">Make main</button></form>
-            <?php if ($n > 0): ?><form method="POST" action="animal_public.php"><?= $phidden ?><input type="hidden" name="act" value="photo_up"><input type="hidden" name="photo_id" value="<?= (int)$p['id'] ?>"><button class="<?= $btnSec ?>" aria-label="Move earlier">←</button></form><?php endif; ?>
-            <?php if ($n < count($photos) - 1): ?><form method="POST" action="animal_public.php"><?= $phidden ?><input type="hidden" name="act" value="photo_down"><input type="hidden" name="photo_id" value="<?= (int)$p['id'] ?>"><button class="<?= $btnSec ?>" aria-label="Move later">→</button></form><?php endif; ?>
-            <form method="POST" action="animal_public.php"><?= $phidden ?><input type="hidden" name="act" value="photo_remove"><input type="hidden" name="photo_id" value="<?= (int)$p['id'] ?>"><button class="<?= $btnSec ?>" data-confirm="Take this photo off the page?">Remove</button></form>
+            <form data-submit-once method="POST" action="animal_public.php"><?= $phidden ?><input type="hidden" name="act" value="photo_main"><input type="hidden" name="photo_id" value="<?= (int)$p['id'] ?>"><button class="<?= $btnSec ?>">Make main</button></form>
+            <?php if ($n > 0): ?><form data-submit-once method="POST" action="animal_public.php"><?= $phidden ?><input type="hidden" name="act" value="photo_up"><input type="hidden" name="photo_id" value="<?= (int)$p['id'] ?>"><button class="<?= $btnSec ?>" aria-label="Move earlier">←</button></form><?php endif; ?>
+            <?php if ($n < count($photos) - 1): ?><form data-submit-once method="POST" action="animal_public.php"><?= $phidden ?><input type="hidden" name="act" value="photo_down"><input type="hidden" name="photo_id" value="<?= (int)$p['id'] ?>"><button class="<?= $btnSec ?>" aria-label="Move later">→</button></form><?php endif; ?>
+            <form data-submit-once method="POST" action="animal_public.php"><?= $phidden ?><input type="hidden" name="act" value="photo_remove"><input type="hidden" name="photo_id" value="<?= (int)$p['id'] ?>"><button class="<?= $btnSec ?>" data-confirm="Take this photo off the page?">Remove</button></form>
           </div>
         </details>
         <?php endif; ?>
@@ -563,7 +563,7 @@ if ($id) {
       <?php endforeach; ?>
     </div>
     <?php if ($canEdit && count($photos) < BCRF_PUBLIC_PHOTO_MAX): ?>
-    <form method="POST" action="animal_public.php" enctype="multipart/form-data" class="mt-4 pt-3 border-t border-stone-100"><?= $phidden ?><input type="hidden" name="act" value="photo">
+    <form data-submit-once method="POST" action="animal_public.php" enctype="multipart/form-data" class="mt-4 pt-3 border-t border-stone-100"><?= $phidden ?><input type="hidden" name="act" value="photo">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
         <div><label class="<?= $label ?>" for="pp">Add a photo</label><input id="pp" name="photo" type="file" accept="image/*" required class="text-sm"></div>
         <div><label class="<?= $label ?>" for="ppa">Description</label><input id="ppa" name="alt_text" maxlength="255" class="<?= $input ?>" placeholder="What's in the photo"></div>
@@ -581,7 +581,7 @@ if ($id) {
     if ($tab === 'location') {
         $locs = bcrf_animal_locations($pdo, $id);
         if ($canEdit && !$gone): ?>
-  <form method="POST" action="animals.php" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="move"><input type="hidden" name="id" value="<?= $id ?>">
+  <form data-submit-once method="POST" action="animals.php" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="move"><input type="hidden" name="id" value="<?= $id ?>">
     <h2 class="text-base font-semibold text-stone-800 mb-2">Move <?= $h($a['name']) ?></h2>
     <?php if (!$enclosures): ?><p class="text-sm text-stone-500">Add your pens and barns under <a class="underline text-amber-800" href="animals.php?tab=enclosures">Enclosures</a> first.</p><?php else: ?>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
@@ -654,7 +654,7 @@ if ($id) {
     <p class="mt-1">Website: <?= (int)$a['is_active'] ? '<a class="underline text-amber-800" href="' . $h(bcrf_farm_url()) . '/petting-zoo/animals/animal.php?id=' . $id . '">published</a>' : 'not published' ?> · <a class="underline text-amber-800" href="admin.php?view=schema&amp;table=animals">Edit bio, photo and publishing</a></p>
   </div>
   <?php if ($canEdit): ?>
-  <form method="POST" action="animals.php" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="identity"><input type="hidden" name="id" value="<?= $id ?>">
+  <form data-submit-once method="POST" action="animals.php" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="identity"><input type="hidden" name="id" value="<?= $id ?>">
     <h2 class="text-base font-semibold text-stone-800 mb-2">Details</h2>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
       <div><label class="<?= $label ?>" for="ds">Sex</label><select id="ds" name="sex" class="<?= $input ?>"><option value="">Not set</option>
@@ -666,7 +666,7 @@ if ($id) {
     </div>
     <button class="<?= $btnSec ?>">Save details</button>
   </form>
-  <form method="POST" action="animals.php" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="status"><input type="hidden" name="id" value="<?= $id ?>">
+  <form data-submit-once method="POST" action="animals.php" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="status"><input type="hidden" name="id" value="<?= $id ?>">
     <h2 class="text-base font-semibold text-stone-800 mb-2">Change status</h2>
     <p class="text-sm text-stone-500 mb-3">Resting and quarantined animals show on the gate so staff keep visitors away. Sold, transferred, adopted and deceased take its page off the website, end its enclosure stay and cancel its open tasks; its records are kept.</p>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
@@ -692,7 +692,7 @@ if ($tab === 'enclosures') {
     echo '<h1 class="text-2xl font-bold text-stone-800 mb-3">Animals</h1>';
     if ($error) echo bcrf_shell_notice('err', $error);
     foreach ($all as $e): $over = $e['capacity'] !== null && $e['animal_count'] > $e['capacity']; ?>
-  <form method="POST" action="animals.php" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="enclosure"><input type="hidden" name="enclosure_id" value="<?= $e['id'] ?>">
+  <form data-submit-once method="POST" action="animals.php" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="enclosure"><input type="hidden" name="enclosure_id" value="<?= $e['id'] ?>">
     <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
       <h2 class="text-base font-semibold text-stone-800"><?= $h($e['name']) ?><?= $e['active'] ? '' : ' (not in use)' ?></h2>
       <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -713,7 +713,7 @@ if ($tab === 'enclosures') {
 <?php endforeach;
     if (!$all) echo '<p class="text-sm text-stone-500 mb-4">No enclosures yet. Add your pens, barns and pastures so you can record where each animal lives.</p>';
     if ($canEdit): ?>
-  <form method="POST" action="animals.php" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="enclosure"><input type="hidden" name="enclosure_id" value="0">
+  <form data-submit-once method="POST" action="animals.php" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="enclosure"><input type="hidden" name="enclosure_id" value="0">
     <h2 class="text-base font-semibold text-stone-800 mb-2">Add an enclosure</h2>
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
       <div><label class="<?= $label ?>" for="nn">Name</label><input id="nn" name="name" maxlength="80" required placeholder="e.g. Goat Barn" class="<?= $input ?>"></div>
@@ -750,7 +750,7 @@ if ($off) echo bcrf_shell_notice('warning', 'Off visitor contact: ' . implode(',
     <?= bcrf_list_sort_select($sortOpts, $sort, ['class' => $input . ' sm:w-auto']) ?>
     <button class="<?= $btnSec ?> shrink-0">Show</button></form>
   <?php if (!$rows): ?><p class="text-sm text-stone-500"><?= ($q !== '' || $f !== '' || $enc) ? 'Nothing matches that.' : 'No animals yet. Add them in the full editor.' ?></p><?php else: ?>
-  <form method="POST" action="animals.php"><?= $hidden ?><input type="hidden" name="act" value="move_many">
+  <form data-submit-once method="POST" action="animals.php"><?= $hidden ?><input type="hidden" name="act" value="move_many">
   <div class="<?= $card ?> p-0 overflow-hidden">
     <ul class="divide-y divide-stone-100">
       <?php foreach ($rows as $r): $gone = bcrf_animal_is_leaving((string)$r['status']); ?>
