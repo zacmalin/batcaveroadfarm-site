@@ -17,7 +17,8 @@
 //  - Fresh pages after Back (Nov 15, 2026): phones keep old pages in memory, so going Back after a save showed
 //    the list as it was before. Any save (form POST or background switch) is noted for this tab, and a page
 //    brought back from memory that is older than the last save reloads itself. Page scripts: bcrfMarkChanged().
-//  - select[data-sort-auto]: the Sort box on lists (Nov 15, 2026; includes/list_sort.php) reloads the list when changed.
+//  - form[data-submit-once]: blocks accidental repeated standard POST saves on opted-in forms.
+  - select[data-sort-auto]: the Sort box on lists (Nov 15, 2026; includes/list_sort.php) reloads the list when changed.
 (function () {
     'use strict';
 
@@ -388,6 +389,35 @@
         var t = 0;
         try { t = Number(sessionStorage.getItem('bcrf-changed-at')) || 0; } catch (err) {}
         if (t > LOADED_AT) window.location.reload();
+    });
+
+    // ── Prevent repeated ordinary saves (opt-in only) ──────────────────────
+    // Bubble phase: confirmation handling runs first in capture phase, and native
+    // constraint validation runs before submit. Do not use on AJAX/payment forms.
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (!form || !form.matches || !form.matches('form[data-submit-once]') || e.defaultPrevented) return;
+        if (form.dataset.bcrfSubmitting === '1') {
+            e.preventDefault();
+            return;
+        }
+        form.dataset.bcrfSubmitting = '1';
+        var button = e.submitter;
+        if (button && button.tagName === 'BUTTON') {
+            button.setAttribute('aria-disabled', 'true');
+            button.dataset.originalText = button.textContent;
+            button.textContent = 'Saving…';
+        }
+    });
+    window.addEventListener('pageshow', function () {
+        Array.prototype.forEach.call(document.querySelectorAll('form[data-submit-once]'), function (form) {
+            delete form.dataset.bcrfSubmitting;
+            Array.prototype.forEach.call(form.querySelectorAll('button[data-original-text]'), function (button) {
+                button.textContent = button.dataset.originalText;
+                button.removeAttribute('data-original-text');
+                button.removeAttribute('aria-disabled');
+            });
+        });
     });
 
     // ── Sort boxes on lists (Nov 15, 2026; includes/list_sort.php) ─────────
