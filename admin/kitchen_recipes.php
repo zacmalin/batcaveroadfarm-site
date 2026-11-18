@@ -145,7 +145,7 @@ if ($id) {
     <?php if ($canEditRecipe && (!$vs['latest'] || !$vs['current'])): ?>
       <?php if ($res['ready']): ?>
       <form id="recipe-version-form" data-submit-once method="POST" class="flex flex-wrap gap-2 items-end"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="save_version"><input type="hidden" name="id" value="<?= $id ?>">
-        <div class="flex-1 min-w-48"><label class="<?= $label ?>" for="vn">Note (optional)</label><input id="vn" name="note" maxlength="255" class="<?= $input ?>" placeholder="e.g. less sugar"></div>
+        <div class="flex-1 min-w-48"><label class="<?= $label ?>" for="vn">Note (optional)</label><input id="vn" name="note" maxlength="255" value="<?= $h($draftNote ?? '') ?>" class="<?= $input ?>" placeholder="e.g. less sugar"></div>
         <button class="<?= $btnMain ?>">Save as version <?= $vs['latest'] ? (int)$vs['latest']['version_no'] + 1 : 1 ?></button></form>
       <?php else: ?><p class="text-xs text-stone-500">Fix what's listed below, then save a version.</p><?php endif; ?>
     <?php endif; ?>
