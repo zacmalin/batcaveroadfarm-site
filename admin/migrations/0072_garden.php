@@ -17,8 +17,7 @@ return function (PDO $pdo): void {
     $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
     try {
         foreach ([
-"/*M!999999\\- enable the sandbox mode */ 
-CREATE TABLE IF NOT EXISTS `garden_care_application_locations` (
+"CREATE TABLE IF NOT EXISTS `garden_care_application_locations` (
   `organization_id` bigint(20) unsigned NOT NULL,
   `application_id` bigint(20) unsigned NOT NULL,
   `location_id` bigint(20) unsigned NOT NULL,
