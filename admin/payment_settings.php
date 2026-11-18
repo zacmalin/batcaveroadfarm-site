@@ -26,7 +26,12 @@ $_GET['tab'] = $tab;   // the Settings › Payments & Register section tabs mark
 $section = (string)($_GET['section'] ?? '');
 $ready = bcrf_sales_ready($pdo);
 $flash = $_SESSION['pay_flash'] ?? null; unset($_SESSION['pay_flash']);
-$go    = function (string $type, string $msg) use ($tab, $section) { $_SESSION['pay_flash'] = [$type, $msg]; header('Location: /admin/payment_settings.php?tab=' . $tab . ($section !== '' ? '&section=' . rawurlencode($section) : '')); exit; };
+$go    = function (string $type, string $msg) use ($tab, $section) {
+    $_SESSION['pay_flash'] = [$type, $msg];
+    if ($type === 'err') { $_SESSION['pay_form'] = $_POST; $_SESSION['pay_error_section'] = $tab === 'methods' ? ($section ?: 'apps') : $tab; }
+    $anchor = $tab === 'methods' ? ($section === 'order' ? '#payment-order-form' : ($section === 'types' ? '#payment-types' : '#payment-apps-form')) : ($tab === 'tax' ? '#payment-tax-form' : '#payment-register-form');
+    header('Location: /admin/payment_settings.php?tab=' . $tab . ($section !== '' ? '&section=' . rawurlencode($section) : '') . ($type === 'err' ? $anchor : '')); exit;
+};
 
 // ── Save ─────────────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -90,6 +95,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $go('ok', 'Saved. Registers pick this up when they reload.');
 }
 
+$typed = $_SESSION['pay_form'] ?? []; unset($_SESSION['pay_form']);
+$errorSection = $_SESSION['pay_error_section'] ?? ''; unset($_SESSION['pay_error_section']);
+$inlineError = $flash && ($flash[0] ?? '') === 'err' ? $flash : null;
 $ps   = bcrf_pos_settings($pdo);
 $cats = ($tab === 'tax' && $ready) ? bcrf_tax_categories($pdo) : [];
 $methodNotes = [
@@ -102,17 +110,18 @@ $methodNotes = [
 ?><?php bcrf_shell_open('Payments & Register', ['strict' => false, 'css' => ['admin-settings.css'], 'width' => 'max-w-3xl fset fs-pay']); ?>
 <h1>💳 Payments &amp; Register</h1>
 <p class="muted" style="margin:0">Everything the register uses for payments, discounts, receipts and tax. Changes are saved to the audit log.</p>
-<?php if ($flash) echo bcrf_shell_flash($flash); ?>
+<?php if ($flash && (!$inlineError || !in_array($errorSection, ['apps', 'order', 'register', 'tax'], true))) echo bcrf_shell_flash($flash); ?>
 
 <?php if ($tab === 'methods'): ?>
 <details name="payment-sections" class="pay-accordion" <?= $section === '' || $section === 'apps' ? 'open' : '' ?>>
 <summary>The farm's payment apps</summary>
-<form method="POST" action="?tab=methods&amp;section=apps" class="card">
+<form id="payment-apps-form" method="POST" action="?tab=methods&amp;section=apps" data-submit-once class="card">
+  <?php if ($inlineError && $errorSection === 'apps') echo bcrf_shell_flash($inlineError); ?>
   <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
   <p class="muted" style="margin:0">Shown with a QR code when staff take a PayPal, Venmo or Cash App payment, so the customer can scan it. Leave blank to hide.</p>
-  <label>PayPal.me name <small class="muted">(paypal.me/<b>name</b>)</small><input type="text" name="p2p_paypal" value="<?= $h($ps['handles']['paypal']) ?>" maxlength="41" autocomplete="off"></label>
-  <label>Venmo username <small class="muted">(@<b>name</b>)</small><input type="text" name="p2p_venmo" value="<?= $h($ps['handles']['venmo']) ?>" maxlength="41" autocomplete="off"></label>
-  <label>Cash App $cashtag <small class="muted">($<b>name</b>)</small><input type="text" name="p2p_cashapp" value="<?= $h($ps['handles']['cashapp']) ?>" maxlength="41" autocomplete="off"></label>
+  <label>PayPal.me name <small class="muted">(paypal.me/<b>name</b>)</small><input type="text" name="p2p_paypal" value="<?= $h($typed['p2p_paypal'] ?? $ps['handles']['paypal']) ?>" maxlength="41" autocomplete="off"></label>
+  <label>Venmo username <small class="muted">(@<b>name</b>)</small><input type="text" name="p2p_venmo" value="<?= $h($typed['p2p_venmo'] ?? $ps['handles']['venmo']) ?>" maxlength="41" autocomplete="off"></label>
+  <label>Cash App $cashtag <small class="muted">($<b>name</b>)</small><input type="text" name="p2p_cashapp" value="<?= $h($typed['p2p_cashapp'] ?? $ps['handles']['cashapp']) ?>" maxlength="41" autocomplete="off"></label>
   <button type="submit">Save payment apps</button>
 </form>
 </details>
@@ -132,14 +141,15 @@ $methodNotes = [
 </details>
 <details name="payment-sections" class="pay-accordion" <?= $section === 'order' ? 'open' : '' ?>>
 <summary>Button order</summary>
-<form method="POST" action="?tab=methods&amp;section=order" class="card">
+<form id="payment-order-form" method="POST" action="?tab=methods&amp;section=order" data-submit-once class="card">
+  <?php if ($inlineError && $errorSection === 'order') echo bcrf_shell_flash($inlineError); ?>
   <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
   <input type="hidden" name="form" value="tenders">
   <p class="muted" style="margin:0">The number sets the order of the payment buttons on the register (1 first).</p>
   <?php foreach (bcrf_tenders() as $code => $label): $isOn = isset($act[$code]); ?>
     <div class="mrow trow">
       <b><?= $h($label) ?></b>
-      <label class="tord">Order <input type="number" name="order[<?= $h($code) ?>]" value="<?= $isOn ? $pos[$code] + 1 : ++$n ?>" min="1" max="20" inputmode="numeric"></label>
+      <label class="tord">Order <input type="number" name="order[<?= $h($code) ?>]" value="<?= $typed['order'][$code] ?? ($isOn ? $pos[$code] + 1 : ++$n) ?>" min="1" max="20" inputmode="numeric"></label>
     </div>
   <?php endforeach; ?>
   <button type="submit">Save order</button>
@@ -147,24 +157,26 @@ $methodNotes = [
 </details>
 
 <?php elseif ($tab === 'register'): ?>
-<form method="POST" class="card">
+<form id="payment-register-form" method="POST" data-submit-once class="card">
+  <?php if ($inlineError && $errorSection === 'register') echo bcrf_shell_flash($inlineError); ?>
   <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
   <h2>Discount buttons</h2>
   <p class="muted" style="margin:0">The % buttons anyone on the register can use, for the whole sale or one item. Any other %, or making an item free, needs an Owner or Manager (or "POS Discount Override" in the Permissions Matrix).</p>
-  <label>Percents, separated by commas<input type="text" name="pos_discount_presets" value="<?= $h(implode(', ', $ps['presets'])) ?>" maxlength="60" autocomplete="off" inputmode="numeric"></label>
+  <label>Percents, separated by commas<input type="text" name="pos_discount_presets" value="<?= $h($typed['pos_discount_presets'] ?? implode(', ', $ps['presets'])) ?>" maxlength="60" autocomplete="off" inputmode="numeric"></label>
   <h2 style="margin-top:18px">Receipt</h2>
-  <label>Return policy <small class="muted">(printed and emailed at the bottom of every receipt)</small><textarea name="receipt_return_policy" rows="3" maxlength="500"><?= $h($ps['policy']) ?></textarea></label>
+  <label>Return policy <small class="muted">(printed and emailed at the bottom of every receipt)</small><textarea name="receipt_return_policy" rows="3" maxlength="500"><?= $h($typed['receipt_return_policy'] ?? $ps['policy']) ?></textarea></label>
   <button type="submit">Save</button>
 </form>
 
 <?php else: ?>
 <p class="muted">Each product has a tax category (set on the product in <a href="/admin/products.php">Products</a>). Sales work out tax per line from these rates. Past sales keep the rate they were sold at.</p>
 <?php if (!$ready): ?><div class="flash err">Run migration 0009 in Settings › Database first.</div><?php else: ?>
-<form method="POST" class="card">
+<form id="payment-tax-form" method="POST" data-submit-once class="card">
+  <?php if ($inlineError && $errorSection === 'tax') echo bcrf_shell_flash($inlineError); ?>
   <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
   <?php foreach ($cats as $c): ?>
     <label class="taxrow"><span><b><?= $h($c['name']) ?></b><?php if ($c['notes']): ?><br><small class="muted"><?= $h($c['notes']) ?></small><?php endif; ?></span>
-      <span class="pct"><input type="number" inputmode="decimal" step="0.01" min="0" max="30" name="rate[<?= (int)$c['id'] ?>]" value="<?= $h(rtrim(rtrim(number_format($c['rate_bp'] / 100, 2, '.', ''), '0'), '.')) ?>"> %</span></label>
+      <span class="pct"><input type="number" inputmode="decimal" step="0.01" min="0" max="30" name="rate[<?= (int)$c['id'] ?>]" value="<?= $h($typed['rate'][$c['id']] ?? rtrim(rtrim(number_format($c['rate_bp'] / 100, 2, '.', ''), '0'), '.')) ?>"> %</span></label>
   <?php endforeach; ?>
   <button type="submit">Save rates</button>
 </form>
