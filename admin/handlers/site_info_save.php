@@ -19,8 +19,9 @@ if (!function_exists('_si_done')) {
         $_SESSION['toast_type'] = $type;
         $section = (string)($_POST['site_info_action'] ?? '');
         $allowed = ['announcement', 'address', 'phones', 'emails', 'socials', 'hours', 'season'];
-        $fragment = in_array($section, $allowed, true) ? '#site-' . $section : '';
-        header('Location: /admin/admin.php?view=site_info' . $fragment);
+        $valid = in_array($section, $allowed, true);
+        $target = $valid ? '&section=' . rawurlencode($section) . '#site-' . $section : '';
+        header('Location: /admin/admin.php?view=site_info' . $target);
         exit;
     }
     // Trim + guarantee valid UTF-8 so downstream json_encode() never returns false.
