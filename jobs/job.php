@@ -71,7 +71,7 @@ $ld = [
     'identifier' => ['@type' => 'PropertyValue', 'name' => 'Bat Cave Road Farm', 'value' => 'BCRF-' . (int)$job['id']],
     'hiringOrganization' => [
         '@type' => 'Organization', 'name' => 'Bat Cave Road Farm',
-        'sameAs' => (bcrf_farm_url() . '/'), 'logo' => (bcrf_farm_url() . '/img/logo.png'),
+        'sameAs' => (bcrf_farm_url() . '/'), 'logo' => (function () { require_once dirname(__DIR__) . '/includes/brand.php'; return bcrf_brand_url('schema_logo', true); })(),
     ],
     'jobLocation' => ['@type' => 'Place', 'address' => site_schema_address()],
 ];

@@ -95,11 +95,12 @@ function bcrf_kitchen_print_pos(array $cfg, int $i): array {
             72 * ((float)$cfg['top'] + $r * (float)$cfg['row_pitch'] + (float)$cfg['nudge_y'])];
 }
 
-/** The farm logo as JPEG bytes for the label (from img/logos/print_square_logo.png; cached). Null if unavailable. */
+/** The farm logo as JPEG bytes for the label (round logo from Site Info → Logos & Icon, else img/logos/print_square_logo.png; cached). Null if unavailable. */
 function bcrf_kitchen_print_logo(): ?string {
-    $src = dirname(__DIR__) . '/img/logos/print_square_logo.png';
-    if (!is_file($src) || !function_exists('imagecreatefrompng')) return null;
-    $cache = rtrim(sys_get_temp_dir(), '/') . '/bcrf_label_logo_' . filemtime($src) . '_' . filesize($src) . '.jpg';
+    require_once __DIR__ . '/brand.php';
+    $src = bcrf_brand_file('print_logo');
+    if ($src === '' || !function_exists('imagecreatefrompng')) return null;
+    $cache = rtrim(sys_get_temp_dir(), '/') . '/bcrf_label_logo_' . substr(md5($src), 0, 8) . '_' . filemtime($src) . '_' . filesize($src) . '.jpg';
     if (is_file($cache)) return (string)file_get_contents($cache);
     $size = @getimagesize($src);
     if (!$size || $size[0] * $size[1] > 16000000) return null;   // too big to decode safely on shared hosting

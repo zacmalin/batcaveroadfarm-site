@@ -199,7 +199,7 @@ if ($signedIn) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Two-step sign-in · Farm Console</title>
-    <link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">
+    <?php require_once __DIR__ . '/../includes/brand.php'; echo bcrf_brand_icon_links(); /* tab icon from Site Info → Logos & Icon (Nov 18, 2026) */ ?>
     <?php // Compiled Tailwind 4.3.5 (tools/admin-css); versions from each file's date (Nov 18, 2026)
     require_once __DIR__ . '/../includes/admin_shell.php'; ?><link rel="stylesheet" href="<?= htmlspecialchars(bcrf_shell_asset('console.css'), ENT_QUOTES) ?>">
     <link rel="stylesheet" href="<?= htmlspecialchars(bcrf_shell_asset('admin-ui.css'), ENT_QUOTES) ?>">

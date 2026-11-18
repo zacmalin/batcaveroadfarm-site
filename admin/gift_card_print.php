@@ -16,6 +16,7 @@ require_permission([['view', 'pos']]);
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/gift_cards.php';
 require_once __DIR__ . '/../includes/site_info.php';
+require_once __DIR__ . '/../includes/brand.php';   // logo from Site Info → Logos & Icon (Nov 18, 2026)
 
 $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
 $cards = [];
@@ -43,7 +44,7 @@ $phone = function_exists('site_phone_display') ? site_phone_display() : '';
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; base-uri 'self'; form-action 'self'">
 <meta name="robots" content="noindex">
 <title>Gift card — <?= $h($farm) ?></title>
-<link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">
+<?php require_once __DIR__ . '/../includes/brand.php'; echo bcrf_brand_icon_links(); /* tab icon from Site Info → Logos & Icon (Nov 18, 2026) */ ?>
 <link rel="stylesheet" href="assets/giftcard.css?v=1">
 <script src="/js/qrcode.min.js" defer></script>
 <script src="assets/giftcard.js?v=1" defer></script>
@@ -62,7 +63,7 @@ $phone = function_exists('site_phone_display') ? site_phone_display() : '';
   <?php foreach ($cards as $c): ?>
   <section class="gc">
     <div class="gc-top">
-      <img class="gc-logo" src="/img/logo.webp" alt="">
+      <img class="gc-logo" src="<?= $h(bcrf_brand_url('logo_webp')) ?>" alt="">
       <div>
         <div class="gc-farm"><?= $h($farm) ?></div>
         <div class="gc-kind">Gift Card</div>

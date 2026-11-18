@@ -79,7 +79,7 @@ function bcrf_pin_open(string $file) {
  * white or transparent corners never show. Without a readable logo it draws a plain cream disc in the ring.
  */
 function bcrf_pin_seal($im, int $cx, int $cy, int $d, int $cream, int $wheat, ?string $logo = null): void {
-    $logo = $logo ?? dirname(__DIR__) . '/img/logo.png';
+    if ($logo === null) { require_once __DIR__ . '/brand.php'; $logo = bcrf_brand_file('round_png') ?: dirname(__DIR__) . '/img/logo.png'; }   // round logo from Site Info (Nov 18, 2026)
     imagefilledellipse($im, $cx, $cy, $d + 14, $d + 14, $wheat);
     $info = is_file($logo) ? @getimagesize($logo) : false;
     $src = !$info ? false : match ($info[2]) {

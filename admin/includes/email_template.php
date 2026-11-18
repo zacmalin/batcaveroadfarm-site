@@ -58,7 +58,7 @@ function bcf_email_header(string $subtitle = 'Newsletter'): string {
     <td align="center" bgcolor="#3b2010"
         style="background-color:#3b2010; background-image:url('{{SITE_URL}}/img/background.png'); background-size:400px auto; background-repeat:repeat; padding:22px 24px 18px;">
         <a href="{{SITE_URL}}/" style="text-decoration:none; display:block;">
-            <img src="{{SITE_URL}}/img/logo.png" alt="{{FARM_NAME}} Logo"
+            <img src="{{LOGO_URL}}" alt="{{FARM_NAME}} Logo"
                 width="100" height="auto"
                 style="width:100px; height:auto; display:block; margin:0 auto 12px; filter:drop-shadow(0 3px 8px rgba(0,0,0,0.7));">
         </a>
@@ -75,8 +75,9 @@ function bcf_email_header(string $subtitle = 'Newsletter'): string {
         <!-- ══ USER BODY CONTENT BEGINS ══ -->
         <div style="color:#f5ead6; font-family:Lora, Georgia, serif; font-size:16px; line-height:1.7; text-align:left;">
 EMAILHTML;
-    return str_replace(['{{TITLE_SUFFIX}}', '{{SUBTITLE_DIV}}', '{{SITE_URL}}', '{{FARM_NAME}}'],
-                       [$titleSuffix, $subtitleDiv, bcrf_farm_url(), htmlspecialchars(bcrf_farm_name(), ENT_QUOTES, 'UTF-8')], $tpl);
+    require_once dirname(__DIR__, 2) . '/includes/brand.php';   // main logo from Site Info → Logos & Icon, as PNG (some email apps don't show WebP)
+    return str_replace(['{{TITLE_SUFFIX}}', '{{SUBTITLE_DIV}}', '{{SITE_URL}}', '{{FARM_NAME}}', '{{LOGO_URL}}'],
+                       [$titleSuffix, $subtitleDiv, bcrf_farm_url(), htmlspecialchars(bcrf_farm_name(), ENT_QUOTES, 'UTF-8'), htmlspecialchars(bcrf_brand_url('email_logo', true), ENT_QUOTES, 'UTF-8')], $tpl);
 }
 
 function bcf_email_footer(bool $withUnsubscribe = true): string {

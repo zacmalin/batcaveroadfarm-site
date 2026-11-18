@@ -6,6 +6,7 @@
 
 require_once __DIR__ . '/../../includes/site_info.php';
 require_once __DIR__ . '/../../includes/farm.php';   // website + sender addresses (Farm OS Phase 0)
+require_once __DIR__ . '/../../includes/brand.php';  // Logos & icon uploads (Nov 18, 2026)
 
 $csrf = htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES);
 $DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']; // 0..6
@@ -37,7 +38,7 @@ if (!$tablesMissing) {
 }
 
 $openSection = (string)($_GET['section'] ?? 'announcement');
-if (!in_array($openSection, ['announcement', 'address', 'phones', 'emails', 'socials', 'hours', 'season'], true)) {
+if (!in_array($openSection, ['announcement', 'address', 'brand', 'phones', 'emails', 'socials', 'hours', 'season'], true)) {
     $openSection = 'announcement';
 }
 $sectionCls = "site-info-section bg-white border border-stone-200 rounded-lg mb-4 overflow-hidden";
@@ -49,7 +50,7 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
 
 <div class="mb-6">
     <h1 class="text-2xl font-bold text-stone-800">🏠 Site Info</h1>
-    <p class="text-xs text-stone-400 mt-0.5">One place for address, phones, emails, hours &amp; season — edits propagate everywhere.</p>
+    <p class="text-xs text-stone-400 mt-0.5">One place for address, logos, phones, emails, hours &amp; season — edits propagate everywhere.</p>
 </div>
 
 <?php if ($tablesMissing): ?>
@@ -133,6 +134,72 @@ $labelCls   = "block text-[10px] uppercase tracking-wider text-stone-400 mb-1";
             </div>
             <button class="<?= $btnCls ?>" type="submit">Save business &amp; address</button>
         </form>
+    </details>
+
+    <!-- ── LOGOS & ICON (Nov 18, 2026): one upload each; every size and format is made from it (includes/brand.php) ── -->
+    <?php $brandTools = bcrf_brand_tools(); $brandState = bcrf_brand_state(); ?>
+    <details id="site-brand" name="site-info" class="<?= $sectionCls ?>" <?= $openSection === 'brand' ? 'open' : '' ?>>
+        <summary class="<?= $sumCls ?>"><span>🖼️ Logos &amp; Icon</span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
+        <div class="px-5 pb-5 pt-1 space-y-4">
+            <p class="text-xs text-stone-500">Upload each picture once. The website, emails, gift cards, printed labels, browser tab and phone home screen all update from it, in the right size and format for each (WebP for the website, PNG for emails, an .ico for the tab). Earlier uploads are kept, so you can undo.</p>
+            <?php if (!$brandTools['ok']): ?>
+                <p class="bg-amber-50 border border-amber-200 text-amber-800 rounded p-3 text-xs"><?= htmlspecialchars($brandTools['problem']) ?></p>
+            <?php elseif (!$brandTools['webp']): ?>
+                <p class="bg-amber-50 border border-amber-200 text-amber-800 rounded p-3 text-xs">This server can't write WebP, so the website will use PNG copies (a little bigger, same look).</p>
+            <?php endif; ?>
+            <?php foreach (bcrf_brand_kinds() as $bk => $bi):
+                $bCur  = bcrf_brand_current($bk);
+                $bMeta = bcrf_brand_meta($bk);
+                $bPrev = $bk === 'logo' ? bcrf_brand_url('logo_webp') : ($bk === 'round' ? bcrf_brand_url('round_png') : bcrf_brand_url('apple_touch'));
+                $bHist = count($brandState[$bk]['hist'] ?? []);
+            ?>
+                <div class="border border-stone-200 rounded-lg p-4">
+                    <div class="flex items-start gap-4">
+                        <div class="w-24 h-24 shrink-0 border border-stone-200 rounded-lg bg-stone-100 flex items-center justify-center overflow-hidden">
+                            <img src="<?= htmlspecialchars($bPrev, ENT_QUOTES) ?>" alt="Current <?= htmlspecialchars(strtolower($bi['label'])) ?>" class="max-w-full object-contain" width="96" height="96" loading="lazy">
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-sm font-bold text-stone-800"><?= htmlspecialchars($bi['label']) ?></p>
+                            <p class="text-[11px] text-stone-500"><?= htmlspecialchars($bi['help']) ?></p>
+                            <p class="text-[11px] text-stone-400 mt-1">
+                                <?php if ($bCur !== ''): ?>
+                                    In use: <?= htmlspecialchars((string)($bMeta['name'] ?? 'upload') ?: 'upload') ?>, <?= (int)($bMeta['w'] ?? 0) ?> × <?= (int)($bMeta['h'] ?? 0) ?> px<?php
+                                    if (!empty($bMeta['at'])) { try { echo ', ' . htmlspecialchars((new DateTime($bMeta['at'], new DateTimeZone('UTC')))->setTimezone(new DateTimeZone(function_exists('bcrf_tz') ? bcrf_tz() : 'America/New_York'))->format('M j, Y g:i A')); } catch (Throwable $e) {} }
+                                    ?><?= !empty($bMeta['by']) ? ' by ' . htmlspecialchars((string)$bMeta['by']) : '' ?>.
+                                <?php else: ?>
+                                    In use: the original files<?= $bHist ? ' (' . $bHist . ' earlier upload' . ($bHist === 1 ? '' : 's') . ' kept)' : '' ?>.
+                                <?php endif; ?>
+                            </p>
+                        </div>
+                    </div>
+                    <?php if ($brandTools['ok']): ?>
+                    <form method="POST" action="/admin/admin.php?view=site_info&amp;section=brand" enctype="multipart/form-data" data-submit-once class="mt-3 flex flex-wrap items-center gap-2">
+                        <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+                        <input type="hidden" name="site_info_action" value="brand_upload">
+                        <input type="hidden" name="brand_kind" value="<?= $bk ?>">
+                        <input type="file" name="brand_file" accept="image/png,image/jpeg,image/webp" required class="<?= $inputCls ?> min-w-0" aria-label="Pick the <?= htmlspecialchars(strtolower($bi['label'])) ?>">
+                        <button type="submit" class="inline-flex items-center justify-center min-h-11 px-4 py-2 rounded bg-amber-700 text-white text-xs font-semibold hover:bg-amber-800">Upload <?= htmlspecialchars(strtolower($bi['label'])) ?></button>
+                    </form>
+                    <?php endif; ?>
+                    <?php if ($bCur !== ''): ?>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                        <form method="POST" action="/admin/admin.php?view=site_info&amp;section=brand" data-submit-once>
+                            <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+                            <input type="hidden" name="site_info_action" value="brand_undo">
+                            <input type="hidden" name="brand_kind" value="<?= $bk ?>">
+                            <button type="submit" class="inline-flex items-center justify-center min-h-11 px-4 py-2 rounded border border-stone-300 bg-white text-stone-700 text-xs font-semibold hover:bg-stone-50">Undo last upload</button>
+                        </form>
+                        <form method="POST" action="/admin/admin.php?view=site_info&amp;section=brand" data-submit-once>
+                            <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+                            <input type="hidden" name="site_info_action" value="brand_reset">
+                            <input type="hidden" name="brand_kind" value="<?= $bk ?>">
+                            <button type="submit" class="inline-flex items-center justify-center min-h-11 px-4 py-2 rounded border border-stone-300 bg-white text-stone-700 text-xs font-semibold hover:bg-stone-50">Reset to the original files</button>
+                        </form>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
     </details>
 
     <!-- ── PHONES ── -->

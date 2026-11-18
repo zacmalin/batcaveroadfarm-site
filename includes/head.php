@@ -80,10 +80,10 @@ if (!headers_sent()) header('Speculation-Rules: "/speculation-rules.php"');
 	<?php endforeach; endif; ?>
         <meta name="description" content="<?php echo isset($metaDesc) ? htmlspecialchars($metaDesc) : $defaultMetaDesc; ?>">
         <meta name="author" content="Bat Cave Road Farm">
-        <link rel="icon" href="<?= bcrf_farm_url() ?>/img/favicon.ico" sizes="any">
-        <link rel="icon" href="<?= bcrf_farm_url() ?>/img/icon.svg" type="image/svg+xml">
-        <link rel="apple-touch-icon" href="<?= bcrf_farm_url() ?>/img/icon.png">
-        <link rel="manifest" href="<?= bcrf_farm_url() ?>/site.webmanifest">
+        <?php require_once __DIR__ . '/brand.php'; /* logos + tab icon from Site Info → Logos & Icon (Nov 18, 2026) */ ?>
+        <?= bcrf_brand_icon_links(bcrf_farm_url()) ?>
+
+        <link rel="manifest" href="<?= bcrf_farm_url() ?>/manifest.php">
         <link rel="canonical" href="<?php echo isset($canonicalUrl) ? htmlspecialchars($canonicalUrl) : (bcrf_farm_url() . '/'); ?>">
         <link rel="alternate" type="application/rss+xml" title="Bat Cave Road Farm — Farmstead Journal" href="<?= bcrf_farm_url() ?>/blog/feed.php">
         <link type="text/plain" rel="author" href="<?= bcrf_farm_url() ?>/humans.txt" />
@@ -128,7 +128,7 @@ if (!headers_sent()) header('Speculation-Rules: "/speculation-rules.php"');
       "alternateName": "Bat Cave Road Petting Zoo",
       "description": "Family-owned farm in Old Fort, NC offering a hands-on petting zoo with goats, pigs, ducks, chickens, peacocks, and donkeys, a seasonal farmstand with fresh vegetables, eggs, honey, and baked goods, and a charming on-farm thrift shop. Near Asheville, Western North Carolina.",
       "url": "<?= bcrf_farm_url() ?>/",
-      "logo": "<?= bcrf_farm_url() ?>/img/logo.png",
+      "logo": <?= json_encode(bcrf_brand_url('schema_logo', true), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
       "image": [
         "<?= bcrf_farm_url() ?>/img/og-home.jpg",
         "<?= bcrf_farm_url() ?>/img/og-pettingzoo.jpg",

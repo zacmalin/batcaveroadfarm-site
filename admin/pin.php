@@ -76,7 +76,7 @@ $farm = function_exists('bcrf_farm_name') ? bcrf_farm_name() : 'Farm OS';
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; base-uri 'self'; form-action 'self'">
 <meta name="robots" content="noindex">
 <title>Sign in — <?= $h($farm) ?></title>
-<link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">
+<?php require_once __DIR__ . '/../includes/brand.php'; echo bcrf_brand_icon_links(); /* tab icon from Site Info → Logos & Icon (Nov 18, 2026) */ ?>
 <link rel="stylesheet" href="assets/register.css?v=13">
 <link rel="stylesheet" href="assets/pin.css?v=<?= bcrf_asset_v('/admin/assets/pin.css') ?>">
 </head>

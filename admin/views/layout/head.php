@@ -8,7 +8,7 @@
     <?php if (!function_exists('bcrf_farm_name')) require_once dirname(__DIR__, 3) . '/includes/farm.php'; ?>
     <title><?= htmlspecialchars(bcrf_farm_name(), ENT_QUOTES) ?> — Farm OS</title>
     <!-- Farm OS tab icon (Nov 15, 2026): same icons as the public site -->
-    <link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">
+    <?php require_once dirname(__DIR__, 3) . '/includes/brand.php'; echo bcrf_brand_icon_links(); /* tab icon from Site Info → Logos & Icon (Nov 18, 2026) */ ?>
     <?php // Compiled Tailwind 4.3.5 (tools/admin-css). Admin asset versions come from each file's date (bcrf_shell_asset,
     // Nov 18, 2026), so a new upload is picked up without hand-typing ?v= in each page.
     require_once dirname(__DIR__, 3) . '/includes/admin_shell.php'; ?><link rel="stylesheet" href="<?= htmlspecialchars(bcrf_shell_asset('console.css'), ENT_QUOTES) ?>">

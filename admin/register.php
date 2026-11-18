@@ -47,6 +47,7 @@ require_once __DIR__ . '/../includes/admission.php';
 require_once __DIR__ . '/../includes/register_extras.php';
 require_once __DIR__ . '/../includes/receipts.php';
 require_once __DIR__ . '/../includes/site_info.php';
+require_once __DIR__ . '/../includes/brand.php';   // logos + tab icon from Site Info (Nov 18, 2026)
 date_default_timezone_set(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
 
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -272,7 +273,7 @@ if ($view === 'drawer' || $view === 'drawers') {
     $tenders = bcrf_tenders();
     $head = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
           . '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">'
-          . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=16"><link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">';
+          . '<meta name="robots" content="noindex"><link rel="stylesheet" href="assets/register.css?v=16">' . bcrf_brand_icon_links();   // tab icon from Site Info (Nov 18, 2026)
     if (!$drawersReady) { echo $head, '<title>Drawers</title></head><body class="page"><main class="narrow"><p class="flash err">Run migration 0010 in Settings › Database first.</p></main></body></html>'; exit; }
     if ($view === 'drawers') {
         $rows = $pdo->query("SELECT d.id FROM drawer_sessions d ORDER BY d.opened_at DESC LIMIT 60")->fetchAll(PDO::FETCH_COLUMN);
@@ -386,7 +387,7 @@ $boot = [
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self'; base-uri 'self'; form-action 'self'">
 <meta name="robots" content="noindex">
 <title>Register — <?= $h(bcrf_farm_name()) ?></title>
-<link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">
+<?php echo bcrf_brand_icon_links(); /* tab icon from Site Info → Logos & Icon (Nov 18, 2026) */ ?>
 <link rel="stylesheet" href="assets/register.css?v=16">
 <link rel="stylesheet" href="assets/pin.css?v=<?= bcrf_asset_v('/admin/assets/pin.css') ?>">
 <?= bcrf_pin_head_tags() ?>

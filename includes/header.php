@@ -56,6 +56,22 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // 
             <div class="header-inner">
                 <a class="logo-wrap" href="<?= bcrf_farm_url() ?>/">
 <?php
+                    // Logo uploaded in Site Info → Logos & Icon (Nov 18, 2026): WebP at 300/400/800 px, PNG for older browsers.
+                    require_once __DIR__ . '/brand.php';
+                    if (bcrf_brand_has('logo')):
+                        [$__lw, $__lh] = bcrf_brand_logo_size();
+                        $__lset = [];
+                        foreach (['logo_webp_300' => 300, 'logo_webp' => 400, 'logo_webp_800' => 800] as $__lu => $__lpx) {
+                            $__lf = bcrf_brand_url($__lu);
+                            if (str_ends_with($__lf, '.webp') && !isset($__lset[$__lf])) $__lset[$__lf] = bcrf_farm_url() . $__lf . ' ' . $__lpx . 'w';
+                        } ?>
+                    <picture style="display:contents">
+<?php if ($__lset): ?>
+                        <source srcset="<?= htmlspecialchars(implode(', ', $__lset), ENT_QUOTES) ?>" sizes="(max-width: 700px) 107px, 148px" type="image/webp">
+<?php endif; ?>
+                        <img src="<?= htmlspecialchars(bcrf_brand_url('logo_png', true), ENT_QUOTES) ?>" alt="<?= htmlspecialchars(bcrf_farm_name(), ENT_QUOTES) ?> — home" width="<?= (int)$__lw ?>" height="<?= (int)$__lh ?>" decoding="async">
+                    </picture>
+<?php else:
                     // Fix pack M: smaller WebP logo when available (falls back to the PNG).
                     require_once __DIR__ . '/webp.php';
                     $__logoWebp = bcrf_webp_src('/img/logo.png');
@@ -74,6 +90,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';   // 
                     </picture>
 <?php else: ?>
                     <img src="<?= bcrf_farm_url() ?>/img/logo.png" alt="Bat Cave Road Farm — home" width="400" height="299" decoding="async">
+<?php endif; ?>
 <?php endif; ?>
                 </a>
                 <div class="site-title">

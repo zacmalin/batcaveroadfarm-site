@@ -14,6 +14,7 @@
 // Pages must have run check_admin() and loaded admin/includes/permission_checks.php first (tabs are permission-filtered).
 
 if (!function_exists('bcrf_shell_open')) {
+require_once __DIR__ . '/brand.php';   // tab icon from Site Info → Logos & Icon (Nov 18, 2026)
 
 /** Cache-busting version for admin assets: the file's modified time. */
 function bcrf_shell_asset(string $file): string {
@@ -53,7 +54,7 @@ function bcrf_shell_open(string $title, array $opt = []): void {
          '<meta name="theme-color" content="#1c1917"><meta name="robots" content="noindex">',
          ($opt['strict'] ?? true) ? '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data: https:; connect-src \'self\'; base-uri \'self\'; form-action \'self\'">' : '',
          '<title>', $h($title), ' — Farm OS</title>',
-         '<link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">',   // tab icon (Nov 15, 2026)
+         bcrf_brand_icon_links(),   // tab icon (Nov 15, 2026), from Site Info → Logos & Icon (Nov 18, 2026)
          '<link rel="stylesheet" href="', $h(bcrf_shell_asset('admin.css')), '">',
          '<link rel="stylesheet" href="', $h(bcrf_shell_asset('admin-shell.css')), '">',
          '<link rel="stylesheet" href="', $h(bcrf_shell_asset('admin-ui.css')), '">',

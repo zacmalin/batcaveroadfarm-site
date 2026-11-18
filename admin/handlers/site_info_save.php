@@ -10,7 +10,8 @@
  * into $toastMessage/$toastType for layout/toast.php. (Setting $toastMessage
  * directly does NOT work — admin.php overwrites it from the session flash.)
  *
- * Actions: address | phones | emails | hours | season
+ * Actions: announcement | address | phones | emails | socials | hours | season
+ *          brand_upload | brand_undo | brand_reset (Logos & icon, Nov 18 2026; includes/brand.php)
  */
 
 if (!function_exists('_si_done')) {
@@ -18,7 +19,8 @@ if (!function_exists('_si_done')) {
         $_SESSION['toast_msg']  = $msg;
         $_SESSION['toast_type'] = $type;
         $section = (string)($_POST['site_info_action'] ?? '');
-        $allowed = ['announcement', 'address', 'phones', 'emails', 'socials', 'hours', 'season'];
+        if (str_starts_with($section, 'brand_')) $section = 'brand';
+        $allowed = ['announcement', 'address', 'phones', 'emails', 'socials', 'hours', 'season', 'brand'];
         $valid = in_array($section, $allowed, true);
         $target = $valid ? '&section=' . rawurlencode($section) : '';
         header('Location: /admin/admin.php?view=site_info' . $target);
@@ -198,6 +200,43 @@ try {
             _si_audit($pdo, 'socials', 'socials', '', 'updated (' . $order . ' link' . ($order === 1 ? '' : 's') . ')');
             $changed = true;
             break;
+        }
+
+        // Logos & icon (Nov 18, 2026): upload makes every size and format (includes/brand.php); old versions stay for undo.
+        case 'brand_upload':
+        case 'brand_undo':
+        case 'brand_reset': {
+            require_once __DIR__ . '/../../includes/brand.php';
+            $kind = (string)($_POST['brand_kind'] ?? '');
+            $kinds = bcrf_brand_kinds();
+            if (!isset($kinds[$kind])) _si_done('Unknown logo type.', 'error');
+            $label = $kinds[$kind]['label'];
+            $before = bcrf_brand_current($kind);
+            if ($action === 'brand_upload') {
+                $f = $_FILES['brand_file'] ?? null;
+                $err = is_array($f) ? (int)($f['error'] ?? UPLOAD_ERR_NO_FILE) : UPLOAD_ERR_NO_FILE;
+                if ($err === UPLOAD_ERR_INI_SIZE || $err === UPLOAD_ERR_FORM_SIZE) _si_done('That file is too big to upload. Use a picture under 10 MB.', 'error');
+                if ($err !== UPLOAD_ERR_OK || empty($f['tmp_name']) || !is_uploaded_file($f['tmp_name'])) _si_done('Pick a picture first, then tap Upload.', 'error');
+                if ((int)$f['size'] > 10 * 1024 * 1024) _si_done('That file is too big. Use a picture under 10 MB.', 'error');
+                try {
+                    $ver = bcrf_brand_upload($pdo, $kind, $f['tmp_name'], (string)($f['name'] ?? ''), (string)($_SESSION['user_name'] ?? $_SESSION['username'] ?? ''));
+                } catch (RuntimeException $e) {
+                    _si_done($e->getMessage(), 'error');
+                }
+                _si_audit($pdo, 'brand', $kind, $before, $ver . ' (' . (string)($f['name'] ?? '') . ')');
+                _si_cf_purge();
+                _si_done($label . ' uploaded. Every size and format was made from it.', 'success');
+            }
+            if ($action === 'brand_undo') {
+                $now = bcrf_brand_undo($pdo, $kind);
+                _si_audit($pdo, 'brand', $kind, $before, $now === '' ? 'original files' : $now);
+                _si_cf_purge();
+                _si_done($now === '' ? $label . ': back to the original files.' : $label . ': back to the upload before.', 'success');
+            }
+            bcrf_brand_reset($pdo, $kind);
+            _si_audit($pdo, 'brand', $kind, $before, 'original files');
+            _si_cf_purge();
+            _si_done($label . ': back to the original files. Your uploads are still kept.', 'success');
         }
 
         default:

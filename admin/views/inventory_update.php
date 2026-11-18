@@ -160,7 +160,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
                     class="border border-stone-200 shadow-sm overflow-hidden bg-white font-sans">
 
                     <div style="position:absolute;left:0;top:0;width:2in;height:2in;overflow:hidden;background:#f5f5f5;">
-                        <img src="<?= bcrf_farm_url() ?>/img/logos/print_square_logo.png" alt=""
+                        <img src="<?= htmlspecialchars((function () { require_once dirname(__DIR__, 2) . '/includes/brand.php'; return bcrf_brand_url('print_logo', true); })(), ENT_QUOTES) ?>" alt=""
                             style="width:100%;height:100%;object-fit:contain;background:#fff;">
                     </div>
 

@@ -1,6 +1,7 @@
 <?php
 // admin/print_label.php
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
+require_once __DIR__ . '/../includes/brand.php';   // print logo from Site Info → Logos & Icon (Nov 18, 2026)
 // PLS451 — 3"×3" labels, 6 per letter sheet (2 cols × 3 rows)
 // Positions match standard 2×3 label sheet layout.
 
@@ -128,7 +129,7 @@ for ($p = 0; $p < $total_pages; $p++) {
 <head>
     <meta charset="utf-8">
     <title>Labels — <?= $name_esc ?></title>
-    <link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">
+    <?php require_once __DIR__ . '/../includes/brand.php'; echo bcrf_brand_icon_links(); /* tab icon from Site Info → Logos & Icon (Nov 18, 2026) */ ?>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
     <style>
         @page {
@@ -279,7 +280,7 @@ for ($p = 0; $p < $total_pages; $p++) {
     <div class="label" style="left:<?= $pos['x'] ?>;top:<?= $pos['y'] ?>;">
 
         <div class="l-logo">
-            <img src="<?= bcrf_farm_url() ?>/img/logos/print_square_logo.png"
+            <img src="<?= htmlspecialchars(bcrf_brand_url('print_logo', true), ENT_QUOTES) ?>"
                  alt="<?= htmlspecialchars(bcrf_farm_name(), ENT_QUOTES) ?>">
         </div>
 
