@@ -178,7 +178,7 @@ if ($isNew) {
     echo '<h1 class="text-2xl font-bold text-stone-800 mb-1">Report an incident</h1>',
          '<p class="text-sm text-stone-500 mb-3">Write down what happened and what was done, as plainly as you can. Saving emails the Owners right away.</p>';
     if ($error) echo bcrf_shell_notice('err', $error); ?>
-  <form method="POST" action="<?= $h($url('new')) ?>" enctype="multipart/form-data" data-submit-once class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="add">
+  <form data-submit-once method="POST" action="<?= $h($url('new')) ?>" enctype="multipart/form-data" data-submit-once class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="add">
     <?php $fields($d, true); ?>
     <div class="mb-4"><label class="<?= $label ?>" for="i_ph">Photos (optional, up to <?= BCRF_INCIDENT_PHOTO_MAX ?>)</label><input id="i_ph" name="photos[]" type="file" accept="image/*" multiple class="text-sm"></div>
     <button class="<?= $btnMain ?> w-full sm:w-auto">Save report</button>
@@ -215,7 +215,7 @@ if ($id) {
 
   <?php if ($all && !empty($_GET['edit'])):
     $d = $i; $d['date'] = $lt->format('Y-m-d'); $d['time'] = $lt->format('H:i'); $d['animals'] = array_column($i['animals'], 'id'); ?>
-  <form method="POST" action="<?= $h($url($id)) ?>" data-submit-once class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="edit"><input type="hidden" name="id" value="<?= $id ?>">
+  <form data-submit-once method="POST" action="<?= $h($url($id)) ?>" data-submit-once class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="edit"><input type="hidden" name="id" value="<?= $id ?>">
     <h2 class="text-base font-semibold text-stone-800 mb-3">Change the report</h2>
     <?php $fields($d, false); ?>
     <p class="text-xs text-stone-500 mb-3">The old wording stays in the change history below.</p>
@@ -251,7 +251,7 @@ if ($id) {
     <?php endif; ?>
     <?php if ($all && count($i['people']) < BCRF_INCIDENT_PEOPLE_MAX): ?>
     <details class="mt-2"><summary class="cursor-pointer text-sm text-amber-800 underline">Add a visitor</summary>
-      <form method="POST" action="<?= $h($url($id)) ?>" class="grid grid-cols-1 sm:grid-cols-4 gap-2 mt-2"><?= $hidden ?><input type="hidden" name="act" value="person"><input type="hidden" name="id" value="<?= $id ?>">
+      <form data-submit-once method="POST" action="<?= $h($url($id)) ?>" class="grid grid-cols-1 sm:grid-cols-4 gap-2 mt-2"><?= $hidden ?><input type="hidden" name="act" value="person"><input type="hidden" name="id" value="<?= $id ?>">
         <input name="name" maxlength="120" required aria-label="Name" placeholder="Name" class="<?= $input ?>">
         <input type="tel" name="phone" maxlength="30" aria-label="Phone" placeholder="Phone" class="<?= $input ?>">
         <input name="email" maxlength="190" type="email" aria-label="Email" placeholder="Email" class="<?= $input ?>">
@@ -269,7 +269,7 @@ if ($id) {
     <?php endforeach; ?></div>
     <?php else: ?><p class="text-sm text-stone-500"><?= count($i['photos']) ?> photo<?= count($i['photos']) > 1 ? 's' : '' ?> saved. Owners and Managers can see them.</p><?php endif; ?>
     <?php if (count($i['photos']) < BCRF_INCIDENT_PHOTO_MAX): ?>
-    <form method="POST" action="<?= $h($url($id)) ?>" enctype="multipart/form-data" class="flex flex-wrap gap-2 items-end mt-3"><?= $hidden ?><input type="hidden" name="act" value="photo"><input type="hidden" name="id" value="<?= $id ?>">
+    <form data-submit-once method="POST" action="<?= $h($url($id)) ?>" enctype="multipart/form-data" class="flex flex-wrap gap-2 items-end mt-3"><?= $hidden ?><input type="hidden" name="act" value="photo"><input type="hidden" name="id" value="<?= $id ?>">
       <input name="photos[]" type="file" accept="image/*" multiple required aria-label="Photos" class="text-sm"><button class="<?= $btnSec ?>">Add photos</button></form>
     <?php endif; ?>
   </div>
@@ -278,11 +278,11 @@ if ($id) {
   <div class="<?= $card ?>">
     <?php if ($i['status'] === 'open'): ?>
     <h2 class="text-base font-semibold text-stone-800 mb-2">Close it</h2>
-    <form method="POST" action="<?= $h($url($id)) ?>" class="flex flex-wrap gap-2 items-end"><?= $hidden ?><input type="hidden" name="act" value="status"><input type="hidden" name="to" value="closed"><input type="hidden" name="id" value="<?= $id ?>">
+    <form data-submit-once method="POST" action="<?= $h($url($id)) ?>" class="flex flex-wrap gap-2 items-end"><?= $hidden ?><input type="hidden" name="act" value="status"><input type="hidden" name="to" value="closed"><input type="hidden" name="id" value="<?= $id ?>">
       <div class="flex-1 min-w-48"><label class="<?= $label ?>" for="i_close">How it was settled</label><input id="i_close" name="note" maxlength="500" required class="<?= $input ?>" placeholder="e.g. called the family Monday, all fine; latch fixed"></div>
       <button class="<?= $btnMain ?>">Close</button></form>
     <?php else: ?>
-    <form method="POST" action="<?= $h($url($id)) ?>" class="flex flex-wrap gap-2 items-end"><?= $hidden ?><input type="hidden" name="act" value="status"><input type="hidden" name="to" value="open"><input type="hidden" name="id" value="<?= $id ?>">
+    <form data-submit-once method="POST" action="<?= $h($url($id)) ?>" class="flex flex-wrap gap-2 items-end"><?= $hidden ?><input type="hidden" name="act" value="status"><input type="hidden" name="to" value="open"><input type="hidden" name="id" value="<?= $id ?>">
       <div class="flex-1 min-w-48"><label class="<?= $label ?>" for="i_re">Why reopen (optional)</label><input id="i_re" name="note" maxlength="500" class="<?= $input ?>"></div>
       <button class="<?= $btnSec ?>" data-confirm="Reopen this incident?">Reopen</button></form>
     <?php endif; ?>
