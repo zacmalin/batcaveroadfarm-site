@@ -156,9 +156,9 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
         </div>
 
         <?php foreach ($alerts as $al): $ps = $prioStyle[$al['priority']]; $dis = $al['priority'] === 'fyi'; ?>
-        <article class="<?= $card ?> border-l-4 <?= $ps['bar'] ?> p-4"
+        <article class="<?= $card ?> border-l-4 <?= $ps['bar'] ?> p-3 sm:p-4"
                  data-alert="<?= $h($al['id']) ?>" data-priority="<?= $h($al['priority']) ?>" data-sig="<?= $h((string)$al['count']) ?>"<?= $dis ? ' data-dismissible' : '' ?>>
-          <div class="flex items-start gap-3">
+          <div class="flex items-start gap-2 sm:gap-3">
             <div class="text-xl leading-none mt-0.5 shrink-0"><?= $al['icon'] ?></div>
             <div class="flex-1 min-w-0">
               <div class="flex flex-wrap items-center gap-2 mb-0.5">
@@ -173,10 +173,10 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
               <?php endif; ?>
               <div class="flex flex-wrap gap-2 mt-3">
                 <?php foreach ($al['actions'] as [$lab, $href, $primary]): ?>
-                <a href="<?= $h($href) ?>" class="inline-flex items-center min-h-10 px-4 rounded-lg text-xs font-bold <?= $primary ? 'bg-amber-700 text-white hover:bg-amber-800' : 'bg-stone-100 text-stone-700 hover:bg-stone-200' ?>"><?= $h($lab) ?></a>
+                <a href="<?= $h($href) ?>" class="inline-flex items-center justify-center min-h-11 px-4 rounded-lg text-xs font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700 <?= $primary ? 'bg-amber-700 text-white hover:bg-amber-800' : 'bg-stone-100 text-stone-700 hover:bg-stone-200' ?>"><?= $h($lab) ?></a>
                 <?php endforeach; ?>
                 <?php if ($dis): ?>
-                <button type="button" data-dismiss class="inline-flex items-center min-h-10 px-3 rounded-lg text-xs font-bold text-stone-400 hover:text-stone-700 hover:bg-stone-100">Dismiss</button>
+                <button type="button" data-dismiss class="inline-flex items-center justify-center min-h-11 px-3 rounded-lg text-xs font-bold text-stone-600 hover:text-stone-800 hover:bg-stone-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">Dismiss</button>
                 <?php endif; ?>
               </div>
             </div>
@@ -184,7 +184,7 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
         </article>
         <?php endforeach; ?>
       </div>
-      <button type="button" id="acRestore" hidden class="text-xs font-bold text-stone-500 underline"></button>
+      <button type="button" id="acRestore" hidden class="min-h-11 px-2 text-xs font-bold text-stone-600 underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700"></button>
     </section>
 
     <!-- ═══ TODAY + QUICK ACTIONS + METRICS ═══ -->
