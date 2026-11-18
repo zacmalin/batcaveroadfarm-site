@@ -135,7 +135,7 @@ if ($pid) {
       <?= $preview($d) ?>
       <?php foreach ($b['issues'] as $m): ?><p class="text-sm text-amber-800 mt-2">⚠ <?= $h($m) ?></p><?php endforeach; ?>
       <?php if ($canApprove): $hard = bcrf_kitchen_label_hard_issues($b['issues']); ?>
-      <form method="POST" class="mt-3 space-y-2"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="product" value="<?= $pid ?>"><input type="hidden" name="label" value="<?= (int)$d['id'] ?>">
+      <form data-submit-once method="POST" class="mt-3 space-y-2"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="product" value="<?= $pid ?>"><input type="hidden" name="label" value="<?= (int)$d['id'] ?>">
         <label class="<?= $label ?>" for="ln">Note (optional to approve, needed to send back)</label>
         <input id="ln" name="note" maxlength="255" class="<?= $input ?>" placeholder="e.g. checked against the jar">
         <div class="flex flex-wrap gap-2">
@@ -159,7 +159,7 @@ if ($pid) {
       <?php if (!$s['draft'] && !$s['approved']): echo $preview($now); ?>
         <?php foreach ($b['issues'] as $m): ?><p class="text-sm text-amber-800 mt-2">⚠ <?= $h($m) ?></p><?php endforeach; ?>
       <?php endif; ?>
-      <form method="POST" class="mt-3 space-y-2"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="draft"><input type="hidden" name="product" value="<?= $pid ?>">
+      <form data-submit-once method="POST" class="mt-3 space-y-2"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="draft"><input type="hidden" name="product" value="<?= $pid ?>">
         <label class="<?= $label ?>" for="lp">Product name on the label</label>
         <input id="lp" name="product_name" maxlength="150" required value="<?= $h($nameDefault) ?>" class="<?= $input ?>" placeholder="The common name of the food, e.g. Strawberry Jam">
         <button class="<?= $btnMain ?>"><?= $s['draft'] ? 'Update the draft' : 'Save draft' ?></button>
@@ -218,7 +218,7 @@ bcrf_shell_open('Kitchen labels', ['toast' => $toast, 'width' => 'max-w-4xl']);
     <h2 class="text-base font-semibold text-stone-800 mb-1">Required statement</h2>
     <p class="text-xs text-stone-500 mb-2">Printed on every label, under "Made by". Use the exact wording NCDA&amp;CS requires for home processors once they confirm it. Changing it means every label needs approving again.</p>
     <?php if ($canApprove): ?>
-    <form method="POST" class="space-y-2"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="statement">
+    <form data-submit-once method="POST" class="space-y-2"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="statement">
       <textarea name="statement" rows="2" maxlength="500" class="<?= $input ?>" placeholder="Blank until NCDA&amp;CS confirms the wording"><?= $h($form['statement'] ?? $statement) ?></textarea>
       <button class="<?= $btnSec ?>">Save statement</button>
     </form>
