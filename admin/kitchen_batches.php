@@ -58,6 +58,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $_SESSION['kb_flash'] = ['err', 'Could not save. Try again.'];
         $_SESSION['kb_form'] = $_POST;
     }
+    if (($_SESSION['kb_flash'][0] ?? '') === 'err') $back .= $act === 'void' ? '#batch-void-form' : ($act === 'record' ? '#batch-record-form' : '');
     header('Location: ' . $back); exit;
 }
 
@@ -123,11 +124,11 @@ if ($id) {
     <p class="text-xs text-stone-500 mt-2"><?= (int)$b['ingredients_taken'] ? 'Linked ingredients were taken out of stock.' : 'Ingredients were not taken out of stock.' ?></p>
   </div>
   <?php if ($canEdit && !$b['voided_at']): ?>
-  <form method="POST" class="<?= $card ?>"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="void"><input type="hidden" name="id" value="<?= $id ?>">
+  <form id="batch-void-form" data-submit-once method="POST" class="<?= $card ?>"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="void"><input type="hidden" name="id" value="<?= $id ?>">
     <h2 class="text-base font-semibold text-stone-800 mb-1">Void this batch</h2>
     <p class="text-xs text-stone-500 mb-2">For a batch recorded by mistake. Takes its finished goods back out of stock and puts its ingredients back. The lot stays on record. If some were already sold, fix the numbers on the Stock page instead.</p>
     <div class="flex flex-wrap gap-2 items-end">
-      <div class="flex-1 min-w-48"><label class="<?= $label ?>" for="vr">Why</label><input id="vr" name="reason" maxlength="255" required class="<?= $input ?>" placeholder="e.g. recorded twice"></div>
+      <div class="flex-1 min-w-48"><label class="<?= $label ?>" for="vr">Why</label><input id="vr" name="reason" maxlength="255" value="<?= $h($form['reason'] ?? '') ?>" required class="<?= $input ?>" placeholder="e.g. recorded twice"></div>
       <button class="<?= $btnBad ?>" data-confirm="Void lot <?= $h($b['lot_code']) ?>? Its stock changes are reversed.">Void batch</button>
     </div>
   </form>
@@ -185,7 +186,7 @@ if (isset($_GET['new'])) {
     </ul>
     <?php if (!$canTake): ?><p class="text-xs text-stone-500 mt-2">To take ingredients out of stock, link each one to its stock product in Ingredients › Label details.</p><?php endif; ?>
   </div>
-  <form method="POST" class="<?= $card ?>"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="record">
+  <form id="batch-record-form" data-submit-once method="POST" class="<?= $card ?>"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="record">
     <input type="hidden" name="product" value="<?= $pid ?>"><input type="hidden" name="batches" value="<?= $h(bcrf_kitchen_q($n)) ?>">
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div><label class="<?= $label ?>" for="bu">Units made</label><input id="bu" name="units_made" inputmode="decimal" value="<?= $h($form['units_made'] ?? '') ?>" class="<?= $input ?>" placeholder="<?= $h(bcrf_kitchen_q($plan['units_default'])) ?>">
