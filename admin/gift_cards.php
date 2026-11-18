@@ -67,6 +67,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         header('Location: ' . $back); exit;
     }
     $act = (string)($_POST['act'] ?? '');
+    if ($id && in_array($act, ['email', 'adjust', 'void'], true)) $back .= '&action=' . $act . '#' . $act . '-card';
     try {
         if ($act === 'adjust') {
             $cents = (int)round(((float)($_POST['amount'] ?? 0)) * 100) * (($_POST['dir'] ?? '') === 'remove' ? -1 : 1);
@@ -168,7 +169,7 @@ if (isset($_GET['id'])) {
     <?= $statusChip($c) ?>
   </div>
   <p class="text-sm text-stone-500 mb-4"><?= $h($sources[$c['source']] ?? $c['source']) ?> · <?= $h($local($c['created_at'])) ?><?= $sale ? ' · sale ' . $h($sale) : '' ?><?= $c['note'] ? ' · ' . $h($c['note']) : '' ?></p>
-  <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
+  <?php if ($error && !in_array($_GET['action'] ?? '', ['email', 'adjust', 'void'], true)) echo bcrf_shell_notice('err', $error); ?>
 
   <div class="grid gap-3 sm:grid-cols-3 mb-4">
     <div class="bg-white border border-stone-200 rounded-lg p-3 shadow-sm"><div class="text-xs text-stone-500">Balance</div><div class="text-2xl font-bold text-stone-800"><?= $h($m($c['balance_cents'])) ?></div></div>
@@ -209,16 +210,18 @@ if (isset($_GET['id'])) {
   </div>
   <?php if ($mgr): ?>
   <div class="grid gap-3 sm:grid-cols-2">
-    <form method="POST" action="gift_cards.php" data-submit-once class="bg-white border border-stone-200 rounded-lg p-4 shadow-sm space-y-2">
+    <form id="email-card" method="POST" action="gift_cards.php" data-submit-once class="bg-white border border-stone-200 rounded-lg p-4 shadow-sm space-y-2">
       <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="email"><input type="hidden" name="id" value="<?= (int)$c['id'] ?>">
       <h3 class="font-semibold text-stone-800">Email the card</h3>
+      <?php if ($error && ($_GET['action'] ?? '') === 'email') echo bcrf_shell_notice('err', $error); ?>
       <label for="e_to" class="<?= $label ?>">To</label>
       <input id="e_to" name="email" type="email" maxlength="190" value="<?= $h($c['recipient_email'] ?: $c['purchaser_email']) ?>" class="<?= $input ?>">
       <button type="submit" data-submit-label="Sending…" class="<?= $btnSec ?>"><span aria-hidden="true">✉</span> Send</button>
     </form>
-    <form method="POST" action="gift_cards.php" data-submit-once class="bg-white border border-stone-200 rounded-lg p-4 shadow-sm space-y-2">
+    <form id="adjust-card" method="POST" action="gift_cards.php" data-submit-once class="bg-white border border-stone-200 rounded-lg p-4 shadow-sm space-y-2">
       <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="adjust"><input type="hidden" name="id" value="<?= (int)$c['id'] ?>">
       <h3 class="font-semibold text-stone-800">Change the balance</h3>
+      <?php if ($error && ($_GET['action'] ?? '') === 'adjust') echo bcrf_shell_notice('err', $error); ?>
       <div class="flex gap-2">
         <select name="dir" class="<?= $input ?> w-28" aria-label="Add or take off"><option value="add">Add</option><option value="remove">Take off</option></select>
         <input name="amount" type="number" min="0.01" max="500" step="0.01" inputmode="decimal" required placeholder="$" aria-label="Amount" class="<?= $input ?>">
@@ -226,9 +229,10 @@ if (isset($_GET['id'])) {
       <input name="reason" maxlength="255" required placeholder="Reason (e.g. partial refund of the card)" aria-label="Reason" class="<?= $input ?>">
       <button type="submit" data-submit-label="Updating…" class="<?= $btnSec ?>"><span aria-hidden="true">✓</span> Change</button>
     </form>
-    <form method="POST" action="gift_cards.php" class="bg-white border border-red-200 rounded-lg p-4 shadow-sm space-y-2 sm:col-span-2" data-confirm="Cancel this gift card? Its remaining balance will no longer be usable. This cannot be undone.">
+    <form id="void-card" method="POST" action="gift_cards.php" class="bg-white border border-red-200 rounded-lg p-4 shadow-sm space-y-2 sm:col-span-2" data-confirm="Cancel this gift card? Its remaining balance will no longer be usable. This cannot be undone.">
       <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="void"><input type="hidden" name="id" value="<?= (int)$c['id'] ?>">
       <h3 class="font-semibold text-red-800">Cancel this card</h3>
+      <?php if ($error && ($_GET['action'] ?? '') === 'void') echo bcrf_shell_notice('err', $error); ?>
       <p class="text-xs text-stone-500">For a lost or stolen card: cancel it, then give a new one for what was left (<?= $h($m($c['balance_cents'])) ?>). It can't be undone.</p>
       <div class="flex gap-2">
         <input name="reason" maxlength="255" required placeholder="Reason" aria-label="Reason to cancel" class="<?= $input ?>">
