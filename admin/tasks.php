@@ -64,7 +64,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!preg_match('#^tasks\.php(\?[A-Za-z0-9_=&%.\-]*)?$#', $back)) $back = $id ? 'tasks.php?id=' . $id : 'tasks.php';
     if (!$_POST && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {   // over the server's upload limit: PHP drops the whole form
         $_SESSION['task_flash'] = ['err', 'Those photos were too big to send together. Try one photo at a time.'];
-        header('Location: ' . (preg_match('#/tasks\.php\?id=(\d+)#', (string)($_SERVER['HTTP_REFERER'] ?? ''), $m) ? 'tasks.php?id=' . $m[1] : 'tasks.php'));
+        header('Location: ' . (preg_match('#/tasks\.php\?id=(\d+)#', (string)($_SERVER['HTTP_REFERER'] ?? ''), $m) ? 'tasks.php?id=' . $m[1] . '#task-photos' : 'tasks.php'));
         exit;
     }
     if (!hash_equals($csrf, (string)($_POST['csrf_token'] ?? ''))) {
