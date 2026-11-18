@@ -71,10 +71,19 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         error_log('[waivers] ' . $act . ': ' . $e->getMessage());
         $_SESSION['wv_flash'] = ['err', 'Could not save. Try again.'];
     }
+    if (isset($_SESSION['wv_flash']) && ($_SESSION['wv_flash'][0] ?? '') === 'err') {
+        $_SESSION['wv_error_action'] = $act;
+        if (in_array($act, ['draft', 'publish', 'settings', 'void'], true)) {
+            $_SESSION['wv_form'] = $_POST;
+            $back .= ($act === 'void' ? '#waiver-void-form' : '#waiver-' . $act . '-form');
+        }
+    }
     header('Location: ' . $back); exit;
 }
 
 $flash = $_SESSION['wv_flash'] ?? null; unset($_SESSION['wv_flash']);
+$errorAction = (string)($_SESSION['wv_error_action'] ?? ''); unset($_SESSION['wv_error_action']);
+$typed = $_SESSION['wv_form'] ?? []; unset($_SESSION['wv_form']);
 $toast = ($flash && $flash[0] === 'ok') ? $flash : null;
 $error = ($flash && $flash[0] === 'err') ? $flash[1] : '';
 
@@ -105,7 +114,7 @@ if ($id) {
     bcrf_shell_open('Waiver: ' . $w['signer_name'], ['toast' => $toast, 'width' => 'max-w-3xl', 'js' => ['quotes.js']]);
     echo '<a href="waivers.php" class="text-sm text-amber-800 underline">‹ Waivers</a>';
     echo '<h1 class="text-2xl font-bold text-stone-800 mt-2 mb-3">', $h($w['signer_name']), '</h1>';
-    if ($error) echo bcrf_shell_notice('err', $error);
+    if ($error && !in_array($errorAction, ['void', 'draft', 'publish', 'settings'], true)) echo bcrf_shell_notice('err', $error);
     if ($w['voided_at']) echo bcrf_shell_notice('warning', 'Voided ' . $local($w['voided_at']) . ': ' . $w['void_reason']);
     elseif (strtotime($w['expires_at'] . ' UTC') < time()) echo bcrf_shell_notice('warning', 'Ran out on ' . $local($w['expires_at'], 'M j, Y') . '.');
 ?>
@@ -123,8 +132,9 @@ if ($id) {
     <?php foreach (bcrf_waiver_paragraphs($w['body']) as $p): ?><p class="text-sm mt-2"><?= nl2br($h($p)) ?></p><?php endforeach; ?>
   </details>
   <?php if (!$w['voided_at']): ?>
-  <form method="POST" action="waivers.php" class="<?= $card ?> flex flex-wrap gap-2 items-end"><?= $hidden ?><input type="hidden" name="act" value="void"><input type="hidden" name="id" value="<?= (int)$w['id'] ?>">
-    <div class="flex-1 min-w-48"><label class="<?= $label ?>" for="vr">Void it (it stays on file)</label><input id="vr" name="reason" maxlength="255" required placeholder="Why (e.g. signed under the wrong email)" class="<?= $input ?>"></div>
+  <form id="waiver-void-form" data-submit-once method="POST" action="waivers.php" class="<?= $card ?> flex flex-wrap gap-2 items-end">
+    <?php if ($error && $errorAction === 'void') echo bcrf_shell_notice('err', $error); ?><?= $hidden ?><input type="hidden" name="act" value="void"><input type="hidden" name="id" value="<?= (int)$w['id'] ?>">
+    <div class="flex-1 min-w-48"><label class="<?= $label ?>" for="vr">Void it (it stays on file)</label><input id="vr" name="reason" maxlength="255" value="<?= $h($typed['reason'] ?? '') ?>" required placeholder="Why (e.g. signed under the wrong email)" class="<?= $input ?>"></div>
     <button class="<?= $btnSec ?>" data-confirm="Void this waiver? It stays on file but no longer counts at the gate.">Void</button>
   </form>
   <?php endif; ?>
@@ -136,25 +146,27 @@ if ($id) {
 if ($tab === 'wording') {
     bcrf_shell_open('Waivers', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' => ['quotes.js']]);
     echo '<h1 class="text-2xl font-bold text-stone-800 mb-1">Waivers</h1>', $tabs('wording');
-    if ($error) echo bcrf_shell_notice('err', $error);
+    if ($error && !in_array($errorAction, ['void', 'draft', 'publish', 'settings'], true)) echo bcrf_shell_notice('err', $error);
     echo bcrf_shell_notice($cur ? 'info' : 'warning', $status);
     $draft = bcrf_waiver_draft($pdo);
     $versions = bcrf_waiver_versions($pdo);
 ?>
-  <form method="POST" action="waivers.php" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="draft">
+  <form id="waiver-draft-form" data-submit-once method="POST" action="waivers.php" class="<?= $card ?>">
+    <?php if ($error && $errorAction === 'draft') echo bcrf_shell_notice('err', $error); ?><?= $hidden ?><input type="hidden" name="act" value="draft">
     <h2 class="text-base font-semibold text-stone-800 mb-2">Draft</h2>
     <p class="text-sm text-stone-500 mb-3">The wording is a legal document: paste exactly what your NC attorney approved. Leave a blank line between paragraphs.</p>
-    <div class="mb-3"><label class="<?= $label ?>" for="wt">Title</label><input id="wt" name="title" maxlength="160" required value="<?= $h($draft['title']) ?>" class="<?= $input ?>" <?= $isAdmin ? '' : 'disabled' ?>></div>
-    <div class="mb-3"><label class="<?= $label ?>" for="wb">Wording</label><textarea id="wb" name="body" rows="16" required class="<?= $input ?>" <?= $isAdmin ? '' : 'disabled' ?>><?= $h($draft['body']) ?></textarea></div>
+    <div class="mb-3"><label class="<?= $label ?>" for="wt">Title</label><input id="wt" name="title" maxlength="160" required value="<?= $h($typed['title'] ?? $draft['title']) ?>" class="<?= $input ?>" <?= $isAdmin ? '' : 'disabled' ?>></div>
+    <div class="mb-3"><label class="<?= $label ?>" for="wb">Wording</label><textarea id="wb" name="body" rows="16" required class="<?= $input ?>" <?= $isAdmin ? '' : 'disabled' ?>><?= $h($typed['body'] ?? $draft['body']) ?></textarea></div>
     <?php if ($isAdmin): ?><button class="<?= $btnSec ?>">Save draft</button><?php endif; ?>
   </form>
   <?php if ($isAdmin): ?>
-  <form method="POST" action="waivers.php" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="publish">
+  <form id="waiver-publish-form" data-submit-once method="POST" action="waivers.php" class="<?= $card ?>">
+    <?php if ($error && $errorAction === 'publish') echo bcrf_shell_notice('err', $error); ?><?= $hidden ?><input type="hidden" name="act" value="publish">
     <h2 class="text-base font-semibold text-stone-800 mb-2">Publish the draft</h2>
     <p class="text-sm text-stone-500 mb-3">Publishing makes it the next version. It can't be edited afterward; to change it, publish a new version. Signatures already made keep pointing to the version they signed.</p>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-      <div><label class="<?= $label ?>" for="we">Takes effect</label><input id="we" name="effective" type="date" required value="<?= $h(date('Y-m-d')) ?>" min="<?= $h(date('Y-m-d')) ?>" class="<?= $input ?>"></div>
-      <div><label class="<?= $label ?>" for="wr">Reviewed by</label><input id="wr" name="reviewed_note" maxlength="255" required placeholder="Attorney name, date reviewed" class="<?= $input ?>"></div>
+      <div><label class="<?= $label ?>" for="we">Takes effect</label><input id="we" name="effective" type="date" required value="<?= $h($typed['effective'] ?? date('Y-m-d')) ?>" min="<?= $h(date('Y-m-d')) ?>" class="<?= $input ?>"></div>
+      <div><label class="<?= $label ?>" for="wr">Reviewed by</label><input id="wr" name="reviewed_note" maxlength="255" value="<?= $h($typed['reviewed_note'] ?? '') ?>" required placeholder="Attorney name, date reviewed" class="<?= $input ?>"></div>
     </div>
     <label class="flex gap-2 items-start text-sm mb-3"><input type="checkbox" name="attorney" value="1" required class="mt-1"> An NC attorney reviewed this exact wording.</label>
     <button class="<?= $btnMain ?>" data-confirm="Publish this wording? Visitors will sign it from the date it takes effect.">Publish</button>
@@ -179,17 +191,18 @@ if ($tab === 'wording') {
 if ($tab === 'settings') {
     bcrf_shell_open('Waivers', ['toast' => $toast, 'width' => 'max-w-3xl']);
     echo '<h1 class="text-2xl font-bold text-stone-800 mb-1">Waivers</h1>', $tabs('settings');
-    if ($error) echo bcrf_shell_notice('err', $error);
+    if ($error && !in_array($errorAction, ['void', 'draft', 'publish', 'settings'], true)) echo bcrf_shell_notice('err', $error);
     echo bcrf_shell_notice($cur ? 'info' : 'warning', $status);
 ?>
-  <form method="POST" action="waivers.php" class="<?= $card ?>"><?= $hidden ?><input type="hidden" name="act" value="settings">
+  <form id="waiver-settings-form" data-submit-once method="POST" action="waivers.php" class="<?= $card ?>">
+    <?php if ($error && $errorAction === 'settings') echo bcrf_shell_notice('err', $error); ?><?= $hidden ?><input type="hidden" name="act" value="settings">
     <fieldset class="mb-3" <?= $isAdmin ? '' : 'disabled' ?>>
       <legend class="<?= $label ?>">At the gate</legend>
       <?php foreach (BCRF_WAIVER_MODES as $k => $v): ?>
-      <label class="flex gap-2 items-start text-sm py-1"><input type="radio" name="mode" value="<?= $k ?>" <?= $mode === $k ? 'checked' : '' ?> class="mt-1">
+      <label class="flex gap-2 items-start text-sm py-1"><input type="radio" name="mode" value="<?= $k ?>" <?= ($typed['mode'] ?? $mode) === $k ? 'checked' : '' ?> class="mt-1">
         <span><?= $h($v) ?><span class="block text-xs text-stone-500"><?= $h(['off' => 'Nothing is shown or checked.', 'warn' => 'Each ticket, pass and group shows whether a waiver is on file, with a Sign now button.', 'block' => 'Nobody is checked in until the adult signs. Owners and managers can let a party in with a reason.'][$k]) ?></span></span></label>
       <?php endforeach; ?>
-      <div class="mt-3 max-w-48"><label class="<?= $label ?>" for="wm">A signature lasts (months)</label><input id="wm" name="months" type="number" min="1" max="60" value="<?= bcrf_waiver_valid_months($pdo) ?>" class="<?= $input ?>"></div>
+      <div class="mt-3 max-w-48"><label class="<?= $label ?>" for="wm">A signature lasts (months)</label><input id="wm" name="months" type="number" min="1" max="60" value="<?= $h($typed['months'] ?? bcrf_waiver_valid_months($pdo)) ?>" class="<?= $input ?>"></div>
     </fieldset>
     <?php if ($isAdmin): ?><button class="<?= $btnMain ?>">Save</button><?php else: ?><p class="text-sm text-stone-500">Only an administrator can change these.</p><?php endif; ?>
     <p class="text-sm text-stone-500 mt-3">Visitors sign online at <a class="underline text-amber-800" href="<?= $h(bcrf_farm_url()) ?>/waiver.php"><?= $h(preg_replace('#^https?://#', '', bcrf_farm_url())) ?>/waiver.php</a>, or on the gate device. Signatures are kept even if someone asks to delete their data.</p>
@@ -203,7 +216,7 @@ $q = trim((string)($_GET['q'] ?? ''));
 $rows = bcrf_waiver_search($pdo, $q);
 bcrf_shell_open('Waivers', ['toast' => $toast, 'width' => 'max-w-4xl']);
 echo '<h1 class="text-2xl font-bold text-stone-800 mb-1">Waivers</h1>', $tabs('');
-if ($error) echo bcrf_shell_notice('err', $error);
+if ($error && !in_array($errorAction, ['void', 'draft', 'publish', 'settings'], true)) echo bcrf_shell_notice('err', $error);
 if (!$cur) echo bcrf_shell_notice('warning', $status);
 ?>
   <form method="GET" action="waivers.php" class="flex flex-wrap gap-2 mb-4">
