@@ -29,7 +29,7 @@ $curRec = (string)($edit['recurrence'] ?? 'none');
   <p class="text-sm text-stone-500 mb-6">Add seasonal, recurring, or one-off events. Published events appear on the public <a href="/events/" target="_blank" class="text-amber-700 underline">events page</a>; past one-off events drop off automatically.</p>
 
   <!-- Add / Edit form -->
-  <form method="POST" action="/admin/admin.php?view=events" class="bg-white border border-stone-200 rounded-lg p-5 mb-8 shadow-sm">
+  <form method="POST" action="/admin/admin.php?view=events" data-submit-once class="bg-white border border-stone-200 rounded-lg p-5 mb-8 shadow-sm">
     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES) ?>">
     <input type="hidden" name="event_action" value="save">
     <?php if ($edit): ?><input type="hidden" name="id" value="<?= (int)$edit['id'] ?>"><?php endif; ?>
