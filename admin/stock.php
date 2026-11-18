@@ -203,7 +203,7 @@ if ($tab === 'item') {
         echo '<p><a class="btn sm primary" href="receive.php?new=1&amp;product=', (int)$p['id'], '">Receive this item</a> <span class="muted">(with unit cost → updates average cost)</span></p>';
 
         $reasons = bcrf_stock_manual_reasons();
-        echo '<section class="card"><h3>Add or remove</h3><form class="stackf" method="POST" action="stock.php">', $hid($back),
+        echo '<section class="card"><h3>Add or remove</h3><form class="stackf" method="POST" action="stock.php" data-submit-once>', $hid($back),
              '<input type="hidden" name="act" value="adjust"><input type="hidden" name="product_id" value="', (int)$p['id'], '">',
              '<label>Where', $sel('location_id', $locNames, bcrf_location_default($pdo), 'Location'), '</label>',
              '<label>Why<select name="reason" aria-label="Reason">';
@@ -215,13 +215,13 @@ if ($tab === 'item') {
              '<button class="btn primary" type="submit">Save</button></form></section>';
         if (count($locById) > 1) {
             $fromDef = array_key_first(array_filter($p['levels'], fn($q) => $q > 0)) ?? bcrf_location_default($pdo);
-            echo '<section class="card"><h3>Move between locations</h3><form class="stackf" method="POST" action="stock.php">', $hid($back),
+            echo '<section class="card"><h3>Move between locations</h3><form class="stackf" method="POST" action="stock.php" data-submit-once>', $hid($back),
                  '<input type="hidden" name="act" value="move"><input type="hidden" name="product_id" value="', (int)$p['id'], '">',
                  '<label>From', $sel('from', $locNames, $fromDef, 'From'), '</label>',
                  '<label>To', $sel('to', $locNames, array_key_first(array_diff_key($locNames, [$fromDef => 1])), 'To'), '</label>',
                  '<label>How many<input type="number" name="qty" min="0" step="any" inputmode="decimal" required></label>',
                  '<label>Note (optional)<input type="text" name="note" maxlength="200" autocomplete="off"></label>',
-                 '<button class="btn primary" type="submit">Move</button></form></section>';
+                 '<button class="btn primary" type="submit"><span aria-hidden="true">⇄</span> Move</button></form></section>';
         }
         echo '<h3>History</h3>', $histTable(bcrf_stock_history($pdo, ['product_id' => (int)$p['id']], 40), false),
              '<p><a href="', $h($self(['tab' => 'history', 'product' => (int)$p['id'], 'from' => date('Y-m-d', strtotime('-90 days'))])), '">All history for this item</a></p>';
@@ -230,14 +230,14 @@ if ($tab === 'item') {
 
 // -- Counts --
 if ($tab === 'counts') {
-    echo '<section class="card"><h3>Start a count</h3><form class="stackf" method="POST" action="stock.php">', $hid('stock.php?tab=counts'),
+    echo '<section class="card"><h3>Start a count</h3><form class="stackf" method="POST" action="stock.php" data-submit-once>', $hid('stock.php?tab=counts'),
          '<input type="hidden" name="act" value="count_start">',
          '<label>Where', $sel('location_id', $locNames, bcrf_location_default($pdo), 'Location'), '</label>',
          '<label>What', $sel('scope', bcrf_count_scopes(), 'all', 'What to count'), '</label>',
          '<label>Category <small class="muted">(for "One category")</small>', $sel('category_id', $cats, '', 'Category', '—'), '</label>',
          '<label class="check"><input type="checkbox" name="full" value="1"> Full count: when I finish, anything I didn\'t count is set to 0</label>',
          '<label>Note (optional)<input type="text" name="note" maxlength="200" autocomplete="off" placeholder="e.g. Saturday close"></label>',
-         '<button class="btn primary" type="submit">Start counting</button></form></section>';
+         '<button class="btn primary" type="submit"><span aria-hidden="true">＋</span> Start counting</button></form></section>';
     $list = bcrf_counts_list($pdo);
     if (!$list) echo '<p class="card muted">No counts yet.</p>';
     foreach ($list as $c) {
@@ -268,7 +268,7 @@ if ($tab === 'count') {
                  $q === '' ? ' Not listed? Search for it to count it here for the first time.' : '', '</p>';
             if (!$items) echo '<p class="card muted">', $q !== '' ? 'No stocked item matches.' : 'Nothing is stocked here yet. Search for an item to count it here.', '</p>';
             else {
-                echo '<form method="POST" action="stock.php">', $hid($back), '<input type="hidden" name="act" value="count_save"><input type="hidden" name="count_id" value="', (int)$c['id'], '">',
+                echo '<form method="POST" action="stock.php" data-submit-once>', $hid($back), '<input type="hidden" name="act" value="count_save"><input type="hidden" name="count_id" value="', (int)$c['id'], '">',
                      '<div class="card cnt">';
                 $lastCat = null;
                 foreach ($items as $i) {
@@ -329,7 +329,7 @@ if ($tab === 'locations') {
     echo '<p class="muted">Where stock is kept. Registers sell from a sellable location; the default is where stock goes when nothing else is said (and what the old register uses).</p>';
     foreach (bcrf_locations($pdo, true) as $l) {
         $n = $pdo->prepare("SELECT COUNT(*), COALESCE(SUM(quantity <> 0), 0) FROM inventory_levels WHERE location_id = ?"); $n->execute([(int)$l['id']]); [$items, $nonzero] = $n->fetch(PDO::FETCH_NUM);
-        echo '<section class="card"><form class="stackf" method="POST" action="stock.php">', $hid('stock.php?tab=locations'),
+        echo '<section class="card"><form class="stackf" method="POST" action="stock.php" data-submit-once>', $hid('stock.php?tab=locations'),
              '<input type="hidden" name="act" value="location_save"><input type="hidden" name="id" value="', (int)$l['id'], '">',
              '<label>Name<input type="text" name="name" value="', $h($l['name']), '" maxlength="80" required></label>',
              '<label class="check"><input type="checkbox" name="sellable" value="1"', (int)$l['sellable'] ? ' checked' : '', '> Sellable (registers can sell from here)</label>',
@@ -338,9 +338,9 @@ if ($tab === 'locations') {
              '<p class="muted">', (int)$nonzero, ' item', (int)$nonzero === 1 ? '' : 's', ' in stock here.</p>',
              '<button class="btn sm" type="submit">Save</button></form></section>';
     }
-    echo '<section class="card"><h3>Add a location</h3><form class="stackf" method="POST" action="stock.php">', $hid('stock.php?tab=locations'),
+    echo '<section class="card"><h3>Add a location</h3><form class="stackf" method="POST" action="stock.php" data-submit-once>', $hid('stock.php?tab=locations'),
          '<input type="hidden" name="act" value="location_save"><label>Name<input type="text" name="name" maxlength="80" required placeholder="e.g. Barn loft"></label>',
-         '<label class="check"><input type="checkbox" name="sellable" value="1"> Sellable</label><button class="btn sm" type="submit">Add</button></form></section>';
+         '<label class="check"><input type="checkbox" name="sellable" value="1"> Sellable</label><button class="btn sm" type="submit"><span aria-hidden="true">＋</span> Add</button></form></section>';
     $sellable = array_map(fn($l) => $l['name'], array_filter($locById, fn($l) => (int)$l['sellable'] === 1));
     echo '<h3>Registers</h3>';
     foreach ($pdo->query("SELECT id, name, location_id FROM registers WHERE archived_at IS NULL ORDER BY sort_order, name")->fetchAll(PDO::FETCH_ASSOC) as $r) {
