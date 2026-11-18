@@ -64,7 +64,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $id = (int)($_POST['id'] ?? 0) ?: null;
     if (!hash_equals($csrf, (string)($_POST['csrf_token'] ?? ''))) {
         $_SESSION['vend_flash'] = ['err', 'Security token expired; try again.'];
-        header('Location: vendors.php' . ($id ? '?id=' . $id : '?new=1')); exit;
+        header('Location: vendors.php' . ($id ? '?id=' . $id . '#vendor-form' : '?new=1#vendor-form')); exit;
     }
     try {
         $saved = bcrf_vendor_save($pdo, $id, $_POST, $uid);
@@ -78,7 +78,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $_SESSION['vend_flash'] = ['err', 'Could not save. Try again.'];
         $_SESSION['vend_form'] = $_POST;
     }
-    header('Location: vendors.php' . ($id ? '?id=' . $id : '?new=1')); exit;
+    header('Location: vendors.php' . ($id ? '?id=' . $id . '#vendor-form' : '?new=1#vendor-form')); exit;
 }
 
 $flash = $_SESSION['vend_flash'] ?? null; unset($_SESSION['vend_flash']);
@@ -220,7 +220,7 @@ bcrf_shell_open($v ? $v['name'] . ' — Vendors' : 'Add a vendor', ['toast' => $
   <h1 class="text-2xl font-bold text-stone-800 mb-4"><?= $v ? $h($v['name']) : 'Add a vendor' ?></h1>
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
 
-  <form method="POST" action="vendors.php" data-submit-once class="bg-white border border-stone-200 rounded-lg p-4 shadow-sm space-y-3">
+  <form id="vendor-form" method="POST" action="vendors.php" data-submit-once class="bg-white border border-stone-200 rounded-lg p-4 shadow-sm space-y-3">
     <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
     <input type="hidden" name="id" value="<?= $id ?: '' ?>">
     <?= $field('name', 'Name', 'text', 120, ' required') ?>
