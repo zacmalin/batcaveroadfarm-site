@@ -49,6 +49,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $_SESSION['p2p_flash'] = ['err', 'Could not save. Try again.'];
         }
     }
+    if (($_SESSION['p2p_flash'][0] ?? '') === 'err') $back .= '#p2p-actions';
     header('Location: ' . $back); exit;
 }
 
@@ -83,6 +84,7 @@ if ($tab === 'matched') {
          (($from !== date('Y-m-d', strtotime($today . ' -13 days')) || $to !== $today) ? '<a class="btn sm" href="reconcile.php?tab=matched">Reset</a>' : ''), '</form>'; 
 }
 
+echo '<div id="p2p-actions"></div>';
 if (!$groups) {
     echo '<p class="card muted">', ['open' => 'All caught up. Nothing to check.', 'flagged' => 'No problems flagged.', 'matched' => 'Nothing matched in these dates.'][$tab], '</p>';
 }
@@ -93,7 +95,7 @@ foreach ($groups as $date => $byT) {
         echo '<section class="card p2p', $old ? ' old' : '', '"><div class="p2phead"><div><b>', $h($tenders[$t] ?? $t), '</b> · ', $h(date('D, M j', strtotime($date))),
              '<br><small class="muted">', count($list), ' payment', count($list) === 1 ? '' : 's', ' · ', $m($sum), $old ? ' · over ' . bcrf_p2p_stale_days() . ' days old' : '', '</small></div>';
         if ($tab === 'open' && count($list) > 1) {
-            echo '<form method="POST" action="reconcile.php">', $hidden;
+            echo '<form data-submit-once method="POST" action="reconcile.php">', $hidden;
             foreach ($list as $p) echo '<input type="hidden" name="ids[]" value="', (int)$p['id'], '">';
             echo $btn('match', 'All ' . count($list) . ' matched', ['data-confirm' => 'Have you verified every payment in this group against the payment app? This will mark all of them as matched.']), '</form>';
         }
@@ -104,7 +106,7 @@ foreach ($groups as $date => $byT) {
                  '</small>';
             if ($tab === 'flagged') echo '<br><small class="off">', $h($flags[$p['reconcile_flag']] ?? $p['reconcile_flag']), '</small>', ($n = bcrf_staff_name($pdo, $p['reconciled_by'])) !== '' ? ' <small class="muted">· flagged by ' . $h($n) . '</small>' : '';
             if ($tab === 'matched') echo '<br><small class="even">Matched</small> <small class="muted">', $h(bcrf_local_time($p['reconciled_at'], 'M j, g:i A')), ($n = bcrf_staff_name($pdo, $p['reconciled_by'])) !== '' ? ' · ' . $h($n) : '', '</small>';
-            $one = '<form method="POST" action="reconcile.php">' . $hidden . '<input type="hidden" name="id" value="' . (int)$p['id'] . '">';
+            $one = '<form data-submit-once method="POST" action="reconcile.php">' . $hidden . '<input type="hidden" name="id" value="' . (int)$p['id'] . '">';
             echo '</div><div class="p2pact">';
             if ($tab === 'open') {
                 echo $one, $btn('match', 'Matched', [], 'btn sm primary'), '</form>',
