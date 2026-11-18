@@ -276,7 +276,7 @@ if (bcrf_docs_ready($pdo)) {
     echo '<fieldset class="grp"><legend>Invoice / receipt (optional)</legend>', bcrf_doc_inputs_html('doc', true),
          '<p class="muted">Snap the invoice or packing slip. It\'s saved with this receive; vendor, date and total are copied over.</p></fieldset>';
 }
-echo '<div class="rbar"><button class="btn primary" type="submit"><span aria-hidden="true">↓</span> Receive</button></div></form></section>';
+echo '<div class="rbar"><button class="btn primary" type="submit" data-submit-label="Receiving…"><span aria-hidden="true">↓</span> Receive</button></div></form></section>';
 
 $rows = bcrf_receive_list($pdo, [], 30);
 $withDoc = bcrf_docs_ready($pdo) ? bcrf_doc_map($pdo, 'receive', array_column($rows, 'id')) : [];
