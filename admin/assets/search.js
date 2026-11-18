@@ -59,7 +59,8 @@
   function render(j) {
     out.textContent = '';
     var count = j.groups.reduce(function (n, g) { return n + g.rows.length; }, j.jump ? 1 : 0);
-    setStatus(count ? count + ' matching results' + (j.groups.length ? ' across ' + j.groups.length + ' categories' : '') : 'No matching results');
+    setStatus(j.partial ? count + ' matching results (incomplete)' : (count ? count + ' matching results' + (j.groups.length ? ' across ' + j.groups.length + ' categories' : '') : 'No matching results'));
+    if (j.partial) { var warning = el('p', 'srch-empty', 'Some records could not be searched right now. Results may be incomplete. Try again shortly.'); warning.setAttribute('role', 'alert'); out.appendChild(warning); }
     var q = j.q || '';
     if (q.length < 2) { if (q.length) out.appendChild(el('p', 'srch-empty', 'Type at least 2 letters.')); return; }
     if (j.jump) {
@@ -67,7 +68,7 @@
       a.href = j.jump.url;
       out.appendChild(a);
     }
-    if (!j.groups.length && !j.jump) {
+    if (!j.groups.length && !j.jump && !j.partial) {
       out.appendChild(el('p', 'srch-empty', 'Nothing found for “' + q + '” in the pages and records you can open.'));
       return;
     }
