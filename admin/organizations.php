@@ -61,15 +61,25 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         }
     } catch (BcrfCrmError $e) {
         $_SESSION['org_flash'] = ['err', $e->getMessage()];
-        if ($act === 'save' && !$id) $back = 'organizations.php?new=1';
+        if ($act === 'save') { $_SESSION['org_form'] = $_POST; $back = ($id ? 'organizations.php?id=' . $id : 'organizations.php?new=1') . '#organization-form'; }
+        elseif ($act === 'contact_add') { $_SESSION['org_contact_form'] = $_POST; $back .= '#organization-contact-form'; }
+        elseif ($act === 'link') $back .= '#organization-link-form';
     } catch (Throwable $e) {
         error_log('[organizations] ' . $act . ': ' . $e->getMessage());
         $_SESSION['org_flash'] = ['err', 'Could not save. Try again.'];
+        if ($act === 'save') { $_SESSION['org_form'] = $_POST; $back = ($id ? 'organizations.php?id=' . $id : 'organizations.php?new=1') . '#organization-form'; }
+        elseif ($act === 'contact_add') { $_SESSION['org_contact_form'] = $_POST; $back .= '#organization-contact-form'; }
+        elseif ($act === 'link') $back .= '#organization-link-form';
     }
+    if (isset($_SESSION['org_flash']) && ($_SESSION['org_flash'][0] ?? '') === 'err') $_SESSION['org_error_action'] = $act;
     header('Location: ' . $back); exit;
 }
 
 $flash = $_SESSION['org_flash'] ?? null; unset($_SESSION['org_flash']);
+$typed = $_SESSION['org_form'] ?? null; unset($_SESSION['org_form']);
+$contactTyped = $_SESSION['org_contact_form'] ?? null; unset($_SESSION['org_contact_form']);
+$errorAction = $flash && ($flash[0] ?? '') === 'err' ? (string)($_SESSION['org_error_action'] ?? '') : '';
+unset($_SESSION['org_error_action']);
 $toast = ($flash && $flash[0] === 'ok') ? $flash : null;
 $error = ($flash && $flash[0] === 'err') ? $flash[1] : '';
 
@@ -95,17 +105,18 @@ if ($id || isset($_GET['new'])) {
     bcrf_shell_open($o ? $o['name'] : 'New organization', ['toast' => $toast, 'width' => 'max-w-3xl', 'js' => ['quotes.js']]);
     echo '<a href="organizations.php" class="text-sm text-amber-800 underline">‹ Organizations</a>';
     echo '<h1 class="text-2xl font-bold text-stone-800 mt-2 mb-3">', $h($o ? $o['name'] : 'New organization'), $o ? ' <span class="text-sm font-normal text-stone-500">' . $h(BCRF_CRM_ORG_KINDS[$o['kind']] ?? '') . '</span>' : '', '</h1>';
-    if ($error) echo bcrf_shell_notice('err', $error);
-    if ($o) echo bcrf_contact_buttons_html($o['phone'] ?? '', $o['email'] ?? '', (string)$o['name'], $o['address'] ?? '');
+    if ($error && !in_array($errorAction, ['save', 'contact_add', 'link'], true)) echo bcrf_shell_notice('err', $error);
+    if ($o) echo bcrf_contact_buttons_html($typed['phone'] ?? $o['phone'] ?? '', $typed['email'] ?? $o['email'] ?? '', (string)$o['name'], $typed['address'] ?? $o['address'] ?? '');
 ?>
-  <form method="POST" action="organizations.php" class="<?= $card ?>"><?= $hidden($id) ?><input type="hidden" name="act" value="save">
+  <form id="organization-form" method="POST" action="organizations.php" data-submit-once class="<?= $card ?>">
+    <?php if ($error && $errorAction === 'save') echo bcrf_shell_notice('err', $error); ?><?= $hidden($id) ?><input type="hidden" name="act" value="save">
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <div><label class="<?= $label ?>" for="on">Name</label><input id="on" name="name" maxlength="160" required value="<?= $h($o['name'] ?? '') ?>" class="<?= $input ?>"></div>
-      <div><label class="<?= $label ?>" for="ok">Kind</label><select id="ok" name="kind" class="<?= $input ?>"><?php foreach (BCRF_CRM_ORG_KINDS as $k => $v): ?><option value="<?= $k ?>" <?= ($o['kind'] ?? 'school') === $k ? 'selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?></select></div>
-      <div><label class="<?= $label ?>" for="oe">Main email</label><input id="oe" name="email" type="email" value="<?= $h($o['email'] ?? '') ?>" class="<?= $input ?>"></div>
-      <div><label class="<?= $label ?>" for="op">Phone</label><input id="op" type="tel" name="phone" maxlength="30" autocomplete="off" value="<?= $h($o['phone'] ?? '') ?>" class="<?= $input ?>"></div>
-      <div class="sm:col-span-2"><label class="<?= $label ?>" for="oa">Address</label><input id="oa" name="address" maxlength="255" value="<?= $h($o['address'] ?? '') ?>" class="<?= $input ?>"></div>
-      <div class="sm:col-span-2"><label class="<?= $label ?>" for="ono">Pinned note <span class="font-normal text-stone-400">staff only, always on top. Dated notes go in Notes below.</span></label><textarea id="ono" name="notes" rows="3" class="<?= $input ?>"><?= $h($o['notes'] ?? '') ?></textarea></div>
+      <div><label class="<?= $label ?>" for="on">Name</label><input id="on" name="name" maxlength="160" required value="<?= $h($typed['name'] ?? $o['name'] ?? '') ?>" class="<?= $input ?>"></div>
+      <div><label class="<?= $label ?>" for="ok">Kind</label><select id="ok" name="kind" class="<?= $input ?>"><?php foreach (BCRF_CRM_ORG_KINDS as $k => $v): ?><option value="<?= $k ?>" <?= ($typed['kind'] ?? $o['kind'] ?? 'school') === $k ? 'selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?></select></div>
+      <div><label class="<?= $label ?>" for="oe">Main email</label><input id="oe" name="email" type="email" value="<?= $h($typed['email'] ?? $o['email'] ?? '') ?>" class="<?= $input ?>"></div>
+      <div><label class="<?= $label ?>" for="op">Phone</label><input id="op" type="tel" name="phone" maxlength="30" autocomplete="off" value="<?= $h($typed['phone'] ?? $o['phone'] ?? '') ?>" class="<?= $input ?>"></div>
+      <div class="sm:col-span-2"><label class="<?= $label ?>" for="oa">Address</label><input id="oa" name="address" maxlength="255" value="<?= $h($typed['address'] ?? $o['address'] ?? '') ?>" class="<?= $input ?>"></div>
+      <div class="sm:col-span-2"><label class="<?= $label ?>" for="ono">Pinned note <span class="font-normal text-stone-400">staff only, always on top. Dated notes go in Notes below.</span></label><textarea id="ono" name="notes" rows="3" class="<?= $input ?>"><?= $h($typed['notes'] ?? $o['notes'] ?? '') ?></textarea></div>
     </div>
     <button class="<?= $btnMain ?> mt-3"><?= $o ? 'Save' : 'Add organization' ?></button>
   </form>
@@ -138,10 +149,11 @@ if ($id || isset($_GET['new'])) {
       <?php endforeach; ?>
     </ul>
     <?php endif; ?>
-    <form method="POST" action="organizations.php" class="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end"><?= $hidden($id) ?><input type="hidden" name="act" value="contact_add">
-      <div><label class="<?= $label ?>" for="cn">Name</label><input id="cn" name="name" maxlength="100" class="<?= $input ?>"></div>
-      <div><label class="<?= $label ?>" for="ce">Email</label><input id="ce" name="email" type="email" required class="<?= $input ?>"></div>
-      <div><label class="<?= $label ?>" for="cp">Contact primary phone (optional)</label><input id="cp" name="phone" type="tel" maxlength="20" autocomplete="tel" class="<?= $input ?>"></div>
+    <form id="organization-contact-form" method="POST" action="organizations.php" data-submit-once class="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
+      <?php if ($error && $errorAction === 'contact_add') echo bcrf_shell_notice('err', $error); ?><?= $hidden($id) ?><input type="hidden" name="act" value="contact_add">
+      <div><label class="<?= $label ?>" for="cn">Name</label><input id="cn" name="name" maxlength="100" class="<?= $input ? value="<?= $h($contactTyped['name'] ?? '') ?>">"></div>
+      <div><label class="<?= $label ?>" for="ce">Email</label><input id="ce" name="email" type="email" required class="<?= $input ? value="<?= $h($contactTyped['email'] ?? '') ?>">"></div>
+      <div><label class="<?= $label ?>" for="cp">Contact primary phone (optional)</label><input id="cp" name="phone" type="tel" maxlength="20" autocomplete="tel" class="<?= $input ? value="<?= $h($contactTyped['phone'] ?? '') ?>">"></div>
       <div><label class="<?= $label ?>" for="cr">Role</label><select id="cr" name="role" class="<?= $input ?>"><?php foreach (BCRF_CRM_CONTACT_ROLES as $k => $v): ?><option value="<?= $k ?>"><?= $h($v) ?></option><?php endforeach; ?></select></div>
       <div class="sm:col-span-4"><button class="<?= $btnSec ?> w-full sm:w-auto">Add contact</button></div>
     </form>
@@ -162,7 +174,8 @@ if ($id || isset($_GET['new'])) {
     </ul>
     <?php endif; ?>
     <?php if ($open): ?>
-    <form method="POST" action="organizations.php" class="flex gap-2"><?= $hidden($id) ?><input type="hidden" name="act" value="link">
+    <form id="organization-link-form" method="POST" action="organizations.php" class="flex flex-wrap gap-2">
+      <?php if ($error && $errorAction === 'link') echo bcrf_shell_notice('err', $error); ?><?= $hidden($id) ?><input type="hidden" name="act" value="link">
       <select name="record" aria-label="Booking or party" class="<?= $input ?>"><?php foreach ($open as [$v, $t]): ?><option value="<?= $h($v) ?>"><?= $h($t) ?></option><?php endforeach; ?></select>
       <button class="<?= $btnSec ?> shrink-0">Add</button></form>
     <?php endif; ?>
