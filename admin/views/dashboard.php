@@ -225,15 +225,17 @@ $card = 'bg-white rounded-xl border border-stone-200 shadow-xs';
           <?php else: ?>
           <ul class="divide-y divide-stone-100">
             <?php foreach (array_slice($todayBookings, 0, 6) as $b): ?>
-            <li class="py-1.5 flex items-center gap-2 text-xs">
-              <span class="text-stone-500 w-14 shrink-0"><?= $h(date('g:ia', strtotime($b['start_time']))) ?></span>
-              <span class="flex-1 min-w-0 truncate"><span class="font-semibold text-stone-800"><?= $h($b['customer_name']) ?></span> <span class="text-stone-400">· <?= (int)$b['party_size'] ?> · <?= $h($b['label']) ?></span></span>
-              <?php if ($b['status'] === 'pending'): ?><span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-amber-100 text-amber-800">Pending</span><?php endif; ?>
-              <?php if ((int)$b['is_exclusive'] === 1): ?><span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-red-100 text-red-700">Private</span><?php endif; ?>
+            <li>
+              <a href="<?= $h("$A?view=bookings&day=$today") ?>" class="py-2 min-h-11 flex items-center gap-2 text-xs rounded hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-700" aria-label="<?= $h('Open today\'s bookings for ' . $b['customer_name']) ?>">
+                <span class="text-stone-500 w-14 shrink-0"><?= $h(date('g:ia', strtotime($b['start_time']))) ?></span>
+                <span class="flex-1 min-w-0 truncate"><span class="font-semibold text-stone-800"><?= $h($b['customer_name']) ?></span> <span class="text-stone-400">· <?= (int)$b['party_size'] ?> · <?= $h($b['label']) ?></span></span>
+                <?php if ($b['status'] === 'pending'): ?><span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-amber-100 text-amber-800">Pending</span><?php endif; ?>
+                <?php if ((int)$b['is_exclusive'] === 1): ?><span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-red-100 text-red-700">Private</span><?php endif; ?>
+              </a>
             </li>
             <?php endforeach; ?>
           </ul>
-          <?php if (count($todayBookings) > 6): ?><p class="text-[11px] text-stone-400 mt-1">+<?= count($todayBookings) - 6 ?> more</p><?php endif; ?>
+          <?php if (count($todayBookings) > 6): ?><p class="text-[11px] text-stone-500 mt-1">+<?= count($todayBookings) - 6 ?> more bookings in today's schedule</p><?php endif; ?>
           <?php endif; ?>
           <a href="<?= $h("$A?view=bookings&day=$today") ?>" class="inline-block mt-1 text-xs font-bold text-amber-700 underline">Open today's schedule</a>
         </div>
