@@ -57,6 +57,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         error_log('[kitchen_products] ' . $id . ': ' . $e->getMessage());
         $_SESSION['kp_flash'] = ['err', 'Could not save. Try again.'];
     }
+    if (($_SESSION['kp_flash'][0] ?? '') === 'err') $back .= '#kitchen-product-form';
     header('Location: ' . $back); exit;
 }
 
@@ -90,7 +91,7 @@ if ($id) {
     if ($error) echo bcrf_shell_notice('err', $error);
     if ($p['net_qty'] === '') echo bcrf_shell_notice('warning', 'Set this product\'s size (for example 8 ounce) in Storefront › Products. The label\'s net quantity comes from it.');
     ?>
-  <form method="POST" class="<?= $card ?>"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="save"><input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
+  <form id="kitchen-product-form" data-submit-once method="POST" class="<?= $card ?>"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="save"><input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
     <fieldset class="grid grid-cols-1 sm:grid-cols-2 gap-3"<?= $canEdit ? '' : ' disabled' ?>>
       <div class="sm:col-span-2"><label class="<?= $label ?>" for="pr">Made from recipe</label><select id="pr" name="recipe_id" class="<?= $input ?>" required>
         <option value="">Pick a recipe</option>
@@ -103,7 +104,7 @@ if ($id) {
     <?php if ($canEdit): ?><div class="flex flex-wrap gap-2 mt-4"><button class="<?= $btnMain ?>">Save</button></div><?php endif; ?>
   </form>
   <?php if ($canEdit && $p['recipe_id']): ?>
-  <form method="POST" class="mb-4"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="unlink"><input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
+  <form data-submit-once data-confirm="Unlink this recipe from the kitchen product?" method="POST" class="mb-4"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="unlink"><input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
     <button class="<?= $btnSec ?>" data-confirm="Unlink <?= $h($p['name']) ?> from its recipe?">Unlink from the recipe</button></form>
   <?php endif; ?>
 
