@@ -53,6 +53,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     } catch (Throwable $e) {
         error_log('[kitchen_ingredients] save ' . $id . ': ' . $e->getMessage());
         $_SESSION['ki_flash'] = ['err', 'Could not save. Try again.'];
+        $_SESSION['ki_form'] = $_POST;
     }
     if (($_SESSION['ki_flash'][0] ?? '') === 'err') $back .= '#kitchen-ingredient-form';
     header('Location: ' . $back); exit;
