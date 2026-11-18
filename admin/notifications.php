@@ -54,7 +54,7 @@ bcrf_shell_open('Notifications', ['width' => 'max-w-3xl', 'toast' => $toast]);
 <div class="flex items-center justify-between gap-3 mb-4">
   <h1 class="text-xl font-black text-stone-800">🔔 Notifications</h1>
   <?php if ($unread > 0): ?>
-  <form method="post" action="/admin/notifications.php">
+  <form method="post" action="/admin/notifications.php" data-submit-once>
     <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
     <input type="hidden" name="action" value="read_all">
     <button type="submit" class="px-3 py-2 rounded-lg bg-stone-800 text-white text-xs font-bold hover:bg-stone-700">Mark all read</button>
