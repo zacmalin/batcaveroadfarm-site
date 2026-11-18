@@ -19,6 +19,7 @@
 //    brought back from memory that is older than the last save reloads itself. Page scripts: bcrfMarkChanged().
 //  - form[data-submit-once]: blocks accidental repeated standard POST saves on opted-in forms.
 //  - select[data-sort-auto]: the Sort box on lists (Nov 15, 2026; includes/list_sort.php) reloads the list when changed.
+//  - Button icons (Nov 18, 2026): one action → emoji list (BTN_ICONS) puts the same emoji on every matching admin button.
 (function () {
     'use strict';
 
@@ -286,6 +287,8 @@
         var l = el && el.getAttribute('data-confirm-label');
         if (l) return l;
         var t = el ? (el.tagName === 'INPUT' ? el.value : el.textContent) : '';
+        var ic = el && el.querySelector && el.querySelector('.btn-ic');   // leave the button's emoji out
+        if (ic) t = (t || '').replace(ic.textContent, '');
         t = (t || '').replace(/\s+/g, ' ').trim();
         return (t.length >= 2 && t.length <= 24 && /[a-z]/i.test(t)) ? t : fallback;
     }
@@ -456,11 +459,181 @@
         });
     }
 
+    // ── Button icons (Nov 18, 2026) ─────────────────────────────────────────
+    // One action → emoji list for every admin button. The icon comes from the button's own words,
+    // so the same action always shows the same emoji. To change an icon, change it here only.
+    // Rules: action buttons only (not tabs, menus, filter pills or switches); no icon when nothing
+    // fits; the emoji is hidden from screen readers. Old hand-typed marks (✓ Save, ＋ Add, ↺ Reset…)
+    // are swapped for the list's emoji. Per button: data-icon="🐐" picks one, data-icon="none" turns it off.
+    // The register, gate and PIN screens don't load this file and keep their own look.
+    var BTN_ICONS = [
+        // Phrases first (checked against the start of the label), then single first words.
+        ['💳', ['take payment', 'record payment', 'add payment', 'record payout', 'pay']],
+        ['💸', ['work out refund', 'refund']],
+        ['🔍', ['apply filters', 'search', 'find', 'filter', 'trace', 'look up']],
+        ['🔄', ['update preview', 'check again', 'check connection', 'refresh', 'sync', 'reload', 'retry']],
+        ['↩️', ['send back', 'put back', 'put it back', 'undo', 'reset', 'restore', 'reopen', 'unarchive', 'return', 'clear']],
+        ['🔑', ['sign in', 'log in', 'unlock']],
+        ['🚪', ['sign out', 'log out']],
+        ['▶️', ['turn on', 'start', 'resume', 'run']],
+        ['⏹️', ['turn off', 'stop', 'end']],
+        ['🗑️', ['take off', 'delete', 'remove', 'discard']],
+        ['✅', ['check in', 'got it', 'done', 'allow', 'finish', 'complete', 'approve', 'confirm', 'accept', 'mark', 'apply', 'yes', 'ok']],
+        ['➕', ['make the gift card', 'add', 'new', 'create', 'take in', 'enroll']],
+        ['❌', ['reject', 'deny', 'decline']],
+        ['🚀', ['publish']],
+        ['⏰', ['clock']],
+        ['⚙️', ['set up', 'manage', 'settings']],
+        ['📝', ['record', 'log']],
+        ['✏️', ['edit', 'change', 'rename']],
+        ['💾', ['save', 'update']],
+        ['🚫', ['void']],
+        ['✖️', ['cancel', 'close', 'dismiss']],
+        ['🖨️', ['make the pdf', 'print']],
+        ['⬇️', ['download', 'export']],
+        ['⬆️', ['upload']],
+        ['✉️', ['email', 'send', 'resend', 'invite']],
+        ['📞', ['call']],
+        ['🗺️', ['map', 'directions']],
+        ['⬅️', ['back']],
+        ['👁️', ['show', 'view', 'preview']],
+        ['📂', ['open']],
+        ['📋', ['make a copy', 'copy', 'duplicate']],
+        ['↔️', ['move']],
+        ['📥', ['receive']],
+        ['⏸️', ['hold', 'pause']],
+        ['⏭️', ['skip']],
+        ['🔌', ['connect', 'disconnect']],
+        ['🔗', ['link', 'merge']],
+        ['✂️', ['unlink', 'split']],
+        ['📁', ['pick from vault', 'archive', 'vault']],
+        ['🧪', ['test']],
+        ['📷', ['scan']],
+        ['↕️', ['sort']],
+        ['🧮', ['count']]
+    ];
+    var BTN_ICON_WORDS = {};
+    var BTN_ICON_PHRASES = [];
+    BTN_ICONS.forEach(function (row) {
+        row[1].forEach(function (w) {
+            if (w.indexOf(' ') >= 0) BTN_ICON_PHRASES.push([w, row[0]]);
+            else if (!BTN_ICON_WORDS[w]) BTN_ICON_WORDS[w] = row[0];
+        });
+    });
+    BTN_ICON_PHRASES.sort(function (a, b) { return b[0].length - a[0].length; });
+
+    // Emoji for a button label ('' = no icon). Labels with "CSV" anywhere are downloads.
+    function buttonIcon(label) {
+        var t = String(label || '').toLowerCase().replace(/\s+/g, ' ').trim();
+        if (!/[a-z]/.test(t)) return '';
+        for (var i = 0; i < BTN_ICON_PHRASES.length; i++) {
+            var p = BTN_ICON_PHRASES[i][0];
+            if (t === p || t.indexOf(p + ' ') === 0) return BTN_ICON_PHRASES[i][1];
+        }
+        var turn = t.match(/^turn [a-z ]+ (on|off)$/);   // "Turn login on"
+        if (turn) return turn[1] === 'on' ? '▶️' : '⏹️';
+        var first = (t.match(/^[a-z]+/) || [''])[0];
+        if (BTN_ICON_WORDS.hasOwnProperty(first)) return BTN_ICON_WORDS[first];
+        return /\bcsv\b/.test(t) ? '⬇️' : '';
+    }
+    window.bcrfButtonIcon = buttonIcon;
+
+    var BTN_SKIP_INSIDE = 'nav,[role="tablist"],[role="menu"],[role="listbox"],.nav-tabs-wrap,.rtabs,.ui-switch-form,[data-no-icons]';
+    var BTN_MARK = /^[^0-9A-Za-zÀ-ɏ"'(“$]+/;    // leading hand-typed mark: ✓ ＋ ↺ ⌕ 🖨 ← …
+    var BTN_TAIL = /\s*[✕×✖]\s*$/;                          // "Close ✕"
+
+    function isActionButton(el) {
+        if (el.tagName === 'A') {
+            var c = typeof el.className === 'string' ? el.className : '';
+            if (!/\b(btn|pins-btn|cta-btn)\b/.test(c) && !(/\brounded/.test(c) && /\bpx-/.test(c) && /\b(bg-|border)/.test(c))) return false;
+            if (/\brounded-full\b/.test(c) || el.hasAttribute('aria-current')) return false;   // filter pills
+        } else if (el.tagName !== 'BUTTON') return false;
+        if (el.hasAttribute('aria-pressed') || el.hasAttribute('aria-selected') || /^(tab|switch|menuitem|option)$/.test(el.getAttribute('role') || '')) return false;
+        if (el.closest(BTN_SKIP_INSIDE)) return false;
+        if (el.querySelector('svg,img,input,select,textarea,table,div,ul,ol,p,h1,h2,h3,h4')) return false;   // has its own icon, or is a card
+        return true;
+    }
+
+    // Take the leading mark (and a trailing ✕) out of the label's text, keeping the rest of the markup.
+    function stripMarks(el) {
+        var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+        var nodes = [], n;
+        while ((n = walker.nextNode())) nodes.push(n);
+        for (var i = 0; i < nodes.length; i++) {
+            var v = nodes[i].nodeValue;
+            if (/[0-9A-Za-zÀ-ɏ]/.test(v)) { nodes[i].nodeValue = v.replace(BTN_MARK, ''); break; }
+            nodes[i].nodeValue = '';
+        }
+        for (var j = nodes.length - 1; j >= 0; j--) {
+            if (!nodes[j].nodeValue.trim()) continue;
+            nodes[j].nodeValue = nodes[j].nodeValue.replace(BTN_TAIL, '');
+            break;
+        }
+        Array.prototype.forEach.call(el.querySelectorAll('[aria-hidden="true"]'), function (s) {
+            if (!s.classList.contains('btn-ic') && !s.textContent.trim() && !s.children.length) s.remove();
+        });
+    }
+
+    function iconButton(el) {
+        var want = el.getAttribute('data-icon');
+        if (want === 'none' || want === '') return;
+        var have = el.firstElementChild && el.firstElementChild.classList.contains('btn-ic') ? el.firstElementChild : null;
+        var text = (el.textContent || '').replace(/\s+/g, ' ').trim();
+        if (have) text = text.replace(have.textContent, '').trim();
+        var label = text.replace(BTN_MARK, '').replace(BTN_TAIL, '');
+        var icon = want || buttonIcon(label);
+        if (have) {
+            if (!icon) have.remove();
+            else if (have.textContent !== icon) have.textContent = icon;
+            if (label !== text) stripMarks(el);
+            return;
+        }
+        if (!icon || !isActionButton(el)) return;
+        if (label !== text) stripMarks(el);
+        var s = document.createElement('span');
+        s.className = 'btn-ic';
+        s.setAttribute('aria-hidden', 'true');
+        s.textContent = icon;
+        var cs = window.getComputedStyle(el);
+        if (/flex|grid/.test(cs.display) && parseFloat(cs.columnGap) > 0) s.classList.add('is-gap');
+        el.insertBefore(s, el.firstChild);
+    }
+
+    var BTN_SEL = 'button,a[class]';
+    function iconButtonsIn(root) {
+        if (!root || root.nodeType !== 1) return;
+        if (root.matches(BTN_SEL)) iconButton(root);
+        Array.prototype.forEach.call(root.querySelectorAll(BTN_SEL), function (el) {
+            try { iconButton(el); } catch (e) { /* never break the page */ }
+        });
+    }
+    function initButtonIcons() {
+        iconButtonsIn(document.body);
+        if (!window.MutationObserver) return;
+        // Buttons added or relabelled by page scripts ("Sending…" → "Send test") get their icon back.
+        var queue = [], busy = false;
+        new MutationObserver(function (list) {
+            list.forEach(function (m) {
+                var t = m.target.nodeType === 1 ? m.target : m.target.parentElement;
+                var b = t && t.closest ? t.closest('button,a') : null;
+                if (b) queue.push(b);
+                Array.prototype.forEach.call(m.addedNodes, function (a) { if (a.nodeType === 1) queue.push(a); });
+            });
+            if (busy || !queue.length) return;
+            busy = true;
+            requestAnimationFrame(function () {
+                var q = queue; queue = []; busy = false;
+                q.forEach(function (el) { try { iconButtonsIn(el); } catch (e) {} });
+            });
+        }).observe(document.body, { childList: true, subtree: true, characterData: true });
+    }
+
     function init() {
         initEventRecurrence();
         initSiteInfoSections();
         labelTables();
         initMessages();
+        try { initButtonIcons(); } catch (e) { /* icons are decoration only */ }
         Array.prototype.forEach.call(document.querySelectorAll('form[data-autosave]'), function (f) {
             try { initAutosave(f); } catch (e) { /* never break the page */ }
         });

@@ -227,3 +227,7 @@ dialog.ui-modal::backdrop{background:transparent;overflow:hidden;overscroll-beha
 .ui-switch-form.rewards-tier-switch{width:120px}
 .ui-switch-form.rewards-tier-switch button.ui-switch{width:100%;justify-content:flex-start}
 .ui-switch-form.rewards-tier-switch .ui-switch-track{flex:0 0 44px}
+/* Button icons (Nov 18, 2026): emoji put in front of action buttons by admin-ui.js (BTN_ICONS list). */
+.btn-ic{display:inline-block;margin-inline-end:.35em;line-height:1;font-style:normal;text-transform:none;letter-spacing:0}
+.btn-ic.is-gap{margin-inline-end:0}
+@media print{.btn-ic{display:none}}
