@@ -376,6 +376,33 @@
         });
     }
 
+    // A save can return to #papers (or another form section) while a server-side
+    // validation error is rendered above the form. Keep the form in view and
+    // repeat only an off-screen error in the existing persistent error toast.
+    function showHiddenFormError() {
+        if (!window.location.hash || window.location.hash.length < 2) return;
+        var id;
+        try { id = decodeURIComponent(window.location.hash.slice(1)); } catch (e) { return; }
+        var target = document.getElementById(id);
+        if (!target) return;
+        var alerts = document.querySelectorAll('[role="alert"]:not(.ui-toast)');
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                var top = target.getBoundingClientRect().top;
+                Array.prototype.some.call(alerts, function (alert) {
+                    if (alert.contains(target) || target.contains(alert)) return false;
+                    var rect = alert.getBoundingClientRect();
+                    if (rect.height === 0 || (rect.bottom >= 0 && rect.top < window.innerHeight)) return false;
+                    if (top < 0 || top >= window.innerHeight) return false;
+                    var message = (alert.textContent || '').trim();
+                    if (!message) return false;
+                    toast(message, true);
+                    return true;
+                });
+            });
+        });
+    }
+
     // ── Fresh pages after Back ──────────────────────────────────────────────
     var LOADED_AT = Date.now();
     function markChanged() { try { sessionStorage.setItem('bcrf-changed-at', String(Date.now())); } catch (e) {} }
@@ -461,6 +488,7 @@
         initSiteInfoSections();
         labelTables();
         initMessages();
+        showHiddenFormError();
         Array.prototype.forEach.call(document.querySelectorAll('form[data-autosave]'), function (f) {
             try { initAutosave(f); } catch (e) { /* never break the page */ }
         });
