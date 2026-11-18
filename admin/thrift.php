@@ -56,7 +56,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $_SESSION['thrift_flash'] = ['err', 'Could not save. Try again.'];
         $_SESSION['thrift_form'] = $_POST;
     }
-    header('Location: thrift.php?new=1'); exit;
+    header('Location: thrift.php?new=1#intake-form'); exit;
 }
 
 $flash = $_SESSION['thrift_flash'] ?? null; unset($_SESSION['thrift_flash']);
