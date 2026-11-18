@@ -442,25 +442,18 @@
         update();
     }
 
-    // Site Info uses native <details name="site-info"> for exclusive opening.
-    // A save redirects to #site-*, so expand that section before scrolling.
+    // Site Info accordion state is rendered by PHP from ?section=.
+    // Do not change <details>.open here: native hash restoration and JS were
+    // racing the server-selected accordion after a POST redirect.
     function initSiteInfoSections() {
-        var sections = document.querySelectorAll('details.site-info-section');
-        if (!sections.length) return;
-        function restoreHash() {
-            var id = location.hash.slice(1);
-            var selected = id && document.getElementById(id);
-            if (!selected || !selected.classList.contains('site-info-section')) return;
-            selected.open = true;
-            Array.prototype.forEach.call(sections, function (section) {
-                if (section !== selected) section.open = false;
-            });
-            requestAnimationFrame(function () {
-                selected.scrollIntoView({ block: 'start' });
-            });
-        }
-        restoreHash();
-        window.addEventListener('hashchange', restoreHash);
+        var params = new URLSearchParams(window.location.search);
+        var id = params.get('section');
+        if (!id) return;
+        var selected = document.getElementById('site-' + id);
+        if (!selected || !selected.classList.contains('site-info-section')) return;
+        requestAnimationFrame(function () {
+            selected.scrollIntoView({ block: 'start' });
+        });
     }
 
     function init() {
