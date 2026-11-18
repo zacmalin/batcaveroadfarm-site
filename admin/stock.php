@@ -92,9 +92,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $say('err', 'Could not save. Try again.');
         }
     }
-    if (($_SESSION['stock_flash'][0] ?? '') === 'err' && ($_POST['act'] ?? '') === 'count_start') {
-        $_SESSION['stock_error_action'] = 'count_start';
-        if (str_contains($back, 'tab=counts')) $back .= '#start-count';
+    if (($_SESSION['stock_flash'][0] ?? '') === 'err') {
+        $action = (string)($_POST['act'] ?? '');
+        $anchors = ['count_start' => 'start-count', 'adjust' => 'stock-adjust', 'move' => 'stock-move', 'location_save' => 'add-location'];
+        if (isset($anchors[$action])) {
+            $_SESSION['stock_error_action'] = $action;
+            $back .= '#' . $anchors[$action];
+        }
     }
     header('Location: ' . $back); exit;
 }
@@ -150,7 +154,7 @@ $histTable = function (array $rows, bool $showItem = true) use ($h, $q3, $pdo) {
 $title = ['stock' => 'Stock', 'item' => 'Stock', 'counts' => 'Counts', 'count' => 'Count', 'history' => 'Stock history', 'locations' => 'Locations'][$tab];
 bcrf_shell_open($title, ['legacy' => true]);
 echo '<h1>Stock</h1>';
-if ($flash && !(($flash[0] ?? '') === 'err' && $tab === 'counts' && $errorAction === 'count_start')) echo bcrf_shell_flash($flash);
+if ($flash && !(($flash[0] ?? '') === 'err' && in_array($errorAction, ['count_start', 'adjust', 'move', 'location_save'], true))) echo bcrf_shell_flash($flash);
 if ($synced) echo '<p class="flash">', $synced, ' item', $synced === 1 ? '' : 's', ' had been changed outside Stock (old register, Full Editor or connector); the difference is now on ', $h($locById[bcrf_location_default($pdo)]['name'] ?? 'the default location'), ' and in the history.</p>';
 $cur = in_array($tab, ['item'], true) ? 'stock' : ($tab === 'count' ? 'counts' : $tab);
 $openCounts = (int)$pdo->query("SELECT COUNT(*) FROM inventory_counts WHERE status = 'open'")->fetchColumn();
@@ -208,7 +212,7 @@ if ($tab === 'item') {
         echo '<p><a class="btn sm primary" href="receive.php?new=1&amp;product=', (int)$p['id'], '">Receive this item</a> <span class="muted">(with unit cost → updates average cost)</span></p>';
 
         $reasons = bcrf_stock_manual_reasons();
-        echo '<section class="card"><h3>Add or remove</h3><form class="stackf" method="POST" action="stock.php" data-submit-once>', $hid($back),
+        echo '<section id="stock-adjust" class="card"><h3>Add or remove</h3>', (($flash && ($flash[0] ?? '') === 'err' && $errorAction === 'adjust') ? bcrf_shell_flash($flash) : ''), '<form class="stackf" method="POST" action="stock.php" data-submit-once>', $hid($back),
              '<input type="hidden" name="act" value="adjust"><input type="hidden" name="product_id" value="', (int)$p['id'], '">',
              '<label>Where', $sel('location_id', $locNames, bcrf_location_default($pdo), 'Location'), '</label>',
              '<label>Why<select name="reason" aria-label="Reason">';
@@ -220,7 +224,7 @@ if ($tab === 'item') {
              '<button class="btn primary" type="submit" data-submit-label="Saving…"><span aria-hidden="true">✓</span> Save</button></form></section>';
         if (count($locById) > 1) {
             $fromDef = array_key_first(array_filter($p['levels'], fn($q) => $q > 0)) ?? bcrf_location_default($pdo);
-            echo '<section class="card"><h3>Move between locations</h3><form class="stackf" method="POST" action="stock.php" data-submit-once>', $hid($back),
+            echo '<section id="stock-move" class="card"><h3>Move between locations</h3>', (($flash && ($flash[0] ?? '') === 'err' && $errorAction === 'move') ? bcrf_shell_flash($flash) : ''), '<form class="stackf" method="POST" action="stock.php" data-submit-once>', $hid($back),
                  '<input type="hidden" name="act" value="move"><input type="hidden" name="product_id" value="', (int)$p['id'], '">',
                  '<label>From', $sel('from', $locNames, $fromDef, 'From'), '</label>',
                  '<label>To', $sel('to', $locNames, array_key_first(array_diff_key($locNames, [$fromDef => 1])), 'To'), '</label>',
@@ -343,7 +347,7 @@ if ($tab === 'locations') {
              '<p class="muted">', (int)$nonzero, ' item', (int)$nonzero === 1 ? '' : 's', ' in stock here.</p>',
              '<button class="btn sm" type="submit">Save</button></form></section>';
     }
-    echo '<section class="card"><h3>Add a location</h3><form class="stackf" method="POST" action="stock.php" data-submit-once>', $hid('stock.php?tab=locations'),
+    echo '<section id="add-location" class="card"><h3>Add a location</h3>', (($flash && ($flash[0] ?? '') === 'err' && $errorAction === 'location_save') ? bcrf_shell_flash($flash) : ''), '<form class="stackf" method="POST" action="stock.php" data-submit-once>', $hid('stock.php?tab=locations'),
          '<input type="hidden" name="act" value="location_save"><label>Name<input type="text" name="name" maxlength="80" required placeholder="e.g. Barn loft"></label>',
          '<label class="check"><input type="checkbox" name="sellable" value="1"> Sellable</label><button class="btn sm" type="submit"><span aria-hidden="true">＋</span> Add</button></form></section>';
     $sellable = array_map(fn($l) => $l['name'], array_filter($locById, fn($l) => (int)$l['sellable'] === 1));
