@@ -102,6 +102,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         error_log('[customers] ' . $act . ': ' . $e->getMessage());
         $_SESSION['crm_flash'] = ['err', 'Could not save. Try again.'];
     }
+    if (($_SESSION['crm_flash'][0] ?? '') === 'err' && $act === 'save') {
+        $_SESSION['crm_save_draft'] = $_POST;
+        $back .= '#customer-details-form';
+    }
     header('Location: ' . $back); exit;
 }
 
@@ -109,6 +113,7 @@ $sync = ['linked' => 0, 'created' => 0];
 try { $sync = bcrf_crm_sync($pdo); } catch (Throwable $e) { error_log('[customers] sync: ' . $e->getMessage()); }
 
 $flash = $_SESSION['crm_flash'] ?? null; unset($_SESSION['crm_flash']);
+$saveDraft = $_SESSION['crm_save_draft'] ?? null; unset($_SESSION['crm_save_draft']);
 $toast = ($flash && $flash[0] === 'ok') ? $flash : null;
 $error = ($flash && $flash[0] === 'err') ? $flash[1] : '';
 
@@ -194,14 +199,14 @@ if ($id) {
   <?php endif; ?>
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <form data-submit-once method="POST" action="customers.php" class="<?= $card ?> mb-0"><?= $hidden($id) ?><input type="hidden" name="act" value="save">
+    <form id="customer-details-form" data-submit-once method="POST" action="customers.php" class="<?= $card ?> mb-0"><?= $hidden($id) ?><input type="hidden" name="act" value="save">
       <h2 class="text-base font-semibold text-stone-800 mb-2">Details</h2>
       <div class="grid grid-cols-2 gap-2 mb-2">
-        <div><label class="<?= $label ?>" for="fn">First name</label><input id="fn" name="first_name" maxlength="50" value="<?= $h($c['first_name']) ?>" class="<?= $input ?>"></div>
-        <div><label class="<?= $label ?>" for="ln">Last name</label><input id="ln" name="last_name" maxlength="50" value="<?= $h($c['last_name']) ?>" class="<?= $input ?>"></div>
+        <div><label class="<?= $label ?>" for="fn">First name</label><input id="fn" name="first_name" maxlength="50" value="<?= $h($saveDraft['first_name'] ?? $c['first_name']) ?>" class="<?= $input ?>"></div>
+        <div><label class="<?= $label ?>" for="ln">Last name</label><input id="ln" name="last_name" maxlength="50" value="<?= $h($saveDraft['last_name'] ?? $c['last_name']) ?>" class="<?= $input ?>"></div>
       </div>
-      <label class="<?= $label ?>" for="ph">Phone</label><input id="ph" type="tel" name="phone" maxlength="20" autocomplete="off" value="<?= $h($c['phone_number']) ?>" class="<?= $input ?> mb-2">
-      <label class="<?= $label ?>" for="sn">Pinned note <span class="font-normal text-stone-400">always on top, never shown to the customer. Dated notes go in Notes below.</span></label><textarea id="sn" name="staff_notes" rows="3" class="<?= $input ?> mb-2"><?= $h($c['staff_notes']) ?></textarea>
+      <label class="<?= $label ?>" for="ph">Phone</label><input id="ph" type="tel" name="phone" maxlength="20" autocomplete="off" value="<?= $h($saveDraft['phone'] ?? $c['phone_number']) ?>" class="<?= $input ?> mb-2">
+      <label class="<?= $label ?>" for="sn">Pinned note <span class="font-normal text-stone-400">always on top, never shown to the customer. Dated notes go in Notes below.</span></label><textarea id="sn" name="staff_notes" rows="3" class="<?= $input ?> mb-2"><?= $h($saveDraft['staff_notes'] ?? $c['staff_notes']) ?></textarea>
       <button class="<?= $btnSec ?>">Save</button>
     </form>
 
