@@ -107,6 +107,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $fl = $_SESSION['doc_flash'];
         if ($fl[0] === 'warning' && in_array($key, ['an_flash', 'vend_flash'], true)) $fl[0] = 'ok';   // those pages show ok / err only
         $_SESSION[$key] = $fl; unset($_SESSION['doc_flash']);
+        if ($fl[0] === 'err') $_SESSION['doc_inline_flash'] = ['back' => $back, 'message' => $fl[1]];
         if (in_array($key, ['an_flash', 'vend_flash'], true) && !str_contains($go, '#')) $go .= '#papers';
     }
     header('Location: ' . $go); exit;
