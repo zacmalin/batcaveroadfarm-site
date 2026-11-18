@@ -57,11 +57,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && $ready) {
     } catch (BcrfPartyError $e) {
         if (bcrf_switch_ajax()) bcrf_switch_json(false, $e->getMessage());
         $_SESSION['pkg_flash'] = ['err', $e->getMessage()];
-        if ($act === 'save') { $_SESSION['pkg_form'] = $_POST; $back .= $id ? '?edit=' . $id : '?new=1'; }
+        if ($act === 'save') { $_SESSION['pkg_form'] = $_POST; $back .= ($id ? '?edit=' . $id : '?new=1') . '#package-form'; }
     } catch (Throwable $e) {
         error_log('[party packages] ' . $act . ': ' . $e->getMessage());
         if (bcrf_switch_ajax()) bcrf_switch_json(false, 'Could not save. Try again.');
         $_SESSION['pkg_flash'] = ['err', 'Could not save. Try again.'];
+        if ($act === 'save') { $_SESSION['pkg_form'] = $_POST; $back .= ($id ? '?edit=' . $id : '?new=1') . '#package-form'; }
     }
     header('Location: ' . $back); exit;
 }
@@ -84,7 +85,7 @@ if (!$ready) {
     echo bcrf_shell_notice('warning', 'Run migration 0035 in Settings › Database first.'), '<a href="/admin/migrations.php" class="text-sm text-amber-800 underline">Open Settings › Database</a>';
     bcrf_shell_close(); exit;
 }
-if ($error) echo bcrf_shell_notice('err', $error);
+if ($error && !isset($_GET['edit']) && !isset($_GET['new'])) echo bcrf_shell_notice('err', $error);
 
 $editId = (int)($_GET['edit'] ?? 0);
 $editing = $mgr && ($editId || isset($_GET['new'])) ? ($editId ? bcrf_party_package($pdo, $editId) : []) : null;
@@ -96,7 +97,8 @@ if ($editing !== null):
           'active' => $editing['active'], 'sort_order' => $editing['sort_order']]
         : ['name' => '', 'inclusions' => '', 'base' => '', 'included_guests' => '', 'extra' => '', 'duration' => 120, 'active' => 1, 'sort_order' => 0]);
 ?>
-  <form method="POST" action="party_packages.php" class="<?= $card ?>">
+  <form id="package-form" method="POST" action="party_packages.php" data-submit-once class="<?= $card ?>">
+    <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
     <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="save"><input type="hidden" name="id" value="<?= $editing ? (int)$editing['id'] : '' ?>">
     <h2 class="text-base font-semibold text-stone-800 mb-3"><?= $editing ? 'Edit ' . $h($editing['name']) : 'New package' ?></h2>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
