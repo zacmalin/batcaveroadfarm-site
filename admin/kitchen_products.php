@@ -56,6 +56,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     } catch (Throwable $e) {
         error_log('[kitchen_products] ' . $id . ': ' . $e->getMessage());
         $_SESSION['kp_flash'] = ['err', 'Could not save. Try again.'];
+        $_SESSION['kp_form'] = $_POST;
     }
     if (($_SESSION['kp_flash'][0] ?? '') === 'err') $back .= '#kitchen-product-form';
     header('Location: ' . $back); exit;
