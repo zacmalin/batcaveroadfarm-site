@@ -1,5 +1,6 @@
 <?php
 // includes/jobs/hire.php
+if (!function_exists('bcrf_is_owner')) require_once __DIR__ . '/../roles.php';   // bcrf_is_owner() (Nov 18, 2026)
 if (!function_exists('jobs_resets_staff_only')) {
     /** Limit a password_resets update to staff rows once migration 0006 adds realm (customer ids can match, C-02). */
     function jobs_resets_staff_only(PDO $pdo): string {
@@ -267,7 +268,7 @@ if (!function_exists('jobs_hire_save')) {
             } else {
                 $userId = (int)$user['id'];
                 // Never lower an administrator from this screen; otherwise use the role picked.
-                $role   = $user['role'] === 'administrator' ? 'administrator' : $d['role'];
+                $role   = bcrf_is_owner($user['role']) ? 'administrator' : $d['role'];
                 $status = $user['account_status'] === 'disabled' ? (empty($user['password']) ? 'invited' : 'active') : $user['account_status'];
                 // last_salary_change only moves when the rate actually changes (assigned before salary on purpose).
                 // Not paid hourly (work trade, stipend…): no hourly rate on file for this job.

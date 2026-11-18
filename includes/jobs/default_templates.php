@@ -11,6 +11,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../../includes/f
 if (!function_exists('jobs_default_templates')) {
     function jobs_default_templates(): array
     {
+        $farm = bcrf_farm_name();
         $h1  = fn(string $t) => '<h1 style="font-family:Rye,Georgia,serif;color:#e8b84b;font-size:24px;margin:0 0 14px;">' . $t . '</h1>';
         $p   = fn(string $t) => '<p style="margin:0 0 16px;">' . $t . '</p>';
         $sm  = fn(string $t) => '<p style="margin:0;font-size:14px;color:rgba(245,234,214,0.8);">' . $t . '</p>';
@@ -22,7 +23,7 @@ if (!function_exists('jobs_default_templates')) {
                 'name'    => 'Application received (to applicant)',
                 'subject' => 'We got your application for {position}',
                 'body'    => $h1('Thanks, {first_name}!')
-                    . $p('We received your application for <strong>{position}</strong> at Bat Cave Road Farm.')
+                    . $p('We received your application for <strong>{position}</strong> at ' . $farm . '.')
                     . $p('Zac or Casey will read it and get back to you. If we\'d like to talk, we\'ll email or call to set up a time.')
                     . $sm('Questions? Just reply to this email, or call {farm_phone}.'),
             ],
@@ -36,7 +37,7 @@ if (!function_exists('jobs_default_templates')) {
             ],
             'interview' => [
                 'name'    => 'Interview scheduled',
-                'subject' => 'Interview at Bat Cave Road Farm: {interview_datetime}',
+                'subject' => 'Interview at ' . $farm . ': {interview_datetime}',
                 'body'    => $h1('Let\'s meet, {first_name}')
                     . $p('We\'d like to talk with you about the <strong>{position}</strong> position.')
                     . $box('<strong>When:</strong> {interview_datetime}<br><strong>Where:</strong> {interview_location}')
@@ -45,19 +46,19 @@ if (!function_exists('jobs_default_templates')) {
             ],
             'offer' => [
                 'name'    => 'Offer',
-                'subject' => 'An offer from Bat Cave Road Farm',
+                'subject' => 'An offer from ' . $farm,
                 'body'    => $h1('Good news, {first_name}')
-                    . $p('We\'d like to offer you the <strong>{position}</strong> position at Bat Cave Road Farm.')
+                    . $p('We\'d like to offer you the <strong>{position}</strong> position at ' . $farm . '.')
                     . $box('{offer_details}')
                     . $p('Please reply to this email to accept, or if you have any questions.')
-                    . $sm('Bat Cave Road Farm · {farm_address} · {farm_phone}'),
+                    . $sm($farm . ' · {farm_address} · {farm_phone}'),
             ],
             'hired' => [
                 'name'    => 'Hired — welcome + set password',
-                'subject' => 'Welcome to Bat Cave Road Farm, {first_name}',
+                'subject' => 'Welcome to ' . $farm . ', {first_name}',
                 'body'    => $h1('Welcome to the farm!')
                     . $p('Hi {first_name}, we\'re happy to have you as our new <strong>{position}</strong>. Your start date is <strong>{start_date}</strong>.')
-                    . $p('You\'ll use your Bat Cave Road Farm account to clock in and out. Tap below to set your password:')
+                    . $p('You\'ll use your ' . $farm . ' account to clock in and out. Tap below to set your password:')
                     . $btn('{set_password_link}', 'Set my password')
                     . $sm('This link works for 7 days. If it runs out, just ask us for a new one.'),
             ],
@@ -65,15 +66,15 @@ if (!function_exists('jobs_default_templates')) {
                 'name'    => 'Not selected',
                 'subject' => 'Your application for {position}',
                 'body'    => $h1('Thank you, {first_name}')
-                    . $p('Thank you for applying for <strong>{position}</strong> at Bat Cave Road Farm. We\'ve decided to move forward with other applicants this time.')
+                    . $p('Thank you for applying for <strong>{position}</strong> at ' . $farm . '. We\'ve decided to move forward with other applicants this time.')
                     . $p('We really appreciate your interest in the farm, and we hope you\'ll apply again in a future season.')
-                    . $sm('Bat Cave Road Farm · {farm_address}'),
+                    . $sm($farm . ' · {farm_address}'),
             ],
             'alert_confirm' => [
                 'name'    => 'Job alerts — confirm signup',
-                'subject' => 'Confirm your Bat Cave Road Farm job alerts',
+                'subject' => 'Confirm your ' . $farm . ' job alerts',
                 'body'    => $h1('One more step')
-                    . $p('Tap below to start getting an email when Bat Cave Road Farm posts a job that matches what you picked.')
+                    . $p('Tap below to start getting an email when ' . $farm . ' posts a job that matches what you picked.')
                     . $btn('{confirm_link}', 'Yes, send me job alerts')
                     . $sm('If you didn\'t sign up, ignore this email and nothing will happen.'),
             ],
@@ -81,13 +82,13 @@ if (!function_exists('jobs_default_templates')) {
                 'name'    => 'Job alert — new opening',
                 'subject' => 'Now hiring: {position}',
                 'body'    => $h1('Now hiring: {position}')
-                    . $p('Bat Cave Road Farm just opened a position that matches your job alerts.')
+                    . $p($farm . ' just opened a position that matches your job alerts.')
                     . $box('<strong>{position}</strong> · {category}<br>{pay_summary}<br>Apply by: {closes_date}')
                     . $btn('{job_link}', 'See the job'),
             ],
             'talent_pool_reopen' => [
                 'name'    => 'Talent Pool — job reopened',
-                'subject' => '{position} is open again at Bat Cave Road Farm',
+                'subject' => '{position} is open again at ' . $farm,
                 'body'    => $h1('Hi {first_name}, we\'re hiring again')
                     . $p('You applied for <strong>{position}</strong> before, and we kept your application on file. The position is open again for a new season.')
                     . $btn('{job_link}', 'See the job and apply')

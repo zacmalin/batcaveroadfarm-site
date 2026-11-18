@@ -262,7 +262,7 @@ function booking_send_ack(array $b, ?array $type = null): bool {
         . _booking_summary_html($b, $type)
         . '<p style="color:#e8d5b0;">Nothing is reserved until we confirm. Questions? Just reply to this email.</p>'
         . _booking_nc_warning();
-    return _booking_mail($b['email'], 'Your booking request — Bat Cave Road Farm', $inner);
+    return _booking_mail($b['email'], 'Your booking request — ' . bcrf_farm_name(), $inner);
 }
 
 /** Confirm a booking (status confirmed). */
@@ -273,7 +273,7 @@ function booking_send_confirmation(array $b, ?array $type = null): bool {
         . _booking_summary_html($b, $type)
         . '<p style="color:#e8d5b0;">Need to cancel? <a style="color:#e8b84b;" href="' . _booking_cancel_url($b) . '">Cancel this booking</a>.</p>'
         . _booking_nc_warning();
-    return _booking_mail($b['email'], 'Booking confirmed — Bat Cave Road Farm', $inner);
+    return _booking_mail($b['email'], 'Booking confirmed — ' . bcrf_farm_name(), $inner);
 }
 
 /** 24h-out reminder. */
@@ -288,7 +288,7 @@ function booking_send_reminder(array $b, ?array $type = null): bool {
         . _booking_summary_html($b, $type)
         . '<p style="color:#e8d5b0;">Can\'t make it? <a style="color:#e8b84b;" href="' . _booking_cancel_url($b) . '">Cancel here</a> so we can free the spot.</p>'
         . ($pdo instanceof PDO ? bcrf_email_prefs_footer($pdo, (string)$b['email'], 'visit reminders and thank-yous') : '');
-    return _booking_mail($b['email'], 'Reminder: your visit tomorrow — Bat Cave Road Farm', $inner);
+    return _booking_mail($b['email'], 'Reminder: your visit tomorrow — ' . bcrf_farm_name(), $inner);
 }
 
 /** Thank-you after a visit, asking for a Google review (admin/cron/send_review_requests.php, about a day later).
@@ -306,7 +306,7 @@ function booking_send_review_request(array $b, ?array $type = null): bool {
         . '<p style="margin:18px 0;"><a style="background:#e8b84b;color:#3b2010;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold;" href="' . htmlspecialchars($site . '/review/', ENT_QUOTES) . '">Leave a review</a></p>'
         . '<p style="color:#e8d5b0;">Anything we could do better? Just reply to this email.</p>'
         . ($pdo instanceof PDO ? bcrf_email_prefs_footer($pdo, (string)$b['email'], 'visit reminders and thank-yous') : '');
-    return _booking_mail($b['email'], 'Thanks for visiting Bat Cave Road Farm', $inner);
+    return _booking_mail($b['email'], 'Thanks for visiting ' . bcrf_farm_name(), $inner);
 }
 
 /** Notify the farm of a new request. */

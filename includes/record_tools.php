@@ -9,6 +9,7 @@
 //   notes      bcrf_record_notes_box_html(): dated, signed notes that are never written over (record_notes, admin/record_note.php).
 //   CSV        bcrf_csv_send(): one CSV download with the spreadsheet-formula guard, logged in the audit trail.
 // Nothing here is farm-specific: kinds, labels and links come from the registry below.
+if (!function_exists('bcrf_is_owner')) require_once __DIR__ . '/roles.php';   // bcrf_is_owner() (Nov 18, 2026)
 if (!function_exists('bcrf_record_kinds')) {
 
 if (!function_exists('bcrf_search_kinds')) require_once __DIR__ . '/search.php';   // bcrf_search_allowed / bcrf_search_can_for
@@ -49,14 +50,14 @@ function bcrf_record_task_kinds(): array {
 
 function bcrf_record_role(): string { return (string)($_SESSION['user_role'] ?? ''); }
 function bcrf_record_uid(): ?int { $u = (int)($_SESSION['user_id'] ?? 0); return $u ?: null; }
-function bcrf_record_is_owner(): bool { return bcrf_record_role() === 'administrator'; }
+function bcrf_record_is_owner(): bool { return bcrf_is_owner(bcrf_record_role()); }
 
 /** Can the signed-in person open this kind of record? */
 function bcrf_record_can(string $type, ?string $role = null): bool {
     $k = bcrf_record_kinds()[$type] ?? null;
     if (!$k) return false;
     $role = $role ?? bcrf_record_role();
-    if ($role === 'administrator') return true;
+    if (bcrf_is_owner($role)) return true;
     return bcrf_search_allowed($k['need'], bcrf_search_can_for($role));
 }
 
@@ -186,10 +187,10 @@ function bcrf_record_tasks_done(PDO $pdo, string $type, int $id): int {
 function bcrf_record_tasks_box_html(PDO $pdo, string $type, int $id): string {
     if (!isset(bcrf_record_kinds()[$type]) || $id <= 0) return '';
     $role = bcrf_record_role();
-    if ($role !== 'administrator' && !(function_exists('hasViewAccess') && hasViewAccess($role, 'tasks'))) return '';
+    if (!bcrf_is_owner($role) && !(function_exists('hasViewAccess') && hasViewAccess($role, 'tasks'))) return '';
     try { $pdo->query("SELECT 1 FROM tasks LIMIT 0"); } catch (Throwable $e) { return ''; }
     $e = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
-    $mgr = $role === 'administrator' || (function_exists('hasViewAccess') && hasViewAccess($role, 'tasks_manage'));
+    $mgr = bcrf_is_owner($role) || (function_exists('hasViewAccess') && hasViewAccess($role, 'tasks_manage'));
     $uid = (int)bcrf_record_uid();
     $rows = array_values(array_filter(bcrf_record_tasks($pdo, $type, $id), function ($t) use ($mgr, $uid, $role) {
         if ($mgr) return true;   // same rule as bcrf_tasks_can_see()

@@ -280,7 +280,7 @@ for ($p = 0; $p < $total_pages; $p++) {
 
         <div class="l-logo">
             <img src="<?= bcrf_farm_url() ?>/img/logos/print_square_logo.png"
-                 alt="Bat Cave Road Farm">
+                 alt="<?= htmlspecialchars(bcrf_farm_name(), ENT_QUOTES) ?>">
         </div>
 
         <div class="l-name"><?= $name_esc ?></div>

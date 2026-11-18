@@ -10,6 +10,7 @@
 //   - Public content (bcrf_review_tables) edited only thanks to an extra waits for review: the person can save drafts and
 //     "Send for review" (a bell alert to Owners and Managers), but can't publish, unpublish, change or delete what is live.
 // Nothing here is farm-specific.
+if (!function_exists('bcrf_is_owner')) require_once __DIR__ . '/roles.php';   // bcrf_is_owner() (Nov 18, 2026)
 if (!function_exists('bcrf_extras_ready')) {
 
 require_once __DIR__ . '/permission_sections.php';   // the items and roles the Permissions page shows
@@ -165,7 +166,7 @@ function bcrf_review_tables(): array { return ['blog_posts', 'recipes', 'animals
 
 /** True when this person can edit $table only because of an extra (their role can't), so public changes need review. */
 function bcrf_needs_review(string $role, string $table): bool {
-    if ($role === 'administrator' || !in_array($table, bcrf_review_tables(), true) || !function_exists('hasTableAccess')) return false;
+    if (bcrf_is_owner($role) || !in_array($table, bcrf_review_tables(), true) || !function_exists('hasTableAccess')) return false;
     return bcrf_extra_table($role, $table, 'edit') && !hasTableAccess($role, $table, 'edit', false);
 }
 

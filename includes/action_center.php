@@ -9,6 +9,7 @@
 //       ones that only make sense on screen: your own tasks, two-step sign-in, reorder forecast, comments).
 // Nov 15, 2026 additions: papers out of date or running out (not yet replaced), and renewals due or late.
 // Permission helpers for incidents, papers and renewals read $_SESSION['user_role']; the email sets it for each Owner.
+if (!function_exists('bcrf_is_owner')) require_once __DIR__ . '/roles.php';   // bcrf_is_owner() (Nov 18, 2026)
 if (!function_exists('bcrf_action_alerts')) {
 
 function bcrf_action_alerts(PDO $pdo, string $role, array $ctx = []): array {
@@ -16,16 +17,16 @@ function bcrf_action_alerts(PDO $pdo, string $role, array $ctx = []): array {
     $add = function (array $a) use (&$alerts) { $alerts[] = $a + ['items' => [], 'actions' => [], 'detail' => '', 'count' => 1]; };
     $email = !empty($ctx['email']);
     $canV  = function (string $v) use ($role): bool {
-        if ($role === 'administrator') return true;
+        if (bcrf_is_owner($role)) return true;
         if ($role === 'Staff') return $v === 'timecard';
         return function_exists('hasViewAccess') && hasViewAccess($role, $v);
     };
     $canT  = function (string $t) use ($role): bool {
-        if ($role === 'administrator') return true;
+        if (bcrf_is_owner($role)) return true;
         if ($role === 'Staff') return false;
         return function_exists('hasTableAccess') && hasTableAccess($role, $t);
     };
-    $isAdmin = $role === 'administrator';
+    $isAdmin = bcrf_is_owner($role);
     $A       = '/admin/admin.php';
     $today   = (string)($ctx['today'] ?? date('Y-m-d'));   // Eastern (admin.php sets it); MySQL's clock is not.
     $soonDay = date('Y-m-d', strtotime($today . ' +1 day'));
@@ -130,7 +131,7 @@ function bcrf_action_alerts(PDO $pdo, string $role, array $ctx = []): array {
                     $add(['id' => 'pinterest', 'priority' => $pr ? 'urgent' : 'today', 'icon' => $pr ? '⛔' : '📌', 'title' => 'Pinterest posting needs attention',
                           'items' => $items, 'count' => ($pr ? 'r' : '') . $pf . '-' . $ph,
                           'actions' => array_merge([['Pinterest drafts', "$A?view=social&tab=pinterest&f=" . ($pf ? 'drafts' : 'approved'), false]],
-                                                   $role === 'administrator' ? [['Settings', '/admin/pinterest_connect.php', false]] : [])]);
+                                                   bcrf_is_owner($role) ? [['Settings', '/admin/pinterest_connect.php', false]] : [])]);
                 }
             }
         } catch (Throwable $e) { /* Pinterest tables not installed */ }

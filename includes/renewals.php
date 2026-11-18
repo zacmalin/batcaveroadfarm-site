@@ -12,6 +12,7 @@
 //   Calendar   bcrf_renewals_occurrences() feeds the "Renewals & due dates" layer (includes/calendar.php).
 // Who: the 'renewals' view (Owners always; Managers by default). Nothing here is farm-specific.
 // Screen: admin/renewals.php. Tests: tests/renewals_test.php.
+if (!function_exists('bcrf_is_owner')) require_once __DIR__ . '/roles.php';   // bcrf_is_owner() (Nov 18, 2026)
 if (!function_exists('bcrf_renewals_ready')) {
 
 class BcrfRenewalError extends RuntimeException {}
@@ -31,7 +32,8 @@ function bcrf_renewals_ready(PDO $pdo): bool {
     catch (Throwable $e) { return $ok[$k] = false; }
 }
 
-function bcrf_renewals_tz(): DateTimeZone { return new DateTimeZone(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York'); }
+if (!function_exists('bcrf_tz')) require_once __DIR__ . '/farm_helpers.php';   // one farm time zone / today / money (Nov 18, 2026)
+function bcrf_renewals_tz(): DateTimeZone { return bcrf_tz(); }
 
 /** Today on the farm, Y-m-d. Tests can pin it with $GLOBALS['bcrf_renewals_today']. */
 function bcrf_renewals_today(): string {
@@ -42,7 +44,7 @@ function bcrf_renewals_today(): string {
 /** Can this role see and change renewals? (Owners always; others need the 'renewals' view.) */
 function bcrf_renewals_can(?string $role = null): bool {
     $role = $role ?? (string)($_SESSION['user_role'] ?? '');
-    if ($role === 'administrator') return true;
+    if (bcrf_is_owner($role)) return true;
     if ($role === '' || $role === 'user') return false;
     return function_exists('hasViewAccess') && hasViewAccess($role, 'renewals');
 }
@@ -122,8 +124,7 @@ function bcrf_renewal_due_soon(array $r, ?string $today = null): bool {
 
 /** "$1,234.50" from cents ('' for null). */
 function bcrf_renewal_money($cents): string {
-    if ($cents === null || $cents === '') return '';
-    return '$' . number_format(((int)$cents) / 100, 2);
+    return $cents === null || $cents === '' ? '' : bcrf_money((int)$cents);
 }
 
 /** "Every year" / "Only once" */

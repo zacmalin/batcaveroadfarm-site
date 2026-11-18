@@ -6,18 +6,20 @@ if (!function_exists('bcrf_theme_catalog')) {
 
     /** slug => [name, glyph (falling animation), banner (short message), window (default annual MM-DD..MM-DD)] */
     function bcrf_theme_catalog(): array {
+        if (!function_exists('bcrf_farm_name')) require_once __DIR__ . '/farm.php';
+        $farm = bcrf_farm_name();
         return [
             'spring'       => ['name' => 'Spring',              'glyph' => '🌸', 'banner' => 'Spring has sprung at the farm — fresh blooms and baby animals!',        'window' => '03-01..05-31'],
             'summer'       => ['name' => 'Summer',              'glyph' => '🌻', 'banner' => 'Summer on the farm — sunflowers, sunshine and fresh produce!',          'window' => '06-01..08-31'],
             'autumn'       => ['name' => 'Autumn / Harvest',    'glyph' => '🍂', 'banner' => 'Harvest season is here — pumpkins, mums and crisp mountain air!',       'window' => '09-01..11-30'],
-            'winter'       => ['name' => 'Winter',              'glyph' => '❄️', 'banner' => 'Cozy winter days at Bat Cave Road Farm.',                               'window' => '01-02..02-28'],
+            'winter'       => ['name' => 'Winter',              'glyph' => '❄️', 'banner' => 'Cozy winter days at ' . $farm . '.',                               'window' => '01-02..02-28'],
             'halloween'    => ['name' => 'Halloween',           'glyph' => '🎃', 'banner' => 'Spooky season on the farm — pick your perfect pumpkin!',                'window' => '10-15..10-31'],
             'thanksgiving' => ['name' => 'Thanksgiving',        'glyph' => '🦃', 'banner' => 'Grateful for our farm family — Happy Thanksgiving!',                    'window' => '11-20..11-30'],
-            'christmas'    => ['name' => 'Christmas',           'glyph' => '🎄', 'banner' => 'Merry Christmas from Bat Cave Road Farm!',                              'window' => '12-10..12-26'],
+            'christmas'    => ['name' => 'Christmas',           'glyph' => '🎄', 'banner' => 'Merry Christmas from ' . $farm . '!',                              'window' => '12-10..12-26'],
             'newyears'     => ['name' => "New Year's",          'glyph' => '✨', 'banner' => 'Happy New Year from all of us at the farm!',                           'window' => '12-27..01-01'],
             'valentines'   => ['name' => "Valentine's Day",     'glyph' => '❤️', 'banner' => 'Spread a little love this Valentine\'s Day!',                          'window' => '02-08..02-14'],
             'easter'       => ['name' => 'Easter',              'glyph' => '🐣', 'banner' => 'Hop on over — Happy Easter from the farm!',                            'window' => '03-22..04-22'],
-            'patriotic'    => ['name' => 'Patriotic (July 4th)','glyph' => '🎆', 'banner' => 'Happy Independence Day from Bat Cave Road Farm!',                      'window' => '06-28..07-07'],
+            'patriotic'    => ['name' => 'Patriotic (July 4th)','glyph' => '🎆', 'banner' => 'Happy Independence Day from ' . $farm . '!',                      'window' => '06-28..07-07'],
         ];
     }
 

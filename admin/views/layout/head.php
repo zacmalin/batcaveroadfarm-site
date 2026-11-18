@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#1c1917">
-    <title>Bat Cave Road Farm — Farm OS</title>
+    <?php if (!function_exists('bcrf_farm_name')) require_once dirname(__DIR__, 3) . '/includes/farm.php'; ?>
+    <title><?= htmlspecialchars(bcrf_farm_name(), ENT_QUOTES) ?> — Farm OS</title>
     <!-- Farm OS tab icon (Nov 15, 2026): same icons as the public site -->
     <link rel="icon" href="/img/favicon.ico" sizes="any"><link rel="icon" href="/img/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/icon.png">
     <?php // Compiled Tailwind 4.3.5 (tools/admin-css). Admin asset versions come from each file's date (bcrf_shell_asset,

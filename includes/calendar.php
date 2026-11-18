@@ -18,6 +18,7 @@
 // Who sees what: each layer needs the same permission as its own page (bcrf_cal_layers_for). Times are farm-local.
 //   bcrf_cal_items($pdo, $from, $to, $layers, $viewer)   items between two dates (inclusive), sorted
 //   bcrf_cal_feed_*                                      the private ICS feed (one per staff member, secret link)
+if (!function_exists('bcrf_is_owner')) require_once __DIR__ . '/roles.php';   // bcrf_is_owner() (Nov 18, 2026)
 if (!function_exists('bcrf_cal_items')) {
 
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';
@@ -35,14 +36,15 @@ define('BCRF_CAL_LAYERS', [
     'renewals'   => ['label' => 'Renewals & due dates',  'perm' => ['view', 'renewals'],        'tag' => 'bg-red-100 text-red-800 border-red-300',          'dot' => 'bg-red-600'],
 ]);
 
-function bcrf_cal_tz(): DateTimeZone { return new DateTimeZone(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York'); }
-function bcrf_cal_today(): string { return (new DateTimeImmutable('now', bcrf_cal_tz()))->format('Y-m-d'); }
+if (!function_exists('bcrf_tz')) require_once __DIR__ . '/farm_helpers.php';   // one farm time zone / today / money (Nov 18, 2026)
+function bcrf_cal_tz(): DateTimeZone { return bcrf_tz(); }
+function bcrf_cal_today(): string { return bcrf_today(); }
 
 /** The layers a role may see (same permissions as each layer's own page). */
 function bcrf_cal_layers_for(string $role): array {
     $out = [];
     foreach (BCRF_CAL_LAYERS as $k => $l) {
-        if ($role === 'administrator') { $out[] = $k; continue; }
+        if (bcrf_is_owner($role)) { $out[] = $k; continue; }
         if ($role === '' || $role === 'user') continue;
         [$type, $name] = $l['perm'];
         $ok = $type === 'view' ? (function_exists('hasViewAccess') && hasViewAccess($role, $name))
@@ -204,7 +206,7 @@ function bcrf_cal_items(PDO $pdo, string $from, string $to, array $layers, array
 
 /** Can $role open view $v / table $t? (Owners always.) */
 function bcrf_cal_role_can(string $role, string $type, string $name, string $action = 'view'): bool {
-    if ($role === 'administrator') return true;
+    if (bcrf_is_owner($role)) return true;
     if ($role === '' || $role === 'user') return false;
     return $type === 'view' ? (function_exists('hasViewAccess') && hasViewAccess($role, $name))
                             : (function_exists('hasTableAccess') && hasTableAccess($role, $name, $action));

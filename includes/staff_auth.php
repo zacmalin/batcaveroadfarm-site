@@ -1,4 +1,5 @@
 <?php // includes/staff_auth.php
+if (!function_exists('bcrf_is_owner')) require_once __DIR__ . '/roles.php';   // bcrf_is_owner() (Nov 18, 2026)
 /*
  * Two-step sign-in for staff (Farm OS Phase 0, Nov 2026). Authenticator-app codes (TOTP, RFC 6238:
  * 6 digits, 30 seconds, SHA-1, works with Google Authenticator, 1Password, Authy, Microsoft
@@ -204,7 +205,7 @@ function bcrf_mfa_needed(PDO $pdo, array $u): string {
     if (!in_array((string)($u['role'] ?? ''), bcrf_staff_roles(), true)) return '';
     $row = isset($u['totp_enabled_at']) ? $u : (bcrf_mfa_row($pdo, (int)$u['id']) ?? []);
     if (!empty($row['totp_enabled_at'])) return 'code';
-    if (($row['role'] ?? '') === 'administrator' && bcrf_mfa_required_admin($pdo)) return 'setup';
+    if (bcrf_is_owner(($row['role'] ?? '')) && bcrf_mfa_required_admin($pdo)) return 'setup';
     return '';
 }
 

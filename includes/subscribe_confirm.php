@@ -92,15 +92,15 @@ if (!function_exists('bcrf_subconf_token')) {
         $listHtml = $lists ? '<p style="margin:0 0 16px;">You chose: ' . implode(' and ', $lists) . '.</p>' : '';
 
         $inner = '<h1 style="font-family:Rye,Georgia,serif;color:#e8b84b;font-size:24px;margin:0 0 14px;">One more step</h1>'
-            . '<p style="margin:0 0 16px;">Tap the button below to confirm you want Bat Cave Road Farm updates at this address.</p>'
+            . '<p style="margin:0 0 16px;">Tap the button below to confirm you want ' . htmlspecialchars(bcrf_farm_name()) . ' updates at this address.</p>'
             . $listHtml
             . '<p style="margin:0 0 24px;"><a href="' . htmlspecialchars($url, ENT_QUOTES) . '" style="display:inline-block;background:#c9923a;color:#3b2010;font-family:Lora,Georgia,serif;font-weight:bold;text-decoration:none;padding:13px 28px;border-radius:8px;">Yes, sign me up</a></p>'
             . '<p style="margin:0;font-size:14px;color:rgba(245,234,214,0.8);">This link works for 7 days. If you didn\'t sign up, ignore this email and you won\'t hear from us.</p>';
 
-        return bcf_send_mail($email, 'Please confirm your Bat Cave Road Farm signup', $inner, [
+        return bcf_send_mail($email, 'Please confirm your ' . bcrf_farm_name() . ' signup', $inner, [
             'subtitle'   => 'Confirm Signup',
             'from_email' => (bcrf_farm_email('support')),
-            'text'       => "Confirm your Bat Cave Road Farm signup (link works for 7 days):\r\n{$url}\r\n\r\nIf you didn't sign up, ignore this email.",
+            'text'       => "Confirm your " . bcrf_farm_name() . " signup (link works for 7 days):\r\n{$url}\r\n\r\nIf you didn't sign up, ignore this email.",
         ]);
     }
 }

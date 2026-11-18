@@ -33,7 +33,7 @@ if ($alert = bcrf_social_token_alert($s)) {
     bcrf_social_token_save($s);   // remember today's alert so it isn't repeated
     [$subject, $msg] = $alert;
     if (function_exists('bcf_send_mail') && defined('BCRF_STOCK_ALERT_TO') && BCRF_STOCK_ALERT_TO !== '') {
-        bcf_send_mail(BCRF_STOCK_ALERT_TO, 'Bat Cave Road Farm: ' . $subject,
+        bcf_send_mail(BCRF_STOCK_ALERT_TO, bcrf_farm_name() . ': ' . $subject,
             '<h1 style="font-family:Rye,Georgia,serif;color:#e8b84b;font-size:22px;margin:0 0 14px;">' . htmlspecialchars($subject) . '</h1>'
             . '<p style="margin:0 0 12px;">' . htmlspecialchars($msg) . '</p>'
             . ('<p style="margin:0;"><a href="' . bcrf_farm_url() . '/admin/admin.php?view=social" style="color:#e8b84b;">Open the Social Queue</a></p>'),

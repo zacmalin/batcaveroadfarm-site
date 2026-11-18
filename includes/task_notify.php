@@ -14,6 +14,7 @@
 //                  open Tasks. Managers = Owners plus anyone with the Tasks › manage permission.
 //   Opt out        task_user_prefs (My tasks › Email me): morning list and late emails, each on by default.
 // Uses includes/tasks.php and bcf_send_mail() (admin/includes/email_template.php).
+if (!function_exists('bcrf_is_owner')) require_once __DIR__ . '/roles.php';   // bcrf_is_owner() (Nov 18, 2026)
 if (!function_exists('bcrf_task_digest_run')) {
 
 require_once __DIR__ . '/tasks.php';
@@ -29,7 +30,7 @@ function bcrf_task_setting_int(PDO $pdo, string $key, int $default): int {
 
 /** Can this role open a view? Same rule as hasViewAccess() (Owners always), without needing the console loaded. */
 function bcrf_task_role_can(PDO $pdo, string $role, string $view): bool {
-    if ($role === 'administrator') return true;
+    if (bcrf_is_owner($role)) return true;
     if ($role === '' || $role === 'user') return false;
     static $cache = [];
     $k = $role . '|' . $view;
@@ -145,7 +146,7 @@ function bcrf_task_digest_run(PDO $pdo): array {
         $list = bcrf_task_open_for($pdo, $u, $today);
         $late = array_values(array_filter($list, fn($t) => $t['due_date'] < $today));
         $now  = array_values(array_filter($list, fn($t) => $t['due_date'] === $today));
-        $probs = (string)$u['role'] === 'administrator' ? bcrf_owner_problems($pdo, $u, $today) : [];
+        $probs = bcrf_is_owner((string)$u['role']) ? bcrf_owner_problems($pdo, $u, $today) : [];
         if (!$list && !$probs) { $res['empty']++; continue; }
         $html = '<p style="margin:0 0 14px;">Good morning' . ($u['first_name'] ? ', ' . $h($u['first_name']) : '') . '. Here is what is on the list for '
               . $h(date('l, F j', strtotime($today))) . '.</p>';

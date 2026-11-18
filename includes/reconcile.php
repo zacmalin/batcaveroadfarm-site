@@ -65,10 +65,8 @@ function bcrf_p2p_counts(PDO $pdo): array {
 }
 
 /** Farm-local today (Y-m-d). */
-function bcrf_farm_today(): string {
-    $tz = new DateTimeZone(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
-    return (new DateTimeImmutable('now', $tz))->format('Y-m-d');
-}
+if (!function_exists('bcrf_tz')) require_once __DIR__ . '/farm_helpers.php';   // one farm time zone / today / money (Nov 18, 2026)
+function bcrf_farm_today(): string { return bcrf_today(); }
 
 /** One day's P2P status for the daily sales report: [tender => [n, cents, matched_n, flagged rows]]. */
 function bcrf_p2p_day(PDO $pdo, string $date): array {

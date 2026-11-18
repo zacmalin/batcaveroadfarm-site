@@ -1,4 +1,5 @@
 <?php // includes/backup_offsite.php
+if (!function_exists('bcrf_farm_name')) require_once __DIR__ . '/farm.php';   // farm name from Settings (Nov 18, 2026)
 /*
  * Encrypted backup archives + off-site copies to Google Drive (Nov 2026).
  *
@@ -320,7 +321,7 @@ function bcrf_backup_offsite(string $zipPath, string $prefix, int $keep): array 
 function bcrf_backup_alert(string $subject, string $headline, string $detail): void {
     error_log('[backup] ' . $subject . ': ' . $detail);
     if (function_exists('bcf_send_mail') && defined('BCRF_STOCK_ALERT_TO') && BCRF_STOCK_ALERT_TO !== '') {
-        @bcf_send_mail(BCRF_STOCK_ALERT_TO, 'Bat Cave Road Farm: ' . $subject,
+        @bcf_send_mail(BCRF_STOCK_ALERT_TO, bcrf_farm_name() . ': ' . $subject,
             '<h1 style="font-family:Rye,Georgia,serif;color:#e8b84b;font-size:22px;margin:0 0 14px;">' . htmlspecialchars($headline) . '</h1>'
             . '<p style="margin:0 0 12px;">' . date('M j, Y g:i A') . '</p>'
             . '<p style="margin:0;font-family:monospace;font-size:13px;">' . htmlspecialchars($detail) . '</p>',

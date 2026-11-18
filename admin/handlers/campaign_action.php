@@ -47,7 +47,7 @@ function redirect_exit(string $msg, string $type): never {
 
 // ── VALIDATE INPUTS ───────────────────────────────────────────────────────────
 $subject    = trim($_POST['subject']    ?? '');
-$from_name  = trim($_POST['from_name']  ?? 'Bat Cave Road Farm');
+$from_name  = trim($_POST['from_name']  ?? bcrf_farm_name());
 $reply_to   = trim($_POST['reply_to']   ?? '');
 $segment    = trim($_POST['segment']    ?? 'all');
 $body_html  = trim($_POST['body_html']  ?? '');

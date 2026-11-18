@@ -1,5 +1,6 @@
 <?php
 // admin/views/layout/sidebar.php
+if (!function_exists('bcrf_farm_name')) require_once dirname(__DIR__, 3) . '/includes/farm.php';   // farm name from Settings (Nov 18, 2026)
 // Farm OS navigation — 02 Navigation & UX (V4 decisions, Nov 5 2026).
 // Desktop ≥1200px: sectioned, permission-gated sidebar. Tablet 768–1199px: same sidebar, defaults to icon rail.
 // Phone <768px: sidebar hidden; bottom bar (4 shortcuts + More) and a More sheet with every section.
@@ -188,7 +189,7 @@ $_badge = fn(int $n): string => $n > 0
   <a href="/admin/admin.php?view=dashboard"
      class="sb-brand block px-5 py-4 border-b border-stone-700 hover:bg-stone-800 transition shrink-0">
     <div class="sb-brand-full">
-      <div class="font-serif font-black text-sm text-white leading-snug">Bat Cave Road Farm</div>
+      <div class="font-serif font-black text-sm text-white leading-snug"><?= htmlspecialchars(bcrf_farm_name(), ENT_QUOTES) ?></div>
       <div class="text-[9px] font-mono text-stone-500 uppercase tracking-widest mt-0.5">Farm OS</div>
     </div>
     <div class="sb-brand-mark text-lg">🐐</div>
@@ -299,7 +300,7 @@ $_badge = fn(int $n): string => $n > 0
     <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-stone-600"></div>
     <div class="flex items-center justify-between gap-2 mb-2">
       <div>
-        <div class="font-serif font-black text-sm text-white">Bat Cave Road Farm</div>
+        <div class="font-serif font-black text-sm text-white"><?= htmlspecialchars(bcrf_farm_name(), ENT_QUOTES) ?></div>
         <div class="text-[9px] font-mono text-stone-500 uppercase tracking-widest"><?= $_h(bcrf_role_label($_role)) ?></div>
       </div>
       <div class="flex items-center gap-2">

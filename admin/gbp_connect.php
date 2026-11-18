@@ -1,4 +1,5 @@
 <?php // admin/gbp_connect.php
+if (!function_exists('bcrf_farm_name')) require_once dirname(__DIR__) . '/includes/farm.php';   // farm name from Settings (Nov 18, 2026)
 /*
  * Google Business Profile connection (Nov 2026). Administrators only.
  * Sign in once with the Google account that manages the profile, pick the farm's location,
@@ -91,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $locId  = $digits(preg_replace('#^accounts/\d+/#', '', $raw), 'locations');
         $acctId = $digits((string)($_POST['account_id'] ?? ''), 'accounts');
         if ($acctId === '' && preg_match('#^accounts/(\d+)/locations/#', $raw, $m)) $acctId = $m[1];
-        $title  = trim(strip_tags((string)($_POST['title'] ?? ''))) ?: 'Bat Cave Road Farm';
+        $title  = trim(strip_tags((string)($_POST['title'] ?? ''))) ?: bcrf_farm_name();
         if ($locId === '') $go('Enter the Business Profile ID (numbers only).');
         try {
             $tried = [];
@@ -167,7 +168,7 @@ $h    = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
       <p class="meta" style="margin:6px 0 10px">Business Profile ID: search the farm's name on Google (signed in) → <em>Edit profile</em> → ⋮ → <em>Business Profile settings</em> → <em>Advanced settings</em>. Leave the account ID blank and the site will try to find it.</p>
       <label class="meta">Business Profile ID<br><input name="location_id" inputmode="numeric" required style="width:100%;padding:8px;font:inherit;border:1px solid #ccc;border-radius:8px"></label><br>
       <label class="meta">Account ID (optional)<br><input name="account_id" inputmode="numeric" style="width:100%;padding:8px;font:inherit;border:1px solid #ccc;border-radius:8px"></label><br>
-      <label class="meta">Name to show<br><input name="title" value="Bat Cave Road Farm" style="width:100%;padding:8px;font:inherit;border:1px solid #ccc;border-radius:8px"></label>
+      <label class="meta">Name to show<br><input name="title" value="<?= htmlspecialchars(bcrf_farm_name(), ENT_QUOTES) ?>" style="width:100%;padding:8px;font:inherit;border:1px solid #ccc;border-radius:8px"></label>
       <button style="margin-top:10px">Save IDs</button>
     </form>
   <?php elseif (!$locs): ?>

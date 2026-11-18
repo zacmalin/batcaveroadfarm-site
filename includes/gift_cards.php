@@ -65,7 +65,8 @@ function bcrf_gc_url(string $code): string {
     if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/farm.php';
     return bcrf_farm_url('/gift-cards/card.php?g=' . rawurlencode($code));
 }
-function bcrf_gc_money(int $c): string { return ($c < 0 ? '-$' : '$') . number_format(abs($c) / 100, 2); }
+if (!function_exists('bcrf_tz')) require_once __DIR__ . '/farm_helpers.php';   // one farm time zone / today / money (Nov 18, 2026)
+function bcrf_gc_money(int $c): string { return bcrf_money($c); }
 
 // -- Reading --
 

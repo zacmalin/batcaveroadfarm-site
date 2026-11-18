@@ -15,6 +15,11 @@ function bcrf_role_labels(): array {
     ];
 }
 
+/** True for the Owner role (stored key 'administrator'). Use this instead of comparing the key by hand (Nov 18, 2026). */
+function bcrf_is_owner(?string $role): bool {
+    return $role === 'administrator';
+}
+
 /** Display name for a role key; unknown keys come back unchanged. */
 function bcrf_role_label(?string $role): string {
     $role = (string)$role;

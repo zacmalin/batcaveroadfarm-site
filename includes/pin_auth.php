@@ -1,4 +1,5 @@
 <?php // includes/pin_auth.php
+if (!function_exists('bcrf_is_owner')) require_once __DIR__ . '/roles.php';   // bcrf_is_owner() (Nov 18, 2026)
 /*
  * PIN sign-in on shared devices, and manager approval by PIN (Farm OS spec 03; Nov 13, 2026; migration 0058).
  *
@@ -205,7 +206,7 @@ function bcrf_pin_session_start(array $u, array $device): void {
 
 /** Can this role open the register or the gate? Same rules as require_permission() on those pages. */
 function bcrf_pin_can_open(string $role, string $to): bool {
-    if ($role === 'administrator') return true;
+    if (bcrf_is_owner($role)) return true;
     if (!function_exists('hasViewAccess')) require_once __DIR__ . '/../admin/includes/permission_checks.php';
     if (hasViewAccess($role, 'pos')) return true;
     return $to === 'gate' && hasViewAccess($role, 'passes');

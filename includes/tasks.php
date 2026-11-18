@@ -15,6 +15,7 @@
 //             Morning list and late-task emails: includes/task_notify.php.
 //
 // Screens: admin/tasks.php, admin/task_photo.php. Nightly: admin/cron/generate_tasks.php. Dashboard: bcrf_tasks_counts().
+if (!function_exists('bcrf_is_owner')) require_once __DIR__ . '/roles.php';   // bcrf_is_owner() (Nov 18, 2026)
 if (!function_exists('bcrf_tasks_ready')) {
 
 class BcrfTaskError extends RuntimeException {}
@@ -44,10 +45,8 @@ function bcrf_tasks_v2(PDO $pdo): bool {
     catch (Throwable $e) { return $ok[$k] = false; }
 }
 
-function bcrf_tasks_tz(): DateTimeZone {
-    try { return new DateTimeZone(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York'); }
-    catch (Throwable $e) { return new DateTimeZone('America/New_York'); }
-}
+if (!function_exists('bcrf_tz')) require_once __DIR__ . '/farm_helpers.php';   // one farm time zone / today / money (Nov 18, 2026)
+function bcrf_tasks_tz(): DateTimeZone { return bcrf_tz(); }
 
 /** Today on the farm, Y-m-d. Tests can pin it with $GLOBALS['bcrf_tasks_today']. */
 function bcrf_tasks_today(): string {
@@ -62,7 +61,7 @@ function bcrf_tasks_add_days(string $date, int $n): string {
 /** Owner or Manager: edit chores and checklists, see and change everyone's tasks. */
 function bcrf_tasks_is_manager(): bool {
     $r = (string)($_SESSION['user_role'] ?? '');
-    if ($r === 'administrator') return true;
+    if (bcrf_is_owner($r)) return true;
     return function_exists('hasViewAccess') ? hasViewAccess($r, 'tasks_manage') : $r === 'moderator';
 }
 

@@ -8,6 +8,7 @@
 // thank-yous" email setting (includes/email_prefs.php). Each party is claimed before sending (reminder_sent_at /
 // thank_you_sent_at, UTC), so two overlapping cron runs can't send twice, and a bad address isn't retried every hour.
 // Once a waiver is published (includes/waivers.php), the reminder links to it when the host hasn't signed one.
+if (!function_exists('bcrf_farm_name')) require_once __DIR__ . '/farm.php';   // farm name from Settings (Nov 18, 2026)
 if (!function_exists('bcrf_party_emails_ready')) {
 
 if (!function_exists('bcrf_holds_day_hours')) require_once __DIR__ . '/capacity_holds.php';
@@ -83,7 +84,7 @@ function bcrf_party_reminder_email(PDO $pdo, array $inq): array {
         . '<p style="color:#e8d5b0;">Running late or need to change something? Just reply to this email.</p>'
         . '<p style="color:#e8d5b0;">' . $h(bcrf_quote_signoff()) . '</p>'
         . bcrf_email_prefs_footer($pdo, (string)$inq['email'], 'visit reminders and thank-yous', 'you booked a party with us');
-    return ['Reminder: your party tomorrow at Bat Cave Road Farm', $inner];
+    return ['Reminder: your party tomorrow at ' . bcrf_farm_name(), $inner];
 }
 
 /** "Sign the waiver ahead of time" with a link, when waivers are published and this email hasn't signed one ('' otherwise). */
@@ -110,7 +111,7 @@ function bcrf_party_thank_you_email(PDO $pdo, array $inq): array {
         . '<p style="color:#e8d5b0;">Anything we could do better? Just reply to this email.</p>'
         . '<p style="color:#e8d5b0;">' . $h(bcrf_quote_signoff()) . '</p>'
         . bcrf_email_prefs_footer($pdo, (string)$inq['email'], 'visit reminders and thank-yous', 'you booked a party with us');
-    return ['Thanks for celebrating at Bat Cave Road Farm', $inner];
+    return ['Thanks for celebrating at ' . bcrf_farm_name(), $inner];
 }
 
 /**

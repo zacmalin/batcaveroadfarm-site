@@ -126,7 +126,7 @@ function bcrf_pin_permalink(string $type, array $r): string {
  * tags), alt (≤500), board_key, kicker (image line above the title), photo (stored URL), focus_y.
  */
 function bcrf_pin_copy(string $type, array $r): array {
-    $farm = 'Bat Cave Road Farm';
+    $farm = bcrf_farm_name();
     if ($type === 'recipe') {
         $title = bcrf_pin_clip(bcrf_pin_text($r['title']), 100);
         $parts = [];

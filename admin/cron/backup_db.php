@@ -1,4 +1,5 @@
 <?php
+if (!function_exists('bcrf_farm_name')) require_once dirname(__DIR__, 2) . '/includes/farm.php';   // farm name from Settings (Nov 18, 2026)
 /**
  * admin/cron/backup_db.php — nightly database backup (fix pack K).
  *
@@ -49,7 +50,7 @@ function bcrf_backup_fail(string $why): void
     fwrite(STDERR, "backup_db FAILED: {$why}\n");
     error_log('[backup_db] ' . $why);
     if (function_exists('bcf_send_mail') && defined('BCRF_STOCK_ALERT_TO') && BCRF_STOCK_ALERT_TO !== '') {
-        @bcf_send_mail(BCRF_STOCK_ALERT_TO, 'Bat Cave Road Farm: database backup FAILED',
+        @bcf_send_mail(BCRF_STOCK_ALERT_TO, bcrf_farm_name() . ': database backup FAILED',
             '<h1 style="font-family:Rye,Georgia,serif;color:#e8b84b;font-size:22px;margin:0 0 14px;">Nightly backup failed</h1>'
             . '<p style="margin:0 0 12px;">The database backup on ' . date('M j, Y g:i A') . ' did not complete.</p>'
             . '<p style="margin:0;font-family:monospace;font-size:13px;">' . htmlspecialchars($why) . '</p>',
@@ -128,7 +129,7 @@ function bcrf_dump_with_php(PDO $pdo, string $file): void
         return $pdo->quote($v);
     };
 
-    $w("-- Bat Cave Road Farm database backup (PHP exporter)\n-- " . date('c') . "\n\n");
+    $w("-- " . (function_exists('bcrf_farm_name') ? bcrf_farm_name() : 'Farm') . " database backup (PHP exporter)\n-- " . date('c') . "\n\n");
     $w("SET NAMES utf8mb4;\nSET FOREIGN_KEY_CHECKS=0;\nSET SQL_MODE='NO_AUTO_VALUE_ON_ZERO';\n\n");
 
     $tables = $pdo->query('SHOW FULL TABLES')->fetchAll(PDO::FETCH_NUM);

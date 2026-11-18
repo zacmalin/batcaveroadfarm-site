@@ -150,7 +150,7 @@ if ($passId > 0) {
             require_once __DIR__ . '/../../includes/nc_warning.php';
             $inner .= bcrf_nc_warning_email_html();   // G.S. 99E-32 / 99E-8
             require_once __DIR__ . '/../../includes/queue.php';
-            $subject = 'Your Bat Cave Road Farm annual pass is active!';
+            $subject = 'Your ' . bcrf_farm_name() . ' annual pass is active!';
             $mailJob = bcrf_queue_push('email.send', [
                 'to' => $pass['email'], 'subject' => $subject, 'html' => $inner,
                 'opts' => ['subtitle' => 'Annual Pass'],

@@ -28,7 +28,8 @@ function bcrf_expenses_can(): bool {
 
 function bcrf_expense_today(): string { return function_exists('bcrf_tasks_today') ? bcrf_tasks_today() : date('Y-m-d'); }
 
-function bcrf_expense_tz(): DateTimeZone { return new DateTimeZone(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York'); }
+if (!function_exists('bcrf_tz')) require_once __DIR__ . '/farm_helpers.php';   // one farm time zone / today / money (Nov 18, 2026)
+function bcrf_expense_tz(): DateTimeZone { return bcrf_tz(); }
 
 function bcrf_expense_date(string $v, string $what = 'date'): string {
     $v = trim($v);

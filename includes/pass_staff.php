@@ -5,12 +5,13 @@
 // whose role can use the POS or the Annual Passes screen in the Permissions Matrix.
 // Administrators always can. Used by passes/verify.php and passes/log_visit.php.
 // Needs admin/includes/permission_checks.php (hasViewAccess) and global $pdo.
+if (!function_exists('bcrf_is_owner')) require_once __DIR__ . '/roles.php';   // bcrf_is_owner() (Nov 18, 2026)
 
 if (!function_exists('bcrf_pass_can_log')) {
     function bcrf_pass_can_log(): bool {
         if (session_status() !== PHP_SESSION_ACTIVE || empty($_SESSION['user_id'])) return false;
         $role = (string)($_SESSION['user_role'] ?? '');
-        if ($role === 'administrator') return true;
+        if (bcrf_is_owner($role)) return true;
         if (!in_array($role, ['moderator', 'Shopkeep', 'Media'], true)) return false;
         if (!function_exists('hasViewAccess')) require_once dirname(__DIR__) . '/admin/includes/permission_checks.php';
         return hasViewAccess($role, 'passes') || hasViewAccess($role, 'pos');

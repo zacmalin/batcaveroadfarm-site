@@ -1,5 +1,6 @@
 <?php
 // admin/views/schema.php — generic record list + editor (Blog, Recipes, Catalog, Animals, Kitchen reference, Users…).
+if (!function_exists('bcrf_farm_name')) require_once dirname(__DIR__, 2) . '/includes/farm.php';   // farm name from Settings (Nov 18, 2026)
 // Phone (Nov 5, 2026, 02 Navigation & UX): list and form are separate screens; sticky Save; drafts kept on the device.
 // Fix 1: whitelist $target_table before ANY query touches it
 if (empty($target_table) || !in_array($target_table, $system_tables)) return;
@@ -2206,7 +2207,7 @@ function makeRiCombo(idx, ref, label){
     </div>
     <div class="article-wrap">
         <h1 class="post-title">${safeTitle}</h1>
-        <div class="post-meta">Bat Cave Road Farm &bull; Journal</div>
+        <div class="post-meta"><?= htmlspecialchars(bcrf_farm_name(), ENT_QUOTES) ?> &bull; Journal</div>
         <div class="post-body">${bodyHtml}</div>
     </div>
 </body>

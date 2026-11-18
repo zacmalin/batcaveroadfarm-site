@@ -6,6 +6,7 @@
 // (editing ingredients or recipes, the 'incidents' view). Mirrors the Dashboard's Action Center alerts.
 // Cached in the session for 60 seconds so the menu stays fast; a fix can take up to a minute to clear the badge.
 // Used by admin/views/layout/sidebar.php. Returns [tab link exactly as in the sidebar => ['n' => count, 'title' => text]].
+if (!function_exists('bcrf_is_owner')) require_once __DIR__ . '/roles.php';   // bcrf_is_owner() (Nov 18, 2026)
 
 if (!function_exists('bcrf_nav_badges')) {
 
@@ -28,7 +29,7 @@ function bcrf_nav_badges_clear(): void { unset($_SESSION['bcrf_nav_badges']); }
 
 function bcrf_nav_badges_compute(PDO $pdo, string $role, callable $can, callable $tableEdit): array {
     $inc = dirname(__DIR__) . '/includes/';
-    $isAdmin = $role === 'administrator';
+    $isAdmin = bcrf_is_owner($role);
     $out = [];
     $set = function (string $href, int $n, string $title) use (&$out) { if ($n > 0) $out[$href] = ['n' => $n, 'title' => $title]; };
     $try = function (string $what, callable $f) {

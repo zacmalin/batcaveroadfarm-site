@@ -32,9 +32,8 @@ function bcrf_quotes_ready(PDO $pdo): bool {
     catch (Throwable $e) { return false; }
 }
 
-function bcrf_quote_money(int $cents): string {
-    return ($cents < 0 ? '-' : '') . '$' . number_format(abs($cents) / 100, 2);
-}
+if (!function_exists('bcrf_tz')) require_once __DIR__ . '/farm_helpers.php';   // one farm time zone / today / money (Nov 18, 2026)
+function bcrf_quote_money(int $cents): string { return bcrf_money($cents); }
 
 /** "12.50" / "$12" / "12" → cents; null if it isn't a money amount. */
 function bcrf_quote_parse_cents($v): ?int {

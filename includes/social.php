@@ -140,7 +140,7 @@ if (!function_exists('social_compose')) {
         $blurb = social_excerpt($rec);
 
         if ($type === 'animal') {
-            $lead = "🐐 Meet {$title}, the newest member of the Bat Cave Road Farm family!";
+            $lead = "🐐 Meet {$title}, the newest member of the " . bcrf_farm_name() . " family!";
             $fb = $lead;
             if ($blurb !== '') $fb .= "\n\n{$blurb}";
             $fb .= "\n\nCome say hi — we're open Tuesday–Sunday, 10AM–4PM.\n\n{$url}";

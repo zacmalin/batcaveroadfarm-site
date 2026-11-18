@@ -16,7 +16,8 @@ if (!function_exists('bcrf_events_ensure_schema')) {
 }
 
 if (!function_exists('bcrf_event_tz')) {
-    function bcrf_event_tz(): DateTimeZone { return new DateTimeZone((function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York')); }   // farm time zone setting
+if (!function_exists('bcrf_tz')) require_once __DIR__ . '/farm_helpers.php';   // one farm time zone / today / money (Nov 18, 2026)
+    function bcrf_event_tz(): DateTimeZone { return bcrf_tz(); }   // farm time zone setting
 }
 
 if (!function_exists('bcrf_event_iso')) {
@@ -92,7 +93,7 @@ if (!function_exists('bcrf_event_schema')) {
             'url'                 => bcrf_event_anchor($ev),
             'location'            => [
                 '@type'   => 'Place',
-                'name'    => 'Bat Cave Road Farm',
+                'name'    => bcrf_farm_name(),
                 'address' => [
                     '@type'           => 'PostalAddress',
                     'streetAddress'   => $bcrfAddr['street'],
@@ -102,7 +103,7 @@ if (!function_exists('bcrf_event_schema')) {
                     'addressCountry'  => $bcrfAddr['country'],
                 ],
             ],
-            'organizer' => ['@type' => 'Organization', '@id' => (bcrf_farm_url() . '/#business'), 'name' => 'Bat Cave Road Farm', 'url' => (bcrf_farm_url() . '/')],
+            'organizer' => ['@type' => 'Organization', '@id' => (bcrf_farm_url() . '/#business'), 'name' => bcrf_farm_name(), 'url' => (bcrf_farm_url() . '/')],
         ];
         $ed = bcrf_event_iso($ev['end_datetime'] ?? '', $allDay);
         if ($ed !== null) $node['endDate'] = $ed;

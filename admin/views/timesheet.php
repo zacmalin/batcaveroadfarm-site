@@ -279,7 +279,7 @@ if (!empty($_GET['print'])) {
 </head>
 <body>
 <div class="hd">
-    <div><h1>Bat Cave Road Farm — Staff Timesheet</h1></div>
+    <div><h1><?php if (!function_exists('bcrf_farm_name')) require_once dirname(__DIR__, 2) . '/includes/farm.php'; ?><?= htmlspecialchars(bcrf_farm_name(), ENT_QUOTES) ?> — Staff Timesheet</h1></div>
     <div class="meta">
         <?= $print_from ?> — <?= $print_to ?><br>
         <?= count($ts_shifts) ?> shift<?= count($ts_shifts) !== 1 ? 's' : '' ?> &bull; <?= pf_dur($total_secs_p) ?> total<br>

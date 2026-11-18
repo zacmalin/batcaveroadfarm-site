@@ -65,10 +65,8 @@ function bcrf_ticket_code_fmt(string $c): string { return substr($c, 0, 4) . '-'
 function bcrf_ticket_code_norm(string $s): string { return strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $s)); }
 
 function bcrf_utc_now(): string { return gmdate('Y-m-d H:i:s'); }
-function bcrf_business_date(): string {
-    $tz = new DateTimeZone(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
-    return (new DateTimeImmutable('now', $tz))->format('Y-m-d');
-}
+if (!function_exists('bcrf_tz')) require_once __DIR__ . '/farm_helpers.php';   // one farm time zone / today / money (Nov 18, 2026)
+function bcrf_business_date(): string { return bcrf_today(); }
 function bcrf_adm_local(?string $utc, string $fmt = 'g:i A'): string {
     if (!$utc) return '';
     $tz = new DateTimeZone(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');

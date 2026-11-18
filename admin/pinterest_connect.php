@@ -1,4 +1,5 @@
 <?php // admin/pinterest_connect.php
+if (!function_exists('bcrf_farm_name')) require_once dirname(__DIR__) . '/includes/farm.php';   // farm name from Settings (Nov 18, 2026)
 /*
  * Settings › Pinterest (Part B, Nov 2026). Administrators only. This address is the OAuth redirect URI registered
  * in the Pinterest app: https://admin.batcaveroadfarm.com/pinterest_connect.php
@@ -95,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tables) {
     if ($do === 'create_board') {
         $k = ($_POST['key'] ?? '') === 'animals' ? 'animals' : 'recipes';
         $name = bcrf_pin_board_names($pdo)[$k];
-        $desc = $k === 'recipes' ? 'Farmhouse recipes from Bat Cave Road Farm in Old Fort, NC.' : 'Meet the animals at the Bat Cave Road Farm petting zoo in Old Fort, NC.';
+        $desc = $k === 'recipes' ? 'Farmhouse recipes from ' . bcrf_farm_name() . '.' : 'Meet the animals at the ' . bcrf_farm_name() . ' petting zoo.';
         try {
             if (in_array($name, bcrf_pinapi_boards($pdo), true)) $go('A board called ' . $name . ' already exists.');
             $id = bcrf_pinapi_create_board($pdo, $name, $desc);

@@ -194,13 +194,13 @@ if (!function_exists('jobs_app_find')) {
         $fmt   = fn(DateTime $d) => (clone $d)->setTimezone($utc)->format('Ymd\THis\Z');
         $esc   = fn(string $s) => str_replace(["\\", ";", ",", "\r\n", "\n"], ["\\\\", "\\;", "\\,", "\\n", "\\n"], $s);
         $lines = [
-            'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Bat Cave Road Farm//Jobs//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+            'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//' . bcrf_farm_name() . '//Jobs//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
             'BEGIN:VEVENT',
             'UID:interview-' . (int)$app['id'] . '-' . $start->format('YmdHi') . ('@' . bcrf_farm_domain()),
             'DTSTAMP:' . gmdate('Ymd\THis\Z'),
             'DTSTART:' . $fmt($start),
             'DTEND:' . $fmt($end),
-            'SUMMARY:' . $esc('Interview at Bat Cave Road Farm — ' . ($app['job_title'] ?? 'job')),
+            'SUMMARY:' . $esc('Interview at ' . bcrf_farm_name() . ' — ' . ($app['job_title'] ?? 'job')),
             'LOCATION:' . $esc($location),
             'DESCRIPTION:' . $esc('Interview for ' . ($app['job_title'] ?? 'the job') . '. Need a different time? Reply to the email or call the farm.'),
             'END:VEVENT', 'END:VCALENDAR',

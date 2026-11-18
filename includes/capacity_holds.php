@@ -30,7 +30,8 @@ function bcrf_holds_ready(PDO $pdo): bool {
     } catch (Throwable $e) { return $ready[$k] = false; }
 }
 
-function bcrf_holds_tz(): DateTimeZone { return new DateTimeZone(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York'); }
+if (!function_exists('bcrf_tz')) require_once __DIR__ . '/farm_helpers.php';   // one farm time zone / today / money (Nov 18, 2026)
+function bcrf_holds_tz(): DateTimeZone { return bcrf_tz(); }
 
 /** Farm-local date + time → UTC 'Y-m-d H:i:s'. */
 function bcrf_holds_utc(string $date, string $time): string {

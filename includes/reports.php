@@ -27,9 +27,8 @@ function bcrf_rpt_day_columns(): array {
             'online_ticket_orders', 'online_ticket_guests', 'online_ticket_sales', 'visits', 'visitors', 'peak_occupancy'];
 }
 
-function bcrf_rpt_tz(): DateTimeZone {
-    return new DateTimeZone(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
-}
+if (!function_exists('bcrf_tz')) require_once __DIR__ . '/farm_helpers.php';   // one farm time zone / today / money (Nov 18, 2026)
+function bcrf_rpt_tz(): DateTimeZone { return bcrf_tz(); }
 
 /** [UTC start, UTC end) for farm-local dates $from..$to inclusive. */
 function bcrf_rpt_utc_range(string $from, string $to): array {

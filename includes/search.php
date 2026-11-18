@@ -12,6 +12,7 @@
 //       / $can(['pinrole']) / $can(['and', [check, check]])  →  bool
 //   $me = ['id' => user id, 'role' => role]  (who is searching; only used to limit Tasks for non-managers)
 // Page: admin/search.php. Nothing searched is stored on the server (02: no server-side search history).
+if (!function_exists('bcrf_is_owner')) require_once __DIR__ . '/roles.php';   // bcrf_is_owner() (Nov 18, 2026)
 
 if (!function_exists('bcrf_search')) {
 
@@ -71,7 +72,7 @@ function bcrf_search_allowed(array $anyOf, callable $can): bool {
 /** The standard $can for the signed-in staff member (needs admin/includes/permission_checks.php loaded). */
 function bcrf_search_can_for(string $role): callable {
     return function (array $c) use ($role): bool {
-        if ($role === 'administrator') return true;
+        if (bcrf_is_owner($role)) return true;
         if ($role === '' || $role === 'user') return false;
         $type = $c[0] ?? '';
         if ($type === 'always') return true;
@@ -101,7 +102,8 @@ function bcrf_search_rows(PDO $pdo, string $sql, array $args): array {
     catch (Throwable $e) { $GLOBALS['bcrf_search_query_failed'] = true; error_log('[search] ' . $e->getMessage()); return []; }   // a module not installed yet
 }
 
-function bcrf_search_money(int $c): string { return '$' . number_format($c / 100, 2); }
+if (!function_exists('bcrf_tz')) require_once __DIR__ . '/farm_helpers.php';   // one farm time zone / today / money (Nov 18, 2026)
+function bcrf_search_money(int $c): string { return bcrf_money($c); }
 
 /** About 70 characters of $text around the first match of $q, on one line ('' when it isn't there). */
 function bcrf_search_snip(?string $text, string $q, int $width = 70): string {

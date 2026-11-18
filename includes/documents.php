@@ -13,6 +13,7 @@
 // Nov 14, 2026 (later; migration 0067): papers on a vendor (insurance certificate, W-9, contract) or an animal (vet record,
 // registration papers), with an optional expiry date; the bell warns 30 days before (includes/notifications.php).
 // Vendor papers: the same people as vendors (inventory edit). Animal papers: anyone who can open animals.
+if (!function_exists('bcrf_is_owner')) require_once __DIR__ . '/roles.php';   // bcrf_is_owner() (Nov 18, 2026)
 if (!function_exists('bcrf_docs_ready')) {
 
 if (!defined('BCRF_DOC_MAX_BYTES')) define('BCRF_DOC_MAX_BYTES', 20 * 1024 * 1024);
@@ -85,24 +86,24 @@ function bcrf_doc_expiring(PDO $pdo, ?string $today = null, int $limit = 100): a
 // ── Who can do what ──────────────────────────────────────────────────────────────────────────────
 
 function bcrf_doc_role(): string { return (string)($_SESSION['user_role'] ?? ''); }
-function bcrf_doc_is_owner(): bool { return bcrf_doc_role() === 'administrator'; }
+function bcrf_doc_is_owner(): bool { return bcrf_is_owner(bcrf_doc_role()); }
 
 /** Receives, orders, other expenses, the Inbox: the people who receive stock. */
 function bcrf_doc_can_stock(): bool {
     $r = bcrf_doc_role();
-    return $r === 'administrator' || (function_exists('hasTableAccess') && $r !== '' && hasTableAccess($r, 'inventory', 'edit'));
+    return bcrf_is_owner($r) || (function_exists('hasTableAccess') && $r !== '' && hasTableAccess($r, 'inventory', 'edit'));
 }
 
 /** Animal-expense receipts: same people who see animal costs. */
 function bcrf_doc_can_animal(): bool {
     $r = bcrf_doc_role();
-    return $r === 'administrator' || (function_exists('hasViewAccess') && $r !== '' && hasViewAccess($r, 'animal_expenses'));
+    return bcrf_is_owner($r) || (function_exists('hasViewAccess') && $r !== '' && hasViewAccess($r, 'animal_expenses'));
 }
 
 /** Animal papers (vet records, registration): anyone who can open animals. */
 function bcrf_doc_can_animal_papers(): bool {
     $r = bcrf_doc_role();
-    return $r === 'administrator' || (function_exists('hasTableAccess') && $r !== '' && hasTableAccess($r, 'animals'));
+    return bcrf_is_owner($r) || (function_exists('hasTableAccess') && $r !== '' && hasTableAccess($r, 'animals'));
 }
 
 function bcrf_doc_can_any(): bool { return bcrf_doc_can_stock() || bcrf_doc_can_animal() || bcrf_doc_can_animal_papers(); }
@@ -131,10 +132,8 @@ function bcrf_doc_visible_sql(): string {
 
 // ── Small helpers ────────────────────────────────────────────────────────────────────────────────
 
-function bcrf_doc_today(): string {
-    $tz = new DateTimeZone(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York');
-    return (new DateTimeImmutable('now', $tz))->format('Y-m-d');
-}
+if (!function_exists('bcrf_tz')) require_once __DIR__ . '/farm_helpers.php';   // one farm time zone / today / money (Nov 18, 2026)
+function bcrf_doc_today(): string { return bcrf_today(); }
 
 function bcrf_doc_fmt(?int $cents): string { return $cents === null ? '' : (($cents < 0 ? '-$' : '$') . number_format(abs($cents) / 100, 2)); }
 

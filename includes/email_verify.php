@@ -33,16 +33,16 @@ if (!function_exists('evf_issue')) {
             $link = (bcrf_farm_url() . '/account/verify.php?token=') . $token;
             $name = trim($firstName) !== '' ? trim($firstName) : 'there';
             $hrs  = (int)EVF_TTL_HOURS;
-            $subject = 'Confirm your email — Bat Cave Road Farm';
+            $subject = 'Confirm your email — ' . bcrf_farm_name();
             $inner = '<h1 style="font-family:Rye,Georgia,serif;color:#e8b84b;font-size:24px;margin:0 0 14px;">Confirm your email</h1>'
-                . '<p style="margin:0 0 16px;">Hi ' . htmlspecialchars($name) . ', thanks for creating a Bat Cave Road Farm account. Please confirm your email to finish setting things up.</p>'
+                . '<p style="margin:0 0 16px;">Hi ' . htmlspecialchars($name) . ', thanks for creating a ' . htmlspecialchars(bcrf_farm_name()) . ' account. Please confirm your email to finish setting things up.</p>'
                 . '<p style="margin:0 0 24px;"><a href="' . htmlspecialchars($link, ENT_QUOTES) . '" style="display:inline-block;background:#c9923a;color:#3b2010;font-family:Lora,Georgia,serif;font-weight:bold;text-decoration:none;padding:13px 28px;border-radius:8px;">Confirm my email</a></p>'
                 . '<p style="margin:0;font-size:14px;color:rgba(245,234,214,0.8);">This link expires in ' . $hrs . ' hours. If you didn\'t create an account, you can safely ignore this email.</p>';
             if (function_exists('bcf_send_mail')) {
                 return bcf_send_mail($email, $subject, $inner, ['subtitle' => 'Confirm Your Email']);
             }
-            $body = "Hi {$name},\r\n\r\nConfirm your email (expires in {$hrs} hours):\r\n{$link}\r\n\r\nIf you didn't create an account, you can safely ignore this email.\r\n— Bat Cave Road Farm\r\n";
-            $headers = ("From: Bat Cave Road Farm <" . bcrf_farm_email('noreply') . ">\r\nReply-To: " . bcrf_farm_email('noreply') . "\r\nContent-Type: text/plain; charset=UTF-8\r\n");
+            $body = "Hi {$name},\r\n\r\nConfirm your email (expires in {$hrs} hours):\r\n{$link}\r\n\r\nIf you didn't create an account, you can safely ignore this email.\r\n— " . bcrf_farm_name() . "\r\n";
+            $headers = ("From: " . bcrf_farm_name() . " <" . bcrf_farm_email('noreply') . ">\r\nReply-To: " . bcrf_farm_email('noreply') . "\r\nContent-Type: text/plain; charset=UTF-8\r\n");
             return @mail($email, $subject, $body, $headers, '-f' . bcrf_farm_email('noreply'));
         } catch (Throwable $e) {
             error_log('[evf_issue] ' . $e->getMessage());

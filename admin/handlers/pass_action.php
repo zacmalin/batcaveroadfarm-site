@@ -127,7 +127,7 @@ if ($action === 'issue') {
             . '<p style="margin:0 0 12px">Valid until <strong>' . date('F j, Y', strtotime('+' . max(1, (int)($pt['duration_months'] ?? 12)) . ' months')) . '</strong> — show the link below to staff at the gate.</p>'
             . '<p style="margin:0 0 18px;text-align:center"><a href="' . htmlspecialchars($verifyUrl, ENT_QUOTES) . '" style="display:inline-block;background:#c9923a;color:#3b2010;font-family:Lora,Georgia,serif;font-weight:bold;text-decoration:none;padding:13px 28px;border-radius:8px">View My Pass →</a></p>'
             . '<p style="font-size:.85rem;color:rgba(245,234,214,.8)">Bookmark this link or add it to your phone\'s home screen for instant gate access. We can\'t wait to see you at the farm!</p>';
-        @bcf_send_mail($email, 'Your Bat Cave Road Farm annual pass is active!', $inner, ['subtitle' => 'Annual Pass']);
+        @bcf_send_mail($email, 'Your ' . bcrf_farm_name() . ' annual pass is active!', $inner, ['subtitle' => 'Annual Pass']);
     }
 
     $_SESSION['toast_msg']  = 'Pass issued and email sent to ' . $email . '.';

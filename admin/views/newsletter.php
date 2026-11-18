@@ -122,7 +122,7 @@ $nlPct = ($nlActive && $nlTotalActive > 0) ? (int)round($nlSent / $nlTotalActive
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block font-bold text-stone-600 mb-1">From Name</label>
-                    <input type="text" name="from_name" value="Bat Cave Road Farm"
+                    <input type="text" name="from_name" value="<?= htmlspecialchars(bcrf_farm_name(), ENT_QUOTES) ?>"
                         class="w-full p-2 border border-stone-300 bg-stone-50 rounded font-medium" required>
                 </div>
                 <div>

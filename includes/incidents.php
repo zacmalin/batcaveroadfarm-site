@@ -8,6 +8,7 @@
 //   Never deleted. Every change after the report is written to incident_edits (and the audit log by the page).
 //   Seeing incidents needs the 'incidents' view (Owners always; Managers by default). Whoever reported one can
 //   always see their own report. Editing, adding to and closing need the view.
+if (!function_exists('bcrf_is_owner')) require_once __DIR__ . '/roles.php';   // bcrf_is_owner() (Nov 18, 2026)
 if (!function_exists('bcrf_incidents_ready')) {
 
 class BcrfIncidentError extends RuntimeException {}
@@ -32,13 +33,14 @@ function bcrf_incidents_ready(PDO $pdo): bool {
 /** Can this person see every incident (and change them)? */
 function bcrf_incidents_can(): bool {
     $role = (string)($_SESSION['user_role'] ?? '');
-    if ($role === 'administrator') return true;
+    if (bcrf_is_owner($role)) return true;
     return function_exists('hasViewAccess') && hasViewAccess($role, 'incidents');
 }
 
 function bcrf_incident_uid(): ?int { $u = (int)($_SESSION['user_id'] ?? 0); return $u ?: null; }
 
-function bcrf_incident_tz(): DateTimeZone { return new DateTimeZone(function_exists('bcrf_farm_tz') ? bcrf_farm_tz() : 'America/New_York'); }
+if (!function_exists('bcrf_tz')) require_once __DIR__ . '/farm_helpers.php';   // one farm time zone / today / money (Nov 18, 2026)
+function bcrf_incident_tz(): DateTimeZone { return bcrf_tz(); }
 
 function bcrf_incident_now_local(): DateTimeImmutable { return new DateTimeImmutable('now', bcrf_incident_tz()); }
 
