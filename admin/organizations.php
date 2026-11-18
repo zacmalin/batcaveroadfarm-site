@@ -151,9 +151,9 @@ if ($id || isset($_GET['new'])) {
     <?php endif; ?>
     <form id="organization-contact-form" method="POST" action="organizations.php" data-submit-once class="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
       <?php if ($error && $errorAction === 'contact_add') echo bcrf_shell_notice('err', $error); ?><?= $hidden($id) ?><input type="hidden" name="act" value="contact_add">
-      <div><label class="<?= $label ?>" for="cn">Name</label><input id="cn" name="name" maxlength="100" class="<?= $input ? value="<?= $h($contactTyped['name'] ?? '') ?>">"></div>
-      <div><label class="<?= $label ?>" for="ce">Email</label><input id="ce" name="email" type="email" required class="<?= $input ? value="<?= $h($contactTyped['email'] ?? '') ?>">"></div>
-      <div><label class="<?= $label ?>" for="cp">Contact primary phone (optional)</label><input id="cp" name="phone" type="tel" maxlength="20" autocomplete="tel" class="<?= $input ? value="<?= $h($contactTyped['phone'] ?? '') ?>">"></div>
+      <div><label class="<?= $label ?>" for="cn">Name</label><input id="cn" name="name" maxlength="100" value="<?= $h($contactTyped['name'] ?? '') ?>" class="<?= $input ?>"></div>
+      <div><label class="<?= $label ?>" for="ce">Email</label><input id="ce" name="email" type="email" required value="<?= $h($contactTyped['email'] ?? '') ?>" class="<?= $input ?>"></div>
+      <div><label class="<?= $label ?>" for="cp">Contact primary phone (optional)</label><input id="cp" name="phone" type="tel" maxlength="20" autocomplete="tel" value="<?= $h($contactTyped['phone'] ?? '') ?>" class="<?= $input ?>"></div>
       <div><label class="<?= $label ?>" for="cr">Role</label><select id="cr" name="role" class="<?= $input ?>"><?php foreach (BCRF_CRM_CONTACT_ROLES as $k => $v): ?><option value="<?= $k ?>"><?= $h($v) ?></option><?php endforeach; ?></select></div>
       <div class="sm:col-span-4"><button class="<?= $btnSec ?> w-full sm:w-auto">Add contact</button></div>
     </form>
