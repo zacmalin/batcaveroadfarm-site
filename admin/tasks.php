@@ -919,7 +919,7 @@ $nOpen = count($mine['overdue']) + count($mine['today']);
   <?php
   $section = function (string $title, array $items, string $tone = 'stone', bool $showDate = false, string $empty = '', bool $expanded = false) use ($row, $h) {
       if (!$items && $empty === '') return;
-      echo '<details class="site-info-section bg-white border border-stone-200 rounded-lg mb-4 overflow-hidden" ', $expanded ? 'open' : '', '>',
+      echo '<details name="task-groups" class="site-info-section bg-white border border-stone-200 rounded-lg mb-4 overflow-hidden" ', $expanded ? 'open' : '', '>',
            '<summary class="cursor-pointer select-none px-5 py-4 font-bold text-stone-800 flex items-center justify-between gap-3">',
            '<span class="', $tone === 'red' ? 'text-red-700' : 'text-stone-800', '">', $h($title), '</span>',
            '<span class="flex items-center gap-3"><span class="text-sm font-semibold text-stone-600">', count($items), '</span>',
@@ -930,7 +930,7 @@ $nOpen = count($mine['overdue']) + count($mine['today']);
       echo '</div></details>';
   };
   $section('Late', $mine['overdue'], 'red', true, '', (bool)$mine['overdue']);
-  $section('Today', $mine['today'], 'stone', false, $mine['overdue'] ? 'Nothing else due today.' : 'Nothing due today. 🐐', true);
+  $section('Today', $mine['today'], 'stone', false, $mine['overdue'] ? 'Nothing else due today.' : 'Nothing due today. 🐐', !$mine['overdue']);
   $tmr = bcrf_tasks_add_days($today, 1);
   $section('Tomorrow', array_values(array_filter($mine['upcoming'], fn($t) => $t['due_date'] === $tmr)));
   $later = array_values(array_filter($mine['upcoming'], fn($t) => $t['due_date'] !== $tmr));
