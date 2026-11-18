@@ -59,11 +59,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         }
     } catch (BcrfRenewalError $e) {
         $_SESSION['ren_flash'] = ['err', $e->getMessage()];
-        if ($act === 'save') { $_SESSION['ren_form'] = $_POST; $go = 'renewals.php' . ($id ? '?id=' . $id : '?new=1'); }
+        if ($act === 'save') { $_SESSION['ren_form'] = $_POST; $go = 'renewals.php' . ($id ? '?id=' . $id : '?new=1') . '#renewal-form'; }
     } catch (Throwable $e) {
         error_log('[renewals] ' . $act . ': ' . $e->getMessage());
         $_SESSION['ren_flash'] = ['err', 'Could not save. Try again.'];
-        if ($act === 'save') { $_SESSION['ren_form'] = $_POST; $go = 'renewals.php' . ($id ? '?id=' . $id : '?new=1'); }
+        if ($act === 'save') { $_SESSION['ren_form'] = $_POST; $go = 'renewals.php' . ($id ? '?id=' . $id : '?new=1') . '#renewal-form'; }
     }
     header('Location: ' . $go); exit;
 }
@@ -179,7 +179,7 @@ bcrf_shell_open($r ? $r['title'] . ' — Renewals' : 'Add a renewal', ['toast' =
     <h1 class="text-2xl font-bold text-stone-800"><?= $r ? $h($r['title']) : 'Add a renewal' ?></h1>
     <?= $r ? $badge($r) : '' ?>
   </div>
-  <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
+  <?php if ($error && !$typed) echo bcrf_shell_notice('err', $error); ?>
   <?php if ($r && $r['deleted_at']) echo bcrf_shell_notice('warning', 'This renewal is deleted: it is off the calendar and sends no reminders. Restore it to bring it back.'); ?>
 
   <?php if ($live && !$r['finished_at']):
@@ -205,7 +205,8 @@ bcrf_shell_open($r ? $r['title'] . ' — Renewals' : 'Add a renewal', ['toast' =
   <?php endif; ?>
 
   <?php if (!$r || $live): ?>
-  <form method="POST" action="renewals.php" class="bg-white border border-stone-200 rounded-lg p-4 shadow-sm space-y-3">
+  <form id="renewal-form" method="POST" action="renewals.php" data-submit-once class="bg-white border border-stone-200 rounded-lg p-4 shadow-sm space-y-3">
+    <?php if ($error && $typed) echo bcrf_shell_notice('err', $error); ?>
     <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="id" value="<?= $id ?: '' ?>"><input type="hidden" name="act" value="save">
     <?= $field('title', 'Name', 'text', 150, ' required placeholder="Domain: farm website"') ?>
     <div class="grid gap-3 sm:grid-cols-2">
