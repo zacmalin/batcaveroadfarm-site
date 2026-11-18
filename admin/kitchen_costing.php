@@ -61,6 +61,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     } catch (Throwable $e) {
         error_log('[kitchen_costing] ' . $act . ': ' . $e->getMessage());
         $_SESSION['kc_flash'] = ['err', 'Could not save. Try again.'];
+        $_SESSION['kc_form'] = $_POST;
     }
     if (($_SESSION['kc_flash'][0] ?? '') === 'err') $back .= $act === 'alert' ? '#margin-alert-form' : ($act === 'packaging_add' ? '#packaging-add-form' : '');
     header('Location: ' . $back); exit;
