@@ -78,7 +78,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $_SESSION['po_flash'] = ['err', 'Could not save. Try again.'];
         $_SESSION['po_form'] = $_POST;
     }
-    header('Location: purchase_orders.php' . ($id ? '?id=' . $id : '?new=1')); exit;
+    header('Location: purchase_orders.php' . ($id ? '?id=' . $id . '&edit=1' : '?new=1')); exit;
 }
 
 $flash = $_SESSION['po_flash'] ?? null; unset($_SESSION['po_flash']);
@@ -137,19 +137,19 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
 
     echo '<div class="rbar gap">';
     if (in_array($po['status'], ['draft', 'ordered', 'partial'], true)) {
-        echo '<a class="btn primary" href="receive.php?new=1&po=', (int)$po['id'], '&vendor=', (int)$po['vendor_id'], '">Receive against this</a>';
+        echo '<a class="btn primary" href="receive.php?new=1&po=', (int)$po['id'], '&vendor=', (int)$po['vendor_id'], '"><span aria-hidden="true">↓</span> Receive against this</a>';
     }
     if ($po['status'] === 'draft') {
         echo '<form method="POST" action="purchase_orders.php" class="inline-form"><input type="hidden" name="csrf_token" value="', $h($csrf), '">',
              '<input type="hidden" name="id" value="', (int)$po['id'], '"><input type="hidden" name="act" value="order">',
-             '<button class="btn" type="submit">Mark ordered</button></form>';
-        echo '<a class="btn" href="purchase_orders.php?id=', (int)$po['id'], '&edit=1">Edit draft</a>';
+             '<button class="btn" type="submit"><span aria-hidden="true">✓</span> Mark ordered</button></form>';
+        echo '<a class="btn" href="purchase_orders.php?id=', (int)$po['id'], '&edit=1"><span aria-hidden="true">✎</span> Edit draft</a>';
     }
     if (in_array($po['status'], ['draft', 'ordered', 'partial'], true)) {
         echo '<form method="POST" action="purchase_orders.php" class="inline-form">',
              '<input type="hidden" name="csrf_token" value="', $h($csrf), '">',
              '<input type="hidden" name="id" value="', (int)$po['id'], '"><input type="hidden" name="act" value="cancel">',
-             '<button class="btn" type="submit" data-confirm="Cancel this purchase order? This will change its status to cancelled.">Cancel order</button></form>';
+             '<button class="btn" type="submit" data-confirm="Cancel this purchase order? This will change its status to cancelled."><span aria-hidden="true">✕</span> Cancel order</button></form>';
     }
     echo '</div>';
     echo bcrf_doc_box_html($pdo, 'po', (int)$po['id'], '/admin/purchase_orders.php?id=' . (int)$po['id'], $csrf);
@@ -167,7 +167,7 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
             'unit_cost' => array_map(fn($l) => $l['unit_cost_cents'] !== null ? rtrim(rtrim(number_format(((int)$l['unit_cost_cents']) / 100, 4, '.', ''), '0'), '.') : '', $po['lines']),
         ];
         $lineCount = max(3, count($d['product_id'] ?? []) + 1, 6);
-        echo '<h2>Edit draft</h2><form class="card stackf" method="POST" action="purchase_orders.php">';
+        echo '<h2>Edit draft</h2><form class="card stackf" method="POST" action="purchase_orders.php" data-submit-once>';
         echo '<input type="hidden" name="csrf_token" value="', $h($csrf), '"><input type="hidden" name="id" value="', (int)$po['id'], '"><input type="hidden" name="act" value="save">';
         echo '<label>Vendor', $sel('vendor_id', $vendors, $d['vendor_id'] ?? ''), '</label>';
         echo '<div class="two"><label>Our / vendor ref #<input type="text" name="po_ref" value="', $h($d['po_ref'] ?? ''), '" maxlength="80"></label>',
@@ -196,7 +196,7 @@ if (!empty($_GET['new'])) {
         echo '<p class="card muted">Add a <a href="vendors.php?new=1">vendor</a> first.</p></div></main></body></html>';
         exit;
     }
-    echo '<form class="card stackf" method="POST" action="purchase_orders.php"><input type="hidden" name="csrf_token" value="', $h($csrf), '"><input type="hidden" name="act" value="save">';
+    echo '<form class="card stackf" method="POST" action="purchase_orders.php" data-submit-once><input type="hidden" name="csrf_token" value="', $h($csrf), '"><input type="hidden" name="act" value="save">';
     echo '<label>Vendor', $sel('vendor_id', $vendors, $d['vendor_id'] ?? '', '— pick —'), '</label>';
     echo '<div class="two"><label>Our / vendor ref #<input type="text" name="po_ref" value="', $h($d['po_ref'] ?? ''), '" maxlength="80" autocomplete="off"></label>',
          '<label>Expected date<input type="date" name="expected_date" value="', $h($d['expected_date'] ?? ''), '"></label></div>';
