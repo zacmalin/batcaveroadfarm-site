@@ -21,7 +21,18 @@ $canPin  = in_array($role, bcrf_pin_roles(), true);
 $ready = bcrf_pin_ready($pdo);
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 $csrf = $_SESSION['csrf_token'];
-$back = function (string $msg, bool $bad = false) { $_SESSION['pins_flash'] = [$msg, $bad]; header('Location: /admin/pin_settings.php'); exit; };
+$back = function (string $msg, bool $bad = false) {
+    $_SESSION['pins_flash'] = [$msg, $bad];
+    $action = (string)($_POST['do'] ?? '');
+    // Never store PINs or passwords in flash/session data.
+    $_SESSION['pins_flash_action'] = $bad ? $action : '';
+    $anchor = [
+        'set_pin' => '#pin-set-form', 'clear_mine' => '#pin-remove-form',
+        'device_add' => '#pin-device-form', 'device_revoke' => '#pin-devices',
+        'clear_pin' => '#pin-holders', 'unlock' => '#pin-holders',
+    ][$action] ?? '';
+    header('Location: /admin/pin_settings.php' . ($bad ? $anchor : '')); exit;
+};
 $local = function (?string $utc): string {
     if (!$utc) return '';
     try { return (new DateTime($utc, new DateTimeZone('UTC')))->setTimezone(new DateTimeZone(date_default_timezone_get()))->format('M j, g:i A'); }
@@ -90,6 +101,8 @@ if ($ready && $me && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 }
 
 $flash = $_SESSION['pins_flash'] ?? null; unset($_SESSION['pins_flash']);
+$flashAction = $_SESSION['pins_flash_action'] ?? ''; unset($_SESSION['pins_flash_action']);
+$inlinePinError = $flash && $flash[1] ? $flash[0] : '';
 $here = $ready ? bcrf_pin_device($pdo) : null;
 $devices = $isOwner ? bcrf_pin_devices($pdo) : [];
 $holders = [];
@@ -101,7 +114,7 @@ if ($isOwner && $ready) {
 bcrf_shell_open('PIN sign-in', ['width' => 'max-w-3xl', 'css' => ['pin.css']]);
 ?>
 <div class="pins">
-<?php if ($flash) echo bcrf_shell_flash([$flash[1] ? 'err' : 'ok', $flash[0]]); ?>
+<?php if ($flash && (!$inlinePinError || !in_array($flashAction, ['set_pin', 'clear_mine', 'device_add', 'device_revoke', 'clear_pin', 'unlock'], true))) echo bcrf_shell_flash([$flash[1] ? 'err' : 'ok', $flash[0]]); ?>
 <?php if (!$ready): ?>
   <div class="pins-card"><h2>Waiting for migration 0058</h2><p>An Owner runs it in Settings › Database. Then PINs and shared devices can be set up here.</p></div>
 <?php else: ?>
@@ -117,7 +130,8 @@ bcrf_shell_open('PIN sign-in', ['width' => 'max-w-3xl', 'css' => ['pin.css']]);
 <?php endif; ?>
        4 to 8 digits. Five wrong tries lock it for 15 minutes.</p>
     <p><b><?= $me['has_pin'] ? 'You have a PIN' . ($me['pin_set_at'] ? ' (set ' . $h($local($me['pin_set_at'])) . ')' : '') . '.' : 'You don’t have a PIN yet.' ?></b></p>
-    <form method="post" class="pins-row" autocomplete="off">
+    <form id="pin-set-form" method="post" class="pins-row" autocomplete="off">
+      <?php if ($inlinePinError && $flashAction === 'set_pin') echo bcrf_shell_notice('err', $inlinePinError); ?>
       <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
       <input type="hidden" name="do" value="set_pin">
       <label>New PIN <input class="pins-in" type="password" name="pin" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" required autocomplete="new-password"></label>
@@ -126,7 +140,8 @@ bcrf_shell_open('PIN sign-in', ['width' => 'max-w-3xl', 'css' => ['pin.css']]);
       <button class="pins-btn"><?= $me['has_pin'] ? 'Change PIN' : 'Save PIN' ?></button>
     </form>
 <?php if ($me['has_pin']): ?>
-    <form method="post" class="pins-row" autocomplete="off">
+    <form id="pin-remove-form" method="post" class="pins-row" autocomplete="off">
+      <?php if ($inlinePinError && $flashAction === 'clear_mine') echo bcrf_shell_notice('err', $inlinePinError); ?>
       <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
       <input type="hidden" name="do" value="clear_mine">
       <label>Your password <input class="pins-in" type="password" name="password" required autocomplete="current-password"></label>
@@ -137,14 +152,16 @@ bcrf_shell_open('PIN sign-in', ['width' => 'max-w-3xl', 'css' => ['pin.css']]);
   </section>
 
 <?php if ($isOwner): ?>
-  <section class="pins-card">
+  <section id="pin-devices" class="pins-card">
     <h2>Shared devices</h2>
+    <?php if ($inlinePinError && $flashAction === 'device_revoke') echo bcrf_shell_notice('err', $inlinePinError); ?>
     <p>PIN sign-in only works on a device set up here. A PIN session can use the register, gate and waivers, nothing else,
        and locks after 5 minutes without use. Set up the tablet by opening this page on it.</p>
 <?php if ($here): ?>
     <p><b>This device is set up as “<?= $h($here['name']) ?>”.</b> PIN sign-in: <a href="/admin/pin.php">/admin/pin.php</a></p>
 <?php else: ?>
-    <form method="post" class="pins-row">
+    <form id="pin-device-form" method="post" class="pins-row">
+      <?php if ($inlinePinError && $flashAction === 'device_add') echo bcrf_shell_notice('err', $inlinePinError); ?>
       <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
       <input type="hidden" name="do" value="device_add">
       <label>Name for this device <input class="pins-in" type="text" name="name" maxlength="80" required placeholder="Gate tablet"></label>
@@ -166,8 +183,9 @@ bcrf_shell_open('PIN sign-in', ['width' => 'max-w-3xl', 'css' => ['pin.css']]);
 <?php endif; ?>
   </section>
 
-  <section class="pins-card">
+  <section id="pin-holders" class="pins-card">
     <h2>People with a PIN</h2>
+    <?php if ($inlinePinError && in_array($flashAction, ['clear_pin', 'unlock'], true)) echo bcrf_shell_notice('err', $inlinePinError); ?>
 <?php if (!$holders): ?>
     <p>Nobody yet. Each person sets their own PIN on this page after signing in with their password.</p>
 <?php else: ?>
