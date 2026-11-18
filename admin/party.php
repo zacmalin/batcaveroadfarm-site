@@ -88,14 +88,22 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     } catch (BcrfPartyError $e) {
         $_SESSION['party_flash'] = ['err', $e->getMessage()];
         if ($act === 'guests_add') $_SESSION['party_names'] = (string)($_POST['names'] ?? '');
+        $_SESSION['party_error_action'] = $act;
     } catch (Throwable $e) {
         error_log('[party] ' . $act . ': ' . $e->getMessage());
         $_SESSION['party_flash'] = ['err', 'Could not save. Try again.'];
+        if ($act === 'guests_add') $_SESSION['party_names'] = (string)($_POST['names'] ?? '');
+        $_SESSION['party_error_action'] = $act;
+    }
+    if (isset($_SESSION['party_error_action'])) {
+        $anchor = ['package' => '#party-package-form', 'staff_add' => '#party-staff-form', 'guests_add' => '#party-guests-form'][$act] ?? '';
+        if ($anchor) $back = 'party.php?id=' . $id . $anchor;
     }
     header('Location: ' . $back); exit;
 }
 
 $flash = $_SESSION['party_flash'] ?? null; unset($_SESSION['party_flash']);
+$errorAction = (string)($_SESSION['party_error_action'] ?? ''); unset($_SESSION['party_error_action']);
 $typedNames = (string)($_SESSION['party_names'] ?? ''); unset($_SESSION['party_names']);
 $toast = ($flash && $flash[0] === 'ok') ? $flash : null;
 $error = ($flash && $flash[0] === 'err') ? $flash[1] : '';
@@ -131,7 +139,7 @@ bcrf_shell_open('Party: ' . $inq['customer_name'], ['toast' => $toast, 'width' =
     </div>
     <span class="inline-block text-xs font-semibold px-2 py-1 rounded <?= $inq['status'] === 'confirmed' ? 'bg-emerald-50 text-emerald-800' : 'bg-stone-100 text-stone-600' ?>"><?= $h(ucfirst((string)$inq['status'])) ?></span>
   </div>
-  <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
+  <?php if ($error && !in_array($errorAction, ['package', 'staff_add', 'guests_add'], true)) echo bcrf_shell_notice('err', $error); ?>
   <?php if ($full): ?>
   <div class="flex flex-wrap gap-2 mb-4">
     <a href="/admin/quotes.php?for=event_inquiry:<?= $id ?>" class="<?= $btnSec ?>"><?= $q ? 'Quote &amp; payments' : 'Make a quote' ?></a>
@@ -152,7 +160,8 @@ bcrf_shell_open('Party: ' . $inq['customer_name'], ['toast' => $toast, 'width' =
       <p class="text-sm text-stone-600 mb-2">No package picked yet, so the farm's usual per-guest rate applies.</p>
     <?php endif; ?>
     <?php if ($full): ?>
-    <form method="POST" action="party.php" class="flex flex-wrap gap-2 items-end mt-2"><?= $hidden ?><input type="hidden" name="act" value="package">
+    <form id="party-package-form" method="POST" action="party.php" data-submit-once class="flex flex-wrap gap-2 items-end mt-2">
+      <?php if ($error && $errorAction === 'package') echo bcrf_shell_notice('err', $error); ?><?= $hidden ?><input type="hidden" name="act" value="package">
       <div class="flex-1 min-w-48"><label class="<?= $label ?>" for="pk">Change package</label>
         <select id="pk" name="package_id" class="<?= $input ?>">
           <option value="">No package</option>
@@ -182,7 +191,8 @@ bcrf_shell_open('Party: ' . $inq['customer_name'], ['toast' => $toast, 'width' =
     </ul>
     <?php endif; ?>
     <?php if ($full && $people): ?>
-    <form method="POST" action="party.php" class="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end"><?= $hidden ?><input type="hidden" name="act" value="staff_add">
+    <form id="party-staff-form" method="POST" action="party.php" data-submit-once class="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
+      <?php if ($error && $errorAction === 'staff_add') echo bcrf_shell_notice('err', $error); ?><?= $hidden ?><input type="hidden" name="act" value="staff_add">
       <div><label class="<?= $label ?>" for="su">Person</label>
         <select id="su" name="user_id" class="<?= $input ?>"><?php foreach ($people as $p): ?><option value="<?= (int)$p['id'] ?>"><?= $h($p['name']) ?></option><?php endforeach; ?></select></div>
       <div><label class="<?= $label ?>" for="sj">Job (optional)</label><input id="sj" name="job" maxlength="80" placeholder="Lead, animals, food…" class="<?= $input ?>"></div>
@@ -216,7 +226,8 @@ bcrf_shell_open('Party: ' . $inq['customer_name'], ['toast' => $toast, 'width' =
     </ul>
     <?php endif; ?>
     <?php if ($full): ?>
-    <form method="POST" action="party.php" class="border-t border-stone-100 pt-3"><?= $hidden ?><input type="hidden" name="act" value="guests_add">
+    <form id="party-guests-form" method="POST" action="party.php" data-submit-once class="border-t border-stone-100 pt-3">
+      <?php if ($error && $errorAction === 'guests_add') echo bcrf_shell_notice('err', $error); ?><?= $hidden ?><input type="hidden" name="act" value="guests_add">
       <label class="<?= $label ?>" for="gn">Add names, one per line. Add a note after a comma, like "Ava, peanut allergy".</label>
       <textarea id="gn" name="names" rows="4" class="<?= $input ?> mb-2"><?= $h($typedNames) ?></textarea>
       <div class="flex flex-wrap gap-2 items-center">
