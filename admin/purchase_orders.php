@@ -180,7 +180,7 @@ if (!empty($_GET['id']) && empty($_GET['new'])) {
             echo '<div class="two"><label>Qty<input type="number" name="qty[]" value="', $h($d['qty'][$i] ?? ''), '" min="0" step="any" inputmode="decimal"></label>',
                  '<label>Unit cost $<input type="number" name="unit_cost[]" value="', $h($d['unit_cost'][$i] ?? ''), '" min="0" step="0.01" inputmode="decimal"></label></div></div>';
         }
-        echo '</fieldset><div class="rbar"><button class="btn primary" type="submit"><span aria-hidden="true">✓</span> Save draft</button></div></form>';
+        echo '</fieldset><div class="rbar"><button class="btn primary" type="submit" data-submit-label="Saving draft…"><span aria-hidden="true">✓</span> Save draft</button></div></form>';
     }
     echo '</div></main></body></html>';
     exit;
@@ -209,7 +209,7 @@ if (!empty($_GET['new'])) {
         echo '<div class="two"><label>Qty<input type="number" name="qty[]" value="', $h($d['qty'][$i] ?? ''), '" min="0" step="any" inputmode="decimal"></label>',
              '<label>Unit cost $<input type="number" name="unit_cost[]" value="', $h($d['unit_cost'][$i] ?? ''), '" min="0" step="0.01" inputmode="decimal"></label></div></div>';
     }
-    echo '</fieldset><div class="rbar"><button class="btn primary" type="submit"><span aria-hidden="true">✓</span> Save draft</button></div></form>';
+    echo '</fieldset><div class="rbar"><button class="btn primary" type="submit" data-submit-label="Saving draft…"><span aria-hidden="true">✓</span> Save draft</button></div></form>';
     echo '<p class="muted">After saving, mark ordered when you place it, then receive against it when the delivery arrives.</p>';
     echo '</div></main></body></html>';
     exit;
