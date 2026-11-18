@@ -98,7 +98,7 @@ function bcrf_search_phone_sql(string $col): string {
 
 function bcrf_search_rows(PDO $pdo, string $sql, array $args): array {
     try { $st = $pdo->prepare($sql); $st->execute($args); return $st->fetchAll(PDO::FETCH_ASSOC); }
-    catch (Throwable $e) { error_log('[search] ' . $e->getMessage()); return []; }   // a module not installed yet
+    catch (Throwable $e) { $GLOBALS['bcrf_search_query_failed'] = true; error_log('[search] ' . $e->getMessage()); return []; }   // a module not installed yet
 }
 
 function bcrf_search_money(int $c): string { return '$' . number_format($c / 100, 2); }
@@ -220,7 +220,8 @@ function bcrf_search_jump(PDO $pdo, string $q, callable $can): ?array {
 /** Search every kind the user can open. */
 function bcrf_search(PDO $pdo, string $q, callable $can, array $me = []): array {
     $q = trim(mb_substr($q, 0, 100));
-    $out = ['q' => $q, 'jump' => null, 'groups' => []];
+    $GLOBALS['bcrf_search_query_failed'] = false;
+    $out = ['q' => $q, 'jump' => null, 'groups' => [], 'partial' => false];
     if (mb_strlen($q) < 2) return $out;
     $out['jump'] = bcrf_search_jump($pdo, $q, $can);
     $meId   = (int)($me['id'] ?? ($_SESSION['user_id'] ?? 0));
@@ -514,6 +515,8 @@ function bcrf_search(PDO $pdo, string $q, callable $can, array $me = []): array 
             'more' => $hasMore ? $more : null,
         ];
     }
+    $out['partial'] = !empty($GLOBALS['bcrf_search_query_failed']);
+    unset($GLOBALS['bcrf_search_query_failed']);
     return $out;
 }
 
