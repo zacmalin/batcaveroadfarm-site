@@ -442,18 +442,28 @@
         update();
     }
 
-    // Site Info: one section open at a time; #site-hours etc. in the address opens that section (Nov 17, 2026).
+    // Site Info: open only the selected section, including after a save redirects to #site-*.
     function initSiteInfoSections() {
         var sections = document.querySelectorAll('.site-info-section');
         if (!sections.length) return;
+        function openOnly(selected) {
+            Array.prototype.forEach.call(sections, function (section) {
+                section.open = section === selected;
+            });
+        }
         var selected = location.hash && document.getElementById(location.hash.slice(1));
         if (selected && selected.classList.contains('site-info-section')) {
-            Array.prototype.forEach.call(sections, function (section) { section.open = section === selected; });
+            openOnly(selected);
+            // The browser may try to scroll to the hash before the closed section opens.
+            requestAnimationFrame(function () { selected.scrollIntoView({ block: 'start' }); });
         }
         Array.prototype.forEach.call(sections, function (section) {
-            section.addEventListener('toggle', function () {
-                if (!section.open) return;
-                Array.prototype.forEach.call(sections, function (other) { if (other !== section) other.open = false; });
+            var summary = section.querySelector('summary');
+            if (!summary) return;
+            summary.addEventListener('click', function (e) {
+                e.preventDefault();
+                if (section.open) section.open = false;
+                else openOnly(section);
             });
         });
     }
