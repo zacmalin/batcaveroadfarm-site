@@ -62,6 +62,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         error_log('[kitchen_costing] ' . $act . ': ' . $e->getMessage());
         $_SESSION['kc_flash'] = ['err', 'Could not save. Try again.'];
     }
+    if (($_SESSION['kc_flash'][0] ?? '') === 'err') $back .= $act === 'alert' ? '#margin-alert-form' : ($act === 'packaging_add' ? '#packaging-add-form' : '');
     header('Location: ' . $back); exit;
 }
 
@@ -135,7 +136,7 @@ if ($pid) {
           $f = ($form && (int)($form['ingredient'] ?? 0) === $iid) ? $form : null; ?>
         <details class="mt-1"<?= $l['cost'] === null || $f ? ' open' : '' ?>>
           <summary class="text-xs text-amber-800 underline cursor-pointer"><?= $ic && $ic['manual'] !== '' ? 'Manual cost: ' . $h($ic['manual']) . ' (change)' : 'Enter what you pay' ?></summary>
-          <form method="POST" class="flex flex-wrap gap-2 items-end mt-2"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="ingredient_cost"><input type="hidden" name="product" value="<?= $pid ?>"><input type="hidden" name="ingredient" value="<?= (int)$iid ?>">
+          <form data-submit-once method="POST" class="flex flex-wrap gap-2 items-end mt-2"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="ingredient_cost"><input type="hidden" name="product" value="<?= $pid ?>"><input type="hidden" name="ingredient" value="<?= (int)$iid ?>">
             <div class="w-24"><label class="<?= $label ?>" for="cp<?= $i ?>">Price $</label><input id="cp<?= $i ?>" name="price" inputmode="decimal" value="<?= $h($f['price'] ?? ($mr && $mr['cost_cents'] !== null ? number_format((int)$mr['cost_cents'] / 100, 2, '.', '') : '')) ?>" class="<?= $input ?>" placeholder="4.29"></div>
             <div class="w-20"><label class="<?= $label ?>" for="cq<?= $i ?>">for</label><input id="cq<?= $i ?>" name="qty" inputmode="decimal" value="<?= $h($f['qty'] ?? ($mr && $mr['cost_qty'] !== null ? bcrf_kitchen_q((float)$mr['cost_qty']) : '')) ?>" class="<?= $input ?>" placeholder="5"></div>
             <div class="w-32"><label class="<?= $label ?>" for="cu<?= $i ?>">unit</label><select id="cu<?= $i ?>" name="unit" class="<?= $input ?>"><option value="">each</option>
@@ -160,13 +161,13 @@ if ($pid) {
       <li class="py-2 flex flex-wrap items-center justify-between gap-2">
         <span><?= $h($k['name']) ?><?= (float)$k['qty_per_unit'] != 1 ? ' × ' . $h(bcrf_kitchen_q((float)$k['qty_per_unit'])) : '' ?> <span class="text-xs text-stone-500"><?= $k['each'] !== null ? $h($m($k['each'])) . ' each · ' . $h($srcTxt[$k['source']] ?? '') : '' ?></span></span>
         <span class="flex items-center gap-2"><?= $k['per_unit'] !== null ? '<strong>' . $h($m($k['per_unit'])) . '</strong>' : '<span class="text-amber-800 text-xs">⚠ ' . $h($k['why']) . '</span>' ?>
-          <?php if ($canEdit): ?><form method="POST"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="packaging_remove"><input type="hidden" name="product" value="<?= $pid ?>"><input type="hidden" name="item" value="<?= (int)$k['id'] ?>"><button class="text-xs underline text-stone-500" aria-label="Remove <?= $h($k['name']) ?>">Remove</button></form><?php endif; ?></span>
+          <?php if ($canEdit): ?><form data-submit-once method="POST"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="packaging_remove"><input type="hidden" name="product" value="<?= $pid ?>"><input type="hidden" name="item" value="<?= (int)$k['id'] ?>"><button class="text-xs underline text-stone-500" aria-label="Remove <?= $h($k['name']) ?>">Remove</button></form><?php endif; ?></span>
       </li>
       <?php endforeach; ?>
     </ul>
     <?php endif; ?>
     <?php if ($canEdit): $pf = ($form && ($form['act'] ?? '') === 'packaging_add') ? $form : []; ?>
-    <form method="POST" class="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="packaging_add"><input type="hidden" name="product" value="<?= $pid ?>">
+    <form id="packaging-add-form" data-submit-once method="POST" class="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="packaging_add"><input type="hidden" name="product" value="<?= $pid ?>">
       <div class="sm:col-span-2"><label class="<?= $label ?>" for="ks">From a stock product (uses its average cost)</label><select id="ks" name="packaging_inventory_id" class="<?= $input ?>"><option value="">— none, enter a cost —</option>
         <?php foreach (bcrf_kitchen_stock_products($pdo) as $sp): if ((int)$sp['id'] === $pid) continue; ?><option value="<?= (int)$sp['id'] ?>"<?= (int)($pf['packaging_inventory_id'] ?? 0) === (int)$sp['id'] ? ' selected' : '' ?>><?= $h($sp['name']) ?></option><?php endforeach; ?></select></div>
       <div class="sm:col-span-2"><label class="<?= $label ?>" for="kn">Or a name</label><input id="kn" name="name" maxlength="100" value="<?= $h($pf['name'] ?? '') ?>" class="<?= $input ?>" placeholder="e.g. 8 oz jar"></div>
@@ -208,7 +209,7 @@ bcrf_shell_open('Kitchen costing', ['toast' => $toast, 'width' => 'max-w-4xl']);
   <div class="<?= $card ?>">
     <h2 class="text-base font-semibold text-stone-800 mb-1">Margin alert</h2>
     <?php if ($canEdit): ?>
-    <form method="POST" class="flex flex-wrap gap-2 items-end"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="alert">
+    <form id="margin-alert-form" data-submit-once method="POST" class="flex flex-wrap gap-2 items-end"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="act" value="alert">
       <div class="w-28"><label class="<?= $label ?>" for="ma">Flag below (%)</label><input id="ma" name="alert" inputmode="decimal" value="<?= $h($form['alert'] ?? $alertValue) ?>" class="<?= $input ?>"></div>
       <button class="<?= $btnSec ?>">Save</button>
     </form>
