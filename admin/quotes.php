@@ -170,7 +170,7 @@ if ($type) {
       <p class="text-sm text-stone-700 mb-3"><?= $s['is_party']
           ? 'Starts with a suggested party price for ' . (int)$s['guests'] . ' guests. Review the package, price, deposit and payment terms before sending.'
           : 'Starts from the booking type\'s price. You can change it, add a deposit and turn online payment on or off before sending.' ?></p>
-      <form method="POST" action="quotes.php"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="for" value="<?= $h($type . ':' . $sid) ?>">
+      <form data-submit-once method="POST" action="quotes.php"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="for" value="<?= $h($type . ':' . $sid) ?>">
         <button name="act" value="create" class="<?= $btnMain ?>">Start the quote</button></form>
     </div>
   <?php else:
@@ -187,7 +187,7 @@ if ($type) {
       <div class="bg-white border border-stone-200 rounded-lg p-3"><div class="text-xs text-stone-500"><?= $st['balance'] < 0 ? 'Refund owed' : 'Left to pay' ?></div><div class="text-lg font-bold <?= $st['balance'] < 0 ? 'text-red-700' : 'text-stone-800' ?>"><?= $h($m(abs($st['balance']))) ?></div></div>
     </div>
 
-    <form method="POST" action="quotes.php" class="<?= $card ?> space-y-3" id="q-editor">
+    <form data-submit-once method="POST" action="quotes.php" class="<?= $card ?> space-y-3" id="q-editor">
       <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="for" value="<?= $h($type . ':' . $sid) ?>">
       <h2 class="text-base font-semibold text-stone-800">Price</h2>
       <?php foreach ($lines as $i => $l): ?>
@@ -224,9 +224,9 @@ if ($type) {
         <?= $q['viewed_at'] ? ' They opened it ' . $h($local($q['viewed_at'])) . '.' : '' ?>
         <?= $pay['balance'] > 0 ? ' The link lets them pay online.' : ($q['pay_online'] ? '' : ' Online payment is off, so the link only shows the price and terms.') ?></p>
       <div class="flex flex-wrap gap-2 mb-3">
-        <form method="POST" action="quotes.php"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="for" value="<?= $h($type . ':' . $sid) ?>">
+        <form data-submit-once method="POST" action="quotes.php"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="for" value="<?= $h($type . ':' . $sid) ?>">
           <button name="act" value="send" class="<?= $btnMain ?>" data-confirm="Email this quote (<?= $h($m($q['total_cents'])) ?>) to <?= $h($s['email']) ?>?" <?= ($s['email'] && $s['live']) ? '' : 'disabled' ?>>Email the quote to <?= $h($s['email'] ?: '(no email)') ?></button></form>
-        <form method="POST" action="quotes.php"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="for" value="<?= $h($type . ':' . $sid) ?>">
+        <form data-submit-once method="POST" action="quotes.php"><input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="for" value="<?= $h($type . ':' . $sid) ?>">
           <button name="act" value="mark_sent" class="<?= $btnSec ?>">I sent it myself</button></form>
       </div>
       <label for="q_link" class="<?= $label ?>">Customer's link</label>
@@ -259,7 +259,7 @@ if ($type) {
           <details class="mt-1"><summary class="text-xs text-stone-500 cursor-pointer">Refund or remove</summary>
             <div class="flex flex-wrap gap-3 mt-2">
             <?php if ($refundable): ?>
-            <form method="POST" action="quotes.php" class="flex flex-wrap gap-2 items-end">
+            <form data-submit-once method="POST" action="quotes.php" class="flex flex-wrap gap-2 items-end">
               <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="for" value="<?= $h($type . ':' . $sid) ?>"><input type="hidden" name="payment_id" value="<?= (int)$p['id'] ?>">
               <div><label class="<?= $label ?>" for="ra<?= (int)$p['id'] ?>">Refund ($)</label><input id="ra<?= (int)$p['id'] ?>" name="amount" inputmode="decimal" value="<?= $h(number_format($left / 100, 2, '.', '')) ?>" class="<?= $input ?> w-28"></div>
               <div><label class="<?= $label ?>" for="rr<?= (int)$p['id'] ?>">Why</label><input id="rr<?= (int)$p['id'] ?>" name="reason" maxlength="255" required class="<?= $input ?>" placeholder="e.g. cancelled 30+ days ahead"></div>
@@ -267,7 +267,7 @@ if ($type) {
             </form>
             <?php endif; ?>
             <?php if (!$void && $p['method'] !== 'stripe'): ?>
-            <form method="POST" action="quotes.php" class="flex flex-wrap gap-2 items-end">
+            <form data-submit-once method="POST" action="quotes.php" class="flex flex-wrap gap-2 items-end">
               <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="for" value="<?= $h($type . ':' . $sid) ?>"><input type="hidden" name="payment_id" value="<?= (int)$p['id'] ?>">
               <div><label class="<?= $label ?>" for="vr<?= (int)$p['id'] ?>">Typed by mistake? Why</label><input id="vr<?= (int)$p['id'] ?>" name="reason" maxlength="255" required class="<?= $input ?>"></div>
               <button name="act" value="void" class="<?= $btnSec ?>" data-confirm="Remove this <?= $p['kind'] ?>? It stays in the history, crossed out.">Remove</button>
@@ -281,7 +281,7 @@ if ($type) {
       </div>
       <?php endif; ?>
       <?php if ($st['balance'] > 0): ?>
-      <form method="POST" action="quotes.php" class="space-y-3 border-t border-stone-100 pt-3">
+      <form data-submit-once method="POST" action="quotes.php" class="space-y-3 border-t border-stone-100 pt-3">
         <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>"><input type="hidden" name="for" value="<?= $h($type . ':' . $sid) ?>">
         <h3 class="text-sm font-semibold text-stone-700">Record a payment</h3>
         <div class="grid gap-3 sm:grid-cols-3">
