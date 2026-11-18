@@ -61,7 +61,7 @@ if (isset($_GET['csv'])) {
 // ── Actions ──
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $id = (int)($_POST['id'] ?? 0);
-    $back = $id ? 'gift_cards.php?id=' . $id : 'gift_cards.php?new=1';
+    $back = $id ? 'gift_cards.php?id=' . $id : 'gift_cards.php?new=1#issue-card';
     if (!hash_equals($csrf, (string)($_POST['csrf_token'] ?? ''))) {
         $_SESSION['gc_flash'] = ['err', 'Security token expired; try again.'];
         header('Location: ' . $back); exit;
@@ -130,7 +130,7 @@ if (isset($_GET['new'])) {
   <p class="text-sm text-stone-500 mb-4">For a raffle prize, a thank-you, or to replace a lost card (cancel the old one first). No money is taken. To sell one, ring up the Gift Card item on the register.</p>
   <?php if ($error) echo bcrf_shell_notice('err', $error); ?>
   <?php if (!$mgr): echo bcrf_shell_notice('info', 'Only an Owner or Manager can give a gift card without a sale.'); else: ?>
-  <form method="POST" action="gift_cards.php" data-submit-once class="bg-white border border-stone-200 rounded-lg p-4 shadow-sm space-y-3">
+  <form id="issue-card" method="POST" action="gift_cards.php" data-submit-once class="bg-white border border-stone-200 rounded-lg p-4 shadow-sm space-y-3">
     <input type="hidden" name="csrf_token" value="<?= $h($csrf) ?>">
     <input type="hidden" name="act" value="issue">
     <div class="grid gap-3 sm:grid-cols-2">
