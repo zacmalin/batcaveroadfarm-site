@@ -1,0 +1,1222 @@
+{
+  "library": "Bat Cave Road Farm Garden Map botanical icons",
+  "version": 4,
+  "count": 202,
+  "format": "PNG or WebP separated by archive",
+  "icons": [
+    {
+      "id": "acorn-squash",
+      "name": "Acorn Squash",
+      "png": "png/acorn-squash.png",
+      "webp": "webp/acorn-squash.webp"
+    },
+    {
+      "id": "alpine-strawberry",
+      "name": "Alpine strawberry",
+      "png": "png/alpine-strawberry.png",
+      "webp": "webp/alpine-strawberry.webp"
+    },
+    {
+      "id": "amaranth",
+      "name": "Amaranth",
+      "png": "png/amaranth.png",
+      "webp": "webp/amaranth.webp"
+    },
+    {
+      "id": "apple",
+      "name": "Apple",
+      "png": "png/apple.png",
+      "webp": "webp/apple.webp"
+    },
+    {
+      "id": "apricot",
+      "name": "Apricot",
+      "png": "png/apricot.png",
+      "webp": "webp/apricot.webp"
+    },
+    {
+      "id": "aronia",
+      "name": "Aronia",
+      "png": "png/aronia.png",
+      "webp": "webp/aronia.webp"
+    },
+    {
+      "id": "artichoke",
+      "name": "Artichoke",
+      "png": "png/artichoke.png",
+      "webp": "webp/artichoke.webp"
+    },
+    {
+      "id": "arugula",
+      "name": "Arugula",
+      "png": "png/arugula.png",
+      "webp": "webp/arugula.webp"
+    },
+    {
+      "id": "asparagus",
+      "name": "Asparagus",
+      "png": "png/asparagus.png",
+      "webp": "webp/asparagus.webp"
+    },
+    {
+      "id": "avocado",
+      "name": "Avocado",
+      "png": "png/avocado.png",
+      "webp": "webp/avocado.webp"
+    },
+    {
+      "id": "banana",
+      "name": "Banana",
+      "png": "png/banana.png",
+      "webp": "webp/banana.webp"
+    },
+    {
+      "id": "basil",
+      "name": "Basil",
+      "png": "png/basil.png",
+      "webp": "webp/basil.webp"
+    },
+    {
+      "id": "bay-laurel",
+      "name": "Bay Laurel",
+      "png": "png/bay-laurel.png",
+      "webp": "webp/bay-laurel.webp"
+    },
+    {
+      "id": "bee-balm",
+      "name": "Bee Balm",
+      "png": "png/bee-balm.png",
+      "webp": "webp/bee-balm.webp"
+    },
+    {
+      "id": "beet",
+      "name": "Beet",
+      "png": "png/beet.png",
+      "webp": "webp/beet.webp"
+    },
+    {
+      "id": "bell-pepper",
+      "name": "Bell Pepper",
+      "png": "png/bell-pepper.png",
+      "webp": "webp/bell-pepper.webp"
+    },
+    {
+      "id": "blackberry",
+      "name": "Blackberry",
+      "png": "png/blackberry.png",
+      "webp": "webp/blackberry.webp"
+    },
+    {
+      "id": "blackberry-lily",
+      "name": "Blackberry lily",
+      "png": "png/blackberry-lily.png",
+      "webp": "webp/blackberry-lily.webp"
+    },
+    {
+      "id": "blueberry",
+      "name": "Blueberry",
+      "png": "png/blueberry.png",
+      "webp": "webp/blueberry.webp"
+    },
+    {
+      "id": "bok-choy",
+      "name": "Bok Choy",
+      "png": "png/bok-choy.png",
+      "webp": "webp/bok-choy.webp"
+    },
+    {
+      "id": "borage",
+      "name": "Borage",
+      "png": "png/borage.png",
+      "webp": "webp/borage.webp"
+    },
+    {
+      "id": "boysenberry",
+      "name": "Boysenberry",
+      "png": "png/boysenberry.png",
+      "webp": "webp/boysenberry.webp"
+    },
+    {
+      "id": "broccoli",
+      "name": "Broccoli",
+      "png": "png/broccoli.png",
+      "webp": "webp/broccoli.webp"
+    },
+    {
+      "id": "broccolini",
+      "name": "Broccolini",
+      "png": "png/broccolini.png",
+      "webp": "webp/broccolini.webp"
+    },
+    {
+      "id": "brussels-sprouts",
+      "name": "Brussels Sprouts",
+      "png": "png/brussels-sprouts.png",
+      "webp": "webp/brussels-sprouts.webp"
+    },
+    {
+      "id": "butternut-squash",
+      "name": "Butternut Squash",
+      "png": "png/butternut-squash.png",
+      "webp": "webp/butternut-squash.webp"
+    },
+    {
+      "id": "cabbage",
+      "name": "Cabbage",
+      "png": "png/cabbage.png",
+      "webp": "webp/cabbage.webp"
+    },
+    {
+      "id": "calendula",
+      "name": "Calendula",
+      "png": "png/calendula.png",
+      "webp": "webp/calendula.webp"
+    },
+    {
+      "id": "cantaloupe",
+      "name": "Cantaloupe",
+      "png": "png/cantaloupe.png",
+      "webp": "webp/cantaloupe.webp"
+    },
+    {
+      "id": "carrot",
+      "name": "Carrot",
+      "png": "png/carrot.png",
+      "webp": "webp/carrot.webp"
+    },
+    {
+      "id": "cauliflower",
+      "name": "Cauliflower",
+      "png": "png/cauliflower.png",
+      "webp": "webp/cauliflower.webp"
+    },
+    {
+      "id": "cayenne-pepper",
+      "name": "Cayenne Pepper",
+      "png": "png/cayenne-pepper.png",
+      "webp": "webp/cayenne-pepper.webp"
+    },
+    {
+      "id": "celeriac",
+      "name": "Celeriac",
+      "png": "png/celeriac.png",
+      "webp": "webp/celeriac.webp"
+    },
+    {
+      "id": "celery",
+      "name": "Celery",
+      "png": "png/celery.png",
+      "webp": "webp/celery.webp"
+    },
+    {
+      "id": "chamomile",
+      "name": "Chamomile",
+      "png": "png/chamomile.png",
+      "webp": "webp/chamomile.webp"
+    },
+    {
+      "id": "chayote",
+      "name": "Chayote",
+      "png": "png/chayote.png",
+      "webp": "webp/chayote.webp"
+    },
+    {
+      "id": "cherry",
+      "name": "Cherry",
+      "png": "png/cherry.png",
+      "webp": "webp/cherry.webp"
+    },
+    {
+      "id": "chives",
+      "name": "Chives",
+      "png": "png/chives.png",
+      "webp": "webp/chives.webp"
+    },
+    {
+      "id": "cilantro",
+      "name": "Cilantro",
+      "png": "png/cilantro.png",
+      "webp": "webp/cilantro.webp"
+    },
+    {
+      "id": "cloudberry",
+      "name": "Cloudberry",
+      "png": "png/cloudberry.png",
+      "webp": "webp/cloudberry.webp"
+    },
+    {
+      "id": "clover",
+      "name": "Clover",
+      "png": "png/clover.png",
+      "webp": "webp/clover.webp"
+    },
+    {
+      "id": "coconut",
+      "name": "Coconut",
+      "png": "png/coconut.png",
+      "webp": "webp/coconut.webp"
+    },
+    {
+      "id": "collard-greens",
+      "name": "Collard Greens",
+      "png": "png/collard-greens.png",
+      "webp": "webp/collard-greens.webp"
+    },
+    {
+      "id": "comfrey",
+      "name": "Comfrey",
+      "png": "png/comfrey.png",
+      "webp": "webp/comfrey.webp"
+    },
+    {
+      "id": "coreopsis",
+      "name": "Coreopsis",
+      "png": "png/coreopsis.png",
+      "webp": "webp/coreopsis.webp"
+    },
+    {
+      "id": "cosmos",
+      "name": "Cosmos",
+      "png": "png/cosmos.png",
+      "webp": "webp/cosmos.webp"
+    },
+    {
+      "id": "cranberry",
+      "name": "Cranberry",
+      "png": "png/cranberry.png",
+      "webp": "webp/cranberry.webp"
+    },
+    {
+      "id": "cranberry-bean",
+      "name": "Cranberry Bean",
+      "png": "png/cranberry-bean.png",
+      "webp": "webp/cranberry-bean.webp"
+    },
+    {
+      "id": "crookneck-squash",
+      "name": "Crookneck Squash",
+      "png": "png/crookneck-squash.png",
+      "webp": "webp/crookneck-squash.webp"
+    },
+    {
+      "id": "cucumber",
+      "name": "Cucumber",
+      "png": "png/cucumber.png",
+      "webp": "webp/cucumber.webp"
+    },
+    {
+      "id": "curly-endive",
+      "name": "Curly Endive",
+      "png": "png/curly-endive.png",
+      "webp": "webp/curly-endive.webp"
+    },
+    {
+      "id": "daikon-radish",
+      "name": "Daikon Radish",
+      "png": "png/daikon-radish.png",
+      "webp": "webp/daikon-radish.webp"
+    },
+    {
+      "id": "delicata-squash",
+      "name": "Delicata Squash",
+      "png": "png/delicata-squash.png",
+      "webp": "webp/delicata-squash.webp"
+    },
+    {
+      "id": "dianthus",
+      "name": "Dianthus",
+      "png": "png/dianthus.png",
+      "webp": "webp/dianthus.webp"
+    },
+    {
+      "id": "dill",
+      "name": "Dill",
+      "png": "png/dill.png",
+      "webp": "webp/dill.webp"
+    },
+    {
+      "id": "dragon-fruit",
+      "name": "Dragon Fruit",
+      "png": "png/dragon-fruit.png",
+      "webp": "webp/dragon-fruit.webp"
+    },
+    {
+      "id": "echinacea",
+      "name": "Echinacea",
+      "png": "png/echinacea.png",
+      "webp": "webp/echinacea.webp"
+    },
+    {
+      "id": "edamame",
+      "name": "Edamame",
+      "png": "png/edamame.png",
+      "webp": "webp/edamame.webp"
+    },
+    {
+      "id": "eggplant",
+      "name": "Eggplant",
+      "png": "png/eggplant.png",
+      "webp": "webp/eggplant.webp"
+    },
+    {
+      "id": "elderberry",
+      "name": "Elderberry",
+      "png": "png/elderberry.png",
+      "webp": "webp/elderberry.webp"
+    },
+    {
+      "id": "escarole",
+      "name": "Escarole",
+      "png": "png/escarole.png",
+      "webp": "webp/escarole.webp"
+    },
+    {
+      "id": "fava-bean",
+      "name": "Fava Bean",
+      "png": "png/fava-bean.png",
+      "webp": "webp/fava-bean.webp"
+    },
+    {
+      "id": "fennel",
+      "name": "Fennel",
+      "png": "png/fennel.png",
+      "webp": "webp/fennel.webp"
+    },
+    {
+      "id": "fig",
+      "name": "Fig",
+      "png": "png/fig.png",
+      "webp": "webp/fig.webp"
+    },
+    {
+      "id": "frisee",
+      "name": "Frisee",
+      "png": "png/frisee.png",
+      "webp": "webp/frisee.webp"
+    },
+    {
+      "id": "galangal",
+      "name": "Galangal",
+      "png": "png/galangal.png",
+      "webp": "webp/galangal.webp"
+    },
+    {
+      "id": "garden-pea",
+      "name": "Garden Pea",
+      "png": "png/garden-pea.png",
+      "webp": "webp/garden-pea.webp"
+    },
+    {
+      "id": "garlic",
+      "name": "Garlic",
+      "png": "png/garlic.png",
+      "webp": "webp/garlic.webp"
+    },
+    {
+      "id": "generic-allium-stalks",
+      "name": "Generic Allium Stalks",
+      "png": "png/generic-allium-stalks.png",
+      "webp": "webp/generic-allium-stalks.webp"
+    },
+    {
+      "id": "generic-broad-leaf",
+      "name": "Generic Broad Leaf",
+      "png": "png/generic-broad-leaf.png",
+      "webp": "webp/generic-broad-leaf.webp"
+    },
+    {
+      "id": "generic-bulb-cluster",
+      "name": "Generic Bulb Cluster",
+      "png": "png/generic-bulb-cluster.png",
+      "webp": "webp/generic-bulb-cluster.webp"
+    },
+    {
+      "id": "generic-climbing-vine",
+      "name": "Generic Climbing Vine",
+      "png": "png/generic-climbing-vine.png",
+      "webp": "webp/generic-climbing-vine.webp"
+    },
+    {
+      "id": "generic-colored-stems",
+      "name": "Generic Colored Stems",
+      "png": "png/generic-colored-stems.png",
+      "webp": "webp/generic-colored-stems.webp"
+    },
+    {
+      "id": "generic-curly-leaf",
+      "name": "Generic Curly Leaf",
+      "png": "png/generic-curly-leaf.png",
+      "webp": "webp/generic-curly-leaf.webp"
+    },
+    {
+      "id": "generic-feathery-bulb",
+      "name": "Generic Feathery Bulb",
+      "png": "png/generic-feathery-bulb.png",
+      "webp": "webp/generic-feathery-bulb.webp"
+    },
+    {
+      "id": "generic-flowering-thistle",
+      "name": "Generic Flowering Thistle",
+      "png": "png/generic-flowering-thistle.png",
+      "webp": "webp/generic-flowering-thistle.webp"
+    },
+    {
+      "id": "generic-grassy-flower",
+      "name": "Generic Grassy Flower",
+      "png": "png/generic-grassy-flower.png",
+      "webp": "webp/generic-grassy-flower.webp"
+    },
+    {
+      "id": "generic-leafy-plant",
+      "name": "Generic-Leafy-Plant",
+      "png": "png/generic-leafy-plant.png",
+      "webp": "webp/generic-leafy-plant.webp"
+    },
+    {
+      "id": "generic-leafy-stalks",
+      "name": "Generic Leafy Stalks",
+      "png": "png/generic-leafy-stalks.png",
+      "webp": "webp/generic-leafy-stalks.webp"
+    },
+    {
+      "id": "generic-low-groundcover",
+      "name": "Generic Low Groundcover",
+      "png": "png/generic-low-groundcover.png",
+      "webp": "webp/generic-low-groundcover.webp"
+    },
+    {
+      "id": "generic-red-stalks",
+      "name": "Generic Red Stalks",
+      "png": "png/generic-red-stalks.png",
+      "webp": "webp/generic-red-stalks.webp"
+    },
+    {
+      "id": "generic-red-veined-leaf",
+      "name": "Generic Red Veined Leaf",
+      "png": "png/generic-red-veined-leaf.png",
+      "webp": "webp/generic-red-veined-leaf.webp"
+    },
+    {
+      "id": "generic-root-rosette",
+      "name": "Generic Root Rosette",
+      "png": "png/generic-root-rosette.png",
+      "webp": "webp/generic-root-rosette.webp"
+    },
+    {
+      "id": "generic-taproot",
+      "name": "Generic Taproot",
+      "png": "png/generic-taproot.png",
+      "webp": "webp/generic-taproot.webp"
+    },
+    {
+      "id": "generic-upright-spears",
+      "name": "Generic Upright Spears",
+      "png": "png/generic-upright-spears.png",
+      "webp": "webp/generic-upright-spears.webp"
+    },
+    {
+      "id": "ginger",
+      "name": "Ginger",
+      "png": "png/ginger.png",
+      "webp": "webp/ginger.webp"
+    },
+    {
+      "id": "gooseberry",
+      "name": "Gooseberry",
+      "png": "png/gooseberry.png",
+      "webp": "webp/gooseberry.webp"
+    },
+    {
+      "id": "grape",
+      "name": "Grape",
+      "png": "png/grape.png",
+      "webp": "webp/grape.webp"
+    },
+    {
+      "id": "grapefruit",
+      "name": "Grapefruit",
+      "png": "png/grapefruit.png",
+      "webp": "webp/grapefruit.webp"
+    },
+    {
+      "id": "green-bean",
+      "name": "Green Bean",
+      "png": "png/green-bean.png",
+      "webp": "webp/green-bean.webp"
+    },
+    {
+      "id": "ground-cherry",
+      "name": "Ground Cherry",
+      "png": "png/ground-cherry.png",
+      "webp": "webp/ground-cherry.webp"
+    },
+    {
+      "id": "guava",
+      "name": "Guava",
+      "png": "png/guava.png",
+      "webp": "webp/guava.webp"
+    },
+    {
+      "id": "hardy-kiwi",
+      "name": "Hardy kiwi",
+      "png": "png/hardy-kiwi.png",
+      "webp": "webp/hardy-kiwi.webp"
+    },
+    {
+      "id": "honeydew",
+      "name": "Honeydew",
+      "png": "png/honeydew.png",
+      "webp": "webp/honeydew.webp"
+    },
+    {
+      "id": "horseradish",
+      "name": "Horseradish",
+      "png": "png/horseradish.png",
+      "webp": "webp/horseradish.webp"
+    },
+    {
+      "id": "huckleberry",
+      "name": "Huckleberry",
+      "png": "png/huckleberry.png",
+      "webp": "webp/huckleberry.webp"
+    },
+    {
+      "id": "jackfruit",
+      "name": "Jackfruit",
+      "png": "png/jackfruit.png",
+      "webp": "webp/jackfruit.webp"
+    },
+    {
+      "id": "jalapeno",
+      "name": "Jalapeno",
+      "png": "png/jalapeno.png",
+      "webp": "webp/jalapeno.webp"
+    },
+    {
+      "id": "jerusalem-artichoke",
+      "name": "Jerusalem Artichoke",
+      "png": "png/jerusalem-artichoke.png",
+      "webp": "webp/jerusalem-artichoke.webp"
+    },
+    {
+      "id": "jujube",
+      "name": "Jujube",
+      "png": "png/jujube.png",
+      "webp": "webp/jujube.webp"
+    },
+    {
+      "id": "kabocha-squash",
+      "name": "Kabocha Squash",
+      "png": "png/kabocha-squash.png",
+      "webp": "webp/kabocha-squash.webp"
+    },
+    {
+      "id": "kale",
+      "name": "Kale",
+      "png": "png/kale.png",
+      "webp": "webp/kale.webp"
+    },
+    {
+      "id": "kiwi",
+      "name": "Kiwi",
+      "png": "png/kiwi.png",
+      "webp": "webp/kiwi.webp"
+    },
+    {
+      "id": "kohlrabi",
+      "name": "Kohlrabi",
+      "png": "png/kohlrabi.png",
+      "webp": "webp/kohlrabi.webp"
+    },
+    {
+      "id": "lavender",
+      "name": "Lavender",
+      "png": "png/lavender.png",
+      "webp": "webp/lavender.webp"
+    },
+    {
+      "id": "leek",
+      "name": "Leek",
+      "png": "png/leek.png",
+      "webp": "webp/leek.webp"
+    },
+    {
+      "id": "lemon",
+      "name": "Lemon",
+      "png": "png/lemon.png",
+      "webp": "webp/lemon.webp"
+    },
+    {
+      "id": "lemon-balm",
+      "name": "Lemon Balm",
+      "png": "png/lemon-balm.png",
+      "webp": "webp/lemon-balm.webp"
+    },
+    {
+      "id": "lemongrass",
+      "name": "Lemongrass",
+      "png": "png/lemongrass.png",
+      "webp": "webp/lemongrass.webp"
+    },
+    {
+      "id": "lettuce",
+      "name": "Lettuce",
+      "png": "png/lettuce.png",
+      "webp": "webp/lettuce.webp"
+    },
+    {
+      "id": "lime",
+      "name": "Lime",
+      "png": "png/lime.png",
+      "webp": "webp/lime.webp"
+    },
+    {
+      "id": "lingonberry",
+      "name": "Lingonberry",
+      "png": "png/lingonberry.png",
+      "webp": "webp/lingonberry.webp"
+    },
+    {
+      "id": "loquat",
+      "name": "Loquat",
+      "png": "png/loquat.png",
+      "webp": "webp/loquat.webp"
+    },
+    {
+      "id": "luffa-gourd",
+      "name": "Luffa Gourd",
+      "png": "png/luffa-gourd.png",
+      "webp": "webp/luffa-gourd.webp"
+    },
+    {
+      "id": "mache",
+      "name": "Mache",
+      "png": "png/mache.png",
+      "webp": "webp/mache.webp"
+    },
+    {
+      "id": "mango",
+      "name": "Mango",
+      "png": "png/mango.png",
+      "webp": "webp/mango.webp"
+    },
+    {
+      "id": "marigold",
+      "name": "Marigold",
+      "png": "png/marigold.png",
+      "webp": "webp/marigold.webp"
+    },
+    {
+      "id": "medlar",
+      "name": "Medlar",
+      "png": "png/medlar.png",
+      "webp": "webp/medlar.webp"
+    },
+    {
+      "id": "mint",
+      "name": "Mint",
+      "png": "png/mint.png",
+      "webp": "webp/mint.webp"
+    },
+    {
+      "id": "mizuna",
+      "name": "Mizuna",
+      "png": "png/mizuna.png",
+      "webp": "webp/mizuna.webp"
+    },
+    {
+      "id": "morning-glory",
+      "name": "Morning Glory",
+      "png": "png/morning-glory.png",
+      "webp": "webp/morning-glory.webp"
+    },
+    {
+      "id": "mulberry",
+      "name": "Mulberry",
+      "png": "png/mulberry.png",
+      "webp": "webp/mulberry.webp"
+    },
+    {
+      "id": "mustard-greens",
+      "name": "Mustard Greens",
+      "png": "png/mustard-greens.png",
+      "webp": "webp/mustard-greens.webp"
+    },
+    {
+      "id": "napa-cabbage",
+      "name": "Napa Cabbage",
+      "png": "png/napa-cabbage.png",
+      "webp": "webp/napa-cabbage.webp"
+    },
+    {
+      "id": "nasturtium",
+      "name": "Nasturtium",
+      "png": "png/nasturtium.png",
+      "webp": "webp/nasturtium.webp"
+    },
+    {
+      "id": "okra",
+      "name": "Okra",
+      "png": "png/okra.png",
+      "webp": "webp/okra.webp"
+    },
+    {
+      "id": "olive",
+      "name": "Olive",
+      "png": "png/olive.png",
+      "webp": "webp/olive.webp"
+    },
+    {
+      "id": "onion",
+      "name": "Onion",
+      "png": "png/onion.png",
+      "webp": "webp/onion.webp"
+    },
+    {
+      "id": "orange",
+      "name": "Orange",
+      "png": "png/orange.png",
+      "webp": "webp/orange.webp"
+    },
+    {
+      "id": "oregano",
+      "name": "Oregano",
+      "png": "png/oregano.png",
+      "webp": "webp/oregano.webp"
+    },
+    {
+      "id": "pansy",
+      "name": "Pansy",
+      "png": "png/pansy.png",
+      "webp": "webp/pansy.webp"
+    },
+    {
+      "id": "papaya",
+      "name": "Papaya",
+      "png": "png/papaya.png",
+      "webp": "webp/papaya.webp"
+    },
+    {
+      "id": "parsley",
+      "name": "Parsley",
+      "png": "png/parsley.png",
+      "webp": "webp/parsley.webp"
+    },
+    {
+      "id": "parsnip",
+      "name": "Parsnip",
+      "png": "png/parsnip.png",
+      "webp": "webp/parsnip.webp"
+    },
+    {
+      "id": "passion-fruit",
+      "name": "Passion Fruit",
+      "png": "png/passion-fruit.png",
+      "webp": "webp/passion-fruit.webp"
+    },
+    {
+      "id": "pattypan-squash",
+      "name": "Pattypan Squash",
+      "png": "png/pattypan-squash.png",
+      "webp": "webp/pattypan-squash.webp"
+    },
+    {
+      "id": "pawpaw",
+      "name": "Pawpaw",
+      "png": "png/pawpaw.png",
+      "webp": "webp/pawpaw.webp"
+    },
+    {
+      "id": "peach",
+      "name": "Peach",
+      "png": "png/peach.png",
+      "webp": "webp/peach.webp"
+    },
+    {
+      "id": "peanut",
+      "name": "Peanut",
+      "png": "png/peanut.png",
+      "webp": "webp/peanut.webp"
+    },
+    {
+      "id": "pear",
+      "name": "Pear",
+      "png": "png/pear.png",
+      "webp": "webp/pear.webp"
+    },
+    {
+      "id": "persimmon",
+      "name": "Persimmon",
+      "png": "png/persimmon.png",
+      "webp": "webp/persimmon.webp"
+    },
+    {
+      "id": "pineapple",
+      "name": "Pineapple",
+      "png": "png/pineapple.png",
+      "webp": "webp/pineapple.webp"
+    },
+    {
+      "id": "plum",
+      "name": "Plum",
+      "png": "png/plum.png",
+      "webp": "webp/plum.webp"
+    },
+    {
+      "id": "poblano-pepper",
+      "name": "Poblano Pepper",
+      "png": "png/poblano-pepper.png",
+      "webp": "webp/poblano-pepper.webp"
+    },
+    {
+      "id": "pomegranate",
+      "name": "Pomegranate",
+      "png": "png/pomegranate.png",
+      "webp": "webp/pomegranate.webp"
+    },
+    {
+      "id": "potato",
+      "name": "Potato",
+      "png": "png/potato.png",
+      "webp": "webp/potato.webp"
+    },
+    {
+      "id": "pumpkin",
+      "name": "Pumpkin",
+      "png": "png/pumpkin.png",
+      "webp": "webp/pumpkin.webp"
+    },
+    {
+      "id": "purple-sprouting-broccoli",
+      "name": "Purple Sprouting Broccoli",
+      "png": "png/purple-sprouting-broccoli.png",
+      "webp": "webp/purple-sprouting-broccoli.webp"
+    },
+    {
+      "id": "quince",
+      "name": "Quince",
+      "png": "png/quince.png",
+      "webp": "webp/quince.webp"
+    },
+    {
+      "id": "radicchio",
+      "name": "Radicchio",
+      "png": "png/radicchio.png",
+      "webp": "webp/radicchio.webp"
+    },
+    {
+      "id": "radish",
+      "name": "Radish",
+      "png": "png/radish.png",
+      "webp": "webp/radish.webp"
+    },
+    {
+      "id": "raspberry",
+      "name": "Raspberry",
+      "png": "png/raspberry.png",
+      "webp": "webp/raspberry.webp"
+    },
+    {
+      "id": "red-currant",
+      "name": "Red Currant",
+      "png": "png/red-currant.png",
+      "webp": "webp/red-currant.webp"
+    },
+    {
+      "id": "red-veined-sorrel",
+      "name": "Red Veined Sorrel",
+      "png": "png/red-veined-sorrel.png",
+      "webp": "webp/red-veined-sorrel.webp"
+    },
+    {
+      "id": "rhubarb",
+      "name": "Rhubarb",
+      "png": "png/rhubarb.png",
+      "webp": "webp/rhubarb.webp"
+    },
+    {
+      "id": "romanesco",
+      "name": "Romanesco",
+      "png": "png/romanesco.png",
+      "webp": "webp/romanesco.webp"
+    },
+    {
+      "id": "rosemary",
+      "name": "Rosemary",
+      "png": "png/rosemary.png",
+      "webp": "webp/rosemary.webp"
+    },
+    {
+      "id": "runner-bean",
+      "name": "Runner Bean",
+      "png": "png/runner-bean.png",
+      "webp": "webp/runner-bean.webp"
+    },
+    {
+      "id": "rutabaga",
+      "name": "Rutabaga",
+      "png": "png/rutabaga.png",
+      "webp": "webp/rutabaga.webp"
+    },
+    {
+      "id": "sage",
+      "name": "Sage",
+      "png": "png/sage.png",
+      "webp": "webp/sage.webp"
+    },
+    {
+      "id": "salsify",
+      "name": "Salsify",
+      "png": "png/salsify.png",
+      "webp": "webp/salsify.webp"
+    },
+    {
+      "id": "serviceberry",
+      "name": "Serviceberry",
+      "png": "png/serviceberry.png",
+      "webp": "webp/serviceberry.webp"
+    },
+    {
+      "id": "shallot",
+      "name": "Shallot",
+      "png": "png/shallot.png",
+      "webp": "webp/shallot.webp"
+    },
+    {
+      "id": "snow-pea",
+      "name": "Snow Pea",
+      "png": "png/snow-pea.png",
+      "webp": "webp/snow-pea.webp"
+    },
+    {
+      "id": "spaghetti-squash",
+      "name": "Spaghetti Squash",
+      "png": "png/spaghetti-squash.png",
+      "webp": "webp/spaghetti-squash.webp"
+    },
+    {
+      "id": "spinach",
+      "name": "Spinach",
+      "png": "png/spinach.png",
+      "webp": "webp/spinach.webp"
+    },
+    {
+      "id": "stevia",
+      "name": "Stevia",
+      "png": "png/stevia.png",
+      "webp": "webp/stevia.webp"
+    },
+    {
+      "id": "strawberry",
+      "name": "Strawberry",
+      "png": "png/strawberry.png",
+      "webp": "webp/strawberry.webp"
+    },
+    {
+      "id": "sunchoke",
+      "name": "Sunchoke",
+      "png": "png/sunchoke.png",
+      "webp": "webp/sunchoke.webp"
+    },
+    {
+      "id": "sunflower",
+      "name": "Sunflower",
+      "png": "png/sunflower.png",
+      "webp": "webp/sunflower.webp"
+    },
+    {
+      "id": "sweet-alyssum",
+      "name": "Sweet Alyssum",
+      "png": "png/sweet-alyssum.png",
+      "webp": "webp/sweet-alyssum.webp"
+    },
+    {
+      "id": "sweet-corn",
+      "name": "Sweet Corn",
+      "png": "png/sweet-corn.png",
+      "webp": "webp/sweet-corn.webp"
+    },
+    {
+      "id": "sweet-pea-flower",
+      "name": "Sweet Pea Flower",
+      "png": "png/sweet-pea-flower.png",
+      "webp": "webp/sweet-pea-flower.webp"
+    },
+    {
+      "id": "sweet-potato",
+      "name": "Sweet Potato",
+      "png": "png/sweet-potato.png",
+      "webp": "webp/sweet-potato.webp"
+    },
+    {
+      "id": "swiss-chard",
+      "name": "Swiss Chard",
+      "png": "png/swiss-chard.png",
+      "webp": "webp/swiss-chard.webp"
+    },
+    {
+      "id": "tangerine",
+      "name": "Tangerine",
+      "png": "png/tangerine.png",
+      "webp": "webp/tangerine.webp"
+    },
+    {
+      "id": "tarragon",
+      "name": "Tarragon",
+      "png": "png/tarragon.png",
+      "webp": "webp/tarragon.webp"
+    },
+    {
+      "id": "tatsoi",
+      "name": "Tatsoi",
+      "png": "png/tatsoi.png",
+      "webp": "webp/tatsoi.webp"
+    },
+    {
+      "id": "tayberry",
+      "name": "Tayberry",
+      "png": "png/tayberry.png",
+      "webp": "webp/tayberry.webp"
+    },
+    {
+      "id": "thyme",
+      "name": "Thyme",
+      "png": "png/thyme.png",
+      "webp": "webp/thyme.webp"
+    },
+    {
+      "id": "tomatillo",
+      "name": "Tomatillo",
+      "png": "png/tomatillo.png",
+      "webp": "webp/tomatillo.webp"
+    },
+    {
+      "id": "tomato",
+      "name": "Tomato",
+      "png": "png/tomato.png",
+      "webp": "webp/tomato.webp"
+    },
+    {
+      "id": "turmeric",
+      "name": "Turmeric",
+      "png": "png/turmeric.png",
+      "webp": "webp/turmeric.webp"
+    },
+    {
+      "id": "turnip",
+      "name": "Turnip",
+      "png": "png/turnip.png",
+      "webp": "webp/turnip.webp"
+    },
+    {
+      "id": "watercress",
+      "name": "Watercress",
+      "png": "png/watercress.png",
+      "webp": "webp/watercress.webp"
+    },
+    {
+      "id": "watermelon",
+      "name": "Watermelon",
+      "png": "png/watermelon.png",
+      "webp": "webp/watermelon.webp"
+    },
+    {
+      "id": "watermelon-radish",
+      "name": "Watermelon Radish",
+      "png": "png/watermelon-radish.png",
+      "webp": "webp/watermelon-radish.webp"
+    },
+    {
+      "id": "wax-bean",
+      "name": "Wax Bean",
+      "png": "png/wax-bean.png",
+      "webp": "webp/wax-bean.webp"
+    },
+    {
+      "id": "wineberry",
+      "name": "Wineberry",
+      "png": "png/wineberry.png",
+      "webp": "webp/wineberry.webp"
+    },
+    {
+      "id": "yardlong-bean",
+      "name": "Yardlong Bean",
+      "png": "png/yardlong-bean.png",
+      "webp": "webp/yardlong-bean.webp"
+    },
+    {
+      "id": "yarrow",
+      "name": "Yarrow",
+      "png": "png/yarrow.png",
+      "webp": "webp/yarrow.webp"
+    },
+    {
+      "id": "yellow-squash",
+      "name": "Yellow Squash",
+      "png": "png/yellow-squash.png",
+      "webp": "webp/yellow-squash.webp"
+    },
+    {
+      "id": "zinnia",
+      "name": "Zinnia",
+      "png": "png/zinnia.png",
+      "webp": "webp/zinnia.webp"
+    },
+    {
+      "id": "zucchini",
+      "name": "Zucchini",
+      "png": "png/zucchini.png",
+      "webp": "webp/zucchini.webp"
+    },
+    {
+      "id": "cowpea-black-eyed-pea",
+      "name": "Cowpea Black Eyed Pea",
+      "png": "png/cowpea-black-eyed-pea.png",
+      "webp": "webp/cowpea-black-eyed-pea.webp"
+    },
+    {
+      "id": "popcorn",
+      "name": "Popcorn",
+      "png": "png/popcorn.png",
+      "webp": "webp/popcorn.webp"
+    },
+    {
+      "id": "grain-sorghum",
+      "name": "Grain Sorghum",
+      "png": "png/grain-sorghum.png",
+      "webp": "webp/grain-sorghum.webp"
+    },
+    {
+      "id": "buckwheat",
+      "name": "Buckwheat",
+      "png": "png/buckwheat.png",
+      "webp": "webp/buckwheat.webp"
+    },
+    {
+      "id": "cereal-rye",
+      "name": "Cereal Rye",
+      "png": "png/cereal-rye.png",
+      "webp": "webp/cereal-rye.webp"
+    },
+    {
+      "id": "oats",
+      "name": "Oats",
+      "png": "png/oats.png",
+      "webp": "webp/oats.webp"
+    },
+    {
+      "id": "microgreens",
+      "name": "Microgreens",
+      "png": "png/microgreens.png",
+      "webp": "webp/microgreens.webp"
+    },
+    {
+      "id": "hops",
+      "name": "Hops",
+      "png": "png/hops.png",
+      "webp": "webp/hops.webp"
+    }
+  ],
+  "note": "Automated matte-spill cleanup; visual QA remains necessary, particularly for heavily contaminated source illustrations.",
+  "status": "identifier reference for v4 rebuild; no v4 artwork completed"
+}
