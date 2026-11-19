@@ -10,6 +10,7 @@
 //        | crop_grow_save | reference_fill (mode=blanks|all) | reference_fill_all | shared_unhide
 //        | reference_update (download OpenPlantDB) | reference_upload (plants.csv/json; includes/garden_openplantdb.php)
 //        | crop_picture | crop_picture_remove (the crop's own picture on the bed map; includes/garden_plant_art.php, migration 0076)
+//        | plant_set_upload (one zip of plant pictures for the whole map, matched by crop name)
 //        (all garden_manage; the planner is read-only)
 // Archiving hides a crop or variety from new records; everything already recorded keeps it.
 require_once __DIR__ . '/../../config.php';
@@ -92,7 +93,7 @@ garden_post($pdo, 'crops.php', [
     'crop_picture_remove' => [true, function () use ($pdo, $org) {
         $key = garden_in('crop');
         garden_crop_picture_remove($pdo, $org, $key);
-        return ['Took the picture off. The map uses the built-in one again.', 'crop=' . $key, '#picture'];
+        return ['Took your picture off. The map uses the picture set or built-in one again.', 'crop=' . $key, '#picture'];
     }],
     'reference_fill' => [true, function () use ($pdo, $org) {
         $key = garden_in('crop');
@@ -114,6 +115,14 @@ garden_post($pdo, 'crops.php', [
     'reference_update' => [true, function () use ($pdo) {
         $n = garden_opdb_download($pdo);
         return ['Loaded ' . $n . ' plants from OpenPlantDB. Fill from reference now uses them.', 'refs=1', '#refs'];
+    }],
+    'plant_set_upload' => [true, function () {
+        $f = $_FILES['icons'] ?? [];
+        $e = (int)($f['error'] ?? UPLOAD_ERR_NO_FILE);
+        if ($e === UPLOAD_ERR_INI_SIZE || $e === UPLOAD_ERR_FORM_SIZE) throw new InvalidArgumentException('That zip is too big for the server (limit ' . ini_get('upload_max_filesize') . '). Zip only the webp folder and try again.');
+        if ($e !== UPLOAD_ERR_OK || !is_uploaded_file((string)($f['tmp_name'] ?? ''))) throw new InvalidArgumentException('Choose the zip of plant pictures.');
+        $n = garden_plant_set_import((string)$f['tmp_name']);
+        return ['Loaded ' . $n . ' plant pictures. The bed map uses them now.', 'pics=1', '#pics'];
     }],
     'reference_upload' => [true, function () use ($pdo) {
         $f = $_FILES['plants'] ?? [];
@@ -365,11 +374,11 @@ if ($cropKey !== '') {
     <p class="text-xs text-stone-500 mt-2"><?= $h(garden_reference_credit($ref)) ?> Spacing is the middle of the range. Your seed packet is more exact for a variety.</p>
     <?php endif; ?>
   </div>
-  <?php $look = garden_plant_look($pdo, $org, $cropKey, $c['name'], $settings); $artSrc = $look['pic'] !== '' ? $look['pic'] : ($look['art'] !== '' ? (garden_plant_art_builtin()[$look['art']] ?? '') : ''); ?>
+  <?php $look = garden_plant_look($pdo, $org, $cropKey, $c['name'], $settings, (string)($c['family'] ?? '')); $artSrc = $look['pic'] !== '' ? $look['pic'] : ($look['art'] !== '' ? (garden_plant_art_builtin()[$look['art']] ?? '') : ''); ?>
   <div id="picture" class="<?= $ui['card'] ?>"><h2 class="<?= $ui['h2'] ?>">Picture on the bed map</h2>
     <div class="flex flex-wrap gap-4 items-center">
       <?php if ($artSrc !== ''): ?><img src="<?= $h($artSrc) ?>" alt="<?= $h($c['name']) ?>" class="gm-cropic"><?php else: ?><span class="gm-cropic gm-cropic-emoji" aria-hidden="true"><?= $h($look['emoji']) ?></span><?php endif; ?>
-      <p class="text-sm text-stone-600 flex-1"><?= $look['pic'] !== '' ? 'Your own picture.' : ($look['art'] !== '' ? 'Built-in drawing.' : 'No picture yet, so the map shows this emoji.') ?>
+      <p class="text-sm text-stone-600 flex-1"><?= ['own' => 'Your own picture.', 'set' => 'From your plant picture set.', 'generic' => 'A general plant from your picture set (nothing in the set matched this name).'][$look['from']] ?? ($look['art'] !== '' ? 'Built-in drawing.' : 'No picture yet, so the map shows this emoji.') ?>
         On the map the plants sit <?= $h(rtrim(rtrim(number_format($look['gap'] * 12, 1), '0'), '.')) ?> in apart in rows <?= $h(rtrim(rtrim(number_format($look['row'] * 12, 1), '0'), '.')) ?> in apart (the spacing above, else the reference, else 12 in).</p>
     </div>
     <?php if ($manage): ?>
@@ -377,7 +386,7 @@ if ($cropKey !== '') {
       <div><label class="<?= $ui['label'] ?>" for="cpic">Use my own picture (a plant on a see-through or white background looks best)</label><input id="cpic" name="picture" type="file" accept="image/*" required class="<?= $ui['input'] ?>"></div>
       <button class="<?= $ui['btnSec'] ?>">Upload picture</button>
     </form>
-    <?php if ($look['pic'] !== ''): ?><form method="POST" action="crops.php" class="mt-2"><?= garden_hidden('crop_picture_remove', ['crop' => $cropKey]) ?><button class="text-xs text-amber-800 underline" data-no-icons data-confirm="Take your picture off <?= $h($c['name']) ?>?">Remove my picture</button></form><?php endif; ?>
+    <?php if ($look['from'] === 'own'): ?><form method="POST" action="crops.php" class="mt-2"><?= garden_hidden('crop_picture_remove', ['crop' => $cropKey]) ?><button class="text-xs text-amber-800 underline" data-no-icons data-confirm="Take your picture off <?= $h($c['name']) ?>?">Remove my picture</button></form><?php endif; ?>
     <?php endif; ?>
   </div>
   <div id="varieties" class="<?= $ui['card'] ?>"><h2 class="<?= $ui['h2'] ?>">Varieties</h2>
@@ -487,6 +496,25 @@ $refN = count(array_filter($crops, fn($c, $k) => $missing($settings[$k] ?? []) &
       <form id="form-reference_upload" method="POST" action="crops.php" enctype="multipart/form-data" data-submit-once class="flex flex-wrap gap-2 items-end"><?= garden_form_error($err, $errAct, 'reference_upload') ?><?= garden_hidden('reference_upload') ?>
         <div><label class="<?= $ui['label'] ?>" for="rpf">Or upload plants.csv / plants.json</label><input id="rpf" name="plants" type="file" accept=".csv,.json,text/csv,application/json" required class="<?= $ui['input'] ?>"></div>
         <button class="<?= $ui['btnSec'] ?>">Upload</button></form>
+      <?php endif; ?>
+    </div>
+  </details>
+<?php $pset = garden_plant_set(); $pnames = garden_plant_set_names(); $pmiss = [];
+      if ($pset) foreach ($crops as $k => $c) { $m = garden_plant_set_match($c['name'], (string)($c['family'] ?? ''), $pset); if ($m === '' || str_starts_with($m, 'generic-')) $pmiss[] = $c['name']; } ?>
+  <details id="pics" class="<?= $ui['sec'] ?>" <?= isset($_GET['pics']) ? 'open' : '' ?>>
+    <summary class="<?= $ui['sum'] ?>">Plant pictures for the bed map <span class="text-sm font-normal text-stone-500">· <?= $pset ? count($pset) . ' loaded' : 'none loaded yet' ?></span> <span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
+    <div class="p-4 text-sm">
+      <p class="mb-2">Upload one .zip of plant pictures (WebP or PNG, named like <em>carrot.webp</em> or <em>green-bean.webp</em>). Farm OS matches them to your crops by name, so "Cherry tomato" uses tomato and "Bush beans" uses green bean. A new zip replaces the old set. A picture uploaded on one crop's page still wins.</p>
+      <?php if ($pset): ?>
+      <p class="mb-2"><?= $pmiss ? 'Your crops with no matching picture (they get a general plant): ' . $h(implode(', ', $pmiss)) . '.' : 'Every crop has a matching picture.' ?></p>
+      <details class="mb-3"><summary class="cursor-pointer text-stone-700">See all <?= count($pset) ?> pictures</summary>
+        <div class="gm-setgrid mt-2"><?php foreach ($pset as $slug => $url): ?><figure><img src="<?= $h($url) ?>" alt="" loading="lazy"><figcaption><?= $h($pnames[$slug] ?? str_replace('-', ' ', $slug)) ?></figcaption></figure><?php endforeach; ?></div>
+      </details>
+      <?php endif; ?>
+      <?php if ($manage): ?>
+      <form id="form-plant_set_upload" method="POST" action="crops.php" enctype="multipart/form-data" data-submit-once class="flex flex-wrap gap-2 items-end"><?= garden_form_error($err, $errAct, 'plant_set_upload') ?><?= garden_hidden('plant_set_upload') ?>
+        <div><label class="<?= $ui['label'] ?>" for="psz">Picture set (.zip)</label><input id="psz" name="icons" type="file" accept=".zip,application/zip" required class="<?= $ui['input'] ?>"></div>
+        <button class="<?= $ui['btnSec'] ?>">Upload pictures</button></form>
       <?php endif; ?>
     </div>
   </details>

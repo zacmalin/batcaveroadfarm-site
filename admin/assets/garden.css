@@ -127,3 +127,6 @@
 .gm-shape-icon { width: 1.2rem; height: 1.1rem; fill: #d9c7a7; stroke: #79523a; stroke-width: 1.5; flex: none; }
 .gm-cropic { display: block; width: 6rem; height: 6rem; object-fit: contain; border: 1px solid #e7e5e4; border-radius: .5rem; background: #fafaf9; }
 .gm-cropic-emoji { display: flex; align-items: center; justify-content: center; font-size: 3rem; }
+.gm-setgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr)); gap: .5rem; }
+.gm-setgrid figure { margin: 0; text-align: center; font-size: .6875rem; color: #57534e; line-height: 1.2; }
+.gm-setgrid img { display: block; width: 3rem; height: 3rem; object-fit: contain; margin: 0 auto .2rem; }

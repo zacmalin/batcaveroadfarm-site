@@ -3,7 +3,9 @@
 //   admin/garden/crops.php, migration 0076).
 //   Built-in drawings (carrot, beet, potato; 96 px WebP with see-through backgrounds) live here as text so they deploy like code.
 //   Any crop can get its own picture in the crop editor (garden_crop_settings.picture, /img/garden/plants/crop-*.webp).
-//   Crops with neither show an emoji picked from the crop name.
+//   The farm's picture set (Garden › Crops › Plant pictures: one .zip of WebP/PNG icons named like carrot.webp, optional
+//   manifest.json) lives in /img/garden/plants/set/ and is matched to crops by name (Nov 19, 2026). Crops with no match get a
+//   generic plant from the set for their family, or an emoji when no set is loaded.
 
 /** Built-in plant drawings: key => data URI. */
 function garden_plant_art_builtin(): array {
@@ -83,13 +85,148 @@ function garden_crop_picture_unlink(string $path): void {
     if (is_file($f)) @unlink($f);
 }
 
+// ── The farm's picture set (one zip) ──
+
+const GARDEN_PLANT_SET_MAX = 600;          // icons in one zip
+const GARDEN_PLANT_SET_ICON = 160;         // px, long side, as saved
+
+/** Folder for the picture set: <site>/img/garden/plants/set (BCRF_GARDEN_PLANT_DIR/set for tests). */
+function garden_plant_set_dir(): string {
+    $base = getenv('BCRF_GARDEN_PLANT_DIR') ?: dirname(__DIR__) . '/img/garden/plants';
+    $dir = rtrim($base, '/') . '/set';
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+    return $dir;
+}
+
+/** The loaded set: slug => web path (with a version so phones reload after a new zip). Cached per request. */
+function garden_plant_set(bool $fresh = false): array {
+    static $set = null;
+    if ($set !== null && !$fresh) return $set;
+    $set = [];
+    $dir = garden_plant_set_dir();
+    foreach (glob($dir . '/*.webp') ?: [] as $f) {
+        $slug = basename($f, '.webp');
+        if (preg_match('/^[a-z0-9-]{1,80}$/', $slug)) $set[$slug] = '/img/garden/plants/set/' . $slug . '.webp?v=' . (int)@filemtime($f);
+    }
+    return $set;
+}
+
+/** Names from the set's manifest.json: slug => name ([] when none). */
+function garden_plant_set_names(): array {
+    $j = @file_get_contents(garden_plant_set_dir() . '/names.json');
+    $d = $j ? json_decode($j, true) : null;
+    return is_array($d) ? $d : [];
+}
+
+/** A crop or icon name as an icon slug ("Cherry Tomatoes" -> "cherry-tomatoes"). */
+function garden_plant_slug(string $s): string {
+    return trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($s)), '-');
+}
+
+/**
+ * The set icon for a crop name: exact, singular, a known other name, then the last words ("Danvers carrot" -> carrot),
+ * then a generic plant for the family. '' when nothing fits or no set is loaded.
+ */
+function garden_plant_set_match(string $crop, string $family = '', ?array $set = null): string {
+    $set ??= garden_plant_set();
+    if (!$set) return '';
+    $alias = ['bean' => 'green-bean', 'bush-bean' => 'green-bean', 'pole-bean' => 'green-bean', 'snap-bean' => 'green-bean', 'string-bean' => 'green-bean',
+              'pea' => 'garden-pea', 'english-pea' => 'garden-pea', 'shelling-pea' => 'garden-pea', 'sugar-snap-pea' => 'snow-pea', 'snap-pea' => 'snow-pea',
+              'pepper' => 'bell-pepper', 'sweet-pepper' => 'bell-pepper', 'hot-pepper' => 'cayenne-pepper', 'chili-pepper' => 'cayenne-pepper', 'chili' => 'cayenne-pepper',
+              'squash' => 'yellow-squash', 'summer-squash' => 'yellow-squash', 'winter-squash' => 'butternut-squash', 'corn' => 'sweet-corn',
+              'collard' => 'collard-greens', 'collards' => 'collard-greens', 'mustard' => 'mustard-greens', 'chard' => 'swiss-chard', 'melon' => 'cantaloupe',
+              'muskmelon' => 'cantaloupe', 'beetroot' => 'beet', 'scallion' => 'onion', 'green-onion' => 'onion', 'coriander' => 'cilantro', 'courgette' => 'zucchini',
+              'aubergine' => 'eggplant', 'rocket' => 'arugula', 'soybean' => 'edamame', 'chive' => 'chives', 'pak-choi' => 'bok-choy', 'bok-choi' => 'bok-choy',
+              'irish-potato' => 'potato', 'english-cucumber' => 'cucumber', 'pickling-cucumber' => 'cucumber', 'kiwifruit' => 'kiwi', 'chinese-cabbage' => 'napa-cabbage',
+              'lima-bean' => 'cranberry-bean', 'butter-bean' => 'cranberry-bean', 'gourd' => 'luffa-gourd', 'mache' => 'mache', 'corn-salad' => 'mache',
+              'echinacea' => 'echinacea', 'coneflower' => 'echinacea', 'sweet-pea' => 'sweet-pea-flower', 'snapdragon' => 'generic-grassy-flower'];
+    $try = function (string $sl) use ($set, $alias): string {
+        if ($sl === '') return '';
+        foreach ([$sl, preg_replace('/ies$/', 'y', $sl), preg_replace('/(?<=[^aeiou]o|[sxz]|ch|sh)es$/', '', $sl), preg_replace('/(?<!s)s$/', '', $sl)] as $c) {
+            if (isset($set[$c])) return $c;
+            if (isset($alias[$c]) && isset($set[$alias[$c]])) return $alias[$c];
+        }
+        return '';
+    };
+    $sl = garden_plant_slug($crop);
+    if (($m = $try($sl)) !== '') return $m;
+    $parts = explode('-', $sl);
+    for ($i = 1; $i < count($parts); $i++) if (($m = $try(implode('-', array_slice($parts, $i)))) !== '') return $m;
+    $f = strtolower($family);
+    $generic = str_contains($f, 'brassic') ? 'generic-curly-leaf' : (str_contains($f, 'amaryllid') || str_contains($f, 'allium') ? 'generic-allium-stalks'
+             : (str_contains($f, 'apiac') ? 'generic-feathery-bulb' : (str_contains($f, 'poac') ? 'generic-grassy-flower' : (str_contains($f, 'cucurbit') ? 'generic-climbing-vine' : 'generic-leafy-plant'))));
+    return isset($set[$generic]) ? $generic : '';
+}
+
+/** Load a zip of plant icons into the set, replacing the old set. Returns how many icons were saved. */
+function garden_plant_set_import(string $zip): int {
+    $files = [];   // slug => [ext, bytes]
+    $names = [];
+    $take = function (string $path, string $bytes) use (&$files, &$names) {
+        if (strlen($bytes) > 8 * 1024 * 1024) return;
+        $base = basename(str_replace('\\', '/', $path));
+        if ($base === 'manifest.json') {
+            $d = json_decode($bytes, true);
+            foreach ((array)($d['icons'] ?? []) as $ic) if (isset($ic['id'], $ic['name']) && is_string($ic['id'])) $names[garden_plant_slug($ic['id'])] = mb_substr((string)$ic['name'], 0, 80);
+            return;
+        }
+        if (!preg_match('/^([A-Za-z0-9 _.-]{1,80})\.(webp|png)$/i', $base, $m) || str_starts_with($base, '.')) return;
+        $slug = garden_plant_slug($m[1]); $ext = strtolower($m[2]);
+        if ($slug === '' || (isset($files[$slug]) && $files[$slug][0] === 'webp')) return;   // WebP wins over PNG
+        $files[$slug] = [$ext, $bytes];
+    };
+    if (class_exists('ZipArchive')) {
+        $z = new ZipArchive();
+        if ($z->open($zip) !== true) throw new InvalidArgumentException('That file is not a zip.');
+        if ($z->numFiles > GARDEN_PLANT_SET_MAX * 3) { $z->close(); throw new InvalidArgumentException('That zip has too many files.'); }
+        for ($i = 0; $i < $z->numFiles; $i++) {
+            $st = $z->statIndex($i);
+            if (!$st || str_ends_with($st['name'], '/') || $st['size'] > 8 * 1024 * 1024 || str_contains($st['name'], '__MACOSX')) continue;
+            $b = $z->getFromIndex($i);
+            if ($b !== false) $take($st['name'], $b);
+        }
+        $z->close();
+    } else {
+        throw new InvalidArgumentException('This server cannot open zip files.');
+    }
+    if (!$files) throw new InvalidArgumentException('No .webp or .png pictures found in that zip.');
+    if (count($files) > GARDEN_PLANT_SET_MAX) throw new InvalidArgumentException('That zip has more than ' . GARDEN_PLANT_SET_MAX . ' pictures.');
+    $dir = garden_plant_set_dir();
+    $tmp = $dir . '/.new-' . bin2hex(random_bytes(4));
+    if (!@mkdir($tmp, 0755)) throw new InvalidArgumentException('Could not save the pictures.');
+    $n = 0;
+    foreach ($files as $slug => [$ext, $bytes]) {
+        $info = @getimagesizefromstring($bytes);
+        if (!$info || !in_array($info[2], [IMAGETYPE_PNG, IMAGETYPE_WEBP], true) || $info[0] * $info[1] > 25000000) continue;
+        $im = @imagecreatefromstring($bytes);
+        if (!$im) continue;
+        if (!imageistruecolor($im)) imagepalettetotruecolor($im);
+        $w = imagesx($im); $h = imagesy($im); $sc = min(1, GARDEN_PLANT_SET_ICON / max($w, $h));
+        $nw = max(1, (int)round($w * $sc)); $nh = max(1, (int)round($h * $sc));
+        $c = imagecreatetruecolor($nw, $nh);
+        imagealphablending($c, false); imagesavealpha($c, true); imagefill($c, 0, 0, imagecolorallocatealpha($c, 0, 0, 0, 127));
+        imagecopyresampled($c, $im, 0, 0, 0, 0, $nw, $nh, $w, $h);
+        if (@imagewebp($c, $tmp . '/' . $slug . '.webp', 82)) { @chmod($tmp . '/' . $slug . '.webp', 0644); $n++; }
+    }
+    if (!$n) { array_map('unlink', glob($tmp . '/*') ?: []); @rmdir($tmp); throw new InvalidArgumentException('None of the pictures in that zip could be opened.'); }
+    if ($names) @file_put_contents($tmp . '/names.json', json_encode($names, JSON_UNESCAPED_UNICODE));
+    // Swap: the old set goes, the new one moves in.
+    foreach (glob($dir . '/*.webp') ?: [] as $f) @unlink($f);
+    @unlink($dir . '/names.json');
+    foreach (glob($tmp . '/*') ?: [] as $f) @rename($f, $dir . '/' . basename($f));
+    @rmdir($tmp);
+    garden_plant_set(true);
+    return $n;
+}
+
 /**
  * How each crop shows on the map: crop key => ['pic' => url|'', 'art' => built-in key|'', 'emoji' => …, 'gap' => ft between plants, 'row' => ft between rows].
  * Spacing: the crop editor, else the reference numbers, else 1 ft.
  */
-function garden_plant_look(PDO $pdo, int $org, string $key, string $cropName, array $settings): array {
+function garden_plant_look(PDO $pdo, int $org, string $key, string $cropName, array $settings, string $family = ''): array {
     $s = $key !== '' ? ($settings[$key] ?? []) : [];
-    $pic = (string)($s['picture'] ?? '');
+    $pic = (string)($s['picture'] ?? ''); $from = $pic !== '' ? 'own' : '';
+    if ($pic === '' && ($m = garden_plant_set_match($cropName, $family)) !== '') { $pic = garden_plant_set()[$m]; $from = str_starts_with($m, 'generic-') ? 'generic' : 'set'; }
     $gapCm = isset($s['spacing_cm']) && $s['spacing_cm'] !== null ? (float)$s['spacing_cm'] : null;
     $rowCm = isset($s['row_spacing_cm']) && $s['row_spacing_cm'] !== null ? (float)$s['row_spacing_cm'] : null;
     if ($gapCm === null || $rowCm === null) {
@@ -102,6 +239,6 @@ function garden_plant_look(PDO $pdo, int $org, string $key, string $cropName, ar
     }
     $gap = $gapCm !== null && $gapCm > 0 ? $gapCm / 30.48 : 1.0;
     $row = $rowCm !== null && $rowCm > 0 ? $rowCm / 30.48 : $gap;
-    return ['pic' => $pic, 'art' => $pic === '' ? garden_plant_art_key($cropName) : '', 'emoji' => garden_plant_emoji($cropName),
+    return ['pic' => $pic, 'from' => $from, 'art' => $pic === '' ? garden_plant_art_key($cropName) : '', 'emoji' => garden_plant_emoji($cropName),
             'gap' => round(min(max($gap, 0.15), 6), 2), 'row' => round(min(max($row, 0.15), 8), 2)];
 }

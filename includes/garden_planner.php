@@ -419,7 +419,7 @@ function garden_map_data(PDO $pdo, int $org, array $site, array $areas, array $p
             $families[$fam === '' ? 'Unspecified' : $fam] = true; $statuses[$ms] = true;
             $ck = !empty($p['std_crop_id']) ? 's' . (int)$p['std_crop_id'] : (!empty($p['own_crop_id']) ? 'o' . (int)$p['own_crop_id'] : '');
             $lk = $ck !== '' ? $ck : 'n:' . strtolower((string)$p['crop_name']);
-            $looks[$lk] ??= garden_plant_look($pdo, $org, $ck, (string)$p['crop_name'], $cropSet);
+            $looks[$lk] ??= garden_plant_look($pdo, $org, $ck, (string)$p['crop_name'], $cropSet, $fam);
             $look = $looks[$lk];
             if ($look['art'] !== '' && isset($builtin[$look['art']])) $art[$look['art']] = $builtin[$look['art']];
             $here[] = ['id' => (int)$p['id'], 'crop' => (string)$p['crop_name'], 'variety' => (string)$p['variety_name'], 'family' => garden_family_label($fam),

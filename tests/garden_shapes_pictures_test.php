@@ -133,5 +133,45 @@ garden_crop_picture_unlink('/img/garden/plants/../../config.php');
 $ok(true, 'unlink ignores paths outside the folder');
 array_map('unlink', glob($dir . '/*')); @rmdir($dir);
 
+// ── The farm's picture set (one zip) ──
+$dir = sys_get_temp_dir() . '/bcrf-plants-set-' . getmypid(); @mkdir($dir); putenv('BCRF_GARDEN_PLANT_DIR=' . $dir);
+$ok(garden_plant_set(true) === [] && garden_plant_set_match('Tomato') === '', 'no set loaded: nothing matches');
+$mk = function (int $w, int $h, string $fmt) { $im = imagecreatetruecolor($w, $h); imagesavealpha($im, true); imagealphablending($im, false);
+    imagefill($im, 0, 0, imagecolorallocatealpha($im, 0, 0, 0, 127)); imagefilledellipse($im, (int)($w / 2), (int)($h / 2), (int)($w / 2), (int)($h / 2), imagecolorallocatealpha($im, 200, 40, 40, 0));
+    ob_start(); $fmt === 'png' ? imagepng($im) : imagewebp($im, null, 80); return ob_get_clean(); };
+$zipf = $dir . '/icons.zip'; $z = new ZipArchive(); $z->open($zipf, ZipArchive::CREATE);
+$z->addFromString('set/manifest.json', json_encode(['icons' => [['id' => 'tomato', 'name' => 'Tomato'], ['id' => 'green-bean', 'name' => 'Green Bean']]]));
+foreach (['tomato', 'green-bean', 'garden-pea', 'carrot', 'radish', 'generic-leafy-plant', 'generic-curly-leaf'] as $sl) $z->addFromString('set/webp/' . $sl . '.webp', $mk(512, 512, 'webp'));
+$z->addFromString('set/png/tomato.png', $mk(64, 64, 'png'));     // webp wins
+$z->addFromString('set/png/okra.png', $mk(300, 200, 'png'));     // png only is fine
+$z->addFromString('__MACOSX/set/._x.webp', 'junk');
+$z->addFromString('set/readme.txt', 'hello');
+$z->addFromString('set/webp/broken.webp', 'not a picture');
+$z->close();
+$loaded = garden_plant_set_import($zipf);
+$set = garden_plant_set();
+$ok($loaded === 8 && count($set) === 8 && !isset($set['broken']), 'zip loads 8 pictures, skips junk and broken files');
+$ti = getimagesize($dir . '/set/tomato.webp'); $oi = getimagesize($dir . '/set/okra.webp');
+$ok($ti[0] === 160 && $oi[0] === 160 && $oi[1] === 107, 'pictures shrunk to 160 px; PNG saved as WebP');
+$ok(str_starts_with($set['tomato'], '/img/garden/plants/set/tomato.webp?v='), 'set pictures have a web path with a version');
+$ok((garden_plant_set_names()['green-bean'] ?? '') === 'Green Bean', 'names from manifest.json kept');
+$cases = ['Tomato' => 'tomato', 'Tomatoes' => 'tomato', 'Cherry tomato' => 'tomato', 'Bush beans' => 'green-bean', 'Pole Beans' => 'green-bean', 'Peas' => 'garden-pea',
+          'Danvers Carrots' => 'carrot', 'Radishes' => 'radish', 'Okra' => 'okra'];
+foreach ($cases as $crop => $want) $ok(garden_plant_set_match($crop) === $want, "'$crop' matches $want (got " . garden_plant_set_match($crop) . ')');
+$ok(garden_plant_set_match('Kohlrabi', 'Brassicaceae') === 'generic-curly-leaf' && garden_plant_set_match('Mystery', '') === 'generic-leafy-plant', 'no match: a general plant for the family');
+$lk = garden_plant_look($pdo, $org, '', 'Cherry tomato', [], 'Solanaceae');
+$ok($lk['from'] === 'set' && str_contains($lk['pic'], '/set/tomato.webp') && $lk['art'] === '', 'map look uses the set picture');
+$lk2 = garden_plant_look($pdo, $org, '', 'Carrot', ['x' => []]);
+$ok($lk2['from'] === 'set', 'the set beats the built-in drawing');
+// A new zip replaces the whole set.
+$z = new ZipArchive(); $z->open($dir . '/two.zip', ZipArchive::CREATE); $z->addFromString('beet.webp', $mk(100, 100, 'webp')); $z->close();
+$ok(garden_plant_set_import($dir . '/two.zip') === 1 && array_keys(garden_plant_set()) === ['beet'] && garden_plant_set_names() === [], 'a new zip replaces the old set');
+file_put_contents($dir . '/bad.zip', 'nope');
+$throws(fn() => garden_plant_set_import($dir . '/bad.zip'), 'a file that is not a zip is refused', 'not a zip');
+$z = new ZipArchive(); $z->open($dir . '/empty.zip', ZipArchive::CREATE); $z->addFromString('notes.txt', 'x'); $z->close();
+$throws(fn() => garden_plant_set_import($dir . '/empty.zip'), 'a zip with no pictures is refused', 'No .webp');
+$ok(array_keys(garden_plant_set(true)) === ['beet'], 'a refused zip leaves the set alone');
+exec('rm -rf ' . escapeshellarg($dir));
+
 echo $fails ? "$fails of $n checks FAILED\n" : "All $n checks passed\n";
 exit($fails ? 1 : 0);
