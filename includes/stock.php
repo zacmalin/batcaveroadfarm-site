@@ -10,6 +10,7 @@
 //     Stock page puts the difference on the default location as a "sync" ledger row, so levels and the total agree again.
 //   - Until migration 0015 runs, bcrf_stock_ready() is false and callers keep their old behaviour.
 if (!class_exists('BcrfStockError')) { class BcrfStockError extends RuntimeException {} }
+require_once __DIR__ . '/low_stock.php';   // bcrf_stock_in_use_where(): which products Stock lists (Nov 19, 2026)
 
 /** True once migration 0015 has run (cached per request). */
 function bcrf_stock_ready(PDO $pdo): bool {
@@ -80,6 +81,24 @@ function bcrf_location_default(PDO $pdo): int {
     if (!$id) $id = (int)$pdo->query("SELECT id FROM locations WHERE archived_at IS NULL ORDER BY sort_order, id LIMIT 1")->fetchColumn();
     if (!$id) throw new BcrfStockError('No stock locations are set up. Add one in Stock › Locations.');
     return $id;
+}
+
+/**
+ * Where a product is kept (Nov 19, 2026): the active location holding the most of it; with none on hand, the Feed Room
+ * (code 'feed') for animal feed; otherwise the default. Feedings draw from here, and Stock's forms start on it.
+ */
+function bcrf_stock_home_location(PDO $pdo, int $productId): int {
+    $st = $pdo->prepare("SELECT v.location_id FROM inventory_levels v JOIN locations l ON l.id = v.location_id AND l.archived_at IS NULL
+                         WHERE v.product_id = ? AND v.quantity > 0 ORDER BY v.quantity DESC, l.sort_order, l.id LIMIT 1");
+    $st->execute([$productId]);
+    if ($id = (int)$st->fetchColumn()) return $id;
+    $st = $pdo->prepare("SELECT FIND_IN_SET(?, (SELECT setting_value FROM site_settings WHERE setting_key = 'animal_feed_products')) > 0");
+    $st->execute([$productId]);
+    if ((int)$st->fetchColumn()) {
+        $id = (int)$pdo->query("SELECT id FROM locations WHERE code = 'feed' AND archived_at IS NULL LIMIT 1")->fetchColumn();
+        if ($id) return $id;
+    }
+    return bcrf_location_default($pdo);
 }
 
 /** The location a register sells from (its own, or the default). */
@@ -311,16 +330,37 @@ function bcrf_stock_set_count(PDO $pdo, int $productId, int $locationId, float $
     return $r + ['had_level' => array_key_exists($locationId, $L['lv']), 'p' => $L['p']];
 }
 
+/** Stock › item "Set the count": what's there now at one location (Nov 19, 2026). Returns before/after, name and location. */
+function bcrf_stock_quick_count(PDO $pdo, int $productId, int $locationId, $qty, ?int $uid): array {
+    $q = bcrf_stock_parse_qty($qty, true);
+    $loc = bcrf_stock_active_location($pdo, $locationId);
+    $pdo->beginTransaction();
+    try {
+        $L = bcrf_stock_lock($pdo, $productId, $uid);
+        if ((int)$L['p']['track_inventory'] !== 1) throw new BcrfStockError('"' . $L['p']['name'] . '" isn\'t a stocked item, so it has no quantity to count.');
+        $r = bcrf_stock_set_count($pdo, $productId, $locationId, $q, null, $uid, $L);
+        $pdo->commit();
+    } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
+    if ($r['before'] != $r['after']) bcrf_stock_audit($pdo, 'stock_count', 'inventory', $productId, $L['p']['name'] . ' at ' . $loc['name'] . ': counted ' . bcrf_qtxt($q),
+        ['quantity' => $r['before']], ['quantity' => $r['after'], 'reason' => 'count']);
+    return $r + ['name' => $L['p']['name'], 'location' => $loc['name']];
+}
+
 // -- Reading --
 
 /** Stocked products with their quantity at each location. Filters: q, category_id, location_id, low (total at or below minimum). */
 function bcrf_stock_levels(PDO $pdo, array $f = []): array {
-    $w = ["i.track_inventory = 1", "i.is_active = 1"]; $a = [];
+    $w = ["i.track_inventory = 1", bcrf_stock_in_use_where('i')]; $a = [];
     if (($f['q'] ?? '') !== '') { $w[] = "(i.name LIKE ? OR i.sku = ?)"; $a[] = '%' . $f['q'] . '%'; $a[] = $f['q']; }
     if (!empty($f['category_id'])) { $w[] = "i.category_id = ?"; $a[] = (int)$f['category_id']; }
     if (!empty($f['low'])) $w[] = "i.min_stock_level IS NOT NULL AND i.min_stock_level > 0 AND i.stock_quantity <= i.min_stock_level";
-    if (!empty($f['location_id'])) { $w[] = "EXISTS (SELECT 1 FROM inventory_levels x WHERE x.product_id = i.id AND x.location_id = ?)"; $a[] = (int)$f['location_id']; }
-    $st = $pdo->prepare("SELECT i.id, i.name, i.sku, i.price, i.unit, i.stock_quantity, i.min_stock_level, COALESCE(ic.name, i.category, 'Other') AS cat
+    $isFeed = "FIND_IN_SET(i.id, (SELECT setting_value FROM site_settings WHERE setting_key = 'animal_feed_products')) > 0";
+    if (!empty($f['location_id'])) {   // animal feed always shows under the Feed Room, even before anything is counted there
+        $w[] = "(EXISTS (SELECT 1 FROM inventory_levels x WHERE x.product_id = i.id AND x.location_id = ?)
+                 OR ($isFeed AND EXISTS (SELECT 1 FROM locations fr WHERE fr.id = ? AND fr.code = 'feed')))";
+        $a[] = (int)$f['location_id']; $a[] = (int)$f['location_id'];
+    }
+    $st = $pdo->prepare("SELECT i.id, i.name, i.sku, i.price, i.unit, i.stock_quantity, i.min_stock_level, COALESCE(ic.name, i.category, 'Other') AS cat, ($isFeed) AS is_feed
                          FROM inventory i LEFT JOIN inventory_categories ic ON ic.id = i.category_id
                          WHERE " . implode(' AND ', $w) . " ORDER BY COALESCE(ic.sort_order, 999), cat, i.name LIMIT 1000");
     $st->execute($a);
@@ -419,11 +459,15 @@ function bcrf_counts_list(PDO $pdo, int $limit = 30): array {
  * item matching by name or SKU, so staff can count something here for the first time. Each item has on_hand and its line (if counted).
  */
 function bcrf_count_items(PDO $pdo, array $c, string $q = ''): array {
-    $w = ["i.track_inventory = 1", "i.is_active = 1"]; $wa = [];
+    $w = ["i.track_inventory = 1", bcrf_stock_in_use_where('i')]; $wa = [];
     if ($c['scope'] === 'category') { $w[] = "i.category_id = ?"; $wa[] = (int)$c['category_id']; }
     if ($c['scope'] === 'low') $w[] = "i.min_stock_level IS NOT NULL AND i.min_stock_level > 0 AND i.stock_quantity <= i.min_stock_level";
     if ($q !== '') { $w[] = "(i.name LIKE ? OR i.sku = ?)"; $wa[] = '%' . $q . '%'; $wa[] = $q; }
-    else $w[] = "(l.product_id IS NOT NULL OR cl.id IS NOT NULL)";
+    else {   // stocked here or counted already; animal feed always lists in a Feed Room count (Nov 19, 2026)
+        $w[] = "(l.product_id IS NOT NULL OR cl.id IS NOT NULL OR (FIND_IN_SET(i.id, (SELECT setting_value FROM site_settings WHERE setting_key = 'animal_feed_products')) > 0
+                 AND EXISTS (SELECT 1 FROM locations fr WHERE fr.id = ? AND fr.code = 'feed')))";
+        $wa[] = (int)$c['location_id'];
+    }
     $st = $pdo->prepare("SELECT i.id, i.name, i.sku, i.unit, i.price, COALESCE(ic.name, i.category, 'Other') AS cat, COALESCE(l.quantity, 0) AS on_hand,
                                 (l.product_id IS NOT NULL) AS stocked_here, cl.counted_qty, cl.expected_qty, cl.difference, cl.flagged, cl.counted_at
                          FROM inventory i

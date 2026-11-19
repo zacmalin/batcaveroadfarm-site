@@ -1,12 +1,12 @@
 <?php
 // admin/stock.php — stock by location, adjustments, moves, counts and history (Farm OS Phase 1, slice 8, Nov 6, 2026; 06 Purchasing & Inventory)
 //   GET  stock.php                          what's on hand where (search, category, location, low only)
-//   GET  stock.php?tab=item&id=N            one item: each location, adjust, move between locations, its history
+//   GET  stock.php?tab=item&id=N            one item: each location, set the count (Nov 19), adjust, move between locations, its history
 //   GET  stock.php?tab=counts               count sessions; start one
 //   GET  stock.php?tab=count&id=N[&q=]      count screen (type what's on the shelf) or a finished count's results
 //   GET  stock.php?tab=history[&csv=1]      the stock ledger, with filters and CSV
 //   GET  stock.php?tab=locations            locations and which one each register sells from (administrators)
-//   POST stock.php  act=adjust|move|count_start|count_save|count_close|location_save|register_location, csrf_token → redirect back
+//   POST stock.php  act=setcount|adjust|move|count_start|count_save|count_close|location_save|register_location, csrf_token → redirect back
 // Permission: "Inventory Update" (Counts) or edit on the inventory table; locations: administrators. Plain forms, no script (strict CSP, C-09).
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';
 require_once '../config.php';
@@ -54,6 +54,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 $r = bcrf_stock_adjust($pdo, (int)$_POST['product_id'], (int)$_POST['location_id'], $_POST['qty'] ?? '', (string)($_POST['reason'] ?? ''),
                                        ($_POST['direction'] ?? '') === 'remove' ? -1 : 1, (string)($_POST['note'] ?? ''), $uid);
                 $say('ok', $r['name'] . ' at ' . $r['location'] . ': ' . $q3($r['before']) . ' → ' . $q3($r['after']) . '.');
+            } elseif ($act === 'setcount') {
+                $r = bcrf_stock_quick_count($pdo, (int)$_POST['product_id'], (int)$_POST['location_id'], $_POST['qty'] ?? '', $uid);
+                $say('ok', $r['name'] . ' at ' . $r['location'] . ': ' . ($r['before'] == $r['after'] ? 'still ' . $q3($r['after']) . ', no change' : $q3($r['before']) . ' → ' . $q3($r['after'])) . '.');
             } elseif ($act === 'move') {
                 $r = bcrf_stock_transfer($pdo, (int)$_POST['product_id'], (int)$_POST['from'], (int)$_POST['to'], $_POST['qty'] ?? '', (string)($_POST['note'] ?? ''), $uid);
                 $say('ok', 'Moved ' . $q3($r['qty']) . ' ' . $r['name'] . ' from ' . $r['from'] . ' to ' . $r['to'] . '. Now ' . $q3($r['from_after']) . ' and ' . $q3($r['to_after']) . '.');
@@ -94,7 +97,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     }
     if (($_SESSION['stock_flash'][0] ?? '') === 'err') {
         $action = (string)($_POST['act'] ?? '');
-        $anchors = ['count_start' => 'start-count', 'adjust' => 'stock-adjust', 'move' => 'stock-move', 'location_save' => 'add-location'];
+        $anchors = ['count_start' => 'start-count', 'setcount' => 'stock-count', 'adjust' => 'stock-adjust', 'move' => 'stock-move', 'location_save' => 'add-location'];
         if (isset($anchors[$action])) {
             $_SESSION['stock_error_action'] = $action;
             $back .= '#' . $anchors[$action];
@@ -154,7 +157,7 @@ $histTable = function (array $rows, bool $showItem = true) use ($h, $q3, $pdo) {
 $title = ['stock' => 'Stock', 'item' => 'Stock', 'counts' => 'Counts', 'count' => 'Count', 'history' => 'Stock history', 'locations' => 'Locations'][$tab];
 bcrf_shell_open($title, ['legacy' => true]);
 echo '<h1>Stock</h1>';
-if ($flash && !(($flash[0] ?? '') === 'err' && in_array($errorAction, ['count_start', 'adjust', 'move', 'location_save'], true))) echo bcrf_shell_flash($flash);
+if ($flash && !(($flash[0] ?? '') === 'err' && in_array($errorAction, ['count_start', 'setcount', 'adjust', 'move', 'location_save'], true))) echo bcrf_shell_flash($flash);
 if ($synced) echo '<p class="flash">', $synced, ' item', $synced === 1 ? '' : 's', ' had been changed outside Stock (old register, Full Editor or connector); the difference is now on ', $h($locById[bcrf_location_default($pdo)]['name'] ?? 'the default location'), ' and in the history.</p>';
 $cur = in_array($tab, ['item'], true) ? 'stock' : ($tab === 'count' ? 'counts' : $tab);
 $openCounts = (int)$pdo->query("SELECT COUNT(*) FROM inventory_counts WHERE status = 'open'")->fetchColumn();
@@ -173,7 +176,7 @@ if ($tab === 'stock') {
          '<label class="check"><input type="checkbox" name="low" value="1"', $f['low'] ? ' checked' : '', '> Low only</label>',
          '<button class="btn sm" type="submit"><span aria-hidden="true">✓</span> Apply filters</button><a class="btn sm" href="stock.php"><span aria-hidden="true">↺</span> Reset</a></form>';
     $show = $f['location_id'] ? [$f['location_id'] => $locById[$f['location_id']]] : array_filter($locById, function ($l) use ($rows) {
-        foreach ($rows as $r) if (isset($r['levels'][(int)$l['id']])) return true;
+        foreach ($rows as $r) if (isset($r['levels'][(int)$l['id']]) || ((int)$r['is_feed'] && $l['code'] === 'feed')) return true;
         return (int)$l['is_default'] === 1;
     });
     if (!$rows) echo '<p class="card muted">No stocked items match.', $f['low'] ? ' Nothing is low.' : '', '</p>';
@@ -203,18 +206,27 @@ if ($tab === 'item') {
         $back = $self(['tab' => 'item', 'id' => (int)$p['id']]);
         echo '<h2>', $h($p['name']), '</h2><p class="muted">', $h($p['cat']), $p['sku'] ? ' · ' . $h($p['sku']) : '', ' · ', $m((int)round((float)$p['price'] * 100)),
              $p['unit'] !== 'each' ? ' / ' . $h($p['unit']) : '', $p['min_stock_level'] !== null ? ' · minimum ' . $h($q3($p['min_stock_level'])) : '', '</p>';
+        $home = bcrf_stock_home_location($pdo, (int)$p['id']);   // where it's kept (Feed Room for feed): the forms start there
         echo '<div class="card">';
         foreach ($locById as $lid => $l) {
-            if (!isset($p['levels'][$lid]) && !(int)$l['is_default']) continue;
+            if (!isset($p['levels'][$lid]) && !(int)$l['is_default'] && $lid !== $home) continue;
             echo '<div class="lrow"><span>', $h($l['name']), (int)$l['sellable'] ? '' : ' <small class="muted">not sold here</small>', '</span><span class="r">', $h($q3($p['levels'][$lid] ?? 0)), '</span></div>';
         }
         echo '<div class="lrow"><b>Total</b><span class="r">', $h($q3($p['stock_quantity'])), '</span></div></div>';
-        echo '<p><a class="btn sm primary" href="receive.php?new=1&amp;product=', (int)$p['id'], '">Receive this item</a> <span class="muted">(with unit cost → updates average cost)</span></p>';
+        echo '<p><a class="btn sm primary" href="receive.php?new=1&amp;product=', (int)$p['id'], '&amp;location=', $home, '">Receive this item</a> <span class="muted">(with unit cost → updates average cost)</span></p>';
+        echo '<section id="stock-count" class="card"><h3>Set the count</h3>', (($flash && ($flash[0] ?? '') === 'err' && $errorAction === 'setcount') ? bcrf_shell_flash($flash) : ''),
+             '<p class="muted">Type how many are there now. Stock changes to that number and the difference goes in the history.',
+             ' Part amounts are fine (2.5 bags of feed = 2.5).</p>',
+             '<form class="stackf" method="POST" action="stock.php" data-submit-once>', $hid($back),
+             '<input type="hidden" name="act" value="setcount"><input type="hidden" name="product_id" value="', (int)$p['id'], '">',
+             '<label>Where', $sel('location_id', $locNames, $home, 'Location'), '</label>',
+             '<label>How many are there now<input type="number" name="qty" min="0" step="any" inputmode="decimal" required placeholder="', $h($q3($p['levels'][$home] ?? 0)), '"></label>',
+             '<button class="btn primary" type="submit" data-submit-label="Saving…"><span aria-hidden="true">✓</span> Save count</button></form></section>';
 
         $reasons = bcrf_stock_manual_reasons();
         echo '<section id="stock-adjust" class="card"><h3>Add or remove</h3>', (($flash && ($flash[0] ?? '') === 'err' && $errorAction === 'adjust') ? bcrf_shell_flash($flash) : ''), '<form class="stackf" method="POST" action="stock.php" data-submit-once>', $hid($back),
              '<input type="hidden" name="act" value="adjust"><input type="hidden" name="product_id" value="', (int)$p['id'], '">',
-             '<label>Where', $sel('location_id', $locNames, bcrf_location_default($pdo), 'Location'), '</label>',
+             '<label>Where', $sel('location_id', $locNames, $home, 'Location'), '</label>',
              '<label>Why<select name="reason" aria-label="Reason">';
         foreach ($reasons as $k => $r) echo '<option value="', $h($k), '">', $h($r[0]), $r[1] > 0 ? ' (+)' : ($r[1] < 0 ? ' (−)' : ' (+ or −)'), '</option>';
         echo '</select></label>',

@@ -288,7 +288,7 @@ if ($tab === 'setup' && $canEdit) {
       <?php foreach ($feedRows as $p): $soldByWeight = bcrf_feed_g((string)$p['unit']) !== null;
             $bagLb = $p['unit_g'] && !$soldByWeight ? round($p['unit_g'] / 453.59237, 2) : null; ?>
         <li class="py-2 flex flex-wrap gap-2 items-end">
-          <div class="flex-1 min-w-48 text-sm"><?= $h($p['name']) ?><?php if ((int)$p['track_inventory'] === 1): ?><span class="block text-xs text-stone-500"><?= $h($p['stock_text']) ?> on hand</span><?php endif; ?></div>
+          <div class="flex-1 min-w-48 text-sm"><?= $h($p['name']) ?><?php if ((int)$p['track_inventory'] === 1): ?><span class="block text-xs text-stone-500"><?= $h($p['stock_text']) ?> on hand · <a class="underline" href="stock.php?tab=item&amp;id=<?= (int)$p['id'] ?>#stock-count">Count it</a></span><?php endif; ?></div>
           <?php if ($soldByWeight): ?><span class="text-xs text-stone-500">Counted in <?= $h($p['unit']) ?></span>
           <?php else: ?><div class="w-32"><label class="<?= $label ?>" for="bw<?= (int)$p['id'] ?>">Bag weight (lb)</label><input id="bw<?= (int)$p['id'] ?>" name="bag[<?= (int)$p['id'] ?>]" type="number" min="0" step="any" inputmode="decimal" value="<?= $bagLb !== null ? $h(bcrf_qtxt($bagLb)) : '' ?>" placeholder="e.g. 50" class="<?= $input ?>"></div><?php endif; ?>
         </li>

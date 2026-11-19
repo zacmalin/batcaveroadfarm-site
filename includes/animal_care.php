@@ -4,7 +4,8 @@
 //              An enclosure entry covers the animals in it at that moment (resting and quarantined ones too; animals
 //              that have left the farm never). Anyone who can see Animals can log care.
 //   Feeding    a feeding type asks for a feed product and amount. If the product is a stocked item, the amount comes
-//              out of stock at the default location ("Used on the farm", source animal_care) and never blocks the entry:
+//              out of stock where the feed is kept (bcrf_stock_home_location: the location holding the most, else the Feed
+//              Room; was the default location until Nov 19, 2026) ("Used on the farm", source animal_care) and never blocks the entry:
 //              short stock is noted on the ledger instead. The cost is the amount times the product's average cost at
 //              that moment, kept on the entry for animal expenses later.
 //   Voiding    entries are never deleted. Voiding one (with a reason) puts its feed back into stock.
@@ -388,8 +389,9 @@ function bcrf_care_log(PDO $pdo, array $in, ?int $uid = null): array {
             if ($p['avg_cost_cents'] !== null) $cost = (int)round((int)$p['avg_cost_cents'] * $exact);
             $adjId = null;
             if ((int)$p['track_inventory'] === 1 && bcrf_stock_ready($pdo)) {
-                $r = bcrf_stock_move($pdo, $feedId, bcrf_location_default($pdo), -$qty, 'internal_use', 'animal_care', $logId,
-                                     $type['name'] . ' (' . count($ids) . ' animal' . (count($ids) > 1 ? 's' : '') . ')', $uid, 'clamp');
+                $L = bcrf_stock_lock($pdo, $feedId, $uid);   // lock (and repair any drift) first, then pick where it's kept
+                $r = bcrf_stock_move($pdo, $feedId, bcrf_stock_home_location($pdo, $feedId), -$qty, 'internal_use', 'animal_care', $logId,
+                                     $type['name'] . ' (' . count($ids) . ' animal' . (count($ids) > 1 ? 's' : '') . ')', $uid, 'clamp', $L);
                 $adjId = $r['id'] ?: null;
                 if ($r['short'] > 0) $stockNote = 'Stock for ' . $p['name'] . ' was short by ' . bcrf_qtxt($r['short']) . '; count it when you can.';
             }
