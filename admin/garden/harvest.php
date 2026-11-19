@@ -22,7 +22,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 $ui = garden_ui();
 if (!garden_ready($pdo)) {
     bcrf_shell_open('Harvest — Garden');
-    echo '<h1 class="', $ui['h1'], '">Harvest</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072 and 0073) in Settings › Database first.');
+    echo '<h1 class="', $ui['h1'], '">Harvest</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072, 0073 and 0074) in Settings › Database first.');
     bcrf_shell_close(); exit;
 }
 $org = garden_org($pdo);
@@ -43,7 +43,7 @@ garden_post($pdo, 'harvest.php', [
 ]);
 
 [$sites, $site] = garden_site_pick($pdo, $org);
-[$err, $errAct] = garden_open('Harvest');
+[$err, $errAct] = garden_open('Harvest', ['css' => ['garden.css']]);
 echo '<h1 class="', $ui['h1'], '">', $tab === 'reports' ? 'Harvest reports' : 'Log harvest', '</h1>';
 if (!$site) { echo garden_need_site(); bcrf_shell_close(); exit; }
 $sid = (int)$site['id'];
@@ -131,6 +131,7 @@ $failed = (int)(garden_typed('harvest_grade')['harvest_id'] ?? 0); ?>
           <div><button class="<?= $ui['btnSec'] ?>">Save grade</button></div>
         </form>
         <?= $e['notes'] ? '<p class="text-stone-600 mt-1">' . $h($e['notes']) . '</p>' : '' ?>
+        <div class="gm-delrow"><?= garden_delete_button('harvest.php', 'harvest', $eid, 'Delete this harvest?' . (isset($stock[$eid]) ? ' The ' . garden_num($stock[$eid]['stock_added'], 3) . ' it added to ' . $stock[$eid]['name'] . ' comes back off stock.' : ''), $pre ? 'planting=' . $pre : '') ?></div>
       </details></li>
     <?php endforeach; ?>
     </ul>

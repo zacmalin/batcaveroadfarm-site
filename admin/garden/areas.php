@@ -32,7 +32,7 @@ $ui = garden_ui();
 if (!garden_ready($pdo)) {
     if (($_POST['act'] ?? '') === 'area_move') { header('Content-Type: application/json'); echo json_encode(['ok' => false, 'error' => 'Run the garden migrations first.']); exit; }
     bcrf_shell_open('Beds & areas — Garden');
-    echo '<h1 class="', $ui['h1'], '">Beds &amp; areas</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072 and 0073) in Settings › Database first.');
+    echo '<h1 class="', $ui['h1'], '">Beds &amp; areas</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072, 0073 and 0074) in Settings › Database first.');
     bcrf_shell_close(); exit;
 }
 $org = garden_org($pdo);
@@ -192,7 +192,11 @@ $detailFields = function (array $v, string $idp) use ($h, $ui, $choices): string
         $o .= '<div><label class="' . $ui['label'] . '" for="' . $idp . $f . '">' . $h($label) . '</label><select id="' . $idp . $f . '" name="' . $f . '" class="' . $ui['input'] . '">'
             . garden_options($choices[$f], $v[$f] ?? '', $f === 'orientation' ? 'From the map' : 'Not set') . '</select></div>';
     }
-    $o .= '</div><div class="mb-3"><label class="' . $ui['label'] . '" for="' . $idp . 'notes">Notes about this bed</label><textarea id="' . $idp . 'notes" name="bed_notes" rows="2" maxlength="2000" placeholder="Drainage, shade from the barn after 3 PM, where the spigot is…" class="' . $ui['input'] . '">' . $h($v['bed_notes'] ?? $v['notes'] ?? '') . '</textarea></div>';
+    $cur = (string)($v['color'] ?? '');
+    $o .= '</div><fieldset class="mb-3"><legend class="' . $ui['label'] . '">Bed color (shows on the map)</legend><div class="gm-colors">'
+        . '<label class="gm-color"><input type="radio" name="color" value=""' . ($cur === '' ? ' checked' : '') . '> None</label>';
+    foreach (garden_bed_colors() as $hex => $cn) $o .= '<label class="gm-color"><input type="radio" name="color" value="' . $hex . '"' . ($cur === $hex ? ' checked' : '') . '>' . garden_swatch($hex) . $h($cn) . '</label>';
+    $o .= '</div></fieldset><div class="mb-3"><label class="' . $ui['label'] . '" for="' . $idp . 'notes">Notes about this bed</label><textarea id="' . $idp . 'notes" name="bed_notes" rows="2" maxlength="2000" placeholder="Drainage, shade from the barn after 3 PM, where the spigot is…" class="' . $ui['input'] . '">' . $h($v['bed_notes'] ?? $v['notes'] ?? '') . '</textarea></div>';
     return $o;
 };
 
@@ -205,10 +209,11 @@ if ($bedId && $site) {
     $cap = [$bedId => $a['area_sq_m'] !== null ? (float)$a['area_sq_m'] : ($a['length_m'] !== null ? (float)$a['length_m'] * (float)$a['width_m'] : null)];
     $over = garden_bed_overlaps($mine, $cap)[$bedId] ?? [];
     $byId = []; foreach ($mine as $p) $byId[(int)$p['id']] = $p;
+    $kidsOf = []; foreach ($areas as $x) if ($x['parent_id'] !== null) $kidsOf[(int)$x['parent_id']] = true;
     $statuses = ['planned' => 'Planned', 'active' => 'Growing', 'completed' => 'Done', 'failed' => 'Failed'];
     $taskN = count(garden_tasks($pdo, [$bedId], true, 100));
     echo '<p class="mb-2"><a class="', $ui['link'], ' text-sm" href="areas.php?site=', $sid, '&amp;tab=map&amp;focus=', $bedId, '">← Garden map</a></p>';
-    echo '<h1 class="', $ui['h1'], '">', $h($names[$bedId] ?? $a['name']), '</h1>';
+    echo '<h1 class="', $ui['h1'], '">', !empty($a['color']) ? garden_swatch($a['color']) : '', $h($names[$bedId] ?? $a['name']), '</h1>';
     if ($err !== '' && !in_array($errAct, ['area_save', 'area_retire', 'soil_add'], true)) echo bcrf_shell_notice('err', $err);
     // What it's like
     $facts = [['Type', $kinds[$a['kind']] ?? garden_label($a['kind'])]];
@@ -218,6 +223,7 @@ if ($bedId && $site) {
         $v = $f === 'orientation' ? garden_bed_runs($a) : ($a[$f] !== null ? ($choices[$f][$a[$f]] ?? '') : '');
         $facts[] = [$label, $v !== '' ? $v : 'Not set'];
     }
+    if (!empty($a['color'])) $facts[] = ['Color', garden_bed_colors()[$a['color']] ?? $a['color']];
     $soilRows = array_values(array_filter($soil->soil($pdo, $org, $sid), fn($r) => (int)$r['location_id'] === $bedId));
     foreach ($soilRows as $r) if ($r['ph'] !== null) { $facts[] = ['Last pH', garden_num($r['ph']) . ' (' . garden_date($r['observed_on']) . ')']; break; }
     echo '<div class="', $ui['card'], '"><dl class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">';
@@ -259,7 +265,7 @@ if ($bedId && $site) {
     $t = garden_typed('soil_add'); ?>
   <div class="<?= $ui['card'] ?>">
     <h2 class="<?= $ui['h2'] ?>">Soil</h2>
-    <?php if ($soilRows): ?><ul class="divide-y divide-stone-100 mb-3"><?php foreach ($soilRows as $r): ?><li class="py-2 text-sm"><?= $h(garden_date($r['observed_on'])) ?><?= $r['ph'] !== null ? ' · pH ' . $h(garden_num($r['ph'])) : '' ?><?php if ($r['notes']): ?><span class="block text-stone-600"><?= nl2br($h($r['notes'])) ?></span><?php endif; ?></li><?php endforeach; ?></ul>
+    <?php if ($soilRows): ?><ul class="divide-y divide-stone-100 mb-3"><?php foreach ($soilRows as $r): ?><li class="py-2 text-sm"><?= $h(garden_date($r['observed_on'])) ?><?= $r['ph'] !== null ? ' · pH ' . $h(garden_num($r['ph'])) : '' ?><?php if ($r['notes']): ?><span class="block text-stone-600"><?= nl2br($h($r['notes'])) ?></span><?php endif; ?> <?= garden_delete_button('areas.php', 'soil', (int)$r['id'], 'Delete this soil note?', 'bed=' . $bedId) ?></li><?php endforeach; ?></ul>
     <?php else: ?><p class="<?= $ui['muted'] ?> mb-3">No soil notes yet.</p><?php endif; ?>
     <details <?= $t ? 'open' : '' ?>><summary class="cursor-pointer text-sm font-semibold text-stone-700">Add a soil note</summary>
     <form id="form-soil_add" method="POST" action="areas.php" data-submit-once class="mt-3">
@@ -289,7 +295,8 @@ if ($bedId && $site) {
       <?= $detailFields($v, 'e') ?>
       <button class="<?= $ui['btnMain'] ?>">Save bed</button>
     </form>
-    <form method="POST" action="areas.php" class="px-4 pb-4"><?= $hid('area_retire', ['area_id' => $bedId]) ?><button class="text-xs text-amber-800 underline" data-confirm="Retire <?= $h($a['name']) ?>? It leaves the lists and the map; its plantings, care and harvests stay on record.">Retire this bed</button></form>
+    <form method="POST" action="areas.php" class="px-4 pb-4"><?= $hid('area_retire', ['area_id' => $bedId]) ?><button class="text-xs text-amber-800 underline" data-confirm="Retire <?= $h($a['name']) ?>? It leaves the lists and the map; its plantings, care and harvests stay on record.">Retire this bed (keep its history)</button></form>
+    <div class="px-4 pb-4"><?= garden_delete_button('areas.php', 'area', $bedId, 'Delete ' . $a['name'] . ' for good? Its plantings, care, harvests, soil notes, watering plans' . (isset($kidsOf[$bedId]) ? ' and the beds inside it' : '') . ' are deleted too. This can\'t be undone.', 'site=' . $sid, '', 'Delete this bed and everything in it') ?></div>
   </details>
 <?php }
     bcrf_shell_close(); exit;
@@ -340,6 +347,7 @@ if ($tab === 'map') {
       <div class="gm-seg" role="group" aria-label="Color beds by">
         <button type="button" class="gm-segbtn" data-color-by="family" aria-pressed="true">Crop family</button>
         <button type="button" class="gm-segbtn" data-color-by="status" aria-pressed="false">Status</button>
+        <button type="button" class="gm-segbtn" data-color-by="bed" aria-pressed="false">Bed color</button>
       </div>
       <?php if ($manage && $placed): ?><button type="button" class="gm-segbtn gm-move" data-move-toggle aria-pressed="false">Move beds</button><?php endif; ?>
     </div>
@@ -504,7 +512,7 @@ if ($tab === 'soil') {
     <ul class="divide-y divide-stone-100">
       <?php foreach ($rows as $r): ?>
       <li class="py-2 text-sm"><a class="<?= $ui['link'] ?>" href="areas.php?bed=<?= (int)$r['location_id'] ?>"><strong><?= $h($names[(int)$r['location_id']] ?? $r['location_name']) ?></strong></a> · <?= $h(garden_date($r['observed_on'])) ?><?= $r['ph'] !== null ? ' · pH ' . $h(garden_num($r['ph'])) : '' ?>
-        <?php if ($r['notes']): ?><span class="block text-stone-600"><?= nl2br($h($r['notes'])) ?></span><?php endif; ?></li>
+        <?php if ($r['notes']): ?><span class="block text-stone-600"><?= nl2br($h($r['notes'])) ?></span><?php endif; ?> <?= garden_delete_button('areas.php', 'soil', (int)$r['id'], 'Delete this soil note?', 'site=' . $sid . '&tab=soil') ?></li>
       <?php endforeach; ?>
     </ul>
     <?php endif; ?>
@@ -516,7 +524,7 @@ $kids = [];
 foreach ($areas as $a) $kids[(string)($a['parent_id'] ?? '0')][] = $a;
 $taskCounts = [];
 foreach (garden_tasks($pdo, array_map(fn($a) => (int)$a['id'], $areas), true, 500) as $tk) $taskCounts[(int)$tk['related_id']] = ($taskCounts[(int)$tk['related_id']] ?? 0) + 1;
-$render = function (string $pid, int $depth) use (&$render, $kids, $h, $ui, $kinds, $choices, $taskCounts) {
+$render = function (string $pid, int $depth) use (&$render, $kids, $h, $ui, $kinds, $choices, $taskCounts, $sid) {
     foreach ($kids[$pid] ?? [] as $a) {
         $id = (int)$a['id'];
         $bits = [$kinds[$a['kind']] ?? garden_label($a['kind'])];
@@ -525,7 +533,8 @@ $render = function (string $pid, int $depth) use (&$render, $kids, $h, $ui, $kin
         if ($a['sun_exposure']) $bits[] = explode(' (', $choices['sun_exposure'][$a['sun_exposure']])[0];
         if ($a['irrigation']) $bits[] = $choices['irrigation'][$a['irrigation']];
         if (!empty($taskCounts[$id])) $bits[] = (int)$taskCounts[$id] . ' open task' . ($taskCounts[$id] > 1 ? 's' : '');
-        echo '<li id="area-', $id, '" class="py-2 text-sm', ['', ' pl-4', ' pl-8', ' pl-12'][min(3, $depth)], '"><a class="', $ui['link'], '" href="areas.php?bed=', $id, '"><strong>', $h($a['name']), '</strong></a> <span class="text-stone-500">· ', $h(implode(' · ', $bits)), '</span></li>';
+        echo '<li id="area-', $id, '" class="py-2 text-sm flex flex-wrap justify-between gap-2', ['', ' pl-4', ' pl-8', ' pl-12'][min(3, $depth)], '"><span>', !empty($a['color']) ? garden_swatch($a['color']) : '', '<a class="', $ui['link'], '" href="areas.php?bed=', $id, '"><strong>', $h($a['name']), '</strong></a> <span class="text-stone-500">· ', $h(implode(' · ', $bits)), '</span></span>',
+             garden_delete_button('areas.php', 'area', $id, 'Delete ' . $a['name'] . ' for good? Its plantings, care, harvests, soil notes and watering plans' . (!empty($kids[(string)$id]) ? ', and the beds inside it,' : '') . ' are deleted too. This can\'t be undone.', 'site=' . $sid, 'area-' . $id), '</li>';
         $render((string)$id, $depth + 1);
     }
 };
@@ -564,6 +573,7 @@ $render = function (string $pid, int $depth) use (&$render, $kids, $h, $ui, $kin
       <p class="text-xs text-stone-500 mb-3">Frost dates drive the planting planner. Your county extension office lists them.</p>
       <button class="<?= $ui['btnMain'] ?>">Save garden</button>
     </form>
+    <div class="px-4 pb-3"><?= garden_delete_button('areas.php', 'site', $sid, 'Delete the garden ' . $site['name'] . ' for good? Every bed, planting, harvest and note in it is deleted too. This can\'t be undone.', '', '', 'Delete this garden and everything in it') ?></div>
     <?php $t = garden_typed('site_add'); ?>
     <form id="form-site_add" method="POST" action="areas.php" data-submit-once class="px-4 pb-4 border-t border-stone-100 pt-3">
       <?= garden_form_error($err, $errAct, 'site_add') ?><?= garden_hidden('site_add') ?>

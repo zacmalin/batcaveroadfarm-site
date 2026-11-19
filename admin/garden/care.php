@@ -24,7 +24,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 $ui = garden_ui();
 if (!garden_ready($pdo)) {
     bcrf_shell_open('Care — Garden');
-    echo '<h1 class="', $ui['h1'], '">Care</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072 and 0073) in Settings › Database first.');
+    echo '<h1 class="', $ui['h1'], '">Care</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072, 0073 and 0074) in Settings › Database first.');
     bcrf_shell_close(); exit;
 }
 $org = garden_org($pdo);
@@ -80,7 +80,7 @@ garden_post($pdo, 'care.php', [
 ]);
 
 [$sites, $site] = garden_site_pick($pdo, $org);
-[$err, $errAct] = garden_open('Care');
+[$err, $errAct] = garden_open('Care', ['css' => ['garden.css']]);
 $titles = ['water' => 'Watering', 'pests' => 'Pests & disease'];
 echo '<h1 class="', $ui['h1'], '">', $titles[$tab] ?? 'Log care', '</h1>';
 if (!$site) { echo garden_need_site(); bcrf_shell_close(); exit; }
@@ -119,6 +119,7 @@ if ($tab === 'water') {
         <?php endif; ?>
         <form method="POST" action="care.php" class="mt-2"><?= $hid('water_pause', ['plan_id' => $wid, 'active' => (int)$w['active'] === 1 ? '0' : '1', 'back_query' => 'tab=water', 'back_anchor' => 'water-' . $wid]) ?>
           <button class="text-xs <?= $ui['link'] ?>"><?= (int)$w['active'] === 1 ? 'Pause this plan' : 'Turn this plan back on' ?></button></form>
+        <div class="gm-delrow"><?= garden_delete_button('care.php', 'water_plan', $wid, 'Delete this watering plan and its watering log?', 'tab=water') ?></div>
       </li>
     <?php endforeach; ?>
     </ul>
@@ -140,7 +141,7 @@ if ($tab === 'water') {
   </details>
   <div class="<?= $ui['card'] ?>"><h2 class="<?= $ui['h2'] ?>">Recent watering</h2>
     <?php if (!$done): ?><p class="<?= $ui['muted'] ?>">Nothing logged yet.</p><?php else: ?>
-    <ul class="divide-y divide-stone-100"><?php foreach ($done as $e): ?><li class="py-2 text-sm"><?= $h(garden_date($e['watered_on'])) ?> · <?= $h($e['location_name']) ?><?= $e['amount'] !== null ? ' · ' . $h(garden_num($e['amount'], 3) . ' ' . $e['unit']) : '' ?><?= $e['notes'] ? ' · ' . $h($e['notes']) : '' ?></li><?php endforeach; ?></ul>
+    <ul class="divide-y divide-stone-100"><?php foreach ($done as $e): ?><li class="py-2 text-sm"><?= $h(garden_date($e['watered_on'])) ?> · <?= $h($e['location_name']) ?><?= $e['amount'] !== null ? ' · ' . $h(garden_num($e['amount'], 3) . ' ' . $e['unit']) : '' ?><?= $e['notes'] ? ' · ' . $h($e['notes']) : '' ?> <?= garden_delete_button('care.php', 'water_log', (int)$e['id'], 'Delete this watering?', 'tab=water') ?></li><?php endforeach; ?></ul>
     <?php endif; ?>
   </div>
 <?php bcrf_shell_close(); exit; }
@@ -177,7 +178,7 @@ if ($tab === 'pests') {
     <div class="p-4 text-sm">
       <p class="mb-2">Spotted <?= $h(garden_date($r['observed_on'])) ?> on <a class="<?= $ui['link'] ?>" href="plantings.php?id=<?= (int)$r['planting_id'] ?>"><?= $h($r['crop_name'] . ' — ' . $r['variety_name']) ?></a>.<?= $r['notes'] ? ' ' . $h($r['notes']) : '' ?></p>
       <?php if ($closed): ?><p class="mb-2">Resolved <?= $h(garden_date($r['resolved_on'])) ?>: <?= $h($r['outcome']) ?></p><?php endif; ?>
-      <?php if (!empty($treat[$iid])): ?><ul class="mb-3 list-disc pl-5"><?php foreach ($treat[$iid] as $x): ?><li><?= $h(garden_date($x['applied_on'])) ?> · <?= $h($x['method']) ?><?= $x['product'] ? ' · ' . $h($x['product']) : '' ?><?= $x['quantity'] !== null ? ' · ' . $h(garden_num($x['quantity'], 3) . ' ' . $x['unit']) : '' ?></li><?php endforeach; ?></ul><?php endif; ?>
+      <?php if (!empty($treat[$iid])): ?><ul class="mb-3 list-disc pl-5"><?php foreach ($treat[$iid] as $x): ?><li><?= $h(garden_date($x['applied_on'])) ?> · <?= $h($x['method']) ?><?= $x['product'] ? ' · ' . $h($x['product']) : '' ?><?= $x['quantity'] !== null ? ' · ' . $h(garden_num($x['quantity'], 3) . ' ' . $x['unit']) : '' ?> <?= garden_delete_button('care.php', 'treatment', (int)$x['id'], 'Delete this treatment?', 'tab=pests', 'pest-' . $iid) ?></li><?php endforeach; ?></ul><?php endif; ?>
       <?php if (!$closed): ?>
       <form method="POST" action="care.php" data-submit-once class="grid grid-cols-2 sm:grid-cols-5 gap-2 items-end mb-3"><?= $hid('pest_treat', ['incident_id' => $iid, 'back_query' => 'tab=pests', 'back_anchor' => 'pest-' . $iid]) ?>
         <?= $failed === $iid ? garden_form_error($err, $errAct, 'pest_treat') : '' ?>
@@ -195,6 +196,7 @@ if ($tab === 'pests') {
         <div class="col-span-2"><label class="<?= $ui['label'] ?>" for="so<?= $iid ?>">Outcome</label><input id="so<?= $iid ?>" name="outcome" maxlength="2000" value="<?= $h($r['outcome']) ?>" placeholder="Needed when resolved" class="<?= $ui['input'] ?>"></div>
         <div><button class="<?= $ui['btnSec'] ?>">Save status</button></div>
       </form>
+      <div class="gm-delrow"><?= garden_delete_button('care.php', 'pest', $iid, 'Delete this problem and its treatments?', 'tab=pests') ?></div>
     </div>
   </details>
   <?php endforeach;
@@ -247,12 +249,12 @@ if ($pre) $log = array_values(array_filter($log, fn($e) => (int)$e['planting_id'
 $bedLog = array_slice($apps->recent($pdo, $org, $sid), 0, 20); ?>
   <div class="<?= $ui['card'] ?>"><h2 class="<?= $ui['h2'] ?>"><?= $pre ? 'Care for this planting' : 'Recent care' ?></h2>
     <?php if (!$log): ?><p class="<?= $ui['muted'] ?>">Nothing logged yet.</p><?php else: ?>
-    <ul class="divide-y divide-stone-100"><?php foreach ($log as $e): ?><li class="py-2 text-sm"><?= $h(garden_date($e['occurred_on'])) ?> · <strong><?= $h($kinds[$e['kind']] ?? garden_label($e['kind'])) ?></strong> · <a class="<?= $ui['link'] ?>" href="plantings.php?id=<?= (int)$e['planting_id'] ?>"><?= $h($e['location_name'] . ' · ' . $e['crop_name']) ?></a><?= $e['notes'] ? '<span class="block text-stone-600">' . $h($e['notes']) . '</span>' : '' ?></li><?php endforeach; ?></ul>
+    <ul class="divide-y divide-stone-100"><?php foreach ($log as $e): ?><li class="py-2 text-sm"><?= $h(garden_date($e['occurred_on'])) ?> · <strong><?= $h($kinds[$e['kind']] ?? garden_label($e['kind'])) ?></strong> · <a class="<?= $ui['link'] ?>" href="plantings.php?id=<?= (int)$e['planting_id'] ?>"><?= $h($e['location_name'] . ' · ' . $e['crop_name']) ?></a><?= $e['notes'] ? '<span class="block text-stone-600">' . $h($e['notes']) . '</span>' : '' ?> <?= garden_delete_button('care.php', 'care', (int)$e['id'], 'Delete this care entry?', $pre ? 'planting=' . $pre : '') ?></li><?php endforeach; ?></ul>
     <?php endif; ?>
   </div>
   <?php if (!$pre && $bedLog): ?>
   <div class="<?= $ui['card'] ?>"><h2 class="<?= $ui['h2'] ?>">Bed jobs</h2>
-    <ul class="divide-y divide-stone-100"><?php foreach ($bedLog as $a): ?><li class="py-2 text-sm"><?= $h(garden_date($a['applied_on'])) ?> · <strong><?= $h($bedKinds[$a['kind']] ?? garden_label($a['kind'])) ?></strong><?= $a['material'] ? ' · ' . $h($a['material']) : '' ?><?= $a['quantity'] !== null ? ' · ' . $h(garden_num($a['quantity'], 3) . ' ' . $a['unit']) : '' ?><span class="block text-stone-600"><?= $h($a['area_names']) ?></span></li><?php endforeach; ?></ul>
+    <ul class="divide-y divide-stone-100"><?php foreach ($bedLog as $a): ?><li class="py-2 text-sm"><?= $h(garden_date($a['applied_on'])) ?> · <strong><?= $h($bedKinds[$a['kind']] ?? garden_label($a['kind'])) ?></strong><?= $a['material'] ? ' · ' . $h($a['material']) : '' ?><?= $a['quantity'] !== null ? ' · ' . $h(garden_num($a['quantity'], 3) . ' ' . $a['unit']) : '' ?><span class="block text-stone-600"><?= $h($a['area_names']) ?></span> <?= garden_delete_button('care.php', 'bed_job', (int)$a['id'], 'Delete this bed job (for every bed it was logged on)?') ?></li><?php endforeach; ?></ul>
   </div>
   <?php endif;
 bcrf_shell_close();

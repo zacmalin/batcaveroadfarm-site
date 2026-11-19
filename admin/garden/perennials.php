@@ -21,7 +21,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 $ui = garden_ui();
 if (!garden_ready($pdo)) {
     bcrf_shell_open('Orchard & greenhouse — Garden');
-    echo '<h1 class="', $ui['h1'], '">Orchard &amp; greenhouse</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072 and 0073) in Settings › Database first.');
+    echo '<h1 class="', $ui['h1'], '">Orchard &amp; greenhouse</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072, 0073 and 0074) in Settings › Database first.');
     bcrf_shell_close(); exit;
 }
 $org = garden_org($pdo);
@@ -50,7 +50,7 @@ garden_post($pdo, 'perennials.php', [
 ]);
 
 [$sites, $site] = garden_site_pick($pdo, $org);
-[$err, $errAct] = garden_open('Orchard & greenhouse');
+[$err, $errAct] = garden_open('Orchard & greenhouse', ['css' => ['garden.css']]);
 echo '<h1 class="', $ui['h1'], '">', $tab === 'greenhouse' ? 'Greenhouse' : 'Orchard', '</h1>';
 if (!$site) { echo garden_need_site(); bcrf_shell_close(); exit; }
 $sid = (int)$site['id'];
@@ -83,7 +83,7 @@ if ($tab === 'greenhouse') {
   <div class="<?= $ui['card'] ?>"><h2 class="<?= $ui['h2'] ?>">Readings</h2>
     <?php if (!$rows): ?><p class="<?= $ui['muted'] ?>">No readings yet.</p><?php else: ?>
     <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-left text-stone-500"><th class="py-1 pr-3">Date</th><th class="py-1 pr-3">Greenhouse</th><th class="py-1 pr-3">Temp</th><th class="py-1 pr-3">Humidity</th><th class="py-1">Notes</th></tr></thead><tbody>
-      <?php foreach ($rows as $r): ?><tr class="border-t border-stone-100"><td class="py-1 pr-3"><?= $h(garden_date($r['observed_on'])) ?></td><td class="py-1 pr-3"><?= $h($r['location_name']) ?></td><td class="py-1 pr-3"><?= $r['temperature_c'] !== null ? $h(garden_c_to_f($r['temperature_c'])) . '°F' : '' ?></td><td class="py-1 pr-3"><?= $r['humidity_pct'] !== null ? $h(garden_num($r['humidity_pct'])) . '%' : '' ?></td><td class="py-1"><?= $h($r['notes']) ?></td></tr><?php endforeach; ?>
+      <?php foreach ($rows as $r): ?><tr class="border-t border-stone-100"><td class="py-1 pr-3"><?= $h(garden_date($r['observed_on'])) ?></td><td class="py-1 pr-3"><?= $h($r['location_name']) ?></td><td class="py-1 pr-3"><?= $r['temperature_c'] !== null ? $h(garden_c_to_f($r['temperature_c'])) . '°F' : '' ?></td><td class="py-1 pr-3"><?= $r['humidity_pct'] !== null ? $h(garden_num($r['humidity_pct'])) . '%' : '' ?></td><td class="py-1"><?= $h($r['notes']) ?> <?= garden_delete_button('perennials.php', 'greenhouse', (int)$r['id'], 'Delete this reading?', 'tab=greenhouse') ?></td></tr><?php endforeach; ?>
     </tbody></table></div>
     <?php endif; ?>
   </div>
@@ -103,7 +103,7 @@ $t = garden_typed('tree_add'); ?>
     <summary class="<?= $ui['sum'] ?>"><span><?= $h($r['label']) ?> <span class="font-normal text-stone-500">· <?= $h($r['crop_name'] . ' — ' . $r['variety_name']) ?> · <?= $h($r['location_name']) ?><?= $last ? ' · ' . $h($stages[$last['stage']] ?? $last['stage']) . ' ' . $h(garden_date($last['observed_on'])) : '' ?></span></span><span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
     <div class="p-4 text-sm">
       <p class="mb-2"><?= $r['planted_year'] ? 'Planted ' . (int)$r['planted_year'] . '. ' : '' ?><?= $r['rootstock'] ? 'Rootstock ' . $h($r['rootstock']) . '. ' : '' ?><?= $h($r['notes']) ?> <a class="<?= $ui['link'] ?>" href="plantings.php?id=<?= (int)$r['planting_id'] ?>">Open planting</a></p>
-      <?php if (!empty($obs[$rid])): ?><ul class="mb-3 list-disc pl-5"><?php foreach (array_slice($obs[$rid], 0, 12) as $o): ?><li><?= $h(garden_date($o['observed_on'])) ?> · <?= $h($stages[$o['stage']] ?? $o['stage']) ?><?= $o['notes'] ? ' · ' . $h($o['notes']) : '' ?></li><?php endforeach; ?></ul><?php endif; ?>
+      <?php if (!empty($obs[$rid])): ?><ul class="mb-3 list-disc pl-5"><?php foreach (array_slice($obs[$rid], 0, 12) as $o): ?><li><?= $h(garden_date($o['observed_on'])) ?> · <?= $h($stages[$o['stage']] ?? $o['stage']) ?><?= $o['notes'] ? ' · ' . $h($o['notes']) : '' ?> <?= garden_delete_button('perennials.php', 'tree_stage', (int)$o['id'], 'Delete this stage?', '', 'tree-' . $rid) ?></li><?php endforeach; ?></ul><?php endif; ?>
       <form method="POST" action="perennials.php" data-submit-once class="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end"><?= $hid('tree_stage', ['perennial_id' => $rid, 'back_anchor' => 'tree-' . $rid]) ?>
         <?= $failed === $rid ? '<div class="col-span-2 sm:col-span-4">' . garden_form_error($err, $errAct, 'tree_stage') . '</div>' : '' ?>
         <div><label class="<?= $ui['label'] ?>" for="st<?= $rid ?>">Stage</label><select id="st<?= $rid ?>" name="stage" class="<?= $ui['input'] ?>"><?= garden_options($stages, '') ?></select></div>
@@ -112,6 +112,7 @@ $t = garden_typed('tree_add'); ?>
         <div><button class="<?= $ui['btnSec'] ?>">Save stage</button></div>
       </form>
       <p class="mt-2"><a class="<?= $ui['link'] ?>" href="care.php?planting=<?= (int)$r['planting_id'] ?>">Log care</a> · <a class="<?= $ui['link'] ?>" href="harvest.php?planting=<?= (int)$r['planting_id'] ?>">Log harvest</a></p>
+      <div class="gm-delrow"><?= garden_delete_button('perennials.php', 'tree', $rid, 'Delete ' . $r['label'] . ' and its stages? The planting stays.') ?></div>
     </div>
   </details>
   <?php endforeach; ?>

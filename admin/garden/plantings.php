@@ -31,7 +31,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 $ui = garden_ui();
 if (!garden_ready($pdo)) {
     bcrf_shell_open('Plantings — Garden');
-    echo '<h1 class="', $ui['h1'], '">Plantings</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072 and 0073) in Settings › Database first.');
+    echo '<h1 class="', $ui['h1'], '">Plantings</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072, 0073 and 0074) in Settings › Database first.');
     bcrf_shell_close(); exit;
 }
 $org = garden_org($pdo);
@@ -151,7 +151,8 @@ if ($p) {
          $p['allocated_area_sq_m'] !== null ? '<div><dt class="text-stone-500">Bed space</dt><dd>' . $h(garden_sqm_to_sqft($p['allocated_area_sq_m'])) . ' sq ft</dd></div>' : '',
          '<div><dt class="text-stone-500">', in_array($p['status'], ['completed', 'failed'], true) ? 'Came out' : 'Out of the bed by', '</dt><dd>', $span[1] === null ? 'Stays (perennial)' : $h(garden_date($span[1])) . ($span[2] ? ' <span class="text-stone-500">(about)</span>' : ''), '</dd></div>',
          $p['crop_family'] ? '<div><dt class="text-stone-500">Family</dt><dd>' . $h(garden_family_label($p['crop_family'])) . '</dd></div>' : '',
-         '</dl><div class="flex flex-wrap gap-2 mt-3"><a class="', $ui['btnSec'], '" href="areas.php?bed=', (int)$p['location_id'], '">Open bed</a><a class="', $ui['btnSec'], '" href="care.php?planting=', $pid, '">Log care</a><a class="', $ui['btnSec'], '" href="harvest.php?planting=', $pid, '">Log harvest</a></div></div>';
+         '</dl><div class="flex flex-wrap gap-2 mt-3"><a class="', $ui['btnSec'], '" href="areas.php?bed=', (int)$p['location_id'], '">Open bed</a><a class="', $ui['btnSec'], '" href="care.php?planting=', $pid, '">Log care</a><a class="', $ui['btnSec'], '" href="harvest.php?planting=', $pid, '">Log harvest</a></div>',
+         '<div class="gm-delrow">', garden_delete_button('plantings.php', 'planting', $pid, 'Delete this planting for good? Its steps, care, harvests (and any stock they added), pest notes, trays and orchard trees go too. Seed it used goes back to the packet. This can\'t be undone.', '', '', 'Delete this planting'), '</div></div>';
     $t = garden_typed('plant_event'); ?>
   <form id="form-plant_event" method="POST" action="plantings.php" data-submit-once class="<?= $ui['card'] ?>">
     <?= garden_form_error($err, $errAct, 'plant_event') ?><?= $hid('plant_event', ['planting_id' => $pid, 'back_query' => 'id=' . $pid]) ?>
@@ -167,7 +168,7 @@ if ($p) {
   </form>
   <div class="<?= $ui['card'] ?>"><h2 class="<?= $ui['h2'] ?>">Steps so far</h2>
     <?php if (!$evs): ?><p class="<?= $ui['muted'] ?>">None yet.</p><?php else: ?>
-    <ul class="divide-y divide-stone-100"><?php foreach ($evs as $e): ?><li class="py-2 text-sm"><strong><?= $h($events[$e['event_type']] ?? $e['event_type']) ?></strong> · <?= $h(garden_date($e['occurred_on'])) ?><?= $e['quantity'] !== null ? ' · ' . $h(garden_num($e['quantity'], 3) . ' ' . $e['quantity_unit']) : '' ?><?= $e['notes'] ? '<span class="block text-stone-600">' . $h($e['notes']) . '</span>' : '' ?></li><?php endforeach; ?></ul>
+    <ul class="divide-y divide-stone-100"><?php foreach ($evs as $e): ?><li class="py-2 text-sm"><strong><?= $h($events[$e['event_type']] ?? $e['event_type']) ?></strong> · <?= $h(garden_date($e['occurred_on'])) ?><?= $e['quantity'] !== null ? ' · ' . $h(garden_num($e['quantity'], 3) . ' ' . $e['quantity_unit']) : '' ?><?= $e['notes'] ? '<span class="block text-stone-600">' . $h($e['notes']) . '</span>' : '' ?> <?= garden_delete_button('plantings.php', 'step', (int)$e['id'], 'Delete this step?' . (in_array($e['event_type'], ['completed', 'failed'], true) ? ' The planting goes back to Growing.' : ''), 'id=' . $pid) ?></li><?php endforeach; ?></ul>
     <?php endif; ?>
   </div>
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -229,6 +230,7 @@ if ($tab === 'trays') {
           <div class="col-span-2 sm:col-span-4"><button class="<?= $ui['btnSec'] ?>">Save tray</button> <a class="text-xs <?= $ui['link'] ?> ml-2" href="plantings.php?id=<?= (int)$r['planting_id'] ?>">Open planting</a></div>
         </form>
         <p class="text-xs text-stone-500 mt-1">Moving plants out adds a Transplanted step to the planting.</p>
+        <div class="gm-delrow"><?= garden_delete_button('plantings.php', 'tray', $tid, 'Delete ' . $r['label'] . '? The planting stays.', 'tab=trays') ?></div>
       </details></li>
     <?php endforeach; ?>
     </ul>
@@ -259,7 +261,8 @@ if ($tab === 'succession') {
   <?php foreach ($scheds as $s): $rounds = $succ->rounds($pdo, $org, (int)$s['id']);
       $match = garden_planting_options(array_filter($plantings, fn($x) => (int)$x['location_id'] === (int)$s['location_id'] && (string)$x['variety_id'] === (string)$s['variety_id'] && (string)$x['organization_variety_id'] === (string)$s['organization_variety_id']), []); ?>
   <div class="<?= $ui['card'] ?>">
-    <h2 class="<?= $ui['h2'] ?>"><?= $h($s['crop_name'] . ' — ' . $s['variety_name']) ?> <span class="font-normal text-stone-500">· <?= $h($names[(int)$s['location_id']] ?? $s['location_name']) ?> · every <?= (int)$s['interval_days'] ?> days</span></h2>
+    <div class="flex flex-wrap justify-between gap-2 items-start"><h2 class="<?= $ui['h2'] ?>"><?= $h($s['crop_name'] . ' — ' . $s['variety_name']) ?> <span class="font-normal text-stone-500">· <?= $h($names[(int)$s['location_id']] ?? $s['location_name']) ?> · every <?= (int)$s['interval_days'] ?> days</span></h2>
+      <?= garden_delete_button('plantings.php', 'succession', (int)$s['id'], 'Delete this repeat sowing plan? Plantings already made from it stay.', 'tab=succession') ?></div>
     <ul class="divide-y divide-stone-100">
       <?php foreach ($rounds as $r): $late = !$r['planting_id'] && $r['due_on'] < $today; ?>
       <li class="py-2 text-sm flex flex-wrap justify-between gap-2 items-center"><span>Sowing <?= (int)$r['round_number'] ?> · <?= $h(garden_date($r['due_on'])) ?><?= $late ? ' · <span class="text-red-700 font-semibold">due</span>' : '' ?></span>
@@ -328,7 +331,7 @@ $pill = function (string $key, string $label) use ($st, $area, $ui, $h) {
     <ul class="divide-y divide-stone-100">
       <?php foreach ($list as $x): ?>
       <li class="py-2 text-sm flex flex-wrap justify-between gap-2"><a class="<?= $ui['link'] ?>" href="plantings.php?id=<?= (int)$x['id'] ?>"><?= $h($pName($x)) ?></a>
-        <span class="text-stone-600"><?= $h($names[(int)$x['location_id']] ?? $x['location_name']) ?> · <?= $h($statuses[$x['status']] ?? $x['status']) ?> · <?= $h(garden_date($x['planted_on'])) ?></span></li>
+        <span class="text-stone-600"><?= $h($names[(int)$x['location_id']] ?? $x['location_name']) ?> · <?= $h($statuses[$x['status']] ?? $x['status']) ?> · <?= $h(garden_date($x['planted_on'])) ?> <?= garden_delete_button('plantings.php', 'planting', (int)$x['id'], 'Delete ' . $pName($x) . ' for good? Its steps, care, harvests, pest notes and trays go too. This can\'t be undone.', 'status=' . $st . ($area ? '&area=' . $area : '')) ?></span></li>
       <?php endforeach; ?>
     </ul>
     <?php endif; ?>

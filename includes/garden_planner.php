@@ -22,6 +22,11 @@ function garden_bed_choices(): array {
         'soil_type'    => ['loam' => 'Loam', 'clay_loam' => 'Clay loam', 'clay' => 'Clay', 'sandy_loam' => 'Sandy loam', 'sandy' => 'Sandy', 'silt' => 'Silt', 'raised_bed_mix' => 'Raised bed mix', 'potting_mix' => 'Potting mix', 'other' => 'Other'],
     ];
 }
+/** Colors a bed can be given (migration 0074): #rrggbb => name. */
+function garden_bed_colors(): array {
+    return ['#8a3324' => 'Barn red', '#c0612b' => 'Pumpkin', '#d9a441' => 'Wheat', '#e8c547' => 'Sunflower', '#6aa84f' => 'Leaf green', '#3f7d3a' => 'Forest',
+            '#4a9b8e' => 'Teal', '#4f7cac' => 'Sky blue', '#2f4f7f' => 'Navy', '#8e6bb3' => 'Lavender', '#c46b8f' => 'Rose', '#79523a' => 'Brown', '#7d7d7d' => 'Stone gray'];
+}
 /** Field => label for the bed detail fields. */
 function garden_bed_fields(): array {
     return ['orientation' => 'Runs', 'sun_exposure' => 'Sun', 'irrigation' => 'Watering', 'ground_cover' => 'Ground cover', 'soil_type' => 'Soil'];
@@ -38,12 +43,17 @@ function garden_bed_details_in(): array {
     $notes = trim((string)($_POST['bed_notes'] ?? ''));
     if (mb_strlen($notes) > 2000) throw new InvalidArgumentException('Bed notes must be 2000 characters or fewer.');
     $out['notes'] = $notes === '' ? null : $notes;
+    if (array_key_exists('color', $_POST)) {   // forms without the color picker leave the color alone
+        $c = strtolower(trim((string)$_POST['color']));
+        if ($c !== '' && !isset(garden_bed_colors()[$c])) throw new InvalidArgumentException('Pick a bed color from the list.');
+        $out['color'] = $c === '' ? null : $c;
+    }
     return $out;
 }
 
 /** Save a bed's details. Only the keys given are changed. */
 function garden_bed_details_save(PDO $pdo, int $org, int $site, int $id, array $d): void {
-    $ok = array_merge(array_keys(garden_bed_choices()), ['notes']);
+    $ok = array_merge(array_keys(garden_bed_choices()), ['notes', 'color']);
     $set = []; $args = [];
     foreach ($d as $k => $v) { if (!in_array($k, $ok, true)) continue; $set[] = "`$k` = ?"; $args[] = $v; }
     if (!$set) return;
@@ -369,7 +379,7 @@ function garden_map_data(PDO $pdo, int $org, array $site, array $areas, array $p
         foreach ($st as $r) $soil[(int)$r['location_id']] = ['ph' => garden_num($r['ph']), 'on' => garden_date($r['observed_on'])];
     } catch (Throwable $e) { /* soil notes are optional */ }
     $choices = garden_bed_choices(); $fields = garden_bed_fields(); $kinds = garden_area_kinds(); $sc = garden_status_colors();
-    $beds = []; $families = []; $statuses = [];
+    $beds = []; $families = []; $statuses = []; $bedColors = [];
     $byId = []; foreach ($plantings as $p) $byId[(int)$p['id']] = $p;
     foreach ($areas as $a) {
         $id = (int)$a['id'];
@@ -381,6 +391,9 @@ function garden_map_data(PDO $pdo, int $org, array $site, array $areas, array $p
             if ($v !== '') $facts[] = [$label, $v];
         }
         if (isset($soil[$id])) $facts[] = ['pH', $soil[$id]['ph'] . ' (' . $soil[$id]['on'] . ')'];
+        $bc = garden_bed_colors();
+        $color = !empty($a['color']) && isset($bc[$a['color']]) ? $a['color'] : '';
+        if ($color !== '') { $facts[] = ['Color', $bc[$color]]; $bedColors[$color] = $bc[$color]; }
         $here = [];
         foreach ($plantings as $p) {
             if ((int)$p['location_id'] !== $id) continue;
@@ -410,7 +423,7 @@ function garden_map_data(PDO $pdo, int $org, array $site, array $areas, array $p
                    'x' => $a['layout_x_m'] !== null ? round((float)$a['layout_x_m'] / GARDEN_FT, 2) : null, 'y' => $a['layout_y_m'] !== null ? round((float)$a['layout_y_m'] / GARDEN_FT, 2) : null,
                    'len' => $a['length_m'] !== null ? round((float)$a['length_m'] / GARDEN_FT, 2) : null, 'wid' => $a['width_m'] !== null ? round((float)$a['width_m'] / GARDEN_FT, 2) : null,
                    'rot' => (int)$a['rotation_degrees'], 'sqft' => $cap[$id] !== null ? garden_sqft_num($cap[$id]) : null,
-                   'cover' => (string)($a['ground_cover'] ?? ''), 'facts' => $facts, 'notes' => (string)($a['notes'] ?? ''), 'plantings' => $here, 'warnings' => $warn];
+                   'cover' => (string)($a['ground_cover'] ?? ''), 'color' => $color, 'facts' => $facts, 'notes' => (string)($a['notes'] ?? ''), 'plantings' => $here, 'warnings' => $warn];
     }
     $legendF = [];
     foreach (array_keys($families) as $f) $legendF[] = ['label' => garden_family_label($f), 'color' => garden_family_color($f)];
@@ -418,7 +431,7 @@ function garden_map_data(PDO $pdo, int $org, array $site, array $areas, array $p
     $legendS = [];
     foreach ($sc as $k => [$l, $c]) if (isset($statuses[$k])) $legendS[] = ['label' => $l, 'color' => $c];
     return ['site' => (int)$site['id'], 'siteName' => (string)$site['name'], 'season' => $window[2], 'beds' => $beds,
-            'legend' => ['family' => $legendF, 'status' => $legendS]];
+            'legend' => ['family' => $legendF, 'status' => $legendS, 'bed' => array_map(fn($c, $l) => ['label' => $l, 'color' => $c], array_keys($bedColors), array_values($bedColors))]];
 }
 
 }

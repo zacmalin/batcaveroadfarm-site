@@ -26,6 +26,7 @@
 .gm-north { fill: #79523a; font-weight: 700; }
 .gm-bed { cursor: pointer; outline: none; }
 .gm-base { fill: #d9c7a7; }                                 /* bare soil */
+.gm-base-own { fill-opacity: .9; }                          /* a color picked for the bed: fill attribute */
 .gm-cover-landscape_fabric, .gm-cover-plastic_mulch { fill: #5b6170; }
 .gm-cover-straw { fill: #e6cf8f; }
 .gm-cover-wood_chips { fill: #a77b52; }
@@ -39,6 +40,7 @@
 .gm-label { fill: #1f1a14; font-weight: 600; paint-order: stroke; stroke: rgba(255,255,255,.8); stroke-linejoin: round; pointer-events: none; }
 .gm-name { fill: #3e2a1e; pointer-events: none; }
 .gm-cover-landscape_fabric ~ .gm-name, .gm-cover-plastic_mulch ~ .gm-name, .gm-cover-compost ~ .gm-name { fill: #fff; }
+.gm-base-own ~ .gm-name { fill: #1f1a14; paint-order: stroke; stroke: rgba(255,255,255,.8); stroke-linejoin: round; }
 .gm-warn { fill: #b45309; font-weight: 700; paint-order: stroke; stroke: #fff; pointer-events: none; }
 .gm-scale { font-size: .75rem; color: #78716c; margin-top: .4rem; }
 .gm-status { font-size: .8125rem; color: #3f6212; min-height: 1.1rem; margin-top: .25rem; }
@@ -83,3 +85,12 @@
 .gm-plant-warn p + p { margin-top: .35rem; }
 @media (prefers-reduced-motion: no-preference) { .gm-panel { animation: gm-in .18s ease-out; } }
 @keyframes gm-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* Bed color picker (bed forms) and Delete buttons (Nov 19, 2026) */
+.gm-colors { display: flex; flex-wrap: wrap; gap: .4rem; }
+.gm-color { display: inline-flex; align-items: center; gap: .3rem; padding: .3rem .55rem; border: 1px solid #d6d3d1; border-radius: 999px; font-size: .8125rem; color: #44403c; cursor: pointer; min-height: 2.25rem; background: #fff; }
+.gm-color input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.gm-color .gm-swatch { width: 1.1rem; height: 1.1rem; margin-right: 0; }
+.gm-color:has(input:checked) { border-color: #79523a; box-shadow: 0 0 0 2px #79523a; font-weight: 600; }
+.gm-color:has(input:focus-visible) { outline: 2px solid #8a3324; outline-offset: 2px; }
+.gm-delrow { display: flex; justify-content: flex-end; margin-top: .4rem; }

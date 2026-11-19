@@ -27,7 +27,7 @@ final class CropCatalog
     /** @return list<array<string,mixed>> */
     public function varietiesForOrganization(PDO $db, int $organizationId): array
     {
-        $stmt = $db->prepare('SELECT v.id, v.crop_id, v.name, v.days_to_maturity, v.maturity_basis, c.common_name AS crop_name, c.crop_family, c.lifecycle, p.display_name AS local_name, p.days_to_maturity AS local_days_to_maturity, p.maturity_basis AS local_maturity_basis, p.notes AS local_notes FROM garden_varieties v JOIN garden_crops c ON c.id=v.crop_id LEFT JOIN garden_organization_variety_preferences p ON p.variety_id=v.id AND p.organization_id=? ORDER BY c.common_name, v.name');
+        $stmt = $db->prepare('SELECT v.id, v.crop_id, v.name, v.days_to_maturity, v.maturity_basis, c.common_name AS crop_name, c.crop_family, c.lifecycle, p.display_name AS local_name, p.days_to_maturity AS local_days_to_maturity, p.maturity_basis AS local_maturity_basis, p.notes AS local_notes, p.hidden_at FROM garden_varieties v JOIN garden_crops c ON c.id=v.crop_id LEFT JOIN garden_organization_variety_preferences p ON p.variety_id=v.id AND p.organization_id=? ORDER BY c.common_name, v.name');
         $stmt->execute([$organizationId]);
         return $stmt->fetchAll();
     }

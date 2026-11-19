@@ -23,7 +23,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 $ui = garden_ui();
 if (!garden_ready($pdo)) {
     bcrf_shell_open('Seeds — Garden');
-    echo '<h1 class="', $ui['h1'], '">Seeds</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072 and 0073) in Settings › Database first.');
+    echo '<h1 class="', $ui['h1'], '">Seeds</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072, 0073 and 0074) in Settings › Database first.');
     bcrf_shell_close(); exit;
 }
 $org = garden_org($pdo);
@@ -79,7 +79,7 @@ $left = function (int $id) use ($bal): string {
     if (!$b || !(int)$b['movement_count']) return 'Not counted';
     return garden_num($b['balance'], 3) . ' ' . $b['unit'] . ' left';
 };
-[$err, $errAct] = garden_open('Seeds');
+[$err, $errAct] = garden_open('Seeds', ['css' => ['garden.css']]);
 $today = bcrf_today();
 
 // ── One lot ──
@@ -100,7 +100,8 @@ if ($lotId && isset($lotOpts[$lotId])) {
          '<div><dt class="text-stone-500">On hand</dt><dd class="font-semibold">', $h($left($lotId)), '</dd></div>',
          '<div><dt class="text-stone-500">From</dt><dd>', $l['vendor_id'] ? '<a class="' . $ui['link'] . '" href="/admin/vendors.php?id=' . (int)$l['vendor_id'] . '">' . $h($l['source']) . '</a>' : $h($l['source'] ?: '—'), '</dd></div>',
          '<div><dt class="text-stone-500">Bought</dt><dd>', $h(garden_date($l['acquired_on']) ?: '—'), '</dd></div>',
-         '<div><dt class="text-stone-500">Sprouts</dt><dd>', isset($gs[$lotId]) ? $h(garden_num($gs[$lotId]['germination_percent'])) . '% (' . (int)$gs[$lotId]['tests'] . ' test' . ((int)$gs[$lotId]['tests'] > 1 ? 's' : '') . ')' : 'Not tested', '</dd></div></dl></div>';
+         '<div><dt class="text-stone-500">Sprouts</dt><dd>', isset($gs[$lotId]) ? $h(garden_num($gs[$lotId]['germination_percent'])) . '% (' . (int)$gs[$lotId]['tests'] . ' test' . ((int)$gs[$lotId]['tests'] > 1 ? 's' : '') . ')' : 'Not tested', '</dd></div></dl>',
+         '<div class="gm-delrow">', garden_delete_button('seeds.php', 'seed_lot', $lotId, 'Delete this seed lot, its tests and its count history? Plantings that used it stay.', '', '', 'Delete this seed lot'), '</div></div>';
     if (!$counted) { $t = garden_typed('stock_start'); ?>
   <form id="form-stock_start" method="POST" action="seeds.php" data-submit-once class="<?= $ui['card'] ?>">
     <?= garden_form_error($err, $errAct, 'stock_start') ?><?= garden_hidden('stock_start', ['seed_lot_id' => $lotId, 'back_query' => 'lot=' . $lotId]) ?>
@@ -133,6 +134,7 @@ if ($lotId && isset($lotOpts[$lotId])) {
       <?php foreach ($moves as $m): $mid = (int)$m['id']; ?>
       <li class="py-2 text-sm"><div class="flex flex-wrap justify-between gap-2"><span><strong><?= $h($kinds[$m['kind']] ?? $m['kind']) ?></strong> <?= $h(((float)$m['delta'] > 0 ? '+' : '') . garden_num($m['delta'], 3)) ?> · <?= $h(garden_date($m['occurred_on'])) ?><?= $m['actor_user_id'] && isset($who[(int)$m['actor_user_id']]) ? ' · ' . $h($who[(int)$m['actor_user_id']]) : '' ?><?= isset($undone[$mid]) ? ' · <em>undone</em>' : '' ?></span></div>
         <?php if ($m['notes']): ?><span class="block text-stone-600"><?= $h($m['notes']) ?></span><?php endif; ?>
+        <?= garden_delete_button('seeds.php', 'seed_line', $mid, 'Delete this line from the history? The amount left changes to match.', 'lot=' . $lotId) ?>
         <?php if (!in_array($m['kind'], ['opening', 'reversal'], true) && !isset($undone[$mid])): ?>
         <details class="mt-1"><summary class="cursor-pointer text-xs text-amber-800 underline">Undo this line</summary>
           <form method="POST" action="seeds.php" data-submit-once class="mt-2 flex flex-wrap gap-2 items-end"><?= garden_hidden('stock_undo', ['seed_lot_id' => $lotId, 'movement_id' => $mid, 'back_query' => 'lot=' . $lotId]) ?>
@@ -172,7 +174,7 @@ if ($tab === 'germination') {
     <?php if (!$tests): ?><p class="<?= $ui['muted'] ?>">No tests yet.</p><?php else: ?>
     <ul class="divide-y divide-stone-100">
       <?php foreach ($tests as $g): ?>
-      <li class="py-2 text-sm"><strong><?= $h($g['crop_name'] . ' — ' . $g['variety_name']) ?></strong><?= $g['lot_code'] ? ' (' . $h($g['lot_code']) . ')' : '' ?> · <?= (int)$g['seeds_germinated'] ?> of <?= (int)$g['seeds_tested'] ?> = <strong><?= $h(garden_num($g['germination_percent'])) ?>%</strong> · <?= $h(garden_date($g['checked_on'])) ?><?= $g['method'] ? ' · ' . $h($g['method']) : '' ?></li>
+      <li class="py-2 text-sm"><strong><?= $h($g['crop_name'] . ' — ' . $g['variety_name']) ?></strong><?= $g['lot_code'] ? ' (' . $h($g['lot_code']) . ')' : '' ?> · <?= (int)$g['seeds_germinated'] ?> of <?= (int)$g['seeds_tested'] ?> = <strong><?= $h(garden_num($g['germination_percent'])) ?>%</strong> · <?= $h(garden_date($g['checked_on'])) ?><?= $g['method'] ? ' · ' . $h($g['method']) : '' ?> <?= garden_delete_button('seeds.php', 'germination', (int)$g['id'], 'Delete this germination test?', 'tab=germination') ?></li>
       <?php endforeach; ?>
     </ul>
     <?php endif; ?>
@@ -190,7 +192,7 @@ $optMap = []; foreach ($opts as $o) $optMap[$o['value']] = $o['label'];
     <ul class="divide-y divide-stone-100">
       <?php foreach ($lots as $l): $id = (int)$l['id']; ?>
       <li class="py-2 text-sm flex flex-wrap justify-between gap-2"><a class="<?= $ui['link'] ?>" href="seeds.php?lot=<?= $id ?>"><?= $h($lotName($l)) ?></a>
-        <span class="text-stone-600"><?= $h($left($id)) ?><?= isset($gs[$id]) ? ' · ' . $h(garden_num($gs[$id]['germination_percent'])) . '% sprout' : '' ?><?= $l['source'] ? ' · ' . $h($l['source']) : '' ?></span></li>
+        <span class="text-stone-600"><?= $h($left($id)) ?><?= isset($gs[$id]) ? ' · ' . $h(garden_num($gs[$id]['germination_percent'])) . '% sprout' : '' ?><?= $l['source'] ? ' · ' . $h($l['source']) : '' ?> <?= garden_delete_button('seeds.php', 'seed_lot', $id, 'Delete ' . $lotName($l) . ', its tests and its count history? Plantings that used it stay.') ?></span></li>
       <?php endforeach; ?>
     </ul>
     <?php endif; ?>

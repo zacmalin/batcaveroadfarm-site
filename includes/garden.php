@@ -13,11 +13,12 @@ require_once __DIR__ . '/garden_seeds.php';
 require_once __DIR__ . '/garden_plantings.php';
 require_once __DIR__ . '/garden_care.php';
 require_once __DIR__ . '/garden_planner.php';   // bed planner: details, time spans, rotation, map (Nov 19, 2026)
+require_once __DIR__ . '/garden_delete.php';    // delete any garden record (Nov 19, 2026)
 require_once __DIR__ . '/farm_helpers.php';
 
-/** True once the garden migrations have run: 0072 (tables) and 0073 (bed planner, Nov 19, 2026). */
+/** True once the garden migrations have run: 0072 (tables), 0073 (bed planner) and 0074 (bed colors, Nov 19, 2026). */
 function garden_ready(PDO $pdo): bool {
-    try { $pdo->query('SELECT 1 FROM garden_organizations LIMIT 1'); $pdo->query('SELECT ended_on FROM garden_plantings LIMIT 1'); return true; }
+    try { $pdo->query('SELECT 1 FROM garden_organizations LIMIT 1'); $pdo->query('SELECT ended_on FROM garden_plantings LIMIT 1'); $pdo->query('SELECT color FROM garden_growing_locations LIMIT 1'); return true; }
     catch (Throwable $e) { return false; }
 }
 
@@ -125,6 +126,7 @@ function garden_site_pick(PDO $pdo, int $org): array {
 function garden_variety_options(PDO $pdo, int $org): array {
     $out = [];
     foreach ((new \Garden\Domain\CropCatalog())->varietiesForOrganization($pdo, $org) as $v) {
+        if (!empty($v['hidden_at'])) continue;   // taken off this farm's list (Nov 19, 2026)
         $name = $v['local_name'] ?: $v['name'];
         $out[] = ['value' => (string)$v['id'], 'label' => $v['crop_name'] . ' — ' . $name, 'crop' => $v['crop_name'], 'family' => $v['crop_family'],
                   'days' => $v['local_days_to_maturity'] ?? $v['days_to_maturity'], 'basis' => $v['local_maturity_basis'] ?? $v['maturity_basis'], 'own' => false];
@@ -288,6 +290,8 @@ function garden_post(PDO $pdo, string $page, array $actions): void {
     $back = $page; $query = (string)($_POST['back_query'] ?? ''); $anchor = (string)($_POST['back_anchor'] ?? '');
     try {
         if (!hash_equals(garden_csrf(), (string)($_POST['csrf_token'] ?? ''))) throw new InvalidArgumentException('Security token expired; try again.');
+        // Every garden page can delete its records (includes/garden_delete.php); Managers and Owners only.
+        $actions['garden_delete'] ??= [true, fn() => garden_delete_record($pdo, garden_org($pdo), (string)($_POST['kind'] ?? ''), (int)($_POST['id'] ?? 0))];
         if (!isset($actions[$act])) throw new InvalidArgumentException('Unknown action.');
         [$manage, $fn] = $actions[$act];
         if ($manage && !garden_can_manage()) throw new InvalidArgumentException('Ask a manager to change garden setup.');
@@ -295,7 +299,7 @@ function garden_post(PDO $pdo, string $page, array $actions): void {
         $msg = is_array($r) ? (string)$r[0] : (string)$r;
         if (is_array($r)) { $query = (string)($r[1] ?? $query); $anchor = (string)($r[2] ?? $anchor); }
         $_SESSION['garden_flash'] = [is_array($r) && ($r[3] ?? '') === 'warning' ? 'warning' : 'ok', $msg];
-        if (function_exists('erp_audit')) { try { erp_audit($pdo, 'update', 'garden', null, 'Garden: ' . $msg); } catch (Throwable $e) { /* audit is best effort */ } }
+        if ($act !== 'garden_delete' && function_exists('erp_audit')) { try { erp_audit($pdo, 'update', 'garden', null, 'Garden: ' . $msg); } catch (Throwable $e) { /* audit is best effort */ } }
     } catch (InvalidArgumentException | DomainException $e) {
         $_SESSION['garden_flash'] = ['err', $e->getMessage()];
         garden_keep_form($act);

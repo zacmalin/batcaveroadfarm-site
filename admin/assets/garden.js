@@ -115,7 +115,7 @@
     (D.beds || []).forEach(function (b) { byId[b.id] = b; });
     (D.beds || []).forEach(function (b) { if (b.placed && b.parent && byId[b.parent] && byId[b.parent].placed) (kids[b.parent] = kids[b.parent] || []).push(b); });
     var roots = (D.beds || []).filter(function (b) { return b.placed && !(b.parent && byId[b.parent] && byId[b.parent].placed); });
-    var colorBy = store('bcrf-garden-color') === 'status' ? 'status' : 'family';
+    var colorBy = store('bcrf-garden-color'); if (colorBy !== 'status' && colorBy !== 'bed') colorBy = 'family';
     var editing = false, selected = D.focus && byId[D.focus] ? D.focus : 0;
     var svgEl = null, pxPerFt = 10;
 
@@ -132,7 +132,7 @@
         return { minX: minX, minY: minY, maxX: maxX, maxY: maxY };
     }
     function niceStep(span) { return span <= 30 ? 1 : span <= 80 ? 5 : span <= 300 ? 10 : 50; }
-    function fill(p) { return colorBy === 'status' ? p.statusColor : p.familyColor; }
+    function fill(p, b) { return colorBy === 'bed' ? (b && b.color) || '#d9c7a7' : colorBy === 'status' ? p.statusColor : p.familyColor; }
 
     function render() {
         if (!stage) return;
@@ -157,7 +157,8 @@
     function drawBed(parent, b, fs) {
         var g = svg('g', { 'class': 'gm-bed' + (b.id === selected ? ' is-selected' : ''), 'data-id': b.id, transform: tf(b), tabindex: editing ? '-1' : '0', role: 'button',
                            'aria-label': b.path + (b.plantings.length ? ': ' + b.plantings.map(function (p) { return p.crop; }).join(', ') : ': empty') + (b.warnings.length ? '. Needs a look.' : '') }, parent);
-        svg('rect', { x: 0, y: 0, width: b.len, height: b.wid, 'class': 'gm-base gm-cover-' + (b.cover || 'none') }, g);
+        if (b.color) svg('rect', { x: 0, y: 0, width: b.len, height: b.wid, 'class': 'gm-base-own', fill: b.color }, g);   // a color picked for the bed
+        else svg('rect', { x: 0, y: 0, width: b.len, height: b.wid, 'class': 'gm-base gm-cover-' + (b.cover || 'none') }, g);
         // Plantings as strips along the long side: by bed space when every one has it, else equal.
         var list = b.plantings, long = b.len >= b.wid, L = long ? b.len : b.wid, S = long ? b.wid : b.len;
         if (list.length) {
@@ -167,7 +168,7 @@
             list.forEach(function (p) {
                 var part = L * (all ? p.sqft : 1) / denom;
                 var r = long ? { x: at, y: 0, width: part, height: S } : { x: 0, y: at, width: S, height: part };
-                r['class'] = 'gm-plant gm-st-' + p.statusKey; r.fill = fill(p);
+                r['class'] = 'gm-plant gm-st-' + p.statusKey; r.fill = fill(p, b);
                 svg('rect', r, g);
                 // Crop name in the strip when it fits.
                 var lf = Math.min(fs, S * 0.42), pxLong = part * pxPerFt;
@@ -206,7 +207,8 @@
         items.forEach(function (it) { var s = html('span', 'gm-key', null, legendEl); swatch(it.color, s); html('span', '', it.label, s); });
         if (colorBy === 'status') { var pl = html('span', 'gm-key', null, legendEl); html('span', '', 'Planned = faded with a dashed edge', pl); }
         if ((D.beds || []).some(function (b) { return b.placed && b.warnings.length; })) html('span', 'gm-key', '⚠ needs a look (tap the bed)', legendEl);
-        if (!items.length) html('span', 'gm-key', 'Nothing planted in ' + (D.season === 'Today' ? 'the beds today' : D.season) + '.', legendEl);
+        if (!items.length && colorBy === 'bed') html('span', 'gm-key', 'No bed colors picked yet. Open a bed, then Change this bed, to pick one.', legendEl);
+        else if (!items.length) html('span', 'gm-key', 'Nothing planted in ' + (D.season === 'Today' ? 'the beds today' : D.season) + '.', legendEl);
     }
 
     function showPanel(b) {
@@ -226,7 +228,7 @@
             var ul = html('ul', 'gm-plist', null, panel);
             b.plantings.forEach(function (p) {
                 var li = html('li', '', null, ul);
-                swatch(fill(p), li);
+                swatch(fill(p, b), li);
                 var a = html('a', 'gm-link', p.crop + ' — ' + p.variety, li); a.href = 'plantings.php?id=' + p.id;
                 html('span', 'gm-muted', ' · ' + p.status + ' · ' + p.from + (p.to ? '–' + p.to + (p.estimated ? ' (about)' : '') : ' on') + (p.sqft ? ' · ' + p.sqft + ' sq ft' : ''), li);
                 html('span', 'gm-pfam', p.family, li);

@@ -24,7 +24,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 $ui = garden_ui();
 if (!garden_ready($pdo)) {
     bcrf_shell_open('Crops — Garden');
-    echo '<h1 class="', $ui['h1'], '">Crops</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072 and 0073) in Settings › Database first.');
+    echo '<h1 class="', $ui['h1'], '">Crops</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072, 0073 and 0074) in Settings › Database first.');
     bcrf_shell_close(); exit;
 }
 $org = garden_org($pdo);
@@ -64,6 +64,10 @@ garden_post($pdo, 'crops.php', [
         $own->archiveVariety($pdo, $org, garden_id('variety_id', 'Choose a variety.'));
         return 'Variety archived. Past records keep it.';
     }],
+    'shared_unhide' => [true, function () use ($pdo, $org) {
+        garden_variety_unhide_all($pdo, $org);
+        return 'Starter crops are back on your list.';
+    }],
     'shared_note' => [true, function () use ($pdo, $org, $cat) {
         $cat->saveVarietyPreference($pdo, $org, garden_id('variety_id', 'Choose a variety.'), garden_in('display_name'), garden_in('days_to_maturity') ?: null, garden_in('maturity_basis', 'unknown'), garden_in('notes'));
         return 'Saved for this farm.';
@@ -94,7 +98,7 @@ $ownCrops = $own->crops($pdo, $org);
 $ownVars = $own->varieties($pdo, $org);
 $bases = ['unknown' => 'Not sure', 'from_sowing' => 'From sowing', 'from_transplant' => 'From transplant'];
 $cycles = ['annual' => 'Annual', 'biennial' => 'Biennial', 'perennial' => 'Perennial'];
-[$err, $errAct] = garden_open('Crops');
+[$err, $errAct] = garden_open('Crops', ['css' => ['garden.css']]);
 echo '<h1 class="', $ui['h1'], '">', $tab === 'guides' ? 'Growing guides' : ($tab === 'planner' ? 'Planting planner' : 'Crops'), '</h1>';
 if ($err !== '' && !in_array($errAct, ['crop_add', 'crop_save', 'guide_save', 'shared_note', 'variety_add', 'variety_save'], true)) echo bcrf_shell_notice('err', $err);
 $opts = garden_variety_options($pdo, $org);
@@ -198,9 +202,11 @@ if ($tab === 'planner') {
 
 // ── Crops list ──
 $crops = [];   // key => [name, family, lifecycle, own crop row|null, varieties[]]
+$hiddenN = 0;
 foreach ($shared as $v) {
+    if (!empty($v['hidden_at'])) { $hiddenN++; continue; }   // taken off this farm's list (Nov 19, 2026)
     $k = 's' . $v['crop_id'];
-    $crops[$k] ??= ['name' => $v['crop_name'], 'family' => $v['crop_family'], 'life' => $v['lifecycle'], 'own' => null, 'vars' => []];
+    $crops[$k] ??= ['name' => $v['crop_name'], 'family' => $v['crop_family'], 'life' => $v['lifecycle'], 'own' => null, 'crop_id' => (int)$v['crop_id'], 'vars' => []];
     $crops[$k]['vars'][] = ['shared' => true] + $v;
 }
 foreach ($ownCrops as $c) {
@@ -228,6 +234,7 @@ $days = fn($d, $b) => $d ? (int)$d . ' days' . ($b && $b !== 'unknown' ? ' ' . s
               <div class="col-span-2 sm:col-span-4 flex flex-wrap gap-2"><button class="<?= $ui['btnSec'] ?>">Save variety</button><a class="<?= $ui['btnSec'] ?>" href="crops.php?tab=guides&amp;variety=custom:<?= (int)$v['id'] ?>">Growing guide</a></div>
             </form>
             <form method="POST" action="crops.php" class="mt-1"><?= garden_hidden('variety_archive', ['variety_id' => (int)$v['id'], 'back_anchor' => 'crop-' . $cid]) ?><button class="text-xs text-amber-800 underline" data-confirm="Archive <?= $h($v['name']) ?>? It leaves the pickers; past records keep it.">Archive variety</button></form>
+            <?= garden_delete_button('crops.php', 'variety', (int)$v['id'], 'Delete ' . $v['name'] . ' for good? Only works when no planting or seed lot uses it.', '', 'crop-' . $cid, 'Delete variety') ?>
             <?php elseif ($manage): ?>
             <form method="POST" action="crops.php" data-submit-once class="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2 items-end"><?= garden_hidden('shared_note', ['variety_id' => (int)$v['id'], 'back_anchor' => 'shared-' . $k]) ?>
               <div class="col-span-2"><label class="<?= $ui['label'] ?>" for="sn<?= (int)$v['id'] ?>">Name on this farm</label><input id="sn<?= (int)$v['id'] ?>" name="display_name" maxlength="160" value="<?= $h($v['local_name']) ?>" placeholder="<?= $h($v['name']) ?>" class="<?= $ui['input'] ?>"></div>
@@ -236,10 +243,12 @@ $days = fn($d, $b) => $d ? (int)$d . ' days' . ($b && $b !== 'unknown' ? ' ' . s
               <div class="col-span-2 sm:col-span-4"><label class="<?= $ui['label'] ?>" for="so<?= (int)$v['id'] ?>">Notes</label><input id="so<?= (int)$v['id'] ?>" name="notes" maxlength="2000" value="<?= $h($v['local_notes'] ?? '') ?>" class="<?= $ui['input'] ?>"></div>
               <div class="col-span-2 sm:col-span-4 flex flex-wrap gap-2"><button class="<?= $ui['btnSec'] ?>">Save for this farm</button><a class="<?= $ui['btnSec'] ?>" href="crops.php?tab=guides&amp;variety=<?= (int)$v['id'] ?>">Growing guide</a></div>
             </form>
+            <?= garden_delete_button('crops.php', 'shared_variety', (int)$v['id'], 'Take ' . $vn . ' off your list? Plantings and seed lots that use it keep it. You can bring it back at the bottom of this page.', '', 'shared-' . $k, 'Remove from my list') ?>
             <?php else: ?><a class="text-xs <?= $ui['link'] ?>" href="crops.php?tab=guides&amp;variety=<?= $v['shared'] ? (int)$v['id'] : 'custom:' . (int)$v['id'] ?>">Growing guide</a><?php endif; ?>
           </details></li>
           <?php endforeach; ?>
         </ul>
+        <?php if (!$oc): ?><div class="ml-4 mt-1"><?= garden_delete_button('crops.php', 'shared_crop', (int)$c['crop_id'], 'Take ' . $c['name'] . ' and all its varieties off your list? Records that use them keep them. You can bring them back at the bottom of this page.', '', '', 'Remove ' . $c['name'] . ' from my list') ?></div><?php endif; ?>
         <?php if ($manage && $oc): $tv = (int)(garden_typed('variety_add')['crop_id'] ?? 0) === $cid ? garden_typed('variety_add') : []; ?>
         <form method="POST" action="crops.php" data-submit-once class="mt-3 ml-4 grid grid-cols-2 sm:grid-cols-4 gap-2 items-end border-t border-stone-100 pt-3">
           <?= $tv ? garden_form_error($err, $errAct, 'variety_add') : '' ?><?= garden_hidden('variety_add', ['crop_id' => $cid, 'back_anchor' => 'crop-' . $cid]) ?>
@@ -256,12 +265,17 @@ $days = fn($d, $b) => $d ? (int)$d . ' days' . ($b && $b !== 'unknown' ? ' ' . s
           <div class="col-span-2 sm:col-span-4"><button class="<?= $ui['btnSec'] ?>">Save crop</button></div>
         </form>
         <form method="POST" action="crops.php" class="mt-1 ml-4"><?= garden_hidden('crop_archive', ['crop_id' => $cid]) ?><button class="text-xs text-amber-800 underline" data-confirm="Archive <?= $h($oc['name']) ?> and its varieties? They leave the pickers; past records keep them.">Archive crop</button></form>
+        <div class="ml-4 mt-1"><?= garden_delete_button('crops.php', 'crop', $cid, 'Delete ' . $oc['name'] . ' and its varieties for good? Only works when no planting or seed lot uses them.', '', '', 'Delete crop') ?></div>
         <?php endif; ?>
       </details></li>
     <?php endforeach; ?>
     </ul>
     <?php endif; ?>
   </div>
+<?php if ($manage && $hiddenN): ?>
+  <form method="POST" action="crops.php" class="<?= $ui['card'] ?> text-sm"><?= garden_hidden('shared_unhide') ?>
+    <?= $hiddenN ?> starter variet<?= $hiddenN === 1 ? 'y is' : 'ies are' ?> off your list. <button class="<?= $ui['link'] ?>">Bring them all back</button></form>
+<?php endif; ?>
 <?php if ($manage): $t = garden_typed('crop_add'); ?>
   <details class="<?= $ui['sec'] ?>" <?= $t || !$ownCrops ? 'open' : '' ?>>
     <summary class="<?= $ui['sum'] ?>">Add a crop <span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
