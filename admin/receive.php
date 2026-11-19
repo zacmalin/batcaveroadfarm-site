@@ -12,6 +12,7 @@ require_once __DIR__ . '/includes/permission_checks.php';
 require_permission([['table', 'inventory', 'edit']]);
 require_once __DIR__ . '/includes/audit.php';
 require_once __DIR__ . '/../includes/receiving.php';
+require_once __DIR__ . '/../includes/low_stock.php';   // bcrf_stock_in_use_where(): On, or animal feed (Nov 19, 2026)
 if (is_file(__DIR__ . '/../includes/purchasing.php')) require_once __DIR__ . '/../includes/purchasing.php';
 require_once __DIR__ . '/../includes/documents.php';   // invoice / receipt photos (Nov 14, 2026)
 require_once __DIR__ . '/../includes/admin_shell.php';
@@ -120,7 +121,7 @@ $locs = [];
 foreach (bcrf_locations($pdo) as $l) $locs[(int)$l['id']] = $l['name'];
 $vendors = bcrf_vendor_options($pdo);
 $products = $pdo->query("SELECT id, name, sku, unit, avg_cost_cents, preferred_vendor_id
-                         FROM inventory WHERE track_inventory = 1 AND is_active = 1 ORDER BY name LIMIT 2000")
+                         FROM inventory WHERE track_inventory = 1 AND " . bcrf_stock_in_use_where() . " ORDER BY name LIMIT 2000")
     ->fetchAll(PDO::FETCH_ASSOC);
 $byId = [];
 $prodOpts = ['' => '— pick or scan SKU —'];
