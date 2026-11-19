@@ -22,7 +22,7 @@ final class GrowingRecords
     /** @return list<array<string,mixed>> */
     public function plantings(PDO $db, int $org, int $site): array
     {
-        $q = $db->prepare('SELECT p.id, p.location_id, p.variety_id, p.organization_variety_id, p.seed_lot_id, p.planted_on, p.method, p.quantity, p.quantity_unit, p.status, p.allocated_area_sq_m, l.name AS location_name, COALESCE(ov.name,v.name) AS variety_name, COALESCE(oc.name,c.common_name) AS crop_name, COALESCE(c.crop_family,oc.crop_family) AS crop_family FROM garden_plantings p JOIN garden_growing_locations l ON l.id=p.location_id AND l.organization_id=p.organization_id LEFT JOIN garden_varieties v ON v.id=p.variety_id LEFT JOIN garden_crops c ON c.id=v.crop_id LEFT JOIN garden_organization_varieties ov ON ov.id=p.organization_variety_id AND ov.organization_id=p.organization_id LEFT JOIN garden_organization_crops oc ON oc.id=ov.crop_id AND oc.organization_id=p.organization_id WHERE p.organization_id=? AND l.site_id=? ORDER BY p.planted_on DESC, p.id DESC');
+        $q = $db->prepare('SELECT p.id, p.location_id, p.variety_id, p.organization_variety_id, p.seed_lot_id, p.planted_on, p.method, p.quantity, p.quantity_unit, p.status, p.allocated_area_sq_m, p.expected_end_on, p.ended_on, COALESCE(pref.days_to_maturity,v.days_to_maturity,ov.days_to_maturity) AS days_to_maturity, COALESCE(c.lifecycle,oc.lifecycle) AS lifecycle, l.name AS location_name, COALESCE(ov.name,v.name) AS variety_name, COALESCE(oc.name,c.common_name) AS crop_name, COALESCE(c.crop_family,oc.crop_family) AS crop_family FROM garden_plantings p JOIN garden_growing_locations l ON l.id=p.location_id AND l.organization_id=p.organization_id LEFT JOIN garden_varieties v ON v.id=p.variety_id LEFT JOIN garden_crops c ON c.id=v.crop_id LEFT JOIN garden_organization_variety_preferences pref ON pref.organization_id=p.organization_id AND pref.variety_id=p.variety_id LEFT JOIN garden_organization_varieties ov ON ov.id=p.organization_variety_id AND ov.organization_id=p.organization_id LEFT JOIN garden_organization_crops oc ON oc.id=ov.crop_id AND oc.organization_id=p.organization_id WHERE p.organization_id=? AND l.site_id=? ORDER BY p.planted_on DESC, p.id DESC');
         $q->execute([$org, $site]);
         return $q->fetchAll();
     }
@@ -82,8 +82,8 @@ final class GrowingRecords
         if (!in_array($status,['planned','active','completed','failed'],true)) {
             throw new \InvalidArgumentException('Choose a valid planting status.');
         }
-        $q=$db->prepare('UPDATE garden_plantings p JOIN garden_growing_locations l ON l.id=p.location_id AND l.organization_id=p.organization_id SET p.status=? WHERE p.id=? AND p.organization_id=? AND l.site_id=?');
-        $q->execute([$status,$planting,$org,$site]);
+        $q=$db->prepare('UPDATE garden_plantings p JOIN garden_growing_locations l ON l.id=p.location_id AND l.organization_id=p.organization_id SET p.ended_on=CASE WHEN ? IN (\'completed\',\'failed\') THEN COALESCE(p.ended_on,?) ELSE NULL END, p.status=? WHERE p.id=? AND p.organization_id=? AND l.site_id=?');
+        $q->execute([$status,date('Y-m-d'),$status,$planting,$org,$site]);   // ended_on: when it came out of the bed (Nov 19, 2026)
         if ($q->rowCount()===0) {
             $q=$db->prepare('SELECT 1 FROM garden_plantings p JOIN garden_growing_locations l ON l.id=p.location_id AND l.organization_id=p.organization_id WHERE p.id=? AND p.organization_id=? AND l.site_id=?');
             $q->execute([$planting,$org,$site]);

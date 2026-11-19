@@ -22,7 +22,7 @@ final class GardenService
     /** @return list<array<string,mixed>> */
     public function locations(PDO $db, int $organizationId, int $siteId): array
     {
-        $stmt = $db->prepare('SELECT id, parent_id, name, kind, area_sq_m, length_m, width_m, layout_x_m, layout_y_m, rotation_degrees FROM garden_growing_locations WHERE organization_id = ? AND site_id = ? AND active = 1 ORDER BY name, id');
+        $stmt = $db->prepare('SELECT id, parent_id, name, kind, area_sq_m, length_m, width_m, layout_x_m, layout_y_m, rotation_degrees, orientation, sun_exposure, irrigation, ground_cover, soil_type, notes FROM garden_growing_locations WHERE organization_id = ? AND site_id = ? AND active = 1 ORDER BY name, id');
         $stmt->execute([$organizationId, $siteId]);
         return $stmt->fetchAll();
     }

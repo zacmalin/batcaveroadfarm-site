@@ -64,7 +64,7 @@ final class CustomCatalog
 
     public function varieties(PDO $db,int $org): array
     {
-        $q=$db->prepare('SELECT v.id,v.crop_id,v.name,v.days_to_maturity,v.maturity_basis,v.archived_at,c.archived_at AS crop_archived_at,c.name AS crop_name FROM garden_organization_varieties v JOIN garden_organization_crops c ON c.id=v.crop_id AND c.organization_id=v.organization_id WHERE v.organization_id=? ORDER BY c.name,v.name');
+        $q=$db->prepare('SELECT v.id,v.crop_id,v.name,v.days_to_maturity,v.maturity_basis,v.archived_at,c.archived_at AS crop_archived_at,c.name AS crop_name,c.crop_family FROM garden_organization_varieties v JOIN garden_organization_crops c ON c.id=v.crop_id AND c.organization_id=v.organization_id WHERE v.organization_id=? ORDER BY c.name,v.name');
         $q->execute([$org]);return $q->fetchAll();
     }
 

@@ -12,11 +12,12 @@ require_once __DIR__ . '/garden_crops.php';
 require_once __DIR__ . '/garden_seeds.php';
 require_once __DIR__ . '/garden_plantings.php';
 require_once __DIR__ . '/garden_care.php';
+require_once __DIR__ . '/garden_planner.php';   // bed planner: details, time spans, rotation, map (Nov 19, 2026)
 require_once __DIR__ . '/farm_helpers.php';
 
-/** True once migration 0072 has run. */
+/** True once the garden migrations have run: 0072 (tables) and 0073 (bed planner, Nov 19, 2026). */
 function garden_ready(PDO $pdo): bool {
-    try { $pdo->query('SELECT 1 FROM garden_organizations LIMIT 1'); return true; }
+    try { $pdo->query('SELECT 1 FROM garden_organizations LIMIT 1'); $pdo->query('SELECT ended_on FROM garden_plantings LIMIT 1'); return true; }
     catch (Throwable $e) { return false; }
 }
 
@@ -130,7 +131,7 @@ function garden_variety_options(PDO $pdo, int $org): array {
     }
     foreach ((new \Garden\Domain\CustomCatalog())->varieties($pdo, $org) as $v) {
         if ($v['archived_at'] || $v['crop_archived_at']) continue;
-        $out[] = ['value' => 'custom:' . (int)$v['id'], 'label' => $v['crop_name'] . ' — ' . $v['name'], 'crop' => $v['crop_name'], 'family' => null,
+        $out[] = ['value' => 'custom:' . (int)$v['id'], 'label' => $v['crop_name'] . ' — ' . $v['name'], 'crop' => $v['crop_name'], 'family' => $v['crop_family'] ?? null,
                   'days' => $v['days_to_maturity'], 'basis' => $v['maturity_basis'], 'own' => true];
     }
     usort($out, fn($a, $b) => strcasecmp($a['label'], $b['label']));
@@ -278,7 +279,7 @@ function garden_in(string $key, string $default = ''): string { $v = $_POST[$key
 /**
  * Handle a garden page POST and redirect (never returns on POST).
  * $actions: act => [needs manage (bool), callable(): string|array]. The callable returns the success message, or
- * [message, extra query string like 'tab=water', '#anchor'].
+ * [message, extra query string like 'tab=water', '#anchor', 'warning' (optional: show the message as a warning)].
  * Errors (InvalidArgumentException, or any save error) go back to the page with the typed form kept.
  */
 function garden_post(PDO $pdo, string $page, array $actions): void {
@@ -293,7 +294,7 @@ function garden_post(PDO $pdo, string $page, array $actions): void {
         $r = $fn();
         $msg = is_array($r) ? (string)$r[0] : (string)$r;
         if (is_array($r)) { $query = (string)($r[1] ?? $query); $anchor = (string)($r[2] ?? $anchor); }
-        $_SESSION['garden_flash'] = ['ok', $msg];
+        $_SESSION['garden_flash'] = [is_array($r) && ($r[3] ?? '') === 'warning' ? 'warning' : 'ok', $msg];
         if (function_exists('erp_audit')) { try { erp_audit($pdo, 'update', 'garden', null, 'Garden: ' . $msg); } catch (Throwable $e) { /* audit is best effort */ } }
     } catch (InvalidArgumentException | DomainException $e) {
         $_SESSION['garden_flash'] = ['err', $e->getMessage()];
@@ -314,11 +315,11 @@ function garden_post(PDO $pdo, string $page, array $actions): void {
     exit;
 }
 
-/** Open a garden page in the Farm OS shell, with the flash toast; returns [error text, the action it was for]. */
-function garden_open(string $title): array {
+/** Open a garden page in the Farm OS shell, with the flash toast ($opt: more bcrf_shell_open options, e.g. css/js); returns [error text, the action it was for]. */
+function garden_open(string $title, array $opt = []): array {
     $flash = $_SESSION['garden_flash'] ?? null; unset($_SESSION['garden_flash']);
-    $toast = ($flash && $flash[0] === 'ok') ? $flash : null;
-    bcrf_shell_open($title . ' — Garden', ['toast' => $toast]);
+    $toast = ($flash && in_array($flash[0], ['ok', 'warning'], true)) ? $flash : null;
+    bcrf_shell_open($title . ' — Garden', ['toast' => $toast] + $opt);
     $err = ($flash && $flash[0] === 'err') ? (string)$flash[1] : '';
     $f = $_SESSION['garden_form'] ?? [];
     return [$err, (string)($f['act'] ?? '')];

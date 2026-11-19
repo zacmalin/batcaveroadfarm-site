@@ -38,8 +38,8 @@ final class PlantingLifecycle
             $q->execute([$org,$planting,$type,$date,$quantity===''?null:$quantity,$unit?:null,$notes?:null]);
             $id=(int)$db->lastInsertId();
             if (in_array($type,['completed','failed'],true)) {
-                $q=$db->prepare('UPDATE garden_plantings SET status=? WHERE id=? AND organization_id=?');
-                $q->execute([$type,$planting,$org]);
+                $q=$db->prepare('UPDATE garden_plantings SET status=?,ended_on=? WHERE id=? AND organization_id=?');
+                $q->execute([$type,$date,$planting,$org]);
             } elseif ($row['status']==='planned') {
                 $q=$db->prepare("UPDATE garden_plantings SET status='active' WHERE id=? AND organization_id=?");
                 $q->execute([$planting,$org]);
@@ -63,9 +63,14 @@ final class PlantingLifecycle
             $lock=$db->prepare('SELECT id FROM garden_growing_locations WHERE id=? AND organization_id=? FOR UPDATE');
             $lock->execute([$row['location_id'],$org]);
             if ($area!=='' && $row['capacity']!==null) {
-                $q=$db->prepare("SELECT COALESCE(SUM(allocated_area_sq_m),0) FROM garden_plantings WHERE organization_id=? AND location_id=? AND status IN ('planned','active') AND id<>?");
-                $q->execute([$org,$row['location_id'],$planting]);$used=(float)$q->fetchColumn();
-                if ($used+(float)$area>(float)$row['capacity']+0.00001) throw new \InvalidArgumentException('Allocated planting area exceeds the recorded growing-area capacity.');
+                // Only plantings in the bed at the same time count (Nov 19, 2026): a spring crop and a fall crop can each use the whole bed.
+                $q=$db->prepare("SELECT p.id,".\garden_span_sql()." FROM garden_plantings p".\garden_span_joins()." WHERE p.organization_id=? AND p.location_id=? AND p.status IN ('planned','active') AND (p.allocated_area_sq_m IS NOT NULL OR p.id=?)");
+                $q->execute([$org,$row['location_id'],$planting]);$rows=$q->fetchAll(PDO::FETCH_ASSOC);
+                $mine=null;$others=[];
+                foreach ($rows as $r) { if ((int)$r['id']===$planting) $mine=\garden_planting_span($r); else $others[]=$r; }
+                $spans=[[$mine[0],$mine[1],(float)$area]];
+                foreach ($others as $r) { [$s,$e]=\garden_planting_span($r); if (\garden_spans_touch($s,$e,$mine[0],$mine[1])) $spans[]=[max($s,$mine[0]),($e===null?$mine[1]:($mine[1]===null?$e:min($e,$mine[1]))),(float)$r['allocated_area_sq_m']]; }
+                if (\garden_peak_area($spans)>(float)$row['capacity']+0.00001) throw new \InvalidArgumentException('Allocated planting area exceeds the recorded growing-area capacity at the same time.');
             }
             $q=$db->prepare('UPDATE garden_plantings SET allocated_area_sq_m=? WHERE id=? AND organization_id=?');
             $q->execute([$area===''?null:$area,$planting,$org]);

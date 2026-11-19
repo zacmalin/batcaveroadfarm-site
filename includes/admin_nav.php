@@ -63,8 +63,9 @@ function bcrf_admin_nav_sections(): array {
     ]],
     'garden' => ['label'=>'Garden','icon'=>'🌱','items'=>[   // Garden & crops, Nov 18, 2026 (admin/garden/, migration 0072)
         ['label'=>'Today',        'icon'=>'🌞','tabs'=>[['Today','/admin/garden/today.php','view','garden']]],
-        ['label'=>'Beds & areas', 'short'=>'Beds','icon'=>'🗺️','tabs'=>[['Areas','/admin/garden/areas.php','view','garden'],
-                                                        ['Map','/admin/garden/areas.php?tab=map','view','garden'],
+        ['label'=>'Beds & map',   'short'=>'Beds','icon'=>'🗺️','tabs'=>[['Map','/admin/garden/areas.php?tab=map','view','garden'],   // bed planner, Nov 19, 2026
+                                                        ['Beds','/admin/garden/areas.php','view','garden'],
+                                                        ['Schedule','/admin/garden/areas.php?tab=schedule','view','garden'],
                                                         ['Soil','/admin/garden/areas.php?tab=soil','view','garden']]],
         ['label'=>'Crops',        'icon'=>'🥬','tabs'=>[['Crops','/admin/garden/crops.php','view','garden'],
                                                         ['Growing guides','/admin/garden/crops.php?tab=guides','view','garden'],
@@ -218,7 +219,7 @@ function bcrf_admin_nav_keywords(): array {
         '/admin/animal_weights.php'                 => 'weight scale weigh',
         '/admin/animal_breeding.php'                => 'breeding kidding lambing births pregnancy',
         '/admin/garden/today.php'                   => 'garden vegetables veggies crops grow growing',
-        '/admin/garden/areas.php'                   => 'garden beds rows plots field layout map',
+        '/admin/garden/areas.php'                   => 'garden beds rows plots field layout map planner rotation schedule sun irrigation soil',
         '/admin/garden/crops.php'                   => 'vegetables varieties seeds plant spacing days to maturity frost',
         '/admin/garden/seeds.php'                   => 'seed packets seed inventory germination test',
         '/admin/garden/plantings.php'               => 'sow sowing transplant planting succession rotation',

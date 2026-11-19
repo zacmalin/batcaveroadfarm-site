@@ -6,6 +6,9 @@
 //   GET  plantings.php?tab=succession      repeat sowings on a schedule, each round linked to the planting that filled it
 //   GET  plantings.php?tab=rotation        which crop families were in each bed, and where a family can go this year
 //   POST act=plant_add | plant_status | plant_event | plant_space | tray_add | tray_save | succ_add | succ_link   ('garden')
+// Bed planner (Nov 19, 2026; includes/garden_planner.php, admin/assets/garden.js): each planting has "Out of the bed by"
+//   (expected_end_on; empty = worked out from days to maturity). Adding one warns, but still saves, when the bed grew the same
+//   crop family in the last 3 years or already has something in it then; the planting page repeats those notes.
 require_once __DIR__ . '/../../config.php';
 check_admin();
 require_once __DIR__ . '/../includes/permission_checks.php';
@@ -28,7 +31,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 $ui = garden_ui();
 if (!garden_ready($pdo)) {
     bcrf_shell_open('Plantings — Garden');
-    echo '<h1 class="', $ui['h1'], '">Plantings</h1>', bcrf_shell_notice('warning', 'Run migration 0072 in Settings › Database first.');
+    echo '<h1 class="', $ui['h1'], '">Plantings</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072 and 0073) in Settings › Database first.');
     bcrf_shell_close(); exit;
 }
 $org = garden_org($pdo);
@@ -47,6 +50,7 @@ garden_post($pdo, 'plantings.php', [
         try {
             $id = $rec->createPlanting($pdo, $org, $site, garden_id('location_id', 'Choose a bed.'), garden_in('variety'), $lot, garden_in('planted_on'), garden_in('method'),
                                        garden_in('quantity') ?: null, garden_in('unit'), garden_in('status', 'active'));
+            garden_planting_set_end($pdo, $org, $site, $id, garden_end_date_in(garden_in('expected_end_on'), garden_in('planted_on')));
             if ($used !== '') {
                 if (!$lot) throw new InvalidArgumentException('Pick the seed lot the seed came from, or leave "Seed used" empty.');
                 (new SeedStock())->record($pdo, $org, $lot, 'used', '-' . ltrim($used, '-'), garden_in('planted_on'), 'Planting #' . $id, garden_uid());
@@ -55,7 +59,8 @@ garden_post($pdo, 'plantings.php', [
             if ($space !== '') $life->allocateArea($pdo, $org, $site, $id, $space);
             $pdo->commit();
         } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
-        return ['Planting saved.', 'id=' . $id];
+        $warn = garden_planting_warnings_for($pdo, $org, $site, $id);
+        return $warn ? ['Planting saved. ' . implode(' ', $warn), 'id=' . $id, '', 'warning'] : ['Planting saved.', 'id=' . $id];
     }],
     'plant_status' => [false, function () use ($pdo, $org, $rec) {
         $id = garden_id('planting_id', 'Choose a planting.');
@@ -69,8 +74,17 @@ garden_post($pdo, 'plantings.php', [
     }],
     'plant_space' => [false, function () use ($pdo, $org, $life) {
         $id = garden_id('planting_id', 'Choose a planting.');
-        $life->allocateArea($pdo, $org, garden_id('site_id', 'Choose a garden.'), $id, garden_sqft_to_sqm(garden_in('space_sqft')));
-        return ['Bed space saved.', 'id=' . $id];
+        $site = garden_id('site_id', 'Choose a garden.');
+        $st = $pdo->prepare('SELECT planted_on FROM garden_plantings WHERE id = ? AND organization_id = ?'); $st->execute([$id, $org]);
+        $start = (string)$st->fetchColumn();
+        $pdo->beginTransaction();
+        try {
+            garden_planting_set_end($pdo, $org, $site, $id, garden_end_date_in(garden_in('expected_end_on'), $start));
+            $life->allocateArea($pdo, $org, $site, $id, garden_sqft_to_sqm(garden_in('space_sqft')));
+            $pdo->commit();
+        } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
+        $warn = garden_planting_warnings_for($pdo, $org, $site, $id);
+        return $warn ? ['Saved. ' . implode(' ', $warn), 'id=' . $id, '', 'warning'] : ['Bed space and dates saved.', 'id=' . $id];
     }],
     'tray_add' => [false, function () use ($pdo, $org, $trays) {
         $trays->createTray($pdo, $org, garden_id('site_id', 'Choose a garden.'), garden_id('planting_id', 'Choose the planting the tray is for.'), garden_in('label'), trim(garden_in('cells_sown')), garden_in('sown_on'), garden_in('notes'));
@@ -92,8 +106,16 @@ garden_post($pdo, 'plantings.php', [
     }],
 ]);
 
+/** Rotation and crowding notes for one planting, as sentences. */
+function garden_planting_warnings_for(PDO $pdo, int $org, int $site, int $id): array {
+    $all = (new GrowingRecords())->plantings($pdo, $org, $site);
+    $cap = [];
+    foreach ((new GardenService())->locations($pdo, $org, $site) as $a) $cap[(int)$a['id']] = $a['area_sq_m'] !== null ? (float)$a['area_sq_m'] : ($a['length_m'] !== null ? (float)$a['length_m'] * (float)$a['width_m'] : null);
+    return garden_planting_warnings($all, $id, $cap);
+}
+
 [$sites, $site] = garden_site_pick($pdo, $org);
-[$err, $errAct] = garden_open('Plantings');
+[$err, $errAct] = garden_open('Plantings', ['css' => ['garden.css'], 'js' => ['garden.js']]);
 $titles = ['trays' => 'Seed trays', 'succession' => 'Successions', 'rotation' => 'Crop rotation'];
 if (!$site) { echo '<h1 class="', $ui['h1'], '">Plantings</h1>', garden_need_site(); bcrf_shell_close(); exit; }
 $sid = (int)$site['id'];
@@ -115,9 +137,11 @@ $p = null; foreach ($plantings as $x) if ((int)$x['id'] === $pid) $p = $x;
 if ($p) {
     $evs = array_values(array_filter($life->events($pdo, $org, $sid), fn($e) => (int)$e['planting_id'] === $pid));
     $open = in_array($p['status'], ['planned', 'active'], true);
+    $span = garden_planting_span($p);
     echo '<p class="mb-2"><a class="', $ui['link'], ' text-sm" href="plantings.php">← All plantings</a></p>';
     echo '<h1 class="', $ui['h1'], '">', $h($pName($p)), '</h1>';
     if ($err !== '' && !in_array($errAct, ['plant_status', 'plant_event', 'plant_space'], true)) echo bcrf_shell_notice('err', $err);
+    foreach (garden_planting_warnings_for($pdo, $org, $sid, $pid) as $w) echo bcrf_shell_notice('warning', $w);
     echo '<div class="', $ui['card'], '"><dl class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">',
          '<div><dt class="text-stone-500">Bed</dt><dd>', $h($names[(int)$p['location_id']] ?? $p['location_name']), '</dd></div>',
          '<div><dt class="text-stone-500">', $p['status'] === 'planned' ? 'Planned for' : 'Planted', '</dt><dd>', $h(garden_date($p['planted_on'])), '</dd></div>',
@@ -125,7 +149,9 @@ if ($p) {
          '<div><dt class="text-stone-500">Status</dt><dd class="font-semibold">', $h($statuses[$p['status']] ?? $p['status']), '</dd></div>',
          $p['quantity'] !== null ? '<div><dt class="text-stone-500">Amount</dt><dd>' . $h(garden_num($p['quantity'], 3) . ' ' . $p['quantity_unit']) . '</dd></div>' : '',
          $p['allocated_area_sq_m'] !== null ? '<div><dt class="text-stone-500">Bed space</dt><dd>' . $h(garden_sqm_to_sqft($p['allocated_area_sq_m'])) . ' sq ft</dd></div>' : '',
-         '</dl><div class="flex flex-wrap gap-2 mt-3"><a class="', $ui['btnSec'], '" href="care.php?planting=', $pid, '">Log care</a><a class="', $ui['btnSec'], '" href="harvest.php?planting=', $pid, '">Log harvest</a></div></div>';
+         '<div><dt class="text-stone-500">', in_array($p['status'], ['completed', 'failed'], true) ? 'Came out' : 'Out of the bed by', '</dt><dd>', $span[1] === null ? 'Stays (perennial)' : $h(garden_date($span[1])) . ($span[2] ? ' <span class="text-stone-500">(about)</span>' : ''), '</dd></div>',
+         $p['crop_family'] ? '<div><dt class="text-stone-500">Family</dt><dd>' . $h(garden_family_label($p['crop_family'])) . '</dd></div>' : '',
+         '</dl><div class="flex flex-wrap gap-2 mt-3"><a class="', $ui['btnSec'], '" href="areas.php?bed=', (int)$p['location_id'], '">Open bed</a><a class="', $ui['btnSec'], '" href="care.php?planting=', $pid, '">Log care</a><a class="', $ui['btnSec'], '" href="harvest.php?planting=', $pid, '">Log harvest</a></div></div>';
     $t = garden_typed('plant_event'); ?>
   <form id="form-plant_event" method="POST" action="plantings.php" data-submit-once class="<?= $ui['card'] ?>">
     <?= garden_form_error($err, $errAct, 'plant_event') ?><?= $hid('plant_event', ['planting_id' => $pid, 'back_query' => 'id=' . $pid]) ?>
@@ -153,9 +179,11 @@ if ($p) {
     <?php if ($open): $t = garden_typed('plant_space'); ?>
     <form id="form-plant_space" method="POST" action="plantings.php" data-submit-once class="<?= $ui['card'] ?>">
       <?= garden_form_error($err, $errAct, 'plant_space') ?><?= $hid('plant_space', ['planting_id' => $pid, 'back_query' => 'id=' . $pid]) ?>
-      <h2 class="<?= $ui['h2'] ?>">Bed space it takes</h2>
-      <div class="flex flex-wrap gap-2 items-end"><div class="flex-1 min-w-32"><label class="<?= $ui['label'] ?>" for="sp">Square feet</label><input id="sp" name="space_sqft" inputmode="decimal" value="<?= $h($t['space_sqft'] ?? garden_sqm_to_sqft($p['allocated_area_sq_m'])) ?>" class="<?= $ui['input'] ?>"></div><button class="<?= $ui['btnSec'] ?>">Save space</button></div>
-      <p class="text-xs text-stone-500 mt-2">Empty = not measured. Stops a bed from being planned past its size.</p>
+      <h2 class="<?= $ui['h2'] ?>">Bed space and dates</h2>
+      <div class="grid grid-cols-2 gap-3 mb-3"><div><label class="<?= $ui['label'] ?>" for="sp">Bed space (sq ft)</label><input id="sp" name="space_sqft" inputmode="decimal" value="<?= $h($t['space_sqft'] ?? garden_sqm_to_sqft($p['allocated_area_sq_m'])) ?>" class="<?= $ui['input'] ?>"></div>
+        <div><label class="<?= $ui['label'] ?>" for="se">Out of the bed by</label><input id="se" name="expected_end_on" type="date" min="<?= $h($p['planted_on']) ?>" value="<?= $h($t['expected_end_on'] ?? $p['expected_end_on']) ?>" class="<?= $ui['input'] ?>"></div></div>
+      <button class="<?= $ui['btnSec'] ?>">Save space and dates</button>
+      <p class="text-xs text-stone-500 mt-2">Space empty = not measured. Date empty = worked out from days to maturity plus 3 weeks of picking. Both let the garden catch two crops planned into a full bed at the same time.</p>
     </form>
     <?php endif; ?>
   </div>
@@ -309,9 +337,17 @@ $pill = function (string $key, string $label) use ($st, $area, $ui, $h) {
 $t = garden_typed('plant_add');
 $lots = []; foreach ($rec->seedLots($pdo, $org) as $l) $lots[(int)$l['id']] = $l['crop_name'] . ' — ' . $l['variety_name'] . ($l['lot_code'] ? ' (' . $l['lot_code'] . ')' : '') . ($l['unit'] ? ' · ' . $l['unit'] : '');
 $preVar = (string)($t['variety'] ?? ($_GET['variety'] ?? '')); $preLoc = $t['location_id'] ?? ($_GET['location'] ?? ($area ?: '')); $preDate = (string)($t['planted_on'] ?? ($_GET['date'] ?? $today));
-$hist = (new FieldWorkflows())->rotationHistory($pdo, $org, $sid);
+// What garden.js needs to warn before saving: each bed's plantings (family and dates), and each variety's family.
+$pd = ['beds' => [], 'families' => [], 'familyNames' => garden_family_names(), 'cap' => []];
+foreach ($areas as $a) { $c = $a['area_sq_m'] !== null ? (float)$a['area_sq_m'] : ($a['length_m'] !== null ? (float)$a['length_m'] * (float)$a['width_m'] : null); if ($c !== null) $pd['cap'][(int)$a['id']] = (float)garden_sqm_to_sqft($c); }
+foreach ($plantings as $x) {
+    [$s, $e] = garden_planting_span($x);
+    $pd['beds'][(int)$x['location_id']][] = ['crop' => $x['crop_name'], 'family' => (string)$x['crop_family'], 'status' => $x['status'], 'start' => $s, 'end' => $e, 'from' => garden_date($s), 'to' => $e === null ? '' : garden_date($e), 'sqft' => $x['allocated_area_sq_m'] !== null ? (float)garden_sqm_to_sqft($x['allocated_area_sq_m']) : null];
+}
+foreach ($opts as $o) if ($o['family']) $pd['families'][$o['value']] = $o['family'];
 ?>
-  <details class="<?= $ui['sec'] ?>" <?= $t || !$plantings || isset($_GET['variety']) ? 'open' : '' ?>>
+  <script type="application/json" id="garden-plant-data"><?= json_encode($pd, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
+  <details class="<?= $ui['sec'] ?>" <?= $t || !$plantings || isset($_GET['variety']) || isset($_GET['location']) ? 'open' : '' ?>>
     <summary class="<?= $ui['sum'] ?>">Add a planting <span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
     <?php if (!$optMap): ?><p class="p-4 text-sm text-stone-600">Add the crop first in <a class="<?= $ui['link'] ?>" href="crops.php">Crops</a>.</p><?php else: ?>
     <form id="form-plant_add" method="POST" action="plantings.php" data-submit-once class="p-4">
@@ -324,13 +360,15 @@ $hist = (new FieldWorkflows())->rotationHistory($pdo, $org, $sid);
         <div class="col-span-2"><label class="<?= $ui['label'] ?>" for="pm">How</label><select id="pm" name="method" class="<?= $ui['input'] ?>"><?= garden_options($methods, $t['method'] ?? 'direct_sow') ?></select></div>
         <div><label class="<?= $ui['label'] ?>" for="pq">How many</label><input id="pq" name="quantity" inputmode="decimal" value="<?= $h($t['quantity'] ?? '') ?>" class="<?= $ui['input'] ?>"></div>
         <div><label class="<?= $ui['label'] ?>" for="pu">Unit</label><input id="pu" name="unit" maxlength="32" placeholder="plants, row ft" value="<?= $h($t['unit'] ?? '') ?>" class="<?= $ui['input'] ?>"></div>
-        <div class="col-span-2"><label class="<?= $ui['label'] ?>" for="pa">Bed space (sq ft)</label><input id="pa" name="space_sqft" inputmode="decimal" value="<?= $h($t['space_sqft'] ?? '') ?>" class="<?= $ui['input'] ?>"></div>
+        <div><label class="<?= $ui['label'] ?>" for="pa">Bed space (sq ft)</label><input id="pa" name="space_sqft" inputmode="decimal" value="<?= $h($t['space_sqft'] ?? '') ?>" class="<?= $ui['input'] ?>"></div>
+        <div><label class="<?= $ui['label'] ?>" for="pz">Out of the bed by</label><input id="pz" name="expected_end_on" type="date" value="<?= $h($t['expected_end_on'] ?? '') ?>" class="<?= $ui['input'] ?>"></div>
         <?php if ($lots): ?>
         <div class="col-span-2"><label class="<?= $ui['label'] ?>" for="pk">Seed lot</label><select id="pk" name="seed_lot_id" class="<?= $ui['input'] ?>"><?= garden_options($lots, $t['seed_lot_id'] ?? '', 'None') ?></select></div>
         <div class="col-span-2"><label class="<?= $ui['label'] ?>" for="pe">Seed used (in the lot's unit)</label><input id="pe" name="seed_used" inputmode="decimal" value="<?= $h($t['seed_used'] ?? '') ?>" class="<?= $ui['input'] ?>"></div>
         <?php endif; ?>
       </div>
-      <p class="text-xs text-stone-500 mb-3">Seed used comes off the lot's count. The lot must be the same variety.</p>
+      <p class="text-xs text-stone-500 mb-3">Seed used comes off the lot's count. The lot must be the same variety. Leave "Out of the bed by" empty to work it out from days to maturity.</p>
+      <div class="gm-plant-warn" data-plant-warn role="status" aria-live="polite" hidden></div>
       <button class="<?= $ui['btnMain'] ?>">Add planting</button>
     </form>
     <?php endif; ?>

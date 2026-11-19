@@ -1,0 +1,85 @@
+/* admin/assets/garden.css — Garden bed planner (Nov 19, 2026; admin/garden/areas.php map + schedule + bed page, admin/assets/garden.js).
+   Hand-written (not Tailwind) so the map's classes don't need an admin.css rebuild. Farm OS colors: espresso, barn red, wheat, cream. */
+.gm-swatch { display: inline-block; width: .8rem; height: .8rem; vertical-align: -.1rem; margin-right: .35rem; flex: none; }
+
+/* Map card and its bars */
+.gm-bar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; justify-content: space-between; margin-bottom: .6rem; }
+.gm-season { font-weight: 600; color: #3e2a1e; }
+.gm-seg { display: inline-flex; border: 1px solid #d6d3d1; border-radius: 999px; overflow: hidden; }
+.gm-segbtn { padding: .4rem .8rem; font-size: .875rem; background: #fff; color: #44403c; border: 0; min-height: 2.25rem; cursor: pointer; }
+.gm-seg .gm-segbtn + .gm-segbtn { border-left: 1px solid #d6d3d1; }
+.gm-segbtn[aria-pressed="true"] { background: #79523a; color: #fff; font-weight: 600; }
+.gm-segbtn:disabled { opacity: .45; cursor: default; }
+.gm-move { border: 1px solid #d6d3d1; border-radius: 999px; }
+.gm-editbar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; justify-content: space-between; background: #fbf3df; border: 1px solid #e8d6a8;
+              border-radius: 8px; padding: .5rem .75rem; margin-bottom: .6rem; font-size: .875rem; color: #5b4630; }
+.gm-editbtns { display: inline-flex; gap: .4rem; }
+.gm-editbtns .gm-segbtn { border: 1px solid #d6d3d1; border-radius: 999px; }
+
+/* The drawing */
+.gm-stage { width: 100%; border-radius: 8px; overflow: hidden; background: #f7f1e3; border: 1px solid #e2d8c6; }
+.gm-svg { display: block; width: 100%; height: auto; max-height: 78vh; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.gm-svg.is-editing .gm-bed { touch-action: none; cursor: grab; }
+.gm-svg.is-editing .gm-bed:active { cursor: grabbing; }
+.gm-grid line { stroke: #e6dccb; stroke-width: 1px; vector-effect: non-scaling-stroke; }
+.gm-grid line.gm-grid-major { stroke: #d6c8b0; }
+.gm-north { fill: #79523a; font-weight: 700; }
+.gm-bed { cursor: pointer; outline: none; }
+.gm-base { fill: #d9c7a7; }                                 /* bare soil */
+.gm-cover-landscape_fabric, .gm-cover-plastic_mulch { fill: #5b6170; }
+.gm-cover-straw { fill: #e6cf8f; }
+.gm-cover-wood_chips { fill: #a77b52; }
+.gm-cover-compost { fill: #6b4f3a; }
+.gm-cover-cover_crop { fill: #a9c48a; }
+.gm-plant { stroke: rgba(255,255,255,.55); stroke-width: 1px; vector-effect: non-scaling-stroke; }
+.gm-st-planned { fill-opacity: .45; stroke: #3e2a1e; stroke-dasharray: 4 3; }
+.gm-st-completed, .gm-st-failed { fill-opacity: .55; }
+.gm-outline { fill: none; stroke: #5c714b; stroke-width: 1.5px; }
+.gm-bed:focus-visible > .gm-outline, .gm-bed.is-selected > .gm-outline { stroke: #8a3324; stroke-width: 3.5px; }
+.gm-label { fill: #1f1a14; font-weight: 600; paint-order: stroke; stroke: rgba(255,255,255,.8); stroke-linejoin: round; pointer-events: none; }
+.gm-name { fill: #3e2a1e; pointer-events: none; }
+.gm-cover-landscape_fabric ~ .gm-name, .gm-cover-plastic_mulch ~ .gm-name, .gm-cover-compost ~ .gm-name { fill: #fff; }
+.gm-warn { fill: #b45309; font-weight: 700; paint-order: stroke; stroke: #fff; pointer-events: none; }
+.gm-scale { font-size: .75rem; color: #78716c; margin-top: .4rem; }
+.gm-status { font-size: .8125rem; color: #3f6212; min-height: 1.1rem; margin-top: .25rem; }
+.gm-status.is-bad { color: #991b1b; font-weight: 600; }
+.gm-legend { display: flex; flex-wrap: wrap; gap: .35rem .9rem; font-size: .8125rem; color: #44403c; margin-top: .25rem; }
+.gm-key { display: inline-flex; align-items: center; }
+
+/* Bed details under the map */
+.gm-panel:focus { outline: none; }
+.gm-panel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: .5rem; }
+.gm-panel-title { font-size: 1.05rem; font-weight: 700; color: #3e2a1e; }
+.gm-x { border: 0; background: transparent; font-size: 1.1rem; min-width: 2.25rem; min-height: 2.25rem; cursor: pointer; color: #57534e; }
+.gm-panel-kind { font-size: .8125rem; color: #78716c; margin-bottom: .5rem; }
+.gm-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem .75rem; font-size: .875rem; margin-bottom: .5rem; }
+@media (min-width: 640px) { .gm-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.gm-facts dt { color: #78716c; font-size: .75rem; }
+.gm-notes { font-size: .875rem; color: #44403c; white-space: pre-line; margin-bottom: .5rem; }
+.gm-panel-sub { font-size: .875rem; font-weight: 600; color: #57534e; margin: .5rem 0 .25rem; }
+.gm-plist li { padding: .4rem 0; border-top: 1px solid #f5f5f4; font-size: .875rem; }
+.gm-plist li:first-child { border-top: 0; }
+.gm-pfam { display: block; font-size: .75rem; color: #78716c; padding-left: 1.15rem; }
+.gm-link { color: #92400e; text-decoration: underline; }
+.gm-muted { color: #78716c; font-size: .875rem; }
+.gm-warnings { margin-top: .5rem; font-size: .875rem; color: #92400e; }
+.gm-warnings li { padding: .2rem 0; }
+.gm-panel-btns { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
+.gm-btn { padding: .5rem .75rem; border-radius: .25rem; font-size: .875rem; border: 1px solid #d6d3d1; color: #44403c; background: #fff; text-decoration: none; }
+.gm-btn:hover { background: #f5f5f4; }
+
+/* Bed schedule (timeline per bed) */
+.gm-sched { display: block; width: 100%; height: auto; }
+.gm-sched-grid { stroke: #ece5d8; stroke-width: 1px; vector-effect: non-scaling-stroke; }
+.gm-sched-month { font-size: 9px; fill: #a8a29e; }
+.gm-sched-label { font-size: 10px; fill: #1f1a14; font-weight: 600; pointer-events: none; }
+.gm-sched-today { stroke: #8a3324; stroke-width: 1.5px; vector-effect: non-scaling-stroke; }
+.gm-sbar-planned { fill-opacity: .45; }
+.gm-sbar-completed, .gm-sbar-failed { fill-opacity: .6; }
+.gm-est { fill: rgba(255,255,255,.28); stroke: #57534e; stroke-width: 1px; stroke-dasharray: 3 2; vector-effect: non-scaling-stroke; }
+
+/* Planting form warning */
+.gm-plant-warn { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-radius: 6px; padding: .5rem .75rem; font-size: .875rem; margin-bottom: .75rem; }
+.gm-plant-warn p + p { margin-top: .35rem; }
+@media (prefers-reduced-motion: no-preference) { .gm-panel { animation: gm-in .18s ease-out; } }
+@keyframes gm-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
