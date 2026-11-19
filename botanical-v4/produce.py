@@ -14,6 +14,9 @@ assert 1 <= batch <= 7
 selected = icons[(batch-1)*30:batch*30]
 assert len(selected) == (30 if batch < 7 else 22)
 generate = os.environ.get("GENERATE", "false").lower() == "true"
+if not generate:
+    print(f"DRY RUN PASSED: manifest contains {len(icons)} unique identifiers; batch {batch} has {len(selected)} unique plants. No API requests or artwork generated.")
+    raise SystemExit(0)
 if generate and not os.environ.get("OPENAI_API_KEY"):
     raise SystemExit("OPENAI_API_KEY secret is required for image generation")
 client = None
