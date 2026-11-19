@@ -1,0 +1,38 @@
+name: Botanical v4 batch production
+on:
+  workflow_dispatch:
+    inputs:
+      batch:
+        description: "Batch number (1-7)"
+        required: true
+        default: "1"
+      generate:
+        description: "Generate new images (API charges apply)"
+        type: boolean
+        required: true
+        default: false
+permissions:
+  contents: read
+jobs:
+  produce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pillow openai
+      - name: Produce batch
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          BATCH: ${{ inputs.batch }}
+          GENERATE: ${{ inputs.generate }}
+        run: python botanical-v4/produce.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: botanical-v4-batch-${{ inputs.batch }}
+          path: botanical-v4/output/*
+          if-no-files-found: warn
+          retention-days: 30
