@@ -20,12 +20,12 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 $ui = garden_ui();
 if (!garden_ready($pdo)) {
     bcrf_shell_open('Today — Garden');
-    echo '<h1 class="', $ui['h1'], '">Garden today</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072, 0073 and 0074) in Settings › Database first.');
+    echo '<h1 class="', $ui['h1'], '">Garden today</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072 to 0075) in Settings › Database first.');
     bcrf_shell_close(); exit;
 }
 $org = garden_org($pdo);
 [$sites, $site] = garden_site_pick($pdo, $org);
-garden_open('Today');
+garden_open('Today', ['css' => ['garden.css']]);
 echo '<h1 class="', $ui['h1'], '">Garden today</h1>';
 if (!$site) {
     echo '<div class="', $ui['card'], '"><p class="text-sm">Start by adding your garden and its beds on <a class="', $ui['link'], '" href="areas.php">Beds &amp; areas</a>, then your crops on <a class="', $ui['link'], '" href="crops.php">Crops</a>.</p></div>';
@@ -33,6 +33,13 @@ if (!$site) {
 }
 $sid = (int)$site['id'];
 echo garden_site_pills($sites, $site, 'today.php');
+// Cold night coming and tender crops out (Nov 19, 2026; includes/garden_extras.php): the same warning the bell gives.
+try {
+    if (!function_exists('bcrf_wx_periods')) require_once __DIR__ . '/../../includes/weather_forecast.php';
+    $fw = garden_frost_watch($pdo, $org, bcrf_wx_periods(bcrf_wx_setting($pdo, 'wx_cache')), bcrf_tz()->getName());
+    if ($fw) echo '<div class="gm-frost" role="status"><strong>❄️ Frost possible ', $h(strtolower($fw['name'])), ' (', (int)$fw['low'], '°F).</strong> Cover or pick: ', $h(implode(', ', $fw['crops'])), '.</div>';
+} catch (Throwable $e) { /* the forecast is optional */ }
+if (garden_frost_for($pdo, $org, $site)['spring'] === '' && garden_can_manage()) echo '<div class="gm-frost">Set the farm\'s frost dates once in <a class="underline" href="areas.php#form-farm_frost">Beds &amp; areas › Frost dates</a>. Planting dates and the planner use them every year.</div>';
 $today = bcrf_today();
 $soon = (new DateTimeImmutable($today))->modify('+14 days')->format('Y-m-d');
 $areas = (new GardenService())->locations($pdo, $org, $sid);

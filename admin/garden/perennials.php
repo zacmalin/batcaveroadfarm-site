@@ -21,7 +21,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 $ui = garden_ui();
 if (!garden_ready($pdo)) {
     bcrf_shell_open('Orchard & greenhouse — Garden');
-    echo '<h1 class="', $ui['h1'], '">Orchard &amp; greenhouse</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072, 0073 and 0074) in Settings › Database first.');
+    echo '<h1 class="', $ui['h1'], '">Orchard &amp; greenhouse</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072 to 0075) in Settings › Database first.');
     bcrf_shell_close(); exit;
 }
 $org = garden_org($pdo);

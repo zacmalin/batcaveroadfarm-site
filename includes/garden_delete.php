@@ -192,6 +192,7 @@ function garden_delete_record(PDO $pdo, int $org, string $kind, int $id): string
                 $use = garden_variety_in_use($pdo, $org, $vars);
                 if ($use !== '') throw new InvalidArgumentException($name . ' is used by ' . $use . '. Delete those first, or archive the crop.');
                 foreach ($vars as $v) garden_del_variety($pdo, $org, $v, $gone);
+                garden_del_rows($pdo, 'garden_crop_settings', 'organization_crop_id = ? AND organization_id = ?', [$id, $org], $gone);   // migration 0075
                 garden_del_rows($pdo, 'garden_organization_crops', 'id = ? AND organization_id = ?', [$id, $org], $gone);
                 break;
             case 'variety':
@@ -212,6 +213,7 @@ function garden_delete_record(PDO $pdo, int $org, string $kind, int $id): string
                 garden_del_rows($pdo, 'garden_seed_germination_tests', 'seed_lot_id = ? AND organization_id = ?', [$id, $org], $gone);
                 garden_del_seed_lines($pdo, $org, garden_del_ids($pdo, 'SELECT id FROM garden_seed_stock_movements WHERE seed_lot_id = ? AND organization_id = ?', [$id, $org]), $gone);
                 garden_del_rows($pdo, 'garden_seed_lots', 'id = ? AND organization_id = ?', [$id, $org], $gone);
+                foreach (['photo_front', 'photo_back'] as $pc) if (!empty($row[$pc]) && function_exists('garden_seed_photo_unlink')) garden_seed_photo_unlink((string)$row[$pc]);   // packet photos (0075)
                 $msg = 'Seed lot deleted.';
                 break;
             case 'step':

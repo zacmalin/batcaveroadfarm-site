@@ -95,6 +95,29 @@
         };
         ['location_id', 'variety', 'planted_on', 'expected_end_on'].forEach(function (n) { var f = pform.elements[n]; if (f) f.addEventListener('change', check); });
         check();
+        // Suggested dates from the crop's timing and the farm's frost dates (Nov 19, 2026).
+        var sugBox = pform.querySelector('[data-plant-suggest]');
+        var suggest = function () {
+            if (!sugBox) return;
+            var v = (pform.elements.variety || {}).value, plan = (P.plans || {})[v];
+            sugBox.textContent = '';
+            sugBox.hidden = !plan;
+            if (!plan) return;
+            html('span', '', '📅 ' + plan.words, sugBox);
+            var b = html('button', 'px-3 py-1 rounded text-sm border border-green-700 text-green-900 bg-white', plan.indoors ? 'Plan the plant-out date' : 'Use this date', sugBox);
+            b.type = 'button';
+            b.setAttribute('data-no-icons', '');
+            b.addEventListener('click', function () {
+                var d = pform.elements.planted_on, m = pform.elements.method, st = pform.elements.status;
+                if (d) d.value = plan.out;
+                if (m) m.value = plan.how === 'transplant' ? 'transplant' : 'direct_sow';
+                if (st && plan.out > (P.today || '')) st.value = 'planned';
+                check();
+                if (d) d.focus();
+            });
+        };
+        var vf = pform.elements.variety; if (vf) vf.addEventListener('change', suggest);
+        suggest();
     }
 
     // ── Map ──

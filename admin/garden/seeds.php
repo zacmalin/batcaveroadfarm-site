@@ -3,7 +3,8 @@
 //   GET  seeds.php                  seed lots with what's left and the germination rate; add a lot (from a Farm OS vendor)
 //   GET  seeds.php?lot=N            one lot: stock changes (received, used, correction) and undo with a reason
 //   GET  seeds.php?tab=germination  germination tests (sprout a sample, count) and the rate per lot
-//   POST act=lot_add | stock_start | stock_move | stock_undo | germ_add   (all 'garden': staff log seed use)
+//   POST act=lot_add | stock_start | stock_move | stock_undo | germ_add | seed_remind | seed_photo | seed_photo_remove
+//        (all 'garden': staff log seed use). Reminder amount and packet photos: Nov 19, 2026 (includes/garden_extras.php).
 // The seed ledger never goes below zero; an undo is a new linked line, the original stays. Who did it = the Farm OS user.
 require_once __DIR__ . '/../../config.php';
 check_admin();
@@ -23,7 +24,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 $ui = garden_ui();
 if (!garden_ready($pdo)) {
     bcrf_shell_open('Seeds — Garden');
-    echo '<h1 class="', $ui['h1'], '">Seeds</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072, 0073 and 0074) in Settings › Database first.');
+    echo '<h1 class="', $ui['h1'], '">Seeds</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072 to 0075) in Settings › Database first.');
     bcrf_shell_close(); exit;
 }
 $org = garden_org($pdo);
@@ -63,6 +64,21 @@ garden_post($pdo, 'seeds.php', [
         $stock->reverse($pdo, $org, $lot, garden_id('movement_id', 'Choose a line to undo.'), (int)garden_uid(), bcrf_today(), garden_in('reason'));
         return ['Undone. Both lines stay in the history.', 'lot=' . $lot];
     }],
+    'seed_remind' => [false, function () use ($pdo, $org) {
+        $lot = garden_id('seed_lot_id', 'Choose a seed lot.');
+        garden_seed_remind_save($pdo, $org, $lot, garden_in('remind_at'));
+        return [trim(garden_in('remind_at')) === '' ? 'Reminder off.' : 'The bell will remind you when this lot gets down to ' . trim(garden_in('remind_at')) . '.', 'lot=' . $lot];
+    }],
+    'seed_photo' => [false, function () use ($pdo, $org) {
+        $lot = garden_id('seed_lot_id', 'Choose a seed lot.');
+        garden_seed_photo_save($pdo, $org, $lot, $_FILES['photo'] ?? [], garden_in('side'));
+        return ['Packet photo saved.', 'lot=' . $lot, '#packet'];
+    }],
+    'seed_photo_remove' => [false, function () use ($pdo, $org) {
+        $lot = garden_id('seed_lot_id', 'Choose a seed lot.');
+        garden_seed_photo_remove($pdo, $org, $lot, garden_in('side'));
+        return ['Photo taken off.', 'lot=' . $lot, '#packet'];
+    }],
     'germ_add' => [false, function () use ($pdo, $org, $germ) {
         $germ->record($pdo, $org, garden_id('seed_lot_id', 'Choose a seed lot.'), garden_in('started_on'), garden_in('checked_on'), garden_in('seeds_tested'), garden_in('seeds_germinated'), garden_in('method'), garden_in('notes'));
         return ['Germination test saved.', 'tab=germination'];
@@ -95,7 +111,7 @@ if ($lotId && isset($lotOpts[$lotId])) {
     $kinds = ['opening' => 'Starting amount', 'received' => 'Received', 'used' => 'Used', 'adjustment' => 'Correction', 'reversal' => 'Undo'];
     echo '<p class="mb-2"><a class="', $ui['link'], ' text-sm" href="seeds.php">← All seed lots</a></p>';
     echo '<h1 class="', $ui['h1'], '">', $h($lotName($l)), '</h1>';
-    if ($err !== '' && !in_array($errAct, ['stock_start', 'stock_move', 'stock_undo'], true)) echo bcrf_shell_notice('err', $err);
+    if ($err !== '' && !in_array($errAct, ['stock_start', 'stock_move', 'stock_undo', 'seed_remind', 'seed_photo'], true)) echo bcrf_shell_notice('err', $err);
     echo '<div class="', $ui['card'], '"><dl class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">',
          '<div><dt class="text-stone-500">On hand</dt><dd class="font-semibold">', $h($left($lotId)), '</dd></div>',
          '<div><dt class="text-stone-500">From</dt><dd>', $l['vendor_id'] ? '<a class="' . $ui['link'] . '" href="/admin/vendors.php?id=' . (int)$l['vendor_id'] . '">' . $h($l['source']) . '</a>' : $h($l['source'] ?: '—'), '</dd></div>',
@@ -126,7 +142,29 @@ if ($lotId && isset($lotOpts[$lotId])) {
     <div class="mb-3"><label class="<?= $ui['label'] ?>" for="n">Note</label><input id="n" name="notes" maxlength="500" value="<?= $h($t['notes'] ?? '') ?>" class="<?= $ui['input'] ?>"></div>
     <button class="<?= $ui['btnMain'] ?>">Save</button>
   </form>
-<?php } ?>
+<?php } $tr = garden_typed('seed_remind'); ?>
+  <div id="packet" class="<?= $ui['card'] ?>">
+    <h2 class="<?= $ui['h2'] ?>">Reminder and packet photos</h2>
+    <form id="form-seed_remind" method="POST" action="seeds.php" data-submit-once class="flex flex-wrap gap-2 items-end mb-3">
+      <?= garden_form_error($err, $errAct, 'seed_remind') ?><?= garden_hidden('seed_remind', ['seed_lot_id' => $lotId, 'back_query' => 'lot=' . $lotId]) ?>
+      <div><label class="<?= $ui['label'] ?>" for="ra">Remind me when down to<?= $counted ? ' (' . $h($b['unit']) . ')' : '' ?></label><input id="ra" name="remind_at" inputmode="decimal" value="<?= $h($tr['remind_at'] ?? ($l['remind_at'] !== null ? garden_num($l['remind_at'], 3) : '')) ?>" placeholder="No reminder" class="<?= $ui['input'] ?>"></div>
+      <button class="<?= $ui['btnSec'] ?>">Save reminder</button>
+    </form>
+    <p class="text-xs text-stone-500 mb-3">The bell tells you when this lot reaches that amount<?= $counted ? '' : ' (once you start counting it)' ?>, and when it runs out.</p>
+    <?= garden_form_error($err, $errAct, 'seed_photo') ?>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <?php foreach (['front' => 'Front of the packet', 'back' => 'Back (growing directions)'] as $side => $label): $ph = (string)($l['photo_' . $side] ?? ''); ?>
+      <div><p class="<?= $ui['label'] ?>"><?= $h($label) ?></p>
+        <?php if ($ph !== ''): ?><a href="<?= $h($ph) ?>" target="_blank" rel="noopener"><img src="<?= $h($ph) ?>" alt="<?= $h($label . ': ' . $lotName($l)) ?>" class="gm-packet" loading="lazy"></a>
+        <form method="POST" action="seeds.php" class="mt-1"><?= garden_hidden('seed_photo_remove', ['seed_lot_id' => $lotId, 'side' => $side]) ?><button class="text-xs text-red-700 underline" data-confirm="Take this photo off?" data-no-icons>Remove photo</button></form><?php endif; ?>
+        <form method="POST" action="seeds.php" enctype="multipart/form-data" data-submit-once class="mt-2 flex flex-wrap gap-2 items-center"><?= garden_hidden('seed_photo', ['seed_lot_id' => $lotId, 'side' => $side]) ?>
+          <input name="photo" type="file" accept="image/*" capture="environment" required class="text-sm" aria-label="<?= $h($label) ?>">
+          <button class="<?= $ui['btnSec'] ?>"><?= $ph !== '' ? 'Replace' : 'Add photo' ?></button>
+        </form>
+      </div>
+    <?php endforeach; ?>
+    </div>
+  </div>
   <div class="<?= $ui['card'] ?>">
     <h2 class="<?= $ui['h2'] ?>">History</h2>
     <?php if (!$moves): ?><p class="<?= $ui['muted'] ?>">Nothing yet.</p><?php else: ?>
@@ -191,8 +229,9 @@ $optMap = []; foreach ($opts as $o) $optMap[$o['value']] = $o['label'];
     <?php if (!$lots): ?><p class="<?= $ui['muted'] ?>">No seed lots yet.</p><?php else: ?>
     <ul class="divide-y divide-stone-100">
       <?php foreach ($lots as $l): $id = (int)$l['id']; ?>
-      <li class="py-2 text-sm flex flex-wrap justify-between gap-2"><a class="<?= $ui['link'] ?>" href="seeds.php?lot=<?= $id ?>"><?= $h($lotName($l)) ?></a>
-        <span class="text-stone-600"><?= $h($left($id)) ?><?= isset($gs[$id]) ? ' · ' . $h(garden_num($gs[$id]['germination_percent'])) . '% sprout' : '' ?><?= $l['source'] ? ' · ' . $h($l['source']) : '' ?> <?= garden_delete_button('seeds.php', 'seed_lot', $id, 'Delete ' . $lotName($l) . ', its tests and its count history? Plantings that used it stay.') ?></span></li>
+      <?php $low = isset($bal[$id]) && (int)$bal[$id]['movement_count'] && ((float)$bal[$id]['balance'] <= 0 || ($l['remind_at'] !== null && (float)$bal[$id]['balance'] <= (float)$l['remind_at'])); ?>
+      <li class="py-2 text-sm flex flex-wrap justify-between gap-2"><span><?php if ($l['photo_front']): ?><img src="<?= $h($l['photo_front']) ?>" alt="" class="gm-packet-thumb" loading="lazy"><?php endif; ?><a class="<?= $ui['link'] ?>" href="seeds.php?lot=<?= $id ?>"><?= $h($lotName($l)) ?></a></span>
+        <span class="text-stone-600"><?= $low ? '<span class="text-amber-800 font-semibold">Low · </span>' : '' ?><?= $h($left($id)) ?><?= isset($gs[$id]) ? ' · ' . $h(garden_num($gs[$id]['germination_percent'])) . '% sprout' : '' ?><?= $l['source'] ? ' · ' . $h($l['source']) : '' ?> <?= garden_delete_button('seeds.php', 'seed_lot', $id, 'Delete ' . $lotName($l) . ', its tests and its count history? Plantings that used it stay.') ?></span></li>
       <?php endforeach; ?>
     </ul>
     <?php endif; ?>

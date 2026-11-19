@@ -20,6 +20,8 @@
 //   renewal_due       a renewal (domain, insurance, license...) is inside its reminder window, or late (Nov 15, 2026;
 //                     includes/renewals.php) → whoever handles it (Owners, Managers or one person), who is also emailed once
 //                     and gets a "Renew:" task due on the date
+//   garden_frost      a night in the forecast at 34°F or below while tender crops are growing, once per night → managers
+//   garden_seed_low   a seed lot at or below its "remind me at" amount, or used up, once per count change → managers
 // Rows are made by bcrf_notify() (directly, or by bcrf_notify_sweep(), which admin/cron/reminders.php runs every 15 minutes)
 // and kept 60 days. dedupe_key makes each thing one notification however often the sweep runs.
 // Who sees a row: user_id = you; or no user_id and role = your role; or neither set and you're an Owner or Manager.
@@ -252,6 +254,10 @@ function bcrf_notify_sweep(PDO $pdo): int {
     $safe(function () use ($pdo, &$added, $farmToday) {   // renewals: bell, email once, and a task (Nov 15, 2026; migration 0069)
         if (!function_exists('bcrf_renewals_sweep')) require_once __DIR__ . '/renewals.php';
         $added += bcrf_renewals_sweep($pdo, $farmToday);
+    });
+    $safe(function () use ($pdo, &$added) {   // garden: frost warning on a cold night, seed running low (Nov 19, 2026; includes/garden_extras.php)
+        if (!function_exists('garden_notify_sweep')) require_once __DIR__ . '/garden.php';
+        $added += garden_notify_sweep($pdo);
     });
     try { $pdo->exec("DELETE FROM notifications WHERE created_at < UTC_TIMESTAMP() - INTERVAL 60 DAY"); $pdo->exec("DELETE r FROM notification_reads r LEFT JOIN notifications n ON n.id = r.notification_id WHERE n.id IS NULL"); }
     catch (Throwable $e) { /* tidy-up only */ }

@@ -31,7 +31,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 $ui = garden_ui();
 if (!garden_ready($pdo)) {
     bcrf_shell_open('Plantings — Garden');
-    echo '<h1 class="', $ui['h1'], '">Plantings</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072, 0073 and 0074) in Settings › Database first.');
+    echo '<h1 class="', $ui['h1'], '">Plantings</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072 to 0075) in Settings › Database first.');
     bcrf_shell_close(); exit;
 }
 $org = garden_org($pdo);
@@ -348,6 +348,7 @@ foreach ($plantings as $x) {
     $pd['beds'][(int)$x['location_id']][] = ['crop' => $x['crop_name'], 'family' => (string)$x['crop_family'], 'status' => $x['status'], 'start' => $s, 'end' => $e, 'from' => garden_date($s), 'to' => $e === null ? '' : garden_date($e), 'sqft' => $x['allocated_area_sq_m'] !== null ? garden_sqft_num($x['allocated_area_sq_m']) : null];
 }
 foreach ($opts as $o) if ($o['family']) $pd['families'][$o['value']] = $o['family'];
+$pd['today'] = $today; $pd['plans'] = garden_variety_plans($pdo, $org, $site, $today);   // suggested dates from the crop and the frost dates (Nov 19, 2026)
 ?>
   <script type="application/json" id="garden-plant-data"><?= json_encode($pd, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
   <details class="<?= $ui['sec'] ?>" <?= $t || !$plantings || isset($_GET['variety']) || isset($_GET['location']) ? 'open' : '' ?>>
@@ -371,6 +372,7 @@ foreach ($opts as $o) if ($o['family']) $pd['families'][$o['value']] = $o['famil
         <?php endif; ?>
       </div>
       <p class="text-xs text-stone-500 mb-3">Seed used comes off the lot's count. The lot must be the same variety. Leave "Out of the bed by" empty to work it out from days to maturity.</p>
+      <div class="gm-suggest" data-plant-suggest role="status" aria-live="polite" hidden></div>
       <div class="gm-plant-warn" data-plant-warn role="status" aria-live="polite" hidden></div>
       <button class="<?= $ui['btnMain'] ?>">Add planting</button>
     </form>

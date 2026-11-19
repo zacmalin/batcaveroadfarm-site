@@ -14,7 +14,7 @@ final class GrowingRecords
     /** @return list<array<string,mixed>> */
     public function seedLots(PDO $db, int $org): array
     {
-        $q = $db->prepare('SELECT s.id, s.variety_id, s.organization_variety_id, s.lot_code, s.source, s.vendor_id, s.acquired_on, s.quantity, s.unit, COALESCE(ov.name,v.name) AS variety_name, COALESCE(oc.name,c.common_name) AS crop_name FROM garden_seed_lots s LEFT JOIN garden_varieties v ON v.id=s.variety_id LEFT JOIN garden_crops c ON c.id=v.crop_id LEFT JOIN garden_organization_varieties ov ON ov.id=s.organization_variety_id AND ov.organization_id=s.organization_id LEFT JOIN garden_organization_crops oc ON oc.id=ov.crop_id AND oc.organization_id=s.organization_id WHERE s.organization_id=? ORDER BY c.common_name, v.name, s.id');
+        $q = $db->prepare('SELECT s.id, s.variety_id, s.organization_variety_id, s.lot_code, s.source, s.vendor_id, s.acquired_on, s.quantity, s.unit, s.remind_at, s.photo_front, s.photo_back, COALESCE(ov.name,v.name) AS variety_name, COALESCE(oc.name,c.common_name) AS crop_name FROM garden_seed_lots s LEFT JOIN garden_varieties v ON v.id=s.variety_id LEFT JOIN garden_crops c ON c.id=v.crop_id LEFT JOIN garden_organization_varieties ov ON ov.id=s.organization_variety_id AND ov.organization_id=s.organization_id LEFT JOIN garden_organization_crops oc ON oc.id=ov.crop_id AND oc.organization_id=s.organization_id WHERE s.organization_id=? ORDER BY c.common_name, v.name, s.id');
         $q->execute([$org]);
         return $q->fetchAll();
     }

@@ -32,7 +32,7 @@ $ui = garden_ui();
 if (!garden_ready($pdo)) {
     if (($_POST['act'] ?? '') === 'area_move') { header('Content-Type: application/json'); echo json_encode(['ok' => false, 'error' => 'Run the garden migrations first.']); exit; }
     bcrf_shell_open('Beds & areas — Garden');
-    echo '<h1 class="', $ui['h1'], '">Beds &amp; areas</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072, 0073 and 0074) in Settings › Database first.');
+    echo '<h1 class="', $ui['h1'], '">Beds &amp; areas</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072 to 0075) in Settings › Database first.');
     bcrf_shell_close(); exit;
 }
 $org = garden_org($pdo);
@@ -94,8 +94,12 @@ garden_post($pdo, 'areas.php', [
     'site_save' => [true, function () use ($pdo, $org, $svc, $tz) {
         $site = garden_id('site_id', 'Choose a garden.');
         $svc->updateSite($pdo, $org, $site, garden_in('name'), $tz);
-        $svc->setFrostDates($pdo, $org, $site, garden_in('last_spring_frost') ?: null, garden_in('first_fall_frost') ?: null);
+        garden_site_frost_save($pdo, $org, $site, garden_in('last_spring_frost'), garden_in('first_fall_frost'));   // blank = the farm's
         return ['Garden saved.', 'site=' . $site];
+    }],
+    'farm_frost' => [true, function () use ($pdo, $org) {
+        garden_farm_frost_save($pdo, $org, garden_in('farm_spring'), garden_in('farm_fall'));
+        return ['Frost dates saved for the whole farm. Every year and every garden uses them.', (int)($_POST['site_id'] ?? 0) ? 'site=' . (int)$_POST['site_id'] : ''];
     }],
     'area_add' => [true, function () use ($pdo, $org, $svc, $lay) {
         $site = garden_id('site_id', 'Choose a garden.');
@@ -183,7 +187,7 @@ bcrf_shell_open($title . ' — Garden', ['toast' => $toast, 'css' => ['garden.cs
 $err = ($flash && $flash[0] === 'err') ? (string)$flash[1] : '';
 $errAct = (string)(($_SESSION['garden_form'] ?? [])['act'] ?? '');
 $hid = fn(string $act, array $x = []) => garden_hidden($act, ['site_id' => $sid] + $x);
-$own = ['map' => ['area_place', 'area_grid'], 'schedule' => [], 'soil' => ['soil_add'], '' => ['site_add', 'site_save', 'area_add']];
+$own = ['map' => ['area_place', 'area_grid'], 'schedule' => [], 'soil' => ['soil_add'], '' => ['site_add', 'site_save', 'farm_frost', 'area_add']];
 
 /** The five bed detail selects and the notes box, for the add and change forms. $v = current values. */
 $detailFields = function (array $v, string $idp) use ($h, $ui, $choices): string {
@@ -560,18 +564,34 @@ $render = function (string $pid, int $depth) use (&$render, $kids, $h, $ui, $kin
       <button class="<?= $ui['btnMain'] ?>">Add bed</button>
     </form>
   </details>
-  <?php $t = garden_typed('site_save'); ?>
-  <details class="<?= $ui['sec'] ?>" <?= $t ? 'open' : '' ?>>
-    <summary class="<?= $ui['sum'] ?>">Garden settings and frost dates <span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
-    <form id="form-site_save" method="POST" action="areas.php" data-submit-once class="p-4">
+  <?php $t = garden_typed('site_save'); $tf = garden_typed('farm_frost'); [$farmS, $farmF] = garden_farm_frost($pdo, $org);
+  $showMd = function (?string $d): string { $md = garden_md($d); return $md === '' ? '' : garden_plan_year() . '-' . ($md === '02-29' ? '02-28' : $md); };
+  $ownFrost = garden_md($site['last_spring_frost'] ?? null) !== '' && garden_md($site['first_fall_frost'] ?? null) !== ''; ?>
+  <details class="<?= $ui['sec'] ?>" <?= $t || $tf || !$farmS ? 'open' : '' ?>>
+    <summary class="<?= $ui['sum'] ?>">Frost dates and garden settings <span class="site-info-chevron" aria-hidden="true">⌄</span></summary>
+    <form id="form-farm_frost" method="POST" action="areas.php" data-submit-once class="p-4">
+      <?= garden_form_error($err, $errAct, 'farm_frost') ?><?= garden_hidden('farm_frost', ['site_id' => $sid]) ?>
+      <h2 class="<?= $ui['h2'] ?>">Frost dates for the whole farm</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-2">
+        <div><label class="<?= $ui['label'] ?>" for="fs">Last spring frost (average)</label><input id="fs" name="farm_spring" type="date" value="<?= $h($tf['farm_spring'] ?? $showMd($farmS)) ?>" class="<?= $ui['input'] ?>"></div>
+        <div><label class="<?= $ui['label'] ?>" for="fa">First fall frost (average)</label><input id="fa" name="farm_fall" type="date" value="<?= $h($tf['farm_fall'] ?? $showMd($farmF)) ?>" class="<?= $ui['input'] ?>"></div>
+      </div>
+      <p class="text-xs text-stone-500 mb-3">Set these once. Only the month and day count, so they carry over every year, and every garden uses them. Your county extension office lists them.</p>
+      <button class="<?= $ui['btnMain'] ?>">Save frost dates</button>
+    </form>
+    <form id="form-site_save" method="POST" action="areas.php" data-submit-once class="px-4 pb-4 border-t border-stone-100 pt-3">
       <?= garden_form_error($err, $errAct, 'site_save') ?><?= $hid('site_save') ?>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
         <div><label class="<?= $ui['label'] ?>" for="sn">Garden name</label><input id="sn" name="name" maxlength="160" required value="<?= $h($t['name'] ?? $site['name']) ?>" class="<?= $ui['input'] ?>"></div>
-        <div><label class="<?= $ui['label'] ?>" for="sf">Last spring frost (average)</label><input id="sf" name="last_spring_frost" type="date" value="<?= $h($t['last_spring_frost'] ?? $site['last_spring_frost']) ?>" class="<?= $ui['input'] ?>"></div>
-        <div><label class="<?= $ui['label'] ?>" for="ff">First fall frost (average)</label><input id="ff" name="first_fall_frost" type="date" value="<?= $h($t['first_fall_frost'] ?? $site['first_fall_frost']) ?>" class="<?= $ui['input'] ?>"></div>
       </div>
-      <p class="text-xs text-stone-500 mb-3">Frost dates drive the planting planner. Your county extension office lists them.</p>
-      <button class="<?= $ui['btnMain'] ?>">Save garden</button>
+      <details class="mb-3" <?= $ownFrost || isset($t['last_spring_frost']) && $t['last_spring_frost'] !== '' ? 'open' : '' ?>><summary class="cursor-pointer text-sm font-semibold text-stone-700">This garden gets frost on different dates</summary>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+          <div><label class="<?= $ui['label'] ?>" for="sf">Last spring frost here</label><input id="sf" name="last_spring_frost" type="date" value="<?= $h($t['last_spring_frost'] ?? ($ownFrost ? $showMd($site['last_spring_frost']) : '')) ?>" class="<?= $ui['input'] ?>"></div>
+          <div><label class="<?= $ui['label'] ?>" for="ff">First fall frost here</label><input id="ff" name="first_fall_frost" type="date" value="<?= $h($t['first_fall_frost'] ?? ($ownFrost ? $showMd($site['first_fall_frost']) : '')) ?>" class="<?= $ui['input'] ?>"></div>
+        </div>
+        <p class="text-xs text-stone-500 mt-2">Only for a spot that frosts earlier or later than the rest of the farm. Leave both empty to use the farm's dates.</p>
+      </details>
+      <button class="<?= $ui['btnSec'] ?>">Save garden</button>
     </form>
     <div class="px-4 pb-3"><?= garden_delete_button('areas.php', 'site', $sid, 'Delete the garden ' . $site['name'] . ' for good? Every bed, planting, harvest and note in it is deleted too. This can\'t be undone.', '', '', 'Delete this garden and everything in it') ?></div>
     <?php $t = garden_typed('site_add'); ?>

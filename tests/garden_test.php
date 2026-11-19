@@ -44,7 +44,7 @@ $throws = function (callable $f, string $what, string $needle = '') use ($ok) {
 
 // ── Migration ──
 $ok(garden_ready($pdo), 'migration 0072 ran');
-$ok((int)$one("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name LIKE 'garden\\_%'") === 29, '29 garden tables');
+$ok((int)$one("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name LIKE 'garden\\_%'") === 31, '31 garden tables (29 from 0072, crop settings + reference plants from 0075)');
 (require $root . '/admin/migrations/0072_garden.php')($pdo);
 $ok((int)$one("SELECT COUNT(*) FROM garden_organizations") === 1, 'migration repeats safely (one farm row)');
 $ok((int)$one("SELECT COUNT(*) FROM garden_crops") >= 3, 'starter crops are in');

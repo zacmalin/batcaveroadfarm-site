@@ -1,7 +1,7 @@
 <?php
 // admin/garden/harvest.php — Garden › Harvest (Nov 18, 2026; includes/garden.php, garden_care.php, includes/stock.php, migration 0072).
 //   GET  harvest.php[?planting=N]   log a harvest; pick a product and the usable amount goes into stock (reason "Picked in the garden")
-//   GET  harvest.php?tab=reports    yield by season, crop and bed; grade and loss; planting success
+//   GET  harvest.php?tab=reports    yield by season, crop and bed; grade and loss; yield per sq ft (Nov 19, 2026); planting success
 //   POST act=harvest_add | harvest_grade   ('garden')
 require_once __DIR__ . '/../../config.php';
 check_admin();
@@ -22,7 +22,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 $ui = garden_ui();
 if (!garden_ready($pdo)) {
     bcrf_shell_open('Harvest — Garden');
-    echo '<h1 class="', $ui['h1'], '">Harvest</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072, 0073 and 0074) in Settings › Database first.');
+    echo '<h1 class="', $ui['h1'], '">Harvest</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072 to 0075) in Settings › Database first.');
     bcrf_shell_close(); exit;
 }
 $org = garden_org($pdo);
@@ -75,6 +75,17 @@ if ($tab === 'reports') {
   </div>
   <div class="<?= $ui['card'] ?>"><h2 class="<?= $ui['h2'] ?>">By bed, grade and where it went</h2>
     <?= $detail ? $table(['Year', 'Crop', 'Bed', 'Grade', 'Went to', 'Usable'], array_map(fn($r) => [(int)$r['season'], $h($r['crop_name'] . ' — ' . $r['variety_name']), $h($r['location_name']), $h($grades[$r['grade']] ?? $r['grade']), $h($r['destination']), $n($r['usable_quantity']) . ' ' . $h($r['unit'])], $detail)) : '<p class="' . $ui['muted'] . '">No harvests yet.</p>' ?>
+  </div>
+  <?php $yp = garden_yield_per_area($pdo, $org, $sid); $per = fn($v, $u) => $h(garden_num($v, 2) . ' ' . $u); ?>
+  <div class="<?= $ui['card'] ?>"><h2 class="<?= $ui['h2'] ?>">Yield per square foot</h2>
+    <?php if (!$yp['plantings']): ?><p class="<?= $ui['muted'] ?>">Shows once a planting with bed space set has a harvest. Set bed space when you add a planting, or on the planting's page.</p>
+    <?php else: ?>
+    <p class="text-xs text-stone-500 mb-2">Usable harvest (picked minus lost) divided by the bed space each planting was given.</p>
+    <?= $table(['Year', 'Bed', 'Usable', 'Sq ft', 'Per sq ft'], array_map(fn($r) => [(int)$r['year'], $h($r['bed']), $per($r['usable'], $r['unit']), $h(garden_num($r['sqft'], 1)), '<strong>' . $per($r['per_sqft'], $r['unit']) . '</strong>'], $yp['beds'])) ?>
+    <details class="mt-3"><summary class="cursor-pointer text-sm font-semibold text-stone-700">Each planting</summary>
+      <?= $table(['Year', 'Crop', 'Bed', 'Usable', 'Sq ft', 'Per sq ft'], array_map(fn($r) => [(int)$r['year'], $h($r['crop']), $h($r['bed']), $per($r['usable'], $r['unit']), $h(garden_num($r['sqft'], 1)), '<strong>' . $per($r['per_sqft'], $r['unit']) . '</strong>'], $yp['plantings'])) ?>
+    </details>
+    <?php endif; ?>
   </div>
   <div class="<?= $ui['card'] ?>"><h2 class="<?= $ui['h2'] ?>">How plantings did</h2>
     <?= $plants ? $table(['Crop', 'Year', 'Planned', 'Growing', 'Done', 'Failed'], array_map(fn($r) => [$h($r['crop_name'] . ' — ' . $r['variety_name']), (int)$r['season'], (int)$r['planned'], (int)$r['active'], (int)$r['completed'], (int)$r['failed']], $plants)) : '<p class="' . $ui['muted'] . '">No plantings yet.</p>' ?>
