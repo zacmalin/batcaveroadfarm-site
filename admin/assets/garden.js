@@ -1,7 +1,8 @@
 // admin/assets/garden.js — Garden bed planner (Nov 19, 2026; admin/garden/areas.php map tab, admin/garden/plantings.php add form,
 //   includes/garden_planner.php builds the data, admin/assets/garden.css styles it).
-//   Map: the beds drawn to scale from #garden-map-data (feet), plantings shown as colored strips on each bed (by crop family
-//   or by status), a ⚠ on beds with a rotation or crowding note, tap a bed for its details. "Move beds" lets managers drag
+//   Map: the beds drawn to scale from #garden-map-data (feet) as rectangles, circles/ovals or triangles. "Pictures" (the default)
+//   draws grass, soil beds in a wood frame and the plants themselves in rows, spaced by the crop's spacing (built-in drawings,
+//   the crop's own picture, or an emoji); the other views show plantings as colored strips (by crop family, status or bed color), a ⚠ on beds with a rotation or crowding note, tap a bed for its details. "Move beds" lets managers drag
 //   beds (snaps to half a foot) and turn them; each drop saves at once (act=area_move, JSON). Top of the map is north.
 //   Planting form: says right away when the bed grew the same crop family lately, or already has something in it then.
 // The admin pages run a strict policy (no inline script or style), so colors go on SVG fill attributes.
@@ -138,7 +139,8 @@
     (D.beds || []).forEach(function (b) { byId[b.id] = b; });
     (D.beds || []).forEach(function (b) { if (b.placed && b.parent && byId[b.parent] && byId[b.parent].placed) (kids[b.parent] = kids[b.parent] || []).push(b); });
     var roots = (D.beds || []).filter(function (b) { return b.placed && !(b.parent && byId[b.parent] && byId[b.parent].placed); });
-    var colorBy = store('bcrf-garden-color'); if (colorBy !== 'status' && colorBy !== 'bed') colorBy = 'family';
+    var colorBy = store('bcrf-garden-color'); if (['family', 'status', 'bed'].indexOf(colorBy) < 0) colorBy = 'picture';
+    var ART = D.art || {}, picDefs = {}, defsEl = null, picN = 0;
     var editing = false, selected = D.focus && byId[D.focus] ? D.focus : 0;
     var svgEl = null, pxPerFt = 10;
 
@@ -156,6 +158,52 @@
     }
     function niceStep(span) { return span <= 30 ? 1 : span <= 80 ? 5 : span <= 300 ? 10 : 50; }
     function fill(p, b) { return colorBy === 'bed' ? (b && b.color) || '#d9c7a7' : colorBy === 'status' ? p.statusColor : p.familyColor; }
+    // The bed's outline in its own feet (0..len across, 0..wid down). Round = circle or oval; triangle = long bottom edge, point at the top.
+    function shapeEl(b, attrs, parent) {
+        var a = {}; for (var k in attrs) a[k] = attrs[k];
+        if (b.shape === 'round') { a.cx = b.len / 2; a.cy = b.wid / 2; a.rx = b.len / 2; a.ry = b.wid / 2; return svg('ellipse', a, parent); }
+        if (b.shape === 'triangle') { a.points = '0,' + b.wid + ' ' + b.len + ',' + b.wid + ' ' + b.len / 2 + ',0'; return svg('polygon', a, parent); }
+        a.x = 0; a.y = 0; a.width = b.len; a.height = b.wid; return svg('rect', a, parent);
+    }
+    // Is a point (bed feet) inside the shape, at least m feet from the edge?
+    function inside(b, x, y, m) {
+        if (x < m || y < m || x > b.len - m || y > b.wid - m) return false;
+        if (b.shape === 'round') { var rx = b.len / 2 - m, ry = b.wid / 2 - m; if (rx <= 0 || ry <= 0) return false; var dx = (x - b.len / 2) / rx, dy = (y - b.wid / 2) / ry; return dx * dx + dy * dy <= 1; }
+        if (b.shape === 'triangle') { var top = b.wid * Math.abs(x - b.len / 2) / (b.len / 2); return y >= top + m * 1.6; }
+        return true;
+    }
+    // A plant picture used once per kind, then copied (<use>): built-in drawing, the crop's own picture, or none (emoji).
+    function picRef(p) {
+        var src = p.pic || (p.art && ART[p.art]) || '';
+        if (!src || !defsEl) return '';
+        if (!picDefs[src]) {
+            var id = 'gmp' + (++picN);
+            var sym = svg('symbol', { id: id, viewBox: '0 0 10 10' }, defsEl);
+            svg('image', { href: src, x: 0, y: 0, width: 10, height: 10, preserveAspectRatio: 'xMidYMid meet' }, sym);
+            picDefs[src] = '#' + id;
+        }
+        return picDefs[src];
+    }
+    // Plants in rows inside one strip of a bed: gap apart along the row, row apart across. Never smaller than ~16 px on
+    // screen (so a carrot bed shows rows of carrots, not a smudge), and at most ~250 plants per strip.
+    function drawPlants(g, b, p, r, long) {
+        var minFt = 16 / pxPerFt;
+        var along = Math.max(p.gap || 1, minFt), across = Math.max(p.row || p.gap || 1, minFt);
+        var aLen = long ? r.width : r.height, cLen = long ? r.height : r.width;
+        while ((aLen / along) * (cLen / across) > 250) { along *= 1.25; across *= 1.25; }
+        var size = Math.min(along, across) * 0.92, ref = picRef(p);
+        var nA = Math.max(1, Math.floor(aLen / along)), nC = Math.max(1, Math.floor(cLen / across));
+        var offA = (aLen - (nA - 1) * along) / 2, offC = (cLen - (nC - 1) * across) / 2;
+        var pg = svg('g', { 'class': 'gm-pics gm-pst-' + p.statusKey }, g);
+        for (var i = 0; i < nA; i++) for (var j = 0; j < nC; j++) {
+            var x = long ? r.x + offA + i * along : r.x + offC + j * across;
+            var y = long ? r.y + offC + j * across : r.y + offA + i * along;
+            if (!inside(b, x, y, size * 0.3)) continue;
+            var turn = b.rot ? ' rotate(' + (-b.rot) + ' ' + x + ' ' + y + ')' : '';   // plants stay upright when the bed is turned
+            if (ref) svg('use', { href: ref, x: x - size / 2, y: y - size / 2, width: size, height: size, transform: turn.trim() }, pg);
+            else { var t = svg('text', { x: x, y: y, 'class': 'gm-emoji', 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': size * 0.8, transform: turn.trim() }, pg); t.textContent = p.emoji || '🌱'; }
+        }
+    }
 
     function render() {
         if (!stage) return;
@@ -163,13 +211,18 @@
         var room = editing ? Math.max(8, (e.maxX - e.minX) * 0.25) : 0;
         var x0 = e.minX - pad, y0 = e.minY - pad, w = e.maxX - e.minX + 2 * pad + room, h = e.maxY - e.minY + 2 * pad + room * 0.5;
         stage.textContent = '';
-        svgEl = svg('svg', { 'class': 'gm-svg' + (editing ? ' is-editing' : ''), viewBox: [x0, y0, w, h].join(' '), 'aria-hidden': 'true' }, stage);
-        pxPerFt = (stage.clientWidth || 320) / w;
+        var pics = colorBy === 'picture';
+        stage.classList.toggle('is-pic', pics);
+        svgEl = svg('svg', { 'class': 'gm-svg' + (editing ? ' is-editing' : '') + (pics ? ' is-pic' : ''), viewBox: [x0, y0, w, h].join(' '), 'aria-hidden': 'true' }, stage);
+        defsEl = svg('defs', {}, svgEl); picDefs = {}; picN = 0;
+        pxPerFt = Math.min((stage.clientWidth || 320) / w, (window.innerHeight || 700) * 0.78 / h);   // the drawing is capped at 78% of the screen height
         var fs = 12 / pxPerFt;   // 12 px text, in feet
         // Grid every step feet; heavier every 5 steps.
         var step = niceStep(Math.max(w, h)), gG = svg('g', { 'class': 'gm-grid' }, svgEl);
-        for (var gx = Math.ceil(x0 / step) * step; gx <= x0 + w; gx += step) svg('line', { x1: gx, y1: y0, x2: gx, y2: y0 + h, 'class': Math.round(gx / step) % 5 === 0 ? 'gm-grid-major' : '' }, gG);
-        for (var gy = Math.ceil(y0 / step) * step; gy <= y0 + h; gy += step) svg('line', { x1: x0, y1: gy, x2: x0 + w, y2: gy, 'class': Math.round(gy / step) % 5 === 0 ? 'gm-grid-major' : '' }, gG);
+        // The grid runs past the drawing so it fills the whole card when the map is narrower than the screen.
+        var gx0 = x0 - w * 2, gx1 = x0 + w * 3;
+        for (var gx = Math.ceil(gx0 / step) * step; gx <= gx1; gx += step) svg('line', { x1: gx, y1: y0, x2: gx, y2: y0 + h, 'class': Math.round(gx / step) % 5 === 0 ? 'gm-grid-major' : '' }, gG);
+        for (var gy = Math.ceil(y0 / step) * step; gy <= y0 + h; gy += step) svg('line', { x1: gx0, y1: gy, x2: gx1, y2: gy, 'class': Math.round(gy / step) % 5 === 0 ? 'gm-grid-major' : '' }, gG);
         var north = svg('text', { x: x0 + w - fs * 0.6, y: y0 + fs * 1.3, 'class': 'gm-north', 'text-anchor': 'end', 'font-size': fs }, svgEl); north.textContent = 'N ↑';
         var layer = svg('g', { 'class': 'gm-layer' }, svgEl);
         roots.forEach(function (b) { drawBed(layer, b, fs); });
@@ -178,43 +231,59 @@
     }
 
     function drawBed(parent, b, fs) {
-        var g = svg('g', { 'class': 'gm-bed' + (b.id === selected ? ' is-selected' : ''), 'data-id': b.id, transform: tf(b), tabindex: editing ? '-1' : '0', role: 'button',
+        var pics = colorBy === 'picture', area = !!kids[b.id];
+        var g = svg('g', { 'class': 'gm-bed' + (b.id === selected ? ' is-selected' : '') + (area ? ' is-area' : ''), 'data-id': b.id, transform: tf(b), tabindex: editing ? '-1' : '0', role: 'button',
                            'aria-label': b.path + (b.plantings.length ? ': ' + b.plantings.map(function (p) { return p.crop; }).join(', ') : ': empty') + (b.warnings.length ? '. Needs a look.' : '') }, parent);
-        if (b.color) svg('rect', { x: 0, y: 0, width: b.len, height: b.wid, 'class': 'gm-base-own', fill: b.color }, g);   // a color picked for the bed
-        else svg('rect', { x: 0, y: 0, width: b.len, height: b.wid, 'class': 'gm-base gm-cover-' + (b.cover || 'none') }, g);
-        // Plantings as strips along the long side: by bed space when every one has it, else equal.
+        if (pics) shapeEl(b, { 'class': area ? 'gm-path' : 'gm-soil' + (b.cover && b.cover !== 'none' ? ' gm-cover-' + b.cover : '') }, g);
+        else if (b.color) shapeEl(b, { 'class': 'gm-base-own', fill: b.color }, g);   // a color picked for the bed
+        else shapeEl(b, { 'class': 'gm-base gm-cover-' + (b.cover || 'none') }, g);
+        // Plantings as strips along the long side: by bed space when every one has it, else equal. Cut to the bed's shape.
         var list = b.plantings, long = b.len >= b.wid, L = long ? b.len : b.wid, S = long ? b.wid : b.len;
         if (list.length) {
+            var cid = 'gmc' + b.id, cp = svg('clipPath', { id: cid }, defsEl || g);
+            shapeEl(b, {}, cp);
+            var inner = svg('g', { 'clip-path': 'url(#' + cid + ')' }, g);
             var all = b.sqft && list.every(function (p) { return p.sqft; }), total = 0;
             list.forEach(function (p) { total += all ? p.sqft : 1; });
             var denom = all ? Math.max(total, b.sqft) : total, at = 0;
-            list.forEach(function (p) {
+            list.forEach(function (p, i) {
                 var part = L * (all ? p.sqft : 1) / denom;
                 var r = long ? { x: at, y: 0, width: part, height: S } : { x: 0, y: at, width: S, height: part };
-                r['class'] = 'gm-plant gm-st-' + p.statusKey; r.fill = fill(p, b);
-                svg('rect', r, g);
-                // Crop name in the strip when it fits.
-                var lf = Math.min(fs, S * 0.42), pxLong = part * pxPerFt;
-                if (lf * pxPerFt >= 7 && pxLong >= 28) {
-                    var maxChars = Math.max(2, Math.floor(part / (lf * 0.58)));
-                    var name = p.crop.length > maxChars ? p.crop.slice(0, maxChars - 1) + '…' : p.crop;
-                    var t = long ? svg('text', { x: at + part / 2, y: S / 2, 'class': 'gm-label', 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': lf, 'stroke-width': lf * 0.22 }, g)
-                                 : svg('text', { x: S / 2, y: at + part / 2, 'class': 'gm-label', 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': lf, 'stroke-width': lf * 0.22 }, g);
-                    t.textContent = name;
+                if (pics) {
+                    if (i > 0) svg('line', long ? { x1: at, y1: 0, x2: at, y2: S, 'class': 'gm-split' } : { x1: 0, y1: at, x2: S, y2: at, 'class': 'gm-split' }, inner);
+                    drawPlants(inner, b, p, r, long);
+                } else {
+                    var rr = { x: r.x, y: r.y, width: r.width, height: r.height, 'class': 'gm-plant gm-st-' + p.statusKey, fill: fill(p, b) };
+                    svg('rect', rr, inner);
+                    // Crop name in the strip when it fits.
+                    var lf = Math.min(fs, S * 0.42), pxLong = part * pxPerFt;
+                    if (lf * pxPerFt >= 7 && pxLong >= 28) {
+                        var maxChars = Math.max(2, Math.floor(part / (lf * 0.58)));
+                        var name = p.crop.length > maxChars ? p.crop.slice(0, maxChars - 1) + '…' : p.crop;
+                        var t = long ? svg('text', { x: at + part / 2, y: S / 2, 'class': 'gm-label', 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': lf, 'stroke-width': lf * 0.22 }, inner)
+                                     : svg('text', { x: S / 2, y: at + part / 2, 'class': 'gm-label', 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': lf, 'stroke-width': lf * 0.22 }, inner);
+                        t.textContent = name;
+                    }
                 }
                 at += part;
             });
         }
-        // Bed name in the corner when the bed is big enough on screen and nothing else is written there.
+        // Bed name: above an area with beds in it, above each bed in Pictures, in the middle of an empty bed otherwise.
         var nf = Math.min(fs * 0.85, Math.min(b.len, b.wid) * 0.35);
-        if (kids[b.id] && fs * pxPerFt >= 7) {   // an area with beds in it: its name sits just above it
+        if (area && fs * pxPerFt >= 7) {
             var ta = svg('text', { x: 0, y: -fs * 0.3, 'class': 'gm-name', 'font-size': fs * 0.9 }, g); ta.textContent = b.name;
-        } else if (!list.length && nf * pxPerFt >= 7 && b.len * pxPerFt >= 30) {
+        } else if (pics && b.len * pxPerFt >= 34) {
+            var pf = fs * 0.8, maxP = Math.max(2, Math.floor(b.len / (pf * 0.56)));
+            var tp = svg('text', { x: b.len / 2, y: -pf * 0.35, 'class': 'gm-name gm-name-pic', 'text-anchor': 'middle', 'font-size': pf, 'stroke-width': pf * 0.25 }, g);
+            tp.textContent = b.name.length > maxP ? b.name.slice(0, maxP - 1) + '…' : b.name;
+        } else if (!pics && !list.length && nf * pxPerFt >= 7 && b.len * pxPerFt >= 30) {
             var maxN = Math.max(2, Math.floor((b.len - nf) / (nf * 0.58)));
             var tn = svg('text', { x: b.len / 2, y: b.wid / 2, 'class': 'gm-name', 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': nf }, g);
             tn.textContent = b.name.length > maxN ? b.name.slice(0, maxN - 1) + '…' : b.name;
         }
-        svg('rect', { x: 0, y: 0, width: b.len, height: b.wid, 'class': 'gm-outline', 'vector-effect': 'non-scaling-stroke' }, g);
+        // Wood frame (Pictures) or a plain edge; the picked bed gets a red edge either way.
+        if (pics && !area) shapeEl(b, { 'class': 'gm-frame', 'stroke-width': Math.max(Math.min(b.len, b.wid) * 0.06, 2.5 / pxPerFt), 'stroke-linejoin': 'round' }, g);
+        shapeEl(b, { 'class': 'gm-outline', 'vector-effect': 'non-scaling-stroke' }, g);
         if (b.warnings.length) {
             var wf = Math.max(Math.min(fs, Math.min(b.len, b.wid) * 0.8), 0.6);
             var wt = svg('text', { x: b.len - wf * 0.15, y: wf * 0.95, 'class': 'gm-warn', 'text-anchor': 'end', 'font-size': wf, 'stroke-width': wf * 0.12 }, g); wt.textContent = '⚠';
@@ -226,12 +295,28 @@
     function legend() {
         if (!legendEl) return;
         legendEl.textContent = '';
+        if (colorBy === 'picture') {   // each crop on the map with its picture
+            var seen = {};
+            (D.beds || []).forEach(function (b) { if (b.placed) b.plantings.forEach(function (p) { if (!seen[p.crop]) seen[p.crop] = p; }); });
+            var names = Object.keys(seen).sort();
+            names.forEach(function (n) { var s = html('span', 'gm-key', null, legendEl); plantIcon(seen[n], s); html('span', '', n, s); });
+            if ((D.beds || []).some(function (b) { return b.placed && b.plantings.some(function (p) { return p.statusKey === 'planned'; }); })) html('span', 'gm-key', 'Faded = planned', legendEl);
+            if ((D.beds || []).some(function (b) { return b.placed && b.warnings.length; })) html('span', 'gm-key', '⚠ needs a look (tap the bed)', legendEl);
+            if (!names.length) html('span', 'gm-key', 'Nothing planted in ' + (D.season === 'Today' ? 'the beds today' : D.season) + '.', legendEl);
+            return;
+        }
         var items = (D.legend || {})[colorBy] || [];
         items.forEach(function (it) { var s = html('span', 'gm-key', null, legendEl); swatch(it.color, s); html('span', '', it.label, s); });
         if (colorBy === 'status') { var pl = html('span', 'gm-key', null, legendEl); html('span', '', 'Planned = faded with a dashed edge', pl); }
         if ((D.beds || []).some(function (b) { return b.placed && b.warnings.length; })) html('span', 'gm-key', '⚠ needs a look (tap the bed)', legendEl);
         if (!items.length && colorBy === 'bed') html('span', 'gm-key', 'No bed colors picked yet. Open a bed, then Change this bed, to pick one.', legendEl);
         else if (!items.length) html('span', 'gm-key', 'Nothing planted in ' + (D.season === 'Today' ? 'the beds today' : D.season) + '.', legendEl);
+    }
+    // A small plant picture (or emoji) for the legend and the bed panel.
+    function plantIcon(p, parent) {
+        var src = p.pic || (p.art && ART[p.art]) || '';
+        if (src) { var im = html('img', 'gm-ico', null, parent); im.src = src; im.alt = ''; return im; }
+        return html('span', 'gm-ico gm-ico-emoji', p.emoji || '🌱', parent);
     }
 
     function showPanel(b) {
@@ -251,7 +336,7 @@
             var ul = html('ul', 'gm-plist', null, panel);
             b.plantings.forEach(function (p) {
                 var li = html('li', '', null, ul);
-                swatch(fill(p, b), li);
+                if (colorBy === 'picture') plantIcon(p, li); else swatch(fill(p, b), li);
                 var a = html('a', 'gm-link', p.crop + ' — ' + p.variety, li); a.href = 'plantings.php?id=' + p.id;
                 html('span', 'gm-muted', ' · ' + p.status + ' · ' + p.from + (p.to ? '–' + p.to + (p.estimated ? ' (about)' : '') : ' on') + (p.sqft ? ' · ' + p.sqft + ' sq ft' : ''), li);
                 html('span', 'gm-pfam', p.family, li);

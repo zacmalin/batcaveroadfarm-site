@@ -130,6 +130,22 @@ function garden_seed_photo_save(PDO $pdo, int $org, int $lot, array $file, strin
     $st = $pdo->prepare('SELECT photo_front, photo_back FROM garden_seed_lots WHERE id = ? AND organization_id = ?'); $st->execute([$lot, $org]);
     $row = $st->fetch(PDO::FETCH_ASSOC);
     if (!$row) throw new InvalidArgumentException('That seed lot is gone.');
+    $im = garden_upload_image($file, 1600);
+    $dir = garden_seed_photo_dir();
+    $name = 'seed-' . $lot . '-' . $side . '-' . bin2hex(random_bytes(6)) . '.webp';
+    if (!is_dir($dir) || !@imagewebp($im, $dir . '/' . $name, 82)) throw new InvalidArgumentException('Could not save the photo.');
+    @chmod($dir . '/' . $name, 0644);
+    $path = '/img/garden/seeds/' . $name;
+    $pdo->prepare('UPDATE garden_seed_lots SET photo_' . $side . ' = ? WHERE id = ? AND organization_id = ?')->execute([$path, $lot, $org]);
+    garden_seed_photo_unlink((string)($row['photo_' . $side] ?? ''));
+    return $path;
+}
+
+/**
+ * Open an uploaded photo (JPEG, PNG, WebP, GIF), turn it upright, keep see-through parts, and shrink it to $max px on the long side.
+ * ($GLOBALS['garden_test_upload'] lets the tests pass a plain file.)
+ */
+function garden_upload_image(array $file, int $max) {
     $err = (int)($file['error'] ?? UPLOAD_ERR_NO_FILE);
     if ($err === UPLOAD_ERR_NO_FILE) throw new InvalidArgumentException('Pick a photo first.');
     if ($err === UPLOAD_ERR_INI_SIZE || $err === UPLOAD_ERR_FORM_SIZE) throw new InvalidArgumentException('That photo is too big to upload. Try a smaller one.');
@@ -156,21 +172,16 @@ function garden_seed_photo_save(PDO $pdo, int $org, int $lot, array $file, strin
         if ($rot) { $r = imagerotate($im, $rot, 0); if ($r) $im = $r; }
     }
     $w = imagesx($im); $h = imagesy($im);
-    $scale = min(1, 1600 / max($w, $h));
+    $scale = min(1, $max / max($w, $h));
     if ($scale < 1) {
         $nw = max(1, (int)round($w * $scale)); $nh = max(1, (int)round($h * $scale));
         $c = imagecreatetruecolor($nw, $nh);
+        imagealphablending($c, false); imagesavealpha($c, true); imagefill($c, 0, 0, imagecolorallocatealpha($c, 0, 0, 0, 127));
         imagecopyresampled($c, $im, 0, 0, 0, 0, $nw, $nh, $w, $h);
         $im = $c;
     }
-    $dir = garden_seed_photo_dir();
-    $name = 'seed-' . $lot . '-' . $side . '-' . bin2hex(random_bytes(6)) . '.webp';
-    if (!is_dir($dir) || !@imagewebp($im, $dir . '/' . $name, 82)) throw new InvalidArgumentException('Could not save the photo.');
-    @chmod($dir . '/' . $name, 0644);
-    $path = '/img/garden/seeds/' . $name;
-    $pdo->prepare('UPDATE garden_seed_lots SET photo_' . $side . ' = ? WHERE id = ? AND organization_id = ?')->execute([$path, $lot, $org]);
-    garden_seed_photo_unlink((string)($row['photo_' . $side] ?? ''));
-    return $path;
+    imagesavealpha($im, true);
+    return $im;
 }
 
 /** Take a packet photo off a lot (and delete the file). */

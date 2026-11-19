@@ -9,6 +9,7 @@
 //   POST act=crop_add | crop_save | crop_archive | variety_add | variety_save | variety_archive | shared_note | guide_save
 //        | crop_grow_save | reference_fill (mode=blanks|all) | reference_fill_all | shared_unhide
 //        | reference_update (download OpenPlantDB) | reference_upload (plants.csv/json; includes/garden_openplantdb.php)
+//        | crop_picture | crop_picture_remove (the crop's own picture on the bed map; includes/garden_plant_art.php, migration 0076)
 //        (all garden_manage; the planner is read-only)
 // Archiving hides a crop or variety from new records; everything already recorded keeps it.
 require_once __DIR__ . '/../../config.php';
@@ -29,7 +30,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 $ui = garden_ui();
 if (!garden_ready($pdo)) {
     bcrf_shell_open('Crops — Garden');
-    echo '<h1 class="', $ui['h1'], '">Crops</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072 to 0075) in Settings › Database first.');
+    echo '<h1 class="', $ui['h1'], '">Crops</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072 to 0076) in Settings › Database first.');
     bcrf_shell_close(); exit;
 }
 $org = garden_org($pdo);
@@ -82,6 +83,16 @@ garden_post($pdo, 'crops.php', [
         $key = garden_in('crop');
         garden_crop_settings_save($pdo, $org, $key, garden_crop_settings_in($_POST));
         return ['Saved how it grows.', 'crop=' . $key];
+    }],
+    'crop_picture' => [true, function () use ($pdo, $org) {
+        $key = garden_in('crop');
+        garden_crop_picture_save($pdo, $org, $key, $_FILES['picture'] ?? []);
+        return ['Saved the map picture.', 'crop=' . $key, '#picture'];
+    }],
+    'crop_picture_remove' => [true, function () use ($pdo, $org) {
+        $key = garden_in('crop');
+        garden_crop_picture_remove($pdo, $org, $key);
+        return ['Took the picture off. The map uses the built-in one again.', 'crop=' . $key, '#picture'];
     }],
     'reference_fill' => [true, function () use ($pdo, $org) {
         $key = garden_in('crop');
@@ -140,7 +151,7 @@ $cycles = ['annual' => 'Annual', 'biennial' => 'Biennial', 'perennial' => 'Peren
 $cropKey = (string)($_GET['crop'] ?? '');
 if (!preg_match('/^[so][1-9]\d*$/D', $cropKey)) $cropKey = '';
 if ($cropKey === '') echo '<h1 class="', $ui['h1'], '">', $tab === 'guides' ? 'Growing guides' : ($tab === 'planner' ? 'Planting planner' : 'Crops'), '</h1>';
-if ($err !== '' && !in_array($errAct, ['crop_add', 'crop_save', 'guide_save', 'shared_note', 'variety_add', 'variety_save', 'crop_grow_save'], true)) echo bcrf_shell_notice('err', $err);
+if ($err !== '' && !in_array($errAct, ['crop_add', 'crop_save', 'guide_save', 'shared_note', 'variety_add', 'variety_save', 'crop_grow_save', 'crop_picture'], true)) echo bcrf_shell_notice('err', $err);
 $opts = garden_variety_options($pdo, $org);
 $optMap = []; foreach ($opts as $o) $optMap[$o['value']] = $o['label'];
 
@@ -352,6 +363,21 @@ if ($cropKey !== '') {
       <form method="POST" action="crops.php"><?= garden_hidden('reference_fill', ['crop' => $cropKey, 'crop_name' => $c['name'], 'mode' => 'all']) ?><button class="<?= $ui['btnSec'] ?>" data-confirm="Replace the timing, days to harvest, spacing, sprouting, sun, water and frost numbers with the reference ones? Sow depth, pH and notes stay.">Use all reference numbers</button></form>
     </div><?php endif; ?>
     <p class="text-xs text-stone-500 mt-2"><?= $h(garden_reference_credit($ref)) ?> Spacing is the middle of the range. Your seed packet is more exact for a variety.</p>
+    <?php endif; ?>
+  </div>
+  <?php $look = garden_plant_look($pdo, $org, $cropKey, $c['name'], $settings); $artSrc = $look['pic'] !== '' ? $look['pic'] : ($look['art'] !== '' ? (garden_plant_art_builtin()[$look['art']] ?? '') : ''); ?>
+  <div id="picture" class="<?= $ui['card'] ?>"><h2 class="<?= $ui['h2'] ?>">Picture on the bed map</h2>
+    <div class="flex flex-wrap gap-4 items-center">
+      <?php if ($artSrc !== ''): ?><img src="<?= $h($artSrc) ?>" alt="<?= $h($c['name']) ?>" class="gm-cropic"><?php else: ?><span class="gm-cropic gm-cropic-emoji" aria-hidden="true"><?= $h($look['emoji']) ?></span><?php endif; ?>
+      <p class="text-sm text-stone-600 flex-1"><?= $look['pic'] !== '' ? 'Your own picture.' : ($look['art'] !== '' ? 'Built-in drawing.' : 'No picture yet, so the map shows this emoji.') ?>
+        On the map the plants sit <?= $h(rtrim(rtrim(number_format($look['gap'] * 12, 1), '0'), '.')) ?> in apart in rows <?= $h(rtrim(rtrim(number_format($look['row'] * 12, 1), '0'), '.')) ?> in apart (the spacing above, else the reference, else 12 in).</p>
+    </div>
+    <?php if ($manage): ?>
+    <form id="form-crop_picture" method="POST" action="crops.php" enctype="multipart/form-data" data-submit-once class="flex flex-wrap gap-2 items-end mt-3"><?= garden_form_error($err, $errAct, 'crop_picture') ?><?= garden_hidden('crop_picture', ['crop' => $cropKey]) ?>
+      <div><label class="<?= $ui['label'] ?>" for="cpic">Use my own picture (a plant on a see-through or white background looks best)</label><input id="cpic" name="picture" type="file" accept="image/*" required class="<?= $ui['input'] ?>"></div>
+      <button class="<?= $ui['btnSec'] ?>">Upload picture</button>
+    </form>
+    <?php if ($look['pic'] !== ''): ?><form method="POST" action="crops.php" class="mt-2"><?= garden_hidden('crop_picture_remove', ['crop' => $cropKey]) ?><button class="text-xs text-amber-800 underline" data-no-icons data-confirm="Take your picture off <?= $h($c['name']) ?>?">Remove my picture</button></form><?php endif; ?>
     <?php endif; ?>
   </div>
   <div id="varieties" class="<?= $ui['card'] ?>"><h2 class="<?= $ui['h2'] ?>">Varieties</h2>

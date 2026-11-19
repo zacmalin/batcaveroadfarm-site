@@ -27,6 +27,14 @@ function garden_bed_colors(): array {
     return ['#8a3324' => 'Barn red', '#c0612b' => 'Pumpkin', '#d9a441' => 'Wheat', '#e8c547' => 'Sunflower', '#6aa84f' => 'Leaf green', '#3f7d3a' => 'Forest',
             '#4a9b8e' => 'Teal', '#4f7cac' => 'Sky blue', '#2f4f7f' => 'Navy', '#8e6bb3' => 'Lavender', '#c46b8f' => 'Rose', '#79523a' => 'Brown', '#7d7d7d' => 'Stone gray'];
 }
+/** Bed shapes: key => label. Length × width is the box the shape fits in. */
+function garden_bed_shapes(): array {
+    return ['rect' => 'Rectangle', 'round' => 'Round', 'triangle' => 'Triangle'];
+}
+/** How much of the length × width box a shape covers. */
+function garden_shape_factor(string $shape): float {
+    return $shape === 'round' ? M_PI / 4 : ($shape === 'triangle' ? 0.5 : 1.0);
+}
 /** Field => label for the bed detail fields. */
 function garden_bed_fields(): array {
     return ['orientation' => 'Runs', 'sun_exposure' => 'Sun', 'irrigation' => 'Watering', 'ground_cover' => 'Ground cover', 'soil_type' => 'Soil'];
@@ -48,12 +56,17 @@ function garden_bed_details_in(): array {
         if ($c !== '' && !isset(garden_bed_colors()[$c])) throw new InvalidArgumentException('Pick a bed color from the list.');
         $out['color'] = $c === '' ? null : $c;
     }
+    if (array_key_exists('shape', $_POST)) {   // same: forms without the shape picker leave it alone
+        $sh = trim((string)$_POST['shape']);
+        if (!isset(garden_bed_shapes()[$sh])) throw new InvalidArgumentException('Pick a bed shape from the list.');
+        $out['shape'] = $sh;
+    }
     return $out;
 }
 
 /** Save a bed's details. Only the keys given are changed. */
 function garden_bed_details_save(PDO $pdo, int $org, int $site, int $id, array $d): void {
-    $ok = array_merge(array_keys(garden_bed_choices()), ['notes', 'color']);
+    $ok = array_merge(array_keys(garden_bed_choices()), ['notes', 'color', 'shape']);
     $set = []; $args = [];
     foreach ($d as $k => $v) { if (!in_array($k, $ok, true)) continue; $set[] = "`$k` = ?"; $args[] = $v; }
     if (!$set) return;
@@ -344,7 +357,7 @@ function garden_lay_out_grid(PDO $pdo, int $org, int $site, array $o): array {
             $name = $prefix . ' ' . ($first + $r * $cols + $c);
             $taken->execute([$org, $site, $name]);
             if ((int)$taken->fetchColumn()) throw new InvalidArgumentException('There\'s already a bed called ' . $name . '. Start the numbers higher or use another name.');
-            $area = $f($len * $wid);
+            $area = $f($len * $wid * garden_shape_factor((string)($o['details']['shape'] ?? 'rect')));
             $id = $parent > 0 ? $svc->addChildLocation($pdo, $org, $site, $parent, $name, (string)$o['kind'], $area)
                               : $svc->createLocation($pdo, $org, $site, $name, (string)$o['kind'], $area);
             // Footprint top-left corner; a turned bed is saved by its unturned corner around the same center.
@@ -381,10 +394,12 @@ function garden_map_data(PDO $pdo, int $org, array $site, array $areas, array $p
     $choices = garden_bed_choices(); $fields = garden_bed_fields(); $kinds = garden_area_kinds(); $sc = garden_status_colors();
     $beds = []; $families = []; $statuses = []; $bedColors = [];
     $byId = []; foreach ($plantings as $p) $byId[(int)$p['id']] = $p;
+    $cropSet = garden_crop_settings_all($pdo, $org); $looks = []; $art = []; $builtin = garden_plant_art_builtin(); $shapes = garden_bed_shapes();
     foreach ($areas as $a) {
         $id = (int)$a['id'];
         $facts = [];
-        if ($a['length_m'] !== null) $facts[] = ['Size', garden_m_to_ft($a['length_m']) . ' × ' . garden_m_to_ft($a['width_m']) . ' ft'];
+        $shape = isset($shapes[$a['shape'] ?? '']) ? (string)$a['shape'] : 'rect';
+        if ($a['length_m'] !== null) $facts[] = ['Size', ($shape !== 'rect' ? $shapes[$shape] . ', ' : '') . garden_m_to_ft($a['length_m']) . ' × ' . garden_m_to_ft($a['width_m']) . ' ft'];
         elseif ($a['area_sq_m'] !== null) $facts[] = ['Size', garden_sqm_to_sqft($a['area_sq_m']) . ' sq ft'];
         foreach ($fields as $f => $label) {
             $v = $f === 'orientation' ? garden_bed_runs($a) : ($a[$f] !== null ? ($choices[$f][$a[$f]] ?? '') : '');
@@ -402,11 +417,17 @@ function garden_map_data(PDO $pdo, int $org, array $site, array $areas, array $p
             $ms = garden_planting_map_status($p, $today);
             $fam = trim((string)$p['crop_family']);
             $families[$fam === '' ? 'Unspecified' : $fam] = true; $statuses[$ms] = true;
+            $ck = !empty($p['std_crop_id']) ? 's' . (int)$p['std_crop_id'] : (!empty($p['own_crop_id']) ? 'o' . (int)$p['own_crop_id'] : '');
+            $lk = $ck !== '' ? $ck : 'n:' . strtolower((string)$p['crop_name']);
+            $looks[$lk] ??= garden_plant_look($pdo, $org, $ck, (string)$p['crop_name'], $cropSet);
+            $look = $looks[$lk];
+            if ($look['art'] !== '' && isset($builtin[$look['art']])) $art[$look['art']] = $builtin[$look['art']];
             $here[] = ['id' => (int)$p['id'], 'crop' => (string)$p['crop_name'], 'variety' => (string)$p['variety_name'], 'family' => garden_family_label($fam),
                        'familyColor' => garden_family_color($fam), 'status' => $sc[$ms][0], 'statusColor' => $sc[$ms][1], 'statusKey' => $ms,
                        'from' => garden_date($s), 'to' => $e === null ? '' : garden_date($e), 'estimated' => $est,
                        'sqft' => $p['allocated_area_sq_m'] !== null ? garden_sqft_num($p['allocated_area_sq_m']) : null,
-                       'rotation' => isset($rot[(int)$p['id']]) ? garden_rotation_text($rot[(int)$p['id']]) : ''];
+                       'rotation' => isset($rot[(int)$p['id']]) ? garden_rotation_text($rot[(int)$p['id']]) : '',
+                       'pic' => $look['pic'], 'art' => $look['art'], 'emoji' => $look['emoji'], 'gap' => $look['gap'], 'row' => $look['row']];
         }
         $warn = [];
         foreach ($here as $h) if ($h['rotation'] !== '') $warn[] = $h['crop'] . ': ' . $h['rotation'];
@@ -423,14 +444,14 @@ function garden_map_data(PDO $pdo, int $org, array $site, array $areas, array $p
                    'x' => $a['layout_x_m'] !== null ? round((float)$a['layout_x_m'] / GARDEN_FT, 2) : null, 'y' => $a['layout_y_m'] !== null ? round((float)$a['layout_y_m'] / GARDEN_FT, 2) : null,
                    'len' => $a['length_m'] !== null ? round((float)$a['length_m'] / GARDEN_FT, 2) : null, 'wid' => $a['width_m'] !== null ? round((float)$a['width_m'] / GARDEN_FT, 2) : null,
                    'rot' => (int)$a['rotation_degrees'], 'sqft' => $cap[$id] !== null ? garden_sqft_num($cap[$id]) : null,
-                   'cover' => (string)($a['ground_cover'] ?? ''), 'color' => $color, 'facts' => $facts, 'notes' => (string)($a['notes'] ?? ''), 'plantings' => $here, 'warnings' => $warn];
+                   'cover' => (string)($a['ground_cover'] ?? ''), 'color' => $color, 'shape' => $shape, 'facts' => $facts, 'notes' => (string)($a['notes'] ?? ''), 'plantings' => $here, 'warnings' => $warn];
     }
     $legendF = [];
     foreach (array_keys($families) as $f) $legendF[] = ['label' => garden_family_label($f), 'color' => garden_family_color($f)];
     usort($legendF, fn($a, $b) => strcasecmp($a['label'], $b['label']));
     $legendS = [];
     foreach ($sc as $k => [$l, $c]) if (isset($statuses[$k])) $legendS[] = ['label' => $l, 'color' => $c];
-    return ['site' => (int)$site['id'], 'siteName' => (string)$site['name'], 'season' => $window[2], 'beds' => $beds,
+    return ['site' => (int)$site['id'], 'siteName' => (string)$site['name'], 'season' => $window[2], 'beds' => $beds, 'art' => (object)$art,
             'legend' => ['family' => $legendF, 'status' => $legendS, 'bed' => array_map(fn($c, $l) => ['label' => $l, 'color' => $c], array_keys($bedColors), array_values($bedColors))]];
 }
 

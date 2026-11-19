@@ -32,7 +32,7 @@ $ui = garden_ui();
 if (!garden_ready($pdo)) {
     if (($_POST['act'] ?? '') === 'area_move') { header('Content-Type: application/json'); echo json_encode(['ok' => false, 'error' => 'Run the garden migrations first.']); exit; }
     bcrf_shell_open('Beds & areas — Garden');
-    echo '<h1 class="', $ui['h1'], '">Beds &amp; areas</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072 to 0075) in Settings › Database first.');
+    echo '<h1 class="', $ui['h1'], '">Beds &amp; areas</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072 to 0076) in Settings › Database first.');
     bcrf_shell_close(); exit;
 }
 $org = garden_org($pdo);
@@ -44,17 +44,23 @@ $tz = bcrf_tz()->getName();
 
 /** [length m, width m, area m²] from the feet typed in an area form. Area = length × width unless square feet were typed. */
 function garden_area_size_in(): array {
+    $shape = (string)($_POST['shape'] ?? 'rect');
     $len = garden_ft_to_m(garden_in('length_ft'));
     $wid = garden_ft_to_m(garden_in('width_ft'));
     if (($len === '') !== ($wid === '')) throw new InvalidArgumentException('Enter both length and width, or leave both empty.');
     $area = garden_sqft_to_sqm(garden_in('area_sqft'));
-    if ($area === '' && $len !== '') $area = number_format((float)$len * (float)$wid, 3, '.', '');
+    if ($area === '' && $len !== '') $area = number_format((float)$len * (float)$wid * garden_shape_factor($shape), 3, '.', '');   // round = π/4, triangle = 1/2
     return [$len, $wid, $area === '' ? null : $area];
 }
 function garden_area_row(PDO $pdo, int $org, int $id): ?array {
     $st = $pdo->prepare('SELECT * FROM garden_growing_locations WHERE id = ? AND organization_id = ?');
     $st->execute([$id, $org]);
     return $st->fetch(PDO::FETCH_ASSOC) ?: null;
+}
+/** A small picture of a bed shape for the shape picker. */
+function garden_shape_icon(string $shape): string {
+    $d = ['rect' => '<rect x="1" y="3" width="18" height="12" rx="1"/>', 'round' => '<ellipse cx="10" cy="9" rx="9" ry="7"/>', 'triangle' => '<polygon points="1,15 19,15 10,2"/>'][$shape] ?? '';
+    return '<svg class="gm-shape-icon" viewBox="0 0 20 18" aria-hidden="true">' . $d . '</svg>';
 }
 /** A small square of color (an SVG, so the strict page policy allows it). */
 function garden_swatch(string $color): string {
@@ -196,8 +202,12 @@ $detailFields = function (array $v, string $idp) use ($h, $ui, $choices): string
         $o .= '<div><label class="' . $ui['label'] . '" for="' . $idp . $f . '">' . $h($label) . '</label><select id="' . $idp . $f . '" name="' . $f . '" class="' . $ui['input'] . '">'
             . garden_options($choices[$f], $v[$f] ?? '', $f === 'orientation' ? 'From the map' : 'Not set') . '</select></div>';
     }
+    $sh = (string)($v['shape'] ?? 'rect');
+    $o .= '</div><fieldset class="mb-3"><legend class="' . $ui['label'] . '">Shape</legend><div class="gm-colors">';
+    foreach (garden_bed_shapes() as $k => $sl) $o .= '<label class="gm-color"><input type="radio" name="shape" value="' . $k . '"' . ($sh === $k ? ' checked' : '') . '>' . garden_shape_icon($k) . $h($sl) . '</label>';
+    $o .= '</div><p class="gm-muted mt-1">Round and triangle beds fit inside the length × width. A triangle points away from its long bottom edge.</p></fieldset>';
     $cur = (string)($v['color'] ?? '');
-    $o .= '</div><fieldset class="mb-3"><legend class="' . $ui['label'] . '">Bed color (shows on the map)</legend><div class="gm-colors">'
+    $o .= '<fieldset class="mb-3"><legend class="' . $ui['label'] . '">Bed color (shows on the map)</legend><div class="gm-colors">'
         . '<label class="gm-color"><input type="radio" name="color" value=""' . ($cur === '' ? ' checked' : '') . '> None</label>';
     foreach (garden_bed_colors() as $hex => $cn) $o .= '<label class="gm-color"><input type="radio" name="color" value="' . $hex . '"' . ($cur === $hex ? ' checked' : '') . '>' . garden_swatch($hex) . $h($cn) . '</label>';
     $o .= '</div></fieldset><div class="mb-3"><label class="' . $ui['label'] . '" for="' . $idp . 'notes">Notes about this bed</label><textarea id="' . $idp . 'notes" name="bed_notes" rows="2" maxlength="2000" placeholder="Drainage, shade from the barn after 3 PM, where the spigot is…" class="' . $ui['input'] . '">' . $h($v['bed_notes'] ?? $v['notes'] ?? '') . '</textarea></div>';
@@ -294,7 +304,7 @@ if ($bedId && $site) {
         <div class="col-span-2"><label class="<?= $ui['label'] ?>" for="ak">Type</label><select id="ak" name="kind" class="<?= $ui['input'] ?>"><?= garden_options($kinds, $v['kind']) ?></select></div>
         <div><label class="<?= $ui['label'] ?>" for="al">Length (ft)</label><input id="al" name="length_ft" inputmode="decimal" value="<?= $h($t['length_ft'] ?? garden_m_to_ft($a['length_m'], 2)) ?>" class="<?= $ui['input'] ?>"></div>
         <div><label class="<?= $ui['label'] ?>" for="aw">Width (ft)</label><input id="aw" name="width_ft" inputmode="decimal" value="<?= $h($t['width_ft'] ?? garden_m_to_ft($a['width_m'], 2)) ?>" class="<?= $ui['input'] ?>"></div>
-        <div class="col-span-2"><label class="<?= $ui['label'] ?>" for="aa">Growing area (sq ft, if not a rectangle)</label><input id="aa" name="area_sqft" inputmode="decimal" value="<?= $h($t['area_sqft'] ?? ($a['length_m'] === null ? garden_sqm_to_sqft($a['area_sq_m']) : '')) ?>" class="<?= $ui['input'] ?>"></div>
+        <div class="col-span-2"><label class="<?= $ui['label'] ?>" for="aa">Growing area (sq ft, blank = worked out from size and shape)</label><input id="aa" name="area_sqft" inputmode="decimal" value="<?= $h($t['area_sqft'] ?? ($a['length_m'] === null ? garden_sqm_to_sqft($a['area_sq_m']) : '')) ?>" class="<?= $ui['input'] ?>"></div>
       </div>
       <?= $detailFields($v, 'e') ?>
       <button class="<?= $ui['btnMain'] ?>">Save bed</button>
@@ -348,8 +358,9 @@ if ($tab === 'map') {
   <div class="<?= $ui['card'] ?> gm" data-garden-map>
     <div class="gm-bar" data-no-icons>
       <span class="gm-season"><?= $h($window[2] === 'Today' ? 'Today, ' . garden_date($today) : $window[2]) ?></span>
-      <div class="gm-seg" role="group" aria-label="Color beds by">
-        <button type="button" class="gm-segbtn" data-color-by="family" aria-pressed="true">Crop family</button>
+      <div class="gm-seg" role="group" aria-label="Show beds as">
+        <button type="button" class="gm-segbtn" data-color-by="picture" aria-pressed="true">Pictures</button>
+        <button type="button" class="gm-segbtn" data-color-by="family" aria-pressed="false">Crop family</button>
         <button type="button" class="gm-segbtn" data-color-by="status" aria-pressed="false">Status</button>
         <button type="button" class="gm-segbtn" data-color-by="bed" aria-pressed="false">Bed color</button>
       </div>
@@ -403,7 +414,7 @@ if ($tab === 'map') {
         <div><label class="<?= $ui['label'] ?>" for="gy">Start down (ft)</label><input id="gy" name="y_ft" inputmode="decimal" value="<?= $h($t['y_ft'] ?? '0') ?>" class="<?= $ui['input'] ?>"></div>
         <div><label class="<?= $ui['label'] ?>" for="gi">Inside</label><select id="gi" name="parent_id" class="<?= $ui['input'] ?>"><option value="0">The garden itself</option><?= garden_options($names, $t['parent_id'] ?? '') ?></select></div>
       </div>
-      <details class="mb-3"><summary class="cursor-pointer text-sm font-semibold text-stone-700">Same details for all of them (optional)</summary><div class="mt-3"><?= $detailFields($t, 'g') ?></div></details>
+      <details class="mb-3"><summary class="cursor-pointer text-sm font-semibold text-stone-700">Same shape and details for all of them (optional)</summary><div class="mt-3"><?= $detailFields($t, 'g') ?></div></details>
       <p class="text-xs text-stone-500 mb-3" data-grid-preview></p>
       <button class="<?= $ui['btnMain'] ?>">Add beds</button>
     </form>
@@ -560,7 +571,7 @@ $render = function (string $pid, int $depth) use (&$render, $kids, $h, $ui, $kin
         <div><label class="<?= $ui['label'] ?>" for="nl">Length (ft)</label><input id="nl" name="length_ft" inputmode="decimal" placeholder="8" value="<?= $h($t['length_ft'] ?? '') ?>" class="<?= $ui['input'] ?>"></div>
         <div><label class="<?= $ui['label'] ?>" for="nw">Width (ft)</label><input id="nw" name="width_ft" inputmode="decimal" placeholder="4" value="<?= $h($t['width_ft'] ?? '') ?>" class="<?= $ui['input'] ?>"></div>
       </div>
-      <details class="mb-3" <?= $t ? 'open' : '' ?>><summary class="cursor-pointer text-sm font-semibold text-stone-700">Sun, watering, soil (optional)</summary><div class="mt-3"><?= $detailFields($t, 'n') ?></div></details>
+      <details class="mb-3" <?= $t ? 'open' : '' ?>><summary class="cursor-pointer text-sm font-semibold text-stone-700">Shape, color, sun, watering, soil (optional)</summary><div class="mt-3"><?= $detailFields($t, 'n') ?></div></details>
       <button class="<?= $ui['btnMain'] ?>">Add bed</button>
     </form>
   </details>

@@ -17,11 +17,12 @@ require_once __DIR__ . '/garden_delete.php';    // delete any garden record (Nov
 require_once __DIR__ . '/garden_openplantdb.php';      // local copy of OpenPlantDB reference numbers (Nov 19, 2026)
 require_once __DIR__ . '/garden_crop_settings.php';   // frost dates once for the farm, crop editor settings, reference numbers (Nov 19, 2026)
 require_once __DIR__ . '/garden_extras.php';          // frost warning, low seed, packet photos, yield per sq ft, suggested dates (Nov 19, 2026)
+require_once __DIR__ . '/garden_plant_art.php';       // plant pictures on the map, crop pictures (Nov 19, 2026)
 require_once __DIR__ . '/farm_helpers.php';
 
 /** True once the garden migrations have run: 0072 (tables), 0073 (bed planner), 0074 (bed colors) and 0075 (farm frost dates, crop settings; Nov 19, 2026). */
 function garden_ready(PDO $pdo): bool {
-    try { $pdo->query('SELECT 1 FROM garden_organizations LIMIT 1'); $pdo->query('SELECT ended_on FROM garden_plantings LIMIT 1'); $pdo->query('SELECT color FROM garden_growing_locations LIMIT 1'); $pdo->query('SELECT 1 FROM garden_crop_settings LIMIT 1'); $pdo->query('SELECT 1 FROM garden_reference_plants LIMIT 1'); return true; }
+    try { $pdo->query('SELECT 1 FROM garden_organizations LIMIT 1'); $pdo->query('SELECT ended_on FROM garden_plantings LIMIT 1'); $pdo->query('SELECT color FROM garden_growing_locations LIMIT 1'); $pdo->query('SELECT 1 FROM garden_crop_settings LIMIT 1'); $pdo->query('SELECT 1 FROM garden_reference_plants LIMIT 1'); $pdo->query('SELECT shape FROM garden_growing_locations LIMIT 1'); return true; }
     catch (Throwable $e) { return false; }
 }
 

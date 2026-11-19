@@ -18,7 +18,7 @@
 
 /* The drawing */
 .gm-stage { width: 100%; border-radius: 8px; overflow: hidden; background: #f7f1e3; border: 1px solid #e2d8c6; }
-.gm-svg { display: block; width: 100%; height: auto; max-height: 78vh; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.gm-svg { display: block; width: 100%; height: auto; max-height: 78vh; overflow: visible; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
 .gm-svg.is-editing .gm-bed { touch-action: none; cursor: grab; }
 .gm-svg.is-editing .gm-bed:active { cursor: grabbing; }
 .gm-grid line { stroke: #e6dccb; stroke-width: 1px; vector-effect: non-scaling-stroke; }
@@ -100,3 +100,30 @@
 .gm-packet-thumb { display: inline-block; width: 2rem; height: 2rem; object-fit: cover; border-radius: .25rem; margin-right: .5rem; vertical-align: middle; border: 1px solid #e7e5e4; }
 .gm-suggest { background: #f0fdf4; border: 1px solid #bbf7d0; color: #14532d; border-radius: .5rem; padding: .6rem .75rem; font-size: .875rem; margin-bottom: .75rem; display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; justify-content: space-between; }
 .gm-frost { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; border-radius: .5rem; padding: .75rem; font-size: .875rem; margin-bottom: 1rem; }
+
+/* Pictures view: grass, soil beds in a wood frame, plants in rows; round and triangle beds (Nov 19, 2026; migration 0076) */
+.gm-stage.is-pic { background: #b9d48f; border-color: #9fbd76; }
+.gm-svg.is-pic .gm-grid line { stroke: rgba(255,255,255,.35); }
+.gm-svg.is-pic .gm-grid line.gm-grid-major { stroke: rgba(255,255,255,.6); }
+.gm-svg.is-pic .gm-north { fill: #2f4a1f; }
+.gm-soil { fill: #7a5236; }
+.gm-soil.gm-cover-straw { fill: #c9a85a; }
+.gm-soil.gm-cover-wood_chips { fill: #8c6440; }
+.gm-soil.gm-cover-landscape_fabric, .gm-soil.gm-cover-plastic_mulch { fill: #3f434c; }
+.gm-soil.gm-cover-cover_crop { fill: #6f9a4a; }
+.gm-path { fill: #d8c9a6; stroke: #b9a77f; stroke-width: 1px; vector-effect: non-scaling-stroke; }   /* an area with beds in it: gravel paths */
+.gm-frame { fill: none; stroke: #c49a64; }
+.gm-svg.is-pic .gm-outline { stroke: #5b3d24; stroke-width: 1px; }
+.gm-svg.is-pic .gm-bed.is-area > .gm-outline { stroke: #9a8862; }
+.gm-svg.is-pic .gm-bed:focus-visible > .gm-outline, .gm-svg.is-pic .gm-bed.is-selected > .gm-outline { stroke: #8a3324; stroke-width: 3.5px; }
+.gm-split { stroke: rgba(255,255,255,.35); stroke-width: 1px; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.gm-pics { pointer-events: none; }
+.gm-pst-planned { opacity: .45; }
+.gm-pst-completed, .gm-pst-failed { opacity: .6; }
+.gm-emoji { pointer-events: none; }
+.gm-name-pic { fill: #1f2a14; font-weight: 600; paint-order: stroke; stroke: rgba(255,255,255,.75); stroke-linejoin: round; }
+.gm-ico { display: inline-block; width: 1.4rem; height: 1.4rem; object-fit: contain; margin-right: .3rem; vertical-align: middle; flex: none; }
+.gm-ico-emoji { font-size: 1.1rem; line-height: 1.4rem; text-align: center; }
+.gm-shape-icon { width: 1.2rem; height: 1.1rem; fill: #d9c7a7; stroke: #79523a; stroke-width: 1.5; flex: none; }
+.gm-cropic { display: block; width: 6rem; height: 6rem; object-fit: contain; border: 1px solid #e7e5e4; border-radius: .5rem; background: #fafaf9; }
+.gm-cropic-emoji { display: flex; align-items: center; justify-content: center; font-size: 3rem; }
