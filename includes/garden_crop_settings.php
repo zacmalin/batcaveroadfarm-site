@@ -86,7 +86,6 @@ function garden_reference_norm(string $name): string {
     return trim(implode(' ', $words));
 }
 
-/** The reference row for a crop name, as named fields; null when the table has nothing close. */
 /**
  * Reference numbers for a crop name: the farm's OpenPlantDB copy first (garden_openplantdb.php, when $pdo is given and it has
  * been loaded), then the embedded Growli table for anything still blank. Null when neither knows the crop. 'source' names
