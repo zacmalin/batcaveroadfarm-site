@@ -339,10 +339,10 @@ $lots = []; foreach ($rec->seedLots($pdo, $org) as $l) $lots[(int)$l['id']] = $l
 $preVar = (string)($t['variety'] ?? ($_GET['variety'] ?? '')); $preLoc = $t['location_id'] ?? ($_GET['location'] ?? ($area ?: '')); $preDate = (string)($t['planted_on'] ?? ($_GET['date'] ?? $today));
 // What garden.js needs to warn before saving: each bed's plantings (family and dates), and each variety's family.
 $pd = ['beds' => [], 'families' => [], 'familyNames' => garden_family_names(), 'cap' => []];
-foreach ($areas as $a) { $c = $a['area_sq_m'] !== null ? (float)$a['area_sq_m'] : ($a['length_m'] !== null ? (float)$a['length_m'] * (float)$a['width_m'] : null); if ($c !== null) $pd['cap'][(int)$a['id']] = (float)garden_sqm_to_sqft($c); }
+foreach ($areas as $a) { $c = $a['area_sq_m'] !== null ? (float)$a['area_sq_m'] : ($a['length_m'] !== null ? (float)$a['length_m'] * (float)$a['width_m'] : null); if ($c !== null) $pd['cap'][(int)$a['id']] = garden_sqft_num($c); }
 foreach ($plantings as $x) {
     [$s, $e] = garden_planting_span($x);
-    $pd['beds'][(int)$x['location_id']][] = ['crop' => $x['crop_name'], 'family' => (string)$x['crop_family'], 'status' => $x['status'], 'start' => $s, 'end' => $e, 'from' => garden_date($s), 'to' => $e === null ? '' : garden_date($e), 'sqft' => $x['allocated_area_sq_m'] !== null ? (float)garden_sqm_to_sqft($x['allocated_area_sq_m']) : null];
+    $pd['beds'][(int)$x['location_id']][] = ['crop' => $x['crop_name'], 'family' => (string)$x['crop_family'], 'status' => $x['status'], 'start' => $s, 'end' => $e, 'from' => garden_date($s), 'to' => $e === null ? '' : garden_date($e), 'sqft' => $x['allocated_area_sq_m'] !== null ? garden_sqft_num($x['allocated_area_sq_m']) : null];
 }
 foreach ($opts as $o) if ($o['family']) $pd['families'][$o['value']] = $o['family'];
 ?>

@@ -91,6 +91,8 @@ function garden_family_color(?string $f): string {
     $spare = ['#5aa36b', '#cc7a52', '#7a8fd6', '#c2a23a', '#a0559b', '#52a3c2', '#d36a7d', '#7e9c3c'];
     return $spare[crc32($f) % count($spare)];
 }
+/** Square meters as a plain number of square feet (no thousands comma), for the map data. */
+function garden_sqft_num($m): float { return round((float)$m / (GARDEN_FT * GARDEN_FT), 1); }
 /** Planting status => [label, fill color]. "ready" = growing and past its expected picking start. */
 function garden_status_colors(): array {
     return ['planned' => ['Planned', '#f0d9a0'], 'active' => ['Growing', '#6aa84f'], 'ready' => ['Ready to pick', '#2f7d32'],
@@ -368,6 +370,7 @@ function garden_map_data(PDO $pdo, int $org, array $site, array $areas, array $p
     } catch (Throwable $e) { /* soil notes are optional */ }
     $choices = garden_bed_choices(); $fields = garden_bed_fields(); $kinds = garden_area_kinds(); $sc = garden_status_colors();
     $beds = []; $families = []; $statuses = [];
+    $byId = []; foreach ($plantings as $p) $byId[(int)$p['id']] = $p;
     foreach ($areas as $a) {
         $id = (int)$a['id'];
         $facts = [];
@@ -389,12 +392,11 @@ function garden_map_data(PDO $pdo, int $org, array $site, array $areas, array $p
             $here[] = ['id' => (int)$p['id'], 'crop' => (string)$p['crop_name'], 'variety' => (string)$p['variety_name'], 'family' => garden_family_label($fam),
                        'familyColor' => garden_family_color($fam), 'status' => $sc[$ms][0], 'statusColor' => $sc[$ms][1], 'statusKey' => $ms,
                        'from' => garden_date($s), 'to' => $e === null ? '' : garden_date($e), 'estimated' => $est,
-                       'sqft' => $p['allocated_area_sq_m'] !== null ? (float)garden_sqm_to_sqft($p['allocated_area_sq_m']) : null,
+                       'sqft' => $p['allocated_area_sq_m'] !== null ? garden_sqft_num($p['allocated_area_sq_m']) : null,
                        'rotation' => isset($rot[(int)$p['id']]) ? garden_rotation_text($rot[(int)$p['id']]) : ''];
         }
         $warn = [];
         foreach ($here as $h) if ($h['rotation'] !== '') $warn[] = $h['crop'] . ': ' . $h['rotation'];
-        $byId = []; foreach ($plantings as $p) $byId[(int)$p['id']] = $p;
         foreach ($over[$id] ?? [] as $r) {
             if (!garden_spans_touch($r['from'], $r['to'], $from, $to)) continue;
             $crops = implode(', ', array_unique(array_map(fn($x) => $byId[$x]['crop_name'], $r['ids'])));
@@ -407,7 +409,7 @@ function garden_map_data(PDO $pdo, int $org, array $site, array $areas, array $p
                    'placed' => $a['length_m'] !== null && $a['layout_x_m'] !== null, 'sized' => $a['length_m'] !== null,
                    'x' => $a['layout_x_m'] !== null ? round((float)$a['layout_x_m'] / GARDEN_FT, 2) : null, 'y' => $a['layout_y_m'] !== null ? round((float)$a['layout_y_m'] / GARDEN_FT, 2) : null,
                    'len' => $a['length_m'] !== null ? round((float)$a['length_m'] / GARDEN_FT, 2) : null, 'wid' => $a['width_m'] !== null ? round((float)$a['width_m'] / GARDEN_FT, 2) : null,
-                   'rot' => (int)$a['rotation_degrees'], 'sqft' => $cap[$id] !== null ? (float)garden_sqm_to_sqft($cap[$id]) : null,
+                   'rot' => (int)$a['rotation_degrees'], 'sqft' => $cap[$id] !== null ? garden_sqft_num($cap[$id]) : null,
                    'cover' => (string)($a['ground_cover'] ?? ''), 'facts' => $facts, 'notes' => (string)($a['notes'] ?? ''), 'plantings' => $here, 'warnings' => $warn];
     }
     $legendF = [];
