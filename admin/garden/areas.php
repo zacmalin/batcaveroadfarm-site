@@ -418,8 +418,21 @@ if ($tab === 'map') {
       <?php endif; ?>
     </div>
     <div class="gm-editbar" data-editbar hidden>
-      <span data-edit-help>Drag a bed to move it. Tap one to pick it, then turn it.</span>
-      <span class="gm-editbtns" data-no-icons>
+      <span data-edit-help>Drag to move or select a bed, then use the controls. Save layout when finished.</span>
+      <label class="gm-snap-label" for="gm-snap">Snap
+        <select id="gm-snap" data-snap aria-label="Movement snap distance">
+          <option value="0.25">¼ ft</option>
+          <option value="0.5" selected>½ ft</option>
+          <option value="1">1 ft</option>
+        </select>
+      </label>
+      <span class="gm-editbtns" data-no-icons role="group" aria-label="Move selected bed">
+        <button type="button" class="gm-segbtn" data-nudge="left" aria-label="Move bed left" disabled>←</button>
+        <button type="button" class="gm-segbtn" data-nudge="up" aria-label="Move bed up" disabled>↑</button>
+        <button type="button" class="gm-segbtn" data-nudge="down" aria-label="Move bed down" disabled>↓</button>
+        <button type="button" class="gm-segbtn" data-nudge="right" aria-label="Move bed right" disabled>→</button>
+      </span>
+      <span class="gm-editbtns" data-no-icons role="group" aria-label="Rotate selected bed">
         <button type="button" class="gm-segbtn" data-turn="90" disabled>Turn 90°</button>
         <button type="button" class="gm-segbtn" data-turn="15" disabled>Turn 15°</button>
       </span>
