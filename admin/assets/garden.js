@@ -460,7 +460,7 @@
             var g = ev.target.closest && ev.target.closest('.gm-bed');
             if (!g) {
                 if (zoomLevel <= 1 || drag || panDrag || busy || ev.isPrimary === false) return;
-                panDrag = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, ox: panX, oy: panY, lastX: panX, lastY: panY };
+                panDrag = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, ox: panX, oy: panY };
                 try { stage.setPointerCapture(ev.pointerId); } catch (e) { /* older browsers */ }
                 controls();
                 ev.preventDefault();
@@ -482,13 +482,15 @@
                 if (matrix) {
                     var determinant = matrix.a * matrix.d - matrix.b * matrix.c;
                     if (Math.abs(determinant) > 0.000001) {
+                        // Convert each screen-space movement using the current viewport
+                        // transform. Reusing the original delta with an updated matrix
+                        // causes accelerated or jittery panning.
                         var screenDx = ev.clientX - panDrag.x, screenDy = ev.clientY - panDrag.y;
-                        panX = panDrag.ox - (matrix.d * screenDx - matrix.c * screenDy) / determinant;
-                        panY = panDrag.oy - (-matrix.b * screenDx + matrix.a * screenDy) / determinant;
-                        // Changing viewBox pans without reconstructing every bed and plant.
-                        view.x += panX - panDrag.lastX;
-                        view.y += panY - panDrag.lastY;
-                        panDrag.lastX = panX; panDrag.lastY = panY;
+                        var deltaX = (matrix.d * screenDx - matrix.c * screenDy) / determinant;
+                        var deltaY = (-matrix.b * screenDx + matrix.a * screenDy) / determinant;
+                        panX -= deltaX; panY -= deltaY;
+                        view.x -= deltaX; view.y -= deltaY;
+                        panDrag.x = ev.clientX; panDrag.y = ev.clientY;
                     }
                 }
                 return;
