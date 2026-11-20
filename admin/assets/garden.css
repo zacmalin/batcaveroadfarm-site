@@ -142,3 +142,8 @@
 .gm-dimensions label { display: flex; flex-direction: column; gap: .2rem; font-size: .8rem; color: #57534e; }
 .gm-dimensions input { width: 6.5rem; min-height: 2.75rem; border: 1px solid #b7ad9c; border-radius: .45rem; padding: .4rem .5rem; background: #fff; color: #44403c; }
 .gm-dimensions input:focus-visible { outline: 2px solid #79523a; outline-offset: 2px; }
+
+/* Resize handles are SVG geometry, not flattened artwork. */
+.gm-resize-handle { fill: #fffdf8; stroke: #79523a; stroke-width: 2.5px; vector-effect: non-scaling-stroke; cursor: ew-resize; touch-action: none; }
+.gm-resize-handle[data-resize="width"] { cursor: ns-resize; }
+.gm-resize-handle:active { fill: #d8e2cd; }
