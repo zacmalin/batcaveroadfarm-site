@@ -384,18 +384,6 @@
     function select(id) {
         selected = id;
         if (svgEl) Array.prototype.forEach.call(svgEl.querySelectorAll('.gm-bed'), function (g) { g.classList.toggle('is-selected', +g.getAttribute('data-id') === id); });
-        Array.prototype.forEach.call(nudgeBtns, function (t) {
-        t.addEventListener('click', function () {
-            var b = byId[selected]; if (!b || !editing || busy) return;
-            var direction = t.getAttribute('data-nudge');
-            var was = state(b), step = snap();
-            if (direction === 'left') b.x = quantize(b.x - step);
-            if (direction === 'right') b.x = quantize(b.x + step);
-            if (direction === 'up') b.y = quantize(b.y - step);
-            if (direction === 'down') b.y = quantize(b.y + step);
-            if (differs(b, was)) { render(); select(b.id); record(b, was); }
-        });
-    });
     Array.prototype.forEach.call(turnBtns, function (t) { t.disabled = busy || !(editing && id); });
         controls();
         if (editing) { var b = byId[id]; var help = editbar && editbar.querySelector('[data-edit-help]'); if (help) help.textContent = b ? b.path + ' selected. Drag or rotate, then Save layout.' : 'Drag to move, tap to select, then rotate. Save layout when finished.'; }
@@ -475,6 +463,18 @@
             if (g && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); select(+g.getAttribute('data-id')); }
         });
     }
+    Array.prototype.forEach.call(nudgeBtns, function (t) {
+        t.addEventListener('click', function () {
+            var b = byId[selected]; if (!b || !editing || busy) return;
+            var direction = t.getAttribute('data-nudge');
+            var was = state(b), step = snap();
+            if (direction === 'left') b.x = quantize(b.x - step);
+            if (direction === 'right') b.x = quantize(b.x + step);
+            if (direction === 'up') b.y = quantize(b.y - step);
+            if (direction === 'down') b.y = quantize(b.y + step);
+            if (differs(b, was)) { render(); select(b.id); record(b, was); }
+        });
+    });
     Array.prototype.forEach.call(turnBtns, function (t) {
         t.addEventListener('click', function () {
             var b = byId[selected]; if (!b || !editing || busy) return;
