@@ -143,6 +143,30 @@
     var ART = D.art || {}, picDefs = {}, defsEl = null, picN = 0;
     var editing = false, selected = D.focus && byId[D.focus] ? D.focus : 0;
     var svgEl = null, pxPerFt = 10;
+    var history = [], future = [], busy = false;
+    var baseline = {};
+    (D.beds || []).forEach(function (bed) { baseline[bed.id] = { x: bed.x, y: bed.y, rot: bed.rot }; });
+    var saveButton = root.querySelector('[data-save-layout]');
+    var undoButton = root.querySelector('[data-undo-layout]');
+    var redoButton = root.querySelector('[data-redo-layout]');
+    function state(bed) { return { id: bed.id, x: bed.x, y: bed.y, rot: bed.rot }; }
+    function differs(a,b) { return a.x !== b.x || a.y !== b.y || a.rot !== b.rot; }
+    function dirty() { return (D.beds || []).some(function (bed) { return differs(bed, baseline[bed.id]); }); }
+    function controls() {
+        if (saveButton) saveButton.disabled = busy || !dirty();
+        if (undoButton) undoButton.disabled = busy || !history.length;
+        if (redoButton) redoButton.disabled = busy || !future.length;
+    }
+    function record(bed, old) {
+        if (!differs(bed,old)) return;
+        history.push({ before: { id: bed.id, x: old.x, y: old.y, rot: old.rot }, after: state(bed) });
+        future = []; controls(); say('Unsaved layout changes.');
+    }
+    function restore(v) { var b = byId[v.id]; b.x = v.x; b.y = v.y; b.rot = v.rot; render(); select(b.id); controls(); }
+    if (undoButton) undoButton.addEventListener('click', function () { if (busy || !history.length) return; var v = history.pop(); future.push(v); restore(v.before); });
+    if (redoButton) redoButton.addEventListener('click', function () { if (busy || !future.length) return; var v = future.pop(); history.push(v); restore(v.after); });
+    window.addEventListener('beforeunload', function (ev) { if (dirty()) { ev.preventDefault(); ev.returnValue = ''; } });
+
 
     function say(msg, bad) { if (!statusEl) return; statusEl.textContent = msg || ''; statusEl.classList.toggle('is-bad', !!bad); }
     function tf(b) { return 'translate(' + (b.x + b.len / 2) + ' ' + (b.y + b.wid / 2) + ') rotate(' + b.rot + ') translate(' + (-b.len / 2) + ' ' + (-b.wid / 2) + ')'; }
@@ -358,25 +382,26 @@
         else showPanel(byId[id] || null);
     }
 
-    // Save one bed's spot. On a refusal it goes back where it was.
-    function save(b, was) {
+    function saveLayout() {
+        if (busy || !dirty()) return;
+        var changes = (D.beds || []).filter(function (b) { return differs(b, baseline[b.id]); }).map(function (b) {
+            return { id: b.id, x_ft: b.x, y_ft: b.y, rotation: b.rot };
+        });
         var body = new URLSearchParams();
-        body.set('act', 'area_move'); body.set('csrf_token', D.csrf); body.set('site_id', D.site); body.set('area_id', b.id);
-        body.set('x_ft', (Math.round(b.x * 100) / 100).toString()); body.set('y_ft', (Math.round(b.y * 100) / 100).toString()); body.set('rotation', String(b.rot));
-        say('Saving ' + b.name + '…');
-        return fetch('areas.php', { method: 'POST', body: body, credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
-            .then(function (r) { return r.json(); })
+        body.set('act','area_layout_save'); body.set('csrf_token',D.csrf); body.set('site_id',D.site);
+        body.set('changes',JSON.stringify(changes));
+        busy = true; controls(); say('Saving layout…');
+        fetch('areas.php', { method:'POST', body:body, credentials:'same-origin', headers:{ Accept:'application/json' } })
+            .then(function (r) { if (!r.ok) throw new Error('Save failed.'); return r.json(); })
             .then(function (j) {
-                if (j && j.ok) { say('Saved ' + b.name + '.'); return true; }
-                var e = new Error((j && j.error) || 'Could not save.'); e.fromServer = true; throw e;
+                if (!j || !j.ok) throw new Error(j && j.error || 'Save failed.');
+                (D.beds || []).forEach(function (b) { baseline[b.id] = state(b); });
+                history = []; future = []; say('Layout saved.');
             })
-            .catch(function (err) {
-                if (was) { b.x = was.x; b.y = was.y; b.rot = was.rot; render(); }
-                say(err && err.fromServer ? err.message : 'Could not save ' + b.name + '. Check your connection and try again.', true);
-                return false;
-            });
+            .catch(function (e) { say(e.message || 'Could not save layout.',true); })
+            .finally(function () { busy = false; controls(); });
     }
-
+    if (saveButton) saveButton.addEventListener('click',saveLayout);
     // Pointer: tap = pick; in Move mode, drag = move (snaps to half a foot).
     var drag = null;
     function localPoint(gParent, ev) {
@@ -407,7 +432,7 @@
         var end = function (ev) {
             if (!drag || ev.pointerId !== drag.id) return;
             var d = drag; drag = null;
-            if (d.moved) { select(d.b.id); render(); save(d.b, d.was); }
+            if (d.moved) { select(d.b.id); render(); record(d.b, d.was); }
             else select(d.b.id);
         };
         stage.addEventListener('pointerup', end);
@@ -427,17 +452,18 @@
             var b = byId[selected]; if (!b || !editing) return;
             var was = { x: b.x, y: b.y, rot: b.rot };
             b.rot = (b.rot + parseInt(t.getAttribute('data-turn'), 10)) % 360;
-            render(); save(b, was);
+            render(); record(b, was);
         });
     });
     if (moveBtn) moveBtn.addEventListener('click', function () {
+        if (editing && dirty()) { say('Save or undo changes before leaving edit mode.', true); return; }
         editing = !editing;
         moveBtn.setAttribute('aria-pressed', editing ? 'true' : 'false');
         moveBtn.textContent = editing ? 'Done moving' : 'Move beds';
         if (editbar) editbar.hidden = !editing;
         if (editing) showPanel(null);
         render(); select(editing ? 0 : selected);
-        say(editing ? 'Move mode on. Each drop saves.' : '');
+        say(editing ? 'Edit mode: select Save layout to keep changes.' : '');
     });
     Array.prototype.forEach.call(root.querySelectorAll('[data-color-by]'), function (b) {
         b.setAttribute('aria-pressed', b.getAttribute('data-color-by') === colorBy ? 'true' : 'false');
@@ -463,7 +489,7 @@
     });
     var rt = null;
     window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(render, 150); });
-    render();
+    render(); controls();
     if (selected) {
         select(selected);
         var g = svgEl && svgEl.querySelector('.gm-bed[data-id="' + selected + '"]');
