@@ -171,6 +171,21 @@ $ok(garden_family_color('Solanaceae') === garden_family_color('solanaceae') && g
 $json = json_encode($m);
 $ok($json !== false && strlen($json) > 100, 'map data turns into JSON');
 
+// ── Garden editor revision and transactional rollback ──
+$revisionBefore = \\Garden\\Domain\\garden_layout_revision($pdo, $org, $site);
+$ok(strlen($revisionBefore) === 64, 'layout revision is a SHA-256 digest');
+$pdo->beginTransaction();
+try {
+    (new Garden\\Domain\\GrowingAreaLayout())->save($pdo, $org, $site, $bed, garden_ft_to_m('8'), garden_ft_to_m('4'), garden_ft_to_m('2'), garden_ft_to_m('2'), '15');
+    $ok(\\Garden\\Domain\\garden_layout_revision($pdo, $org, $site) !== $revisionBefore, 'layout revision changes when a bed moves');
+} finally { $pdo->rollBack(); }
+$ok(\\Garden\\Domain\\garden_layout_revision($pdo, $org, $site) === $revisionBefore, 'rollback restores the layout revision');
+$anotherSite = $gs->createSite($pdo, $org, 'Other garden', 'America/New_York');
+$otherBed = $gs->createLocation($pdo, $org, $anotherSite, 'Other bed', 'raised_bed', garden_sqft_to_sqm('16'));
+(new Garden\\Domain\\GrowingAreaLayout())->save($pdo, $org, $anotherSite, $otherBed, garden_ft_to_m('4'), garden_ft_to_m('4'), '0', '0', '0');
+$ok(\\Garden\\Domain\\garden_layout_revision($pdo, $org, $site) === $revisionBefore, 'other garden changes do not invalidate this layout');
+$throws(fn() => (new Garden\\Domain\\GrowingAreaLayout())->save($pdo, $org, $site, $otherBed, garden_ft_to_m('4'), garden_ft_to_m('4'), '0', '0', '0'), 'cross-garden bed editing is rejected', 'not found');
+
 // ── Pages and assets ──
 foreach (['admin/assets/garden.js', 'admin/assets/garden.css', 'includes/garden_planner.php'] as $f) $ok(is_file($root . '/' . $f), "$f exists");
 $src = file_get_contents($root . '/admin/garden/areas.php');
