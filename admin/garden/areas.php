@@ -99,7 +99,23 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['act'] ?? '') === '
             if (!is_int($change['rotation'])) throw new InvalidArgumentException('Invalid rotation type.');
             $rot = filter_var($change['rotation'], FILTER_VALIDATE_INT);
             if ($rot === false || $rot < 0 || $rot > 359) throw new InvalidArgumentException('Invalid rotation.');
-            $lay->save($pdo, $org, $site, $id, (string)$cur['length_m'], (string)$cur['width_m'], garden_ft_to_m((string)$change['x_ft']), garden_ft_to_m((string)$change['y_ft']), (string)$rot);
+            $length = (string)$cur['length_m'];
+            $width = (string)$cur['width_m'];
+            if (array_key_exists('length_ft', $change) || array_key_exists('width_ft', $change)) {
+                if (!isset($change['length_ft'], $change['width_ft']) || !is_numeric($change['length_ft']) || !is_numeric($change['width_ft'])) throw new InvalidArgumentException('Invalid dimensions.');
+                foreach (['length_ft', 'width_ft'] as $dimension) {
+                    if (!is_int($change[$dimension]) && !is_float($change[$dimension])) throw new InvalidArgumentException('Invalid dimension type.');
+                    if (!is_finite((float)$change[$dimension]) || $change[$dimension] <= 0 || $change[$dimension] > 10000) throw new InvalidArgumentException('Dimensions must be positive and no more than 10,000 ft.');
+                }
+                $length = garden_ft_to_m((string)$change['length_ft']);
+                $width = garden_ft_to_m((string)$change['width_ft']);
+                if ($length !== (string)$cur['length_m'] || $width !== (string)$cur['width_m']) {
+                    $children = $pdo->prepare('SELECT COUNT(*) FROM garden_growing_locations WHERE organization_id = ? AND site_id = ? AND parent_id = ? AND active = 1');
+                    $children->execute([$org, $site, $id]);
+                    if ((int)$children->fetchColumn() > 0) throw new InvalidArgumentException('Resize child beds before resizing their containing area.');
+                }
+            }
+            $lay->save($pdo, $org, $site, $id, $length, $width, garden_ft_to_m((string)$change['x_ft']), garden_ft_to_m((string)$change['y_ft']), (string)$rot);
         }
         $nextRevision = \Garden\Domain\garden_layout_revision($pdo, $org, $site);
         $pdo->commit();
@@ -431,6 +447,11 @@ if ($tab === 'map') {
         <button type="button" class="gm-segbtn" data-nudge="up" aria-label="Move bed up" disabled>↑</button>
         <button type="button" class="gm-segbtn" data-nudge="down" aria-label="Move bed down" disabled>↓</button>
         <button type="button" class="gm-segbtn" data-nudge="right" aria-label="Move bed right" disabled>→</button>
+      </span>
+      <span class="gm-dimensions" role="group" aria-label="Selected bed dimensions">
+        <label>Length (ft) <input type="number" min="0.01" max="10000" step="0.01" inputmode="decimal" data-length-ft disabled></label>
+        <label>Width (ft) <input type="number" min="0.01" max="10000" step="0.01" inputmode="decimal" data-width-ft disabled></label>
+        <button type="button" class="gm-segbtn" data-apply-dimensions disabled>Apply size</button>
       </span>
       <span class="gm-editbtns" data-no-icons role="group" aria-label="Rotate selected bed">
         <button type="button" class="gm-segbtn" data-turn="90" disabled>Turn 90°</button>
