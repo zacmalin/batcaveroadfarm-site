@@ -167,12 +167,12 @@
         if (saveButton) saveButton.disabled = busy || !!drag || !!panDrag || !dirty();
         if (undoButton) undoButton.disabled = busy || !!drag || !!panDrag || !history.length;
         if (redoButton) redoButton.disabled = busy || !!drag || !!panDrag || !future.length;
-        Array.prototype.forEach.call(nudgeBtns, function (b) { b.disabled = busy || !!drag || !editing || !selected; });
-        Array.prototype.forEach.call(turnBtns, function (b) { b.disabled = busy || !!drag || !editing || !selected; });
+        Array.prototype.forEach.call(nudgeBtns, function (b) { b.disabled = busy || !!drag || !!panDrag || !editing || !selected; });
+        Array.prototype.forEach.call(turnBtns, function (b) { b.disabled = busy || !!drag || !!panDrag || !editing || !selected; });
         if (moveBtn) moveBtn.disabled = busy || !!drag || !!panDrag;
         if (snapSelect) snapSelect.disabled = !!drag || !!panDrag;
         var selectedBed = byId[selected];
-        var canResize = !!(editing && selectedBed && !(kids[selected] || []).length && !busy && !drag);
+        var canResize = !!(editing && selectedBed && !(kids[selected] || []).length && !busy && !drag && !panDrag);
         if (dimensionButton) dimensionButton.disabled = !canResize;
         if (lengthInput) lengthInput.disabled = !canResize;
         if (widthInput) widthInput.disabled = !canResize;
@@ -408,9 +408,9 @@
     function select(id) {
         var changedSelection = selected !== id;
         selected = id;
-        if (changedSelection && editing && !drag) render();
+        if (changedSelection && editing && !drag && !panDrag) render();
         if (svgEl) Array.prototype.forEach.call(svgEl.querySelectorAll('.gm-bed'), function (g) { g.classList.toggle('is-selected', +g.getAttribute('data-id') === id); });
-        Array.prototype.forEach.call(turnBtns, function (t) { t.disabled = busy || !!drag || !(editing && id); });
+        Array.prototype.forEach.call(turnBtns, function (t) { t.disabled = busy || !!drag || !!panDrag || !(editing && id); });
         controls();
         if (lengthInput) lengthInput.value = byId[id] ? Number(byId[id].len).toFixed(2).replace(/\.?0+$/, '') : '';
         if (widthInput) widthInput.value = byId[id] ? Number(byId[id].wid).toFixed(2).replace(/\.?0+$/, '') : '';
@@ -567,7 +567,7 @@
         });
     });
     if (dimensionButton) dimensionButton.addEventListener('click', function () {
-        var b = byId[selected]; if (!b || !editing || busy || drag || (kids[b.id] || []).length) return;
+        var b = byId[selected]; if (!b || !editing || busy || drag || panDrag || (kids[b.id] || []).length) return;
         var length = Number(lengthInput.value), width = Number(widthInput.value);
         if (!Number.isFinite(length) || !Number.isFinite(width) || length <= 0 || width <= 0 || length > 10000 || width > 10000) {
             say('Enter positive bed dimensions of 10,000 ft or less.', true); return;
