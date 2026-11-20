@@ -137,6 +137,9 @@
     var turnBtns = root.querySelectorAll('[data-turn]');
     var nudgeBtns = root.querySelectorAll('[data-nudge]');
     var snapSelect = root.querySelector('[data-snap]');
+    var lengthInput = root.querySelector('[data-length-ft]');
+    var widthInput = root.querySelector('[data-width-ft]');
+    var dimensionButton = root.querySelector('[data-apply-dimensions]');
     var byId = {}, kids = {};
     (D.beds || []).forEach(function (b) { byId[b.id] = b; });
     (D.beds || []).forEach(function (b) { if (b.placed && b.parent && byId[b.parent] && byId[b.parent].placed) (kids[b.parent] = kids[b.parent] || []).push(b); });
@@ -153,8 +156,8 @@
     var saveButton = root.querySelector('[data-save-layout]');
     var undoButton = root.querySelector('[data-undo-layout]');
     var redoButton = root.querySelector('[data-redo-layout]');
-    function state(bed) { return { id: bed.id, x: bed.x, y: bed.y, rot: bed.rot }; }
-    function differs(a,b) { return a.x !== b.x || a.y !== b.y || a.rot !== b.rot; }
+    function state(bed) { return { id: bed.id, x: bed.x, y: bed.y, rot: bed.rot, len: bed.len, wid: bed.wid }; }
+    function differs(a,b) { return a.x !== b.x || a.y !== b.y || a.rot !== b.rot || a.len !== b.len || a.wid !== b.wid; }
     function dirty() { return (D.beds || []).some(function (bed) { return differs(bed, baseline[bed.id]); }); }
     function snap() { return snapSelect ? Number(snapSelect.value) || 0.5 : 0.5; }
     function quantize(value) { var step = snap(); return Math.round(value / step) * step; }
@@ -163,13 +166,18 @@
         if (undoButton) undoButton.disabled = busy || !history.length;
         if (redoButton) redoButton.disabled = busy || !future.length;
         Array.prototype.forEach.call(nudgeBtns, function (b) { b.disabled = busy || !editing || !selected; });
+        var selectedBed = byId[selected];
+        var canResize = !!(editing && selectedBed && !(kids[selected] || []).length && !busy);
+        if (dimensionButton) dimensionButton.disabled = !canResize;
+        if (lengthInput) lengthInput.disabled = !canResize;
+        if (widthInput) widthInput.disabled = !canResize;
     }
     function record(bed, old) {
         if (!differs(bed,old)) return;
-        history.push({ before: { id: bed.id, x: old.x, y: old.y, rot: old.rot }, after: state(bed) });
+        history.push({ before: old, after: state(bed) });
         future = []; editRevision++; controls(); say('Unsaved layout changes.');
     }
-    function restore(v) { var b = byId[v.id]; b.x = v.x; b.y = v.y; b.rot = v.rot; editRevision++; render(); select(b.id); controls(); }
+    function restore(v) { var b = byId[v.id]; b.x = v.x; b.y = v.y; b.rot = v.rot; b.len = v.len; b.wid = v.wid; editRevision++; render(); select(b.id); controls(); }
     if (undoButton) undoButton.addEventListener('click', function () { if (busy || !history.length) return; var v = history.pop(); future.push(v); restore(v.before); });
     if (redoButton) redoButton.addEventListener('click', function () { if (busy || !future.length) return; var v = future.pop(); history.push(v); restore(v.after); });
     window.addEventListener('beforeunload', function (ev) { if (dirty()) { ev.preventDefault(); ev.returnValue = ''; } });
@@ -386,6 +394,8 @@
         if (svgEl) Array.prototype.forEach.call(svgEl.querySelectorAll('.gm-bed'), function (g) { g.classList.toggle('is-selected', +g.getAttribute('data-id') === id); });
         Array.prototype.forEach.call(turnBtns, function (t) { t.disabled = busy || !(editing && id); });
         controls();
+        if (lengthInput) lengthInput.value = byId[id] ? Number(byId[id].len).toFixed(2).replace(/\\.?0+$/, '') : '';
+        if (widthInput) widthInput.value = byId[id] ? Number(byId[id].wid).toFixed(2).replace(/\\.?0+$/, '') : '';
         if (editing) { var b = byId[id]; var help = editbar && editbar.querySelector('[data-edit-help]'); if (help) help.textContent = b ? b.path + ' selected. Drag or rotate, then Save layout.' : 'Drag to move, tap to select, then rotate. Save layout when finished.'; }
         else showPanel(byId[id] || null);
     }
@@ -393,7 +403,7 @@
     function saveLayout() {
         if (busy || !dirty()) return;
         var changes = (D.beds || []).filter(function (b) { return differs(b, baseline[b.id]); }).map(function (b) {
-            return { id: b.id, x_ft: b.x, y_ft: b.y, rotation: b.rot };
+            return { id: b.id, x_ft: b.x, y_ft: b.y, rotation: b.rot, length_ft: b.len, width_ft: b.wid };
         });
         var body = new URLSearchParams();
         body.set('act','area_layout_save'); body.set('csrf_token',D.csrf); body.set('site_id',D.site);
@@ -463,6 +473,17 @@
             if (g && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); select(+g.getAttribute('data-id')); }
         });
     }
+    if (dimensionButton) dimensionButton.addEventListener('click', function () {
+        var b = byId[selected]; if (!b || !editing || busy || (kids[b.id] || []).length) return;
+        var length = Number(lengthInput.value), width = Number(widthInput.value);
+        if (!Number.isFinite(length) || !Number.isFinite(width) || length <= 0 || width <= 0 || length > 10000 || width > 10000) {
+            say('Enter positive bed dimensions of 10,000 ft or less.', true); return;
+        }
+        var was = state(b);
+        b.len = Math.round(length * 100) / 100;
+        b.wid = Math.round(width * 100) / 100;
+        if (differs(b, was)) { render(); select(b.id); record(b, was); }
+    });
     Array.prototype.forEach.call(nudgeBtns, function (t) {
         t.addEventListener('click', function () {
             var b = byId[selected]; if (!b || !editing || busy) return;
