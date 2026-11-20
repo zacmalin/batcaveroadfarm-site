@@ -106,8 +106,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['act'] ?? '') === '
             if ($rot === false || $rot < 0 || $rot > 359) throw new InvalidArgumentException('Invalid rotation.');
             $lay->save($pdo, $org, $site, $id, (string)$cur['length_m'], (string)$cur['width_m'], garden_ft_to_m((string)$change['x_ft']), garden_ft_to_m((string)$change['y_ft']), (string)$rot);
         }
+        $nextRevision = garden_layout_revision($pdo, $org, $site);
         $pdo->commit();
-        echo json_encode(['ok' => true, 'revision' => garden_layout_revision($pdo, $org, $site)]);
+        echo json_encode(['ok' => true, 'revision' => $nextRevision]);
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         if ($e instanceof InvalidArgumentException || $e instanceof DomainException || $e instanceof JsonException) echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
