@@ -501,6 +501,7 @@
                 var along = dx * Math.cos(angle) + dy * Math.sin(angle);
                 var across = -dx * Math.sin(angle) + dy * Math.cos(angle);
                 var size = Math.max(0.01, Math.min(10000, quantize((drag.resize === 'length' ? drag.was.len : drag.was.wid) + (drag.resize === 'length' ? along : across))));
+                size = Math.round(size * 100) / 100;
                 if (drag.resize === 'length') drag.b.len = size;
                 else drag.b.wid = size;
                 // Keep the opposite corner fixed in world space when resizing a rotated bed.
