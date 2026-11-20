@@ -147,3 +147,7 @@
 .gm-resize-handle { fill: #fffdf8; stroke: #79523a; stroke-width: 2.5px; vector-effect: non-scaling-stroke; cursor: ew-resize; touch-action: none; }
 .gm-resize-handle[data-resize="width"] { cursor: ns-resize; }
 .gm-resize-handle:active { fill: #d8e2cd; }
+
+/* On zoomed maps, dragging empty ground pans without scrolling the page. */
+.gm-stage.is-pannable .gm-svg { touch-action: none; }
+.gm-stage.is-pannable .gm-grid { cursor: grab; }
