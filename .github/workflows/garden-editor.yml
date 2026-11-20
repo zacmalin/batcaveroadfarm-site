@@ -18,6 +18,7 @@ on:
       - 'admin/garden/areas.php'
       - 'includes/garden_areas.php'
       - 'tests/garden_planner_test.php'
+      - 'tests/garden_editor_geometry_test.js'
       - '.github/workflows/garden-editor.yml'
   workflow_dispatch:
 permissions:
