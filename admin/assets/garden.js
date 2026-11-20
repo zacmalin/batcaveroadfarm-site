@@ -154,7 +154,7 @@
     var editRevision = 0;
     var revision = D.layoutRevision || '';
     var baseline = {};
-    (D.beds || []).forEach(function (bed) { baseline[bed.id] = { x: bed.x, y: bed.y, rot: bed.rot }; });
+    (D.beds || []).forEach(function (bed) { baseline[bed.id] = { id: bed.id, x: bed.x, y: bed.y, rot: bed.rot, len: bed.len, wid: bed.wid }; });
     var saveButton = root.querySelector('[data-save-layout]');
     var undoButton = root.querySelector('[data-undo-layout]');
     var redoButton = root.querySelector('[data-redo-layout]');
