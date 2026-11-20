@@ -135,6 +135,8 @@
     var panel = document.querySelector('[data-panel]');
     var moveBtn = root.querySelector('[data-move-toggle]');
     var turnBtns = root.querySelectorAll('[data-turn]');
+    var nudgeBtns = root.querySelectorAll('[data-nudge]');
+    var snapSelect = root.querySelector('[data-snap]');
     var byId = {}, kids = {};
     (D.beds || []).forEach(function (b) { byId[b.id] = b; });
     (D.beds || []).forEach(function (b) { if (b.placed && b.parent && byId[b.parent] && byId[b.parent].placed) (kids[b.parent] = kids[b.parent] || []).push(b); });
@@ -154,10 +156,13 @@
     function state(bed) { return { id: bed.id, x: bed.x, y: bed.y, rot: bed.rot }; }
     function differs(a,b) { return a.x !== b.x || a.y !== b.y || a.rot !== b.rot; }
     function dirty() { return (D.beds || []).some(function (bed) { return differs(bed, baseline[bed.id]); }); }
+    function snap() { return snapSelect ? Number(snapSelect.value) || 0.5 : 0.5; }
+    function quantize(value) { var step = snap(); return Math.round(value / step) * step; }
     function controls() {
         if (saveButton) saveButton.disabled = busy || !dirty();
         if (undoButton) undoButton.disabled = busy || !history.length;
         if (redoButton) redoButton.disabled = busy || !future.length;
+        Array.prototype.forEach.call(nudgeBtns, function (b) { b.disabled = busy || !editing || !selected; });
     }
     function record(bed, old) {
         if (!differs(bed,old)) return;
@@ -379,7 +384,20 @@
     function select(id) {
         selected = id;
         if (svgEl) Array.prototype.forEach.call(svgEl.querySelectorAll('.gm-bed'), function (g) { g.classList.toggle('is-selected', +g.getAttribute('data-id') === id); });
-        Array.prototype.forEach.call(turnBtns, function (t) { t.disabled = !(editing && id); });
+        Array.prototype.forEach.call(nudgeBtns, function (t) {
+        t.addEventListener('click', function () {
+            var b = byId[selected]; if (!b || !editing || busy) return;
+            var direction = t.getAttribute('data-nudge');
+            var was = state(b), step = snap();
+            if (direction === 'left') b.x = quantize(b.x - step);
+            if (direction === 'right') b.x = quantize(b.x + step);
+            if (direction === 'up') b.y = quantize(b.y - step);
+            if (direction === 'down') b.y = quantize(b.y + step);
+            if (differs(b, was)) { render(); select(b.id); record(b, was); }
+        });
+    });
+    Array.prototype.forEach.call(turnBtns, function (t) { t.disabled = busy || !(editing && id); });
+        controls();
         if (editing) { var b = byId[id]; var help = editbar && editbar.querySelector('[data-edit-help]'); if (help) help.textContent = b ? b.path + ' selected. Drag or rotate, then Save layout.' : 'Drag to move, tap to select, then rotate. Save layout when finished.'; }
         else showPanel(byId[id] || null);
     }
@@ -435,7 +453,7 @@
             var dx = p.x - drag.start.x, dy = p.y - drag.start.y;
             if (!drag.moved && Math.abs(dx) * pxPerFt < 4 && Math.abs(dy) * pxPerFt < 4) return;
             drag.moved = true;
-            drag.b.x = Math.round((drag.was.x + dx) * 2) / 2; drag.b.y = Math.round((drag.was.y + dy) * 2) / 2;
+            drag.b.x = quantize(drag.was.x + dx); drag.b.y = quantize(drag.was.y + dy);
             drag.g.setAttribute('transform', tf(drag.b));
             say(drag.b.name + ': ' + drag.b.x + ' ft across, ' + drag.b.y + ' ft down');
         });
@@ -468,6 +486,7 @@
     if (moveBtn) moveBtn.addEventListener('click', function () {
         if (busy || (editing && dirty())) { say('Save or undo changes before leaving edit mode.', true); return; }
         editing = !editing;
+        controls();
         moveBtn.setAttribute('aria-pressed', editing ? 'true' : 'false');
         moveBtn.textContent = editing ? 'Done editing' : 'Edit beds';
         if (editbar) editbar.hidden = !editing;
