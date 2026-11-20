@@ -162,9 +162,9 @@
     function snap() { return snapSelect ? Number(snapSelect.value) || 0.5 : 0.5; }
     function quantize(value) { var step = snap(); return Math.round(value / step) * step; }
     function controls() {
-        if (saveButton) saveButton.disabled = busy || !dirty();
-        if (undoButton) undoButton.disabled = busy || !history.length;
-        if (redoButton) redoButton.disabled = busy || !future.length;
+        if (saveButton) saveButton.disabled = busy || !!drag || !dirty();
+        if (undoButton) undoButton.disabled = busy || !!drag || !history.length;
+        if (redoButton) redoButton.disabled = busy || !!drag || !future.length;
         Array.prototype.forEach.call(nudgeBtns, function (b) { b.disabled = busy || !editing || !selected; });
         var selectedBed = byId[selected];
         var canResize = !!(editing && selectedBed && !(kids[selected] || []).length && !busy);
@@ -401,7 +401,7 @@
     }
 
     function saveLayout() {
-        if (busy || !dirty()) return;
+        if (busy || drag || !dirty()) return;
         var changes = (D.beds || []).filter(function (b) { return differs(b, baseline[b.id]); }).map(function (b) {
             return { id: b.id, x_ft: b.x, y_ft: b.y, rotation: b.rot, length_ft: b.len, width_ft: b.wid };
         });
@@ -410,7 +410,7 @@
         body.set('changes',JSON.stringify(changes));
         body.set('revision', revision);
         var savingRevision = editRevision;
-        busy = true; controls(); say('Saving layout…');
+        busy = true; controls(); select(selected); say('Saving layout…');
         fetch('areas.php', { method:'POST', body:body, credentials:'same-origin', headers:{ Accept:'application/json' } })
             .then(function (r) { if (!r.ok) throw new Error('Save failed.'); return r.json(); })
             .then(function (j) {
@@ -425,7 +425,7 @@
                 history = []; future = []; say('Layout saved.');
             })
             .catch(function (e) { say(e.message || 'Could not save layout.',true); })
-            .finally(function () { busy = false; controls(); });
+            .finally(function () { busy = false; controls(); select(selected); });
     }
     if (saveButton) saveButton.addEventListener('click',saveLayout);
     // Pointer: tap = pick; in edit mode, drag = move (configurable snap).
@@ -441,8 +441,9 @@
             if (!g || !editing || busy) return;
             var b = byId[+g.getAttribute('data-id')]; if (!b) return;
             var p = localPoint(g.parentNode, ev); if (!p) return;
-            drag = { b: b, g: g, start: p, was: { x: b.x, y: b.y, rot: b.rot }, moved: false, id: ev.pointerId };
+            drag = { b: b, g: g, start: p, was: state(b), moved: false, id: ev.pointerId };
             try { stage.setPointerCapture(ev.pointerId); } catch (e) { /* older browsers */ }
+            controls();
             ev.preventDefault();
         });
         stage.addEventListener('pointermove', function (ev) {
@@ -457,12 +458,12 @@
         });
         var end = function (ev) {
             if (!drag || ev.pointerId !== drag.id) return;
-            var d = drag; drag = null;
+            var d = drag; drag = null; controls();
             if (d.moved) { select(d.b.id); render(); record(d.b, d.was); }
             else select(d.b.id);
         };
         stage.addEventListener('pointerup', end);
-        stage.addEventListener('pointercancel', function (ev) { if (drag && ev.pointerId === drag.id) { var d = drag; drag = null; d.b.x = d.was.x; d.b.y = d.was.y; render(); } });
+        stage.addEventListener('pointercancel', function (ev) { if (drag && ev.pointerId === drag.id) { var d = drag; drag = null; d.b.x = d.was.x; d.b.y = d.was.y; render(); controls(); } });
         stage.addEventListener('click', function (ev) {
             if (editing) return;
             var g = ev.target.closest && ev.target.closest('.gm-bed');
