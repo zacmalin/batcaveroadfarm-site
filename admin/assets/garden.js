@@ -450,6 +450,16 @@
     if (saveButton) saveButton.addEventListener('click',saveLayout);
     // Pointer: tap = pick; in edit mode, drag = move (configurable snap).
     var drag = null, panDrag = null;
+    // Convert an incremental pointer movement from screen pixels to map feet.
+    function panDelta(matrix, screenDx, screenDy) {
+        if (!matrix) return null;
+        var determinant = matrix.a * matrix.d - matrix.b * matrix.c;
+        if (!Number.isFinite(determinant) || Math.abs(determinant) <= 0.000001) return null;
+        return {
+            x: (matrix.d * screenDx - matrix.c * screenDy) / determinant,
+            y: (-matrix.b * screenDx + matrix.a * screenDy) / determinant
+        };
+    }
     function localPoint(gParent, ev) {
         var m = gParent.getScreenCTM(); if (!m) return null;
         var pt = svgEl.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
@@ -478,20 +488,13 @@
         });
         stage.addEventListener('pointermove', function (ev) {
             if (panDrag && ev.pointerId === panDrag.id && svgEl) {
-                var matrix = svgEl.getScreenCTM(), view = svgEl.viewBox.baseVal;
-                if (matrix) {
-                    var determinant = matrix.a * matrix.d - matrix.b * matrix.c;
-                    if (Math.abs(determinant) > 0.000001) {
-                        // Convert each screen-space movement using the current viewport
-                        // transform. Reusing the original delta with an updated matrix
-                        // causes accelerated or jittery panning.
-                        var screenDx = ev.clientX - panDrag.x, screenDy = ev.clientY - panDrag.y;
-                        var deltaX = (matrix.d * screenDx - matrix.c * screenDy) / determinant;
-                        var deltaY = (-matrix.b * screenDx + matrix.a * screenDy) / determinant;
-                        panX -= deltaX; panY -= deltaY;
-                        view.x -= deltaX; view.y -= deltaY;
-                        panDrag.x = ev.clientX; panDrag.y = ev.clientY;
-                    }
+                var delta = panDelta(svgEl.getScreenCTM(), ev.clientX - panDrag.x, ev.clientY - panDrag.y);
+                if (delta) {
+                    // Update only the viewport; garden geometry stays untouched.
+                    panX -= delta.x; panY -= delta.y;
+                    svgEl.viewBox.baseVal.x -= delta.x;
+                    svgEl.viewBox.baseVal.y -= delta.y;
+                    panDrag.x = ev.clientX; panDrag.y = ev.clientY;
                 }
                 return;
             }
