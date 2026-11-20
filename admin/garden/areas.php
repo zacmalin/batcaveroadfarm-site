@@ -67,6 +67,13 @@ function garden_swatch(string $color): string {
     return '<svg class="gm-swatch" viewBox="0 0 10 10" aria-hidden="true"><rect width="10" height="10" rx="2" fill="' . htmlspecialchars($color, ENT_QUOTES, 'UTF-8') . '"/></svg>';
 }
 
+/** Revision of every active location's geometry; rejects stale editor drafts. */
+function garden_layout_revision(PDO $pdo, int $org, int $site): string {
+    $q = $pdo->prepare('SELECT id, parent_id, length_m, width_m, layout_x_m, layout_y_m, rotation_degrees FROM garden_growing_locations WHERE organization_id = ? AND site_id = ? AND active = 1 ORDER BY id');
+    $q->execute([$org, $site]);
+    return hash('sha256', json_encode($q->fetchAll(PDO::FETCH_NUM), JSON_THROW_ON_ERROR));
+}
+
 // ── Save staged map edits in a single transaction. ──
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['act'] ?? '') === 'area_layout_save') {
     header('Content-Type: application/json; charset=utf-8');
@@ -79,6 +86,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['act'] ?? '') === '
         if (!is_array($changes) || !array_is_list($changes) || !$changes || count($changes) > 250) throw new InvalidArgumentException('Provide 1–250 bed changes.');
         $seen = [];
         $pdo->beginTransaction();
+        $lock = $pdo->prepare('SELECT id FROM garden_growing_sites WHERE id = ? AND organization_id = ? FOR UPDATE');
+        $lock->execute([$site, $org]);
+        if (!$lock->fetchColumn()) throw new InvalidArgumentException('Garden not found.');
+        if (!hash_equals(garden_layout_revision($pdo, $org, $site), (string)($_POST['revision'] ?? ''))) {
+            throw new DomainException('This garden changed since you opened it. Reload before saving to avoid overwriting another edit.');
+        }
         foreach ($changes as $change) {
             if (!is_array($change) || !isset($change['id'], $change['x_ft'], $change['y_ft'], $change['rotation'])) throw new InvalidArgumentException('Invalid bed change.');
             $id = filter_var($change['id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
@@ -94,7 +107,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['act'] ?? '') === '
             $lay->save($pdo, $org, $site, $id, (string)$cur['length_m'], (string)$cur['width_m'], garden_ft_to_m((string)$change['x_ft']), garden_ft_to_m((string)$change['y_ft']), (string)$rot);
         }
         $pdo->commit();
-        echo json_encode(['ok' => true]);
+        echo json_encode(['ok' => true, 'revision' => garden_layout_revision($pdo, $org, $site)]);
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         if ($e instanceof InvalidArgumentException || $e instanceof DomainException || $e instanceof JsonException) echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
@@ -379,6 +392,7 @@ if ($tab === 'map') {
     $data = garden_map_data($pdo, $org, $site, $areas, $plantings, $window, $today);
     $data['canEdit'] = $manage;
     $data['csrf'] = garden_csrf();
+    $data['layoutRevision'] = garden_layout_revision($pdo, $org, $sid);
     $data['focus'] = (int)($_GET['focus'] ?? 0);
     $year = (int)substr($today, 0, 4);
     $quick = ['now' => 'Today', (string)$year => 'This year', (string)($year - 1) => 'Last year'];
