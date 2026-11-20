@@ -67,13 +67,6 @@ function garden_swatch(string $color): string {
     return '<svg class="gm-swatch" viewBox="0 0 10 10" aria-hidden="true"><rect width="10" height="10" rx="2" fill="' . htmlspecialchars($color, ENT_QUOTES, 'UTF-8') . '"/></svg>';
 }
 
-/** Revision of every active location's geometry; rejects stale editor drafts. */
-function garden_layout_revision(PDO $pdo, int $org, int $site): string {
-    $q = $pdo->prepare('SELECT id, parent_id, length_m, width_m, layout_x_m, layout_y_m, rotation_degrees FROM garden_growing_locations WHERE organization_id = ? AND site_id = ? AND active = 1 ORDER BY id');
-    $q->execute([$org, $site]);
-    return hash('sha256', json_encode($q->fetchAll(PDO::FETCH_NUM), JSON_THROW_ON_ERROR));
-}
-
 // ── Save staged map edits in a single transaction. ──
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['act'] ?? '') === 'area_layout_save') {
     header('Content-Type: application/json; charset=utf-8');
