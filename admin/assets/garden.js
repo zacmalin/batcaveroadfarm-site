@@ -168,6 +168,9 @@
         if (undoButton) undoButton.disabled = busy || !!drag || !history.length;
         if (redoButton) redoButton.disabled = busy || !!drag || !future.length;
         Array.prototype.forEach.call(nudgeBtns, function (b) { b.disabled = busy || !!drag || !editing || !selected; });
+        Array.prototype.forEach.call(turnBtns, function (b) { b.disabled = busy || !!drag || !editing || !selected; });
+        if (moveBtn) moveBtn.disabled = busy || !!drag;
+        if (snapSelect) snapSelect.disabled = !!drag;
         var selectedBed = byId[selected];
         var canResize = !!(editing && selectedBed && !(kids[selected] || []).length && !busy && !drag);
         if (dimensionButton) dimensionButton.disabled = !canResize;
@@ -495,7 +498,16 @@
             else select(d.b.id);
         };
         stage.addEventListener('pointerup', end);
-        stage.addEventListener('pointercancel', function (ev) { if (drag && ev.pointerId === drag.id) { var d = drag; drag = null; d.b.x = d.was.x; d.b.y = d.was.y; d.b.len = d.was.len; d.b.wid = d.was.wid; render(); select(d.b.id); controls(); } });
+        function cancelGesture(ev) {
+            if (!drag || ev.pointerId !== drag.id) return;
+            var d = drag; drag = null;
+            d.b.x = d.was.x; d.b.y = d.was.y; d.b.rot = d.was.rot;
+            d.b.len = d.was.len; d.b.wid = d.was.wid;
+            render(); select(d.b.id); controls();
+            say('Gesture cancelled; no changes applied.');
+        }
+        stage.addEventListener('pointercancel', cancelGesture);
+        stage.addEventListener('lostpointercapture', cancelGesture);
         stage.addEventListener('click', function (ev) {
             if (editing) return;
             var g = ev.target.closest && ev.target.closest('.gm-bed');
@@ -546,7 +558,7 @@
         });
     });
     if (moveBtn) moveBtn.addEventListener('click', function () {
-        if (busy || (editing && dirty())) { say('Save or undo changes before leaving edit mode.', true); return; }
+        if (busy || drag || (editing && dirty())) { say('Finish the gesture and save or undo changes before leaving edit mode.', true); return; }
         editing = !editing;
         controls();
         moveBtn.setAttribute('aria-pressed', editing ? 'true' : 'false');
