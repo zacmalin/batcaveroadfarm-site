@@ -30,7 +30,7 @@ use Garden\Domain\SoilPerennials;
 $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 $ui = garden_ui();
 if (!garden_ready($pdo)) {
-    if (($_POST['act'] ?? '') === 'area_move') { header('Content-Type: application/json'); echo json_encode(['ok' => false, 'error' => 'Run the garden migrations first.']); exit; }
+    if (in_array(($_POST['act'] ?? ''), ['area_move', 'area_layout_save'], true)) { header('Content-Type: application/json'); echo json_encode(['ok' => false, 'error' => 'Run the garden migrations first.']); exit; }
     bcrf_shell_open('Beds & areas — Garden');
     echo '<h1 class="', $ui['h1'], '">Beds &amp; areas</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072 to 0076) in Settings › Database first.');
     bcrf_shell_close(); exit;
@@ -98,10 +98,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['act'] ?? '') === '
             if (!$id || isset($seen[$id])) throw new InvalidArgumentException('Invalid or duplicate bed ID.');
             $seen[$id] = true;
             $cur = garden_area_row($pdo, $org, $id);
-            if (!$cur || (int)$cur['site_id'] !== $site || $cur['length_m'] === null) throw new InvalidArgumentException('Bed not found in this garden.');
+            if (!$cur || (int)$cur['site_id'] !== $site || (int)$cur['active'] !== 1 || $cur['length_m'] === null || $cur['width_m'] === null) throw new InvalidArgumentException('Bed not found in this garden.');
             foreach (['x_ft', 'y_ft'] as $axis) {
-                if (!is_numeric($change[$axis]) || !is_finite((float)$change[$axis]) || abs((float)$change[$axis]) > 100000) throw new InvalidArgumentException('Invalid coordinate.');
+                if (!is_int($change[$axis]) && !is_float($change[$axis])) throw new InvalidArgumentException('Invalid coordinate type.');
+                if (!is_finite((float)$change[$axis]) || abs((float)$change[$axis]) > 100000) throw new InvalidArgumentException('Invalid coordinate.');
             }
+            if (!is_int($change['rotation'])) throw new InvalidArgumentException('Invalid rotation type.');
             $rot = filter_var($change['rotation'], FILTER_VALIDATE_INT);
             if ($rot === false || $rot < 0 || $rot > 359) throw new InvalidArgumentException('Invalid rotation.');
             $lay->save($pdo, $org, $site, $id, (string)$cur['length_m'], (string)$cur['width_m'], garden_ft_to_m((string)$change['x_ft']), garden_ft_to_m((string)$change['y_ft']), (string)$rot);
