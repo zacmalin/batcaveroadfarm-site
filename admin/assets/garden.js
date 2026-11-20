@@ -579,7 +579,7 @@
     });
     Array.prototype.forEach.call(nudgeBtns, function (t) {
         t.addEventListener('click', function () {
-            var b = byId[selected]; if (!b || !editing || busy) return;
+            var b = byId[selected]; if (!b || !editing || busy || drag || panDrag) return;
             var direction = t.getAttribute('data-nudge');
             var was = state(b), step = snap();
             if (direction === 'left') b.x = quantize(b.x - step);
@@ -591,8 +591,8 @@
     });
     Array.prototype.forEach.call(turnBtns, function (t) {
         t.addEventListener('click', function () {
-            var b = byId[selected]; if (!b || !editing || busy) return;
-            var was = { x: b.x, y: b.y, rot: b.rot };
+            var b = byId[selected]; if (!b || !editing || busy || drag || panDrag) return;
+            var was = state(b);
             b.rot = (b.rot + parseInt(t.getAttribute('data-turn'), 10)) % 360;
             render(); record(b, was);
         });
