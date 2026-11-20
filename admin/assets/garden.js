@@ -508,9 +508,10 @@
                 var deltaLen = drag.b.len - drag.was.len, deltaWid = drag.b.wid - drag.was.wid;
                 drag.b.x = drag.was.x + (deltaLen * (Math.cos(angle) - 1) - deltaWid * Math.sin(angle)) / 2;
                 drag.b.y = drag.was.y + (deltaLen * Math.sin(angle) + deltaWid * (Math.cos(angle) - 1)) / 2;
-                // Match the final rotated geometry while stretching existing SVG for preview;
-                // rebuild crop strips and resize handles on release.
-                drag.g.setAttribute('transform', tf(drag.b) + ' scale(' + (drag.b.len / drag.was.len) + ' ' + (drag.b.wid / drag.was.wid) + ')');
+                // Scale the original SVG about its original local origin. The anchored
+                // resize keeps that world-space corner fixed, matching final geometry.
+                // Rebuild crop strips and handles on release.
+                drag.g.setAttribute('transform', tf(drag.was) + ' scale(' + (drag.b.len / drag.was.len) + ' ' + (drag.b.wid / drag.was.wid) + ')');
                 say(drag.b.name + ': ' + drag.b.len + ' × ' + drag.b.wid + ' ft. Release to apply.');
             } else {
                 drag.b.x = quantize(drag.was.x + dx); drag.b.y = quantize(drag.was.y + dy);
