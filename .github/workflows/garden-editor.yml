@@ -1,8 +1,19 @@
 name: Garden editor checks
 on:
+  push:
+    branches:
+      - feature/garden-editor-explicit-save
+    paths:
+      - 'admin/assets/garden.js'
+      - 'admin/assets/garden.css'
+      - 'admin/garden/areas.php'
+      - 'includes/garden_areas.php'
+      - 'tests/garden_planner_test.php'
+      - '.github/workflows/garden-editor.yml'
   pull_request:
     paths:
       - 'admin/assets/garden.js'
+      - 'admin/assets/garden.css'
       - 'admin/garden/areas.php'
       - 'includes/garden_areas.php'
       - 'tests/garden_planner_test.php'
