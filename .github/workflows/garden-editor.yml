@@ -13,12 +13,31 @@ permissions:
 jobs:
   syntax:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: testpass
+          MYSQL_DATABASE: bcrf_garden_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -ptestpass"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=15
+    env:
+      DB_HOST: 127.0.0.1
+      DB_NAME: bcrf_garden_test
+      DB_USER: root
+      DB_PASS: testpass
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
           coverage: none
+          extensions: pdo_mysql, mbstring
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -29,3 +48,5 @@ jobs:
           php -l tests/garden_planner_test.php
       - name: JavaScript syntax
         run: node --check admin/assets/garden.js
+      - name: Garden planner database integration tests
+        run: php tests/garden_planner_test.php
