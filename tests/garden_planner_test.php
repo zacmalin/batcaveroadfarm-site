@@ -180,6 +180,14 @@ try {
     $ok(\Garden\Domain\garden_layout_revision($pdo, $org, $site) !== $revisionBefore, 'layout revision changes when a bed moves');
 } finally { $pdo->rollBack(); }
 $ok(\Garden\Domain\garden_layout_revision($pdo, $org, $site) === $revisionBefore, 'rollback restores the layout revision');
+$pdo->beginTransaction();
+try {
+    (new Garden\Domain\GrowingAreaLayout())->save($pdo, $org, $site, $bed, garden_ft_to_m('9'), garden_ft_to_m('5'), garden_ft_to_m('0'), garden_ft_to_m('0'), '0');
+    $size = $pdo->query('SELECT length_m, width_m FROM garden_growing_locations WHERE id = ' . (int)$bed)->fetch();
+    $ok(abs((float)$size['length_m'] - (float)garden_ft_to_m('9')) < 0.001 && abs((float)$size['width_m'] - (float)garden_ft_to_m('5')) < 0.001, 'precise dimensions persist in metric');
+    $ok(\Garden\Domain\garden_layout_revision($pdo, $org, $site) !== $revisionBefore, 'resizing changes the revision');
+} finally { $pdo->rollBack(); }
+$ok(\Garden\Domain\garden_layout_revision($pdo, $org, $site) === $revisionBefore, 'resizing rollback restores the revision');
 $anotherSite = $gs->createSite($pdo, $org, 'Other garden', 'America/New_York');
 $otherBed = $gs->createLocation($pdo, $org, $anotherSite, 'Other bed', 'raised_bed', garden_sqft_to_sqm('16'));
 (new Garden\Domain\GrowingAreaLayout())->save($pdo, $org, $anotherSite, $otherBed, garden_ft_to_m('4'), garden_ft_to_m('4'), '0', '0', '0');
