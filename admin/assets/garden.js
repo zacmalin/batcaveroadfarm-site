@@ -402,7 +402,9 @@
     }
 
     function select(id) {
+        var changedSelection = selected !== id;
         selected = id;
+        if (changedSelection && editing && !drag) render();
         if (svgEl) Array.prototype.forEach.call(svgEl.querySelectorAll('.gm-bed'), function (g) { g.classList.toggle('is-selected', +g.getAttribute('data-id') === id); });
         Array.prototype.forEach.call(turnBtns, function (t) { t.disabled = busy || !(editing && id); });
         controls();
