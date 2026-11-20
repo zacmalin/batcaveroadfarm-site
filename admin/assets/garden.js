@@ -138,7 +138,7 @@
     var nudgeBtns = root.querySelectorAll('[data-nudge]');
     var snapSelect = root.querySelector('[data-snap]');
     var zoomBtns = root.querySelectorAll('[data-zoom]');
-    var zoomLevel = 1;
+    var zoomLevel = 1, panX = 0, panY = 0;
     var lengthInput = root.querySelector('[data-length-ft]');
     var widthInput = root.querySelector('[data-width-ft]');
     var dimensionButton = root.querySelector('[data-apply-dimensions]');
@@ -258,7 +258,7 @@
         var midX = zoomLevel > 1 && focus ? focus.x + focus.len / 2 : x0 + w / 2;
         var midY = zoomLevel > 1 && focus ? focus.y + focus.wid / 2 : y0 + h / 2;
         w /= zoomLevel; h /= zoomLevel;
-        x0 = midX - w / 2; y0 = midY - h / 2;
+        x0 = midX - w / 2 + panX; y0 = midY - h / 2 + panY;
         stage.textContent = '';
         var pics = colorBy === 'picture';
         stage.classList.toggle('is-pic', pics);
@@ -446,7 +446,7 @@
     }
     if (saveButton) saveButton.addEventListener('click',saveLayout);
     // Pointer: tap = pick; in edit mode, drag = move (configurable snap).
-    var drag = null;
+    var drag = null, panDrag = null;
     function localPoint(gParent, ev) {
         var m = gParent.getScreenCTM(); if (!m) return null;
         var pt = svgEl.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
@@ -455,7 +455,14 @@
     if (stage) {
         stage.addEventListener('pointerdown', function (ev) {
             var g = ev.target.closest && ev.target.closest('.gm-bed');
-            if (!g || !editing || busy || drag) return;
+            if (!g) {
+                if (zoomLevel <= 1 || drag || panDrag) return;
+                panDrag = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, ox: panX, oy: panY };
+                try { stage.setPointerCapture(ev.pointerId); } catch (e) { /* older browsers */ }
+                ev.preventDefault();
+                return;
+            }
+            if (!editing || busy || drag || panDrag) return;
             var b = byId[+g.getAttribute('data-id')]; if (!b) return;
             var p = localPoint(g.parentNode, ev); if (!p) return;
             var handle = ev.target.getAttribute && ev.target.getAttribute('data-resize');
@@ -466,6 +473,15 @@
             ev.preventDefault();
         });
         stage.addEventListener('pointermove', function (ev) {
+            if (panDrag && ev.pointerId === panDrag.id && svgEl) {
+                var bounds = svgEl.getBoundingClientRect(), view = svgEl.viewBox.baseVal;
+                if (bounds.width && bounds.height) {
+                    panX = panDrag.ox - (ev.clientX - panDrag.x) * view.width / bounds.width;
+                    panY = panDrag.oy - (ev.clientY - panDrag.y) * view.height / bounds.height;
+                    render();
+                }
+                return;
+            }
             if (!drag || ev.pointerId !== drag.id) return;
             var p = localPoint(drag.g.parentNode, ev); if (!p) return;
             var dx = p.x - drag.start.x, dy = p.y - drag.start.y;
@@ -492,6 +508,7 @@
             }
         });
         var end = function (ev) {
+            if (panDrag && ev.pointerId === panDrag.id) { panDrag = null; return; }
             if (!drag || ev.pointerId !== drag.id) return;
             var d = drag; drag = null; controls();
             if (d.moved) { render(); select(d.b.id); record(d.b, d.was); }
@@ -499,6 +516,9 @@
         };
         stage.addEventListener('pointerup', end);
         function cancelGesture(ev) {
+            if (panDrag && ev.pointerId === panDrag.id) {
+                panX = panDrag.ox; panY = panDrag.oy; panDrag = null; render(); return;
+            }
             if (!drag || ev.pointerId !== drag.id) return;
             var d = drag; drag = null;
             d.b.x = d.was.x; d.b.y = d.was.y; d.b.rot = d.was.rot;
@@ -520,8 +540,9 @@
     }
     Array.prototype.forEach.call(zoomBtns, function (btn) {
         btn.addEventListener('click', function () {
-            if (drag) return;
+            if (drag || panDrag) return;
             var action = btn.getAttribute('data-zoom');
+            if (action === 'reset') { panX = 0; panY = 0; }
             zoomLevel = action === 'reset' ? 1 : Math.max(0.5, Math.min(4, zoomLevel * (action === 'in' ? 1.25 : 0.8)));
             render();
         });
