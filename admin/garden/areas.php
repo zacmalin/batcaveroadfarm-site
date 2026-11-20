@@ -426,6 +426,13 @@ if ($tab === 'map') {
         <button type="button" class="gm-segbtn" data-color-by="status" aria-pressed="false">Status</button>
         <button type="button" class="gm-segbtn" data-color-by="bed" aria-pressed="false">Bed color</button>
       </div>
+      <?php if ($placed): ?>
+      <span class="gm-editbtns" data-no-icons role="group" aria-label="Map zoom">
+        <button type="button" class="gm-segbtn" data-zoom="out" aria-label="Zoom out">−</button>
+        <button type="button" class="gm-segbtn" data-zoom="reset" aria-label="Reset zoom">100%</button>
+        <button type="button" class="gm-segbtn" data-zoom="in" aria-label="Zoom in">+</button>
+      </span>
+      <?php endif; ?>
       <?php if ($manage && $placed): ?>
       <button type="button" class="gm-segbtn" data-undo-layout disabled>Undo</button>
       <button type="button" class="gm-segbtn" data-redo-layout disabled>Redo</button>
