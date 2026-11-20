@@ -270,9 +270,9 @@
         // Grid every step feet; heavier every 5 steps.
         var step = niceStep(Math.max(w, h)), gG = svg('g', { 'class': 'gm-grid' }, svgEl);
         // The grid runs past the drawing so it fills the whole card when the map is narrower than the screen.
-        var gx0 = x0 - w * 2, gx1 = x0 + w * 3;
-        for (var gx = Math.ceil(gx0 / step) * step; gx <= gx1; gx += step) svg('line', { x1: gx, y1: y0, x2: gx, y2: y0 + h, 'class': Math.round(gx / step) % 5 === 0 ? 'gm-grid-major' : '' }, gG);
-        for (var gy = Math.ceil(y0 / step) * step; gy <= y0 + h; gy += step) svg('line', { x1: gx0, y1: gy, x2: gx1, y2: gy, 'class': Math.round(gy / step) % 5 === 0 ? 'gm-grid-major' : '' }, gG);
+        var gx0 = x0 - w * 2, gx1 = x0 + w * 3, gy0 = y0 - h * 2, gy1 = y0 + h * 3;
+        for (var gx = Math.ceil(gx0 / step) * step; gx <= gx1; gx += step) svg('line', { x1: gx, y1: gy0, x2: gx, y2: gy1, 'class': Math.round(gx / step) % 5 === 0 ? 'gm-grid-major' : '' }, gG);
+        for (var gy = Math.ceil(gy0 / step) * step; gy <= gy1; gy += step) svg('line', { x1: gx0, y1: gy, x2: gx1, y2: gy, 'class': Math.round(gy / step) % 5 === 0 ? 'gm-grid-major' : '' }, gG);
         var north = svg('text', { x: x0 + w - fs * 0.6, y: y0 + fs * 1.3, 'class': 'gm-north', 'text-anchor': 'end', 'font-size': fs }, svgEl); north.textContent = 'N ↑';
         var layer = svg('g', { 'class': 'gm-layer' }, svgEl);
         roots.forEach(function (b) { drawBed(layer, b, fs); });
@@ -527,7 +527,7 @@
             }
         });
         var end = function (ev) {
-            if (panDrag && ev.pointerId === panDrag.id) { panDrag = null; controls(); return; }
+            if (panDrag && ev.pointerId === panDrag.id) { panDrag = null; render(); controls(); return; }
             if (!drag || ev.pointerId !== drag.id) return;
             var d = drag; drag = null;
             if (d.moved) { render(); select(d.b.id); record(d.b, d.was); }
