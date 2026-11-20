@@ -20,6 +20,20 @@ function productionFunction(name) {
 const state = productionFunction('state');
 const differs = productionFunction('differs');
 const corners = productionFunction('corners');
+const panDelta = productionFunction('panDelta');
+// Pointer movements must map to stable world distances at every zoom level.
+for (const scale of [0.5, 1, 2, 4, 10]) {
+  const d = panDelta({a:scale,b:0,c:0,d:scale}, 24, -12);
+  close(d.x, 24 / scale);
+  close(d.y, -12 / scale);
+  const moved = panDelta({a:scale,b:0,c:0,d:scale}, 12, 6);
+  close(d.x + moved.x, 36 / scale);
+  close(d.y + moved.y, -6 / scale);
+}
+const rotatedPan = panDelta({a:0,b:2,c:-2,d:0}, 10, 4);
+close(rotatedPan.x, 2);
+close(rotatedPan.y, -5);
+assert.equal(panDelta({a:0,b:0,c:0,d:0}, 10, 5), null);
 
 function world(b, x, y) {
   const angle = b.rot * Math.PI / 180, c = Math.cos(angle), s = Math.sin(angle);
