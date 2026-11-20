@@ -384,7 +384,7 @@
     function select(id) {
         selected = id;
         if (svgEl) Array.prototype.forEach.call(svgEl.querySelectorAll('.gm-bed'), function (g) { g.classList.toggle('is-selected', +g.getAttribute('data-id') === id); });
-    Array.prototype.forEach.call(turnBtns, function (t) { t.disabled = busy || !(editing && id); });
+        Array.prototype.forEach.call(turnBtns, function (t) { t.disabled = busy || !(editing && id); });
         controls();
         if (editing) { var b = byId[id]; var help = editbar && editbar.querySelector('[data-edit-help]'); if (help) help.textContent = b ? b.path + ' selected. Drag or rotate, then Save layout.' : 'Drag to move, tap to select, then rotate. Save layout when finished.'; }
         else showPanel(byId[id] || null);
@@ -418,7 +418,7 @@
             .finally(function () { busy = false; controls(); });
     }
     if (saveButton) saveButton.addEventListener('click',saveLayout);
-    // Pointer: tap = pick; in Move mode, drag = move (snaps to half a foot).
+    // Pointer: tap = pick; in edit mode, drag = move (configurable snap).
     var drag = null;
     function localPoint(gParent, ev) {
         var m = gParent.getScreenCTM(); if (!m) return null;
