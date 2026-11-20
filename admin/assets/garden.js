@@ -481,10 +481,17 @@
             b.x = 0; b.y = roots.length ? Math.ceil(e.maxY + 2) : 0; b.rot = 0;
             if (b.parent && byId[b.parent] && byId[b.parent].placed) b.y = 0;   // inside its area: start in the corner
             btn.disabled = true;
-            save(b, null).then(function (ok) {
-                if (ok) window.location.href = 'areas.php?site=' + D.site + '&tab=map&focus=' + b.id;
-                else btn.disabled = false;
-            });
+            var body = new URLSearchParams();
+            body.set('act', 'area_move'); body.set('csrf_token', D.csrf);
+            body.set('site_id', D.site); body.set('area_id', b.id);
+            body.set('x_ft', String(b.x)); body.set('y_ft', String(b.y)); body.set('rotation', '0');
+            fetch('areas.php', { method: 'POST', body: body, credentials: 'same-origin', headers: { Accept: 'application/json' } })
+                .then(function (r) { return r.json(); })
+                .then(function (j) {
+                    if (!j || !j.ok) throw new Error(j && j.error || 'Could not place bed.');
+                    window.location.href = 'areas.php?site=' + D.site + '&tab=map&focus=' + b.id;
+                })
+                .catch(function (err) { say(err.message || 'Could not place bed.', true); btn.disabled = false; });
         });
     });
     var rt = null;
