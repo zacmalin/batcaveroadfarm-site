@@ -167,9 +167,9 @@
         if (saveButton) saveButton.disabled = busy || !!drag || !dirty();
         if (undoButton) undoButton.disabled = busy || !!drag || !history.length;
         if (redoButton) redoButton.disabled = busy || !!drag || !future.length;
-        Array.prototype.forEach.call(nudgeBtns, function (b) { b.disabled = busy || !editing || !selected; });
+        Array.prototype.forEach.call(nudgeBtns, function (b) { b.disabled = busy || !!drag || !editing || !selected; });
         var selectedBed = byId[selected];
-        var canResize = !!(editing && selectedBed && !(kids[selected] || []).length && !busy);
+        var canResize = !!(editing && selectedBed && !(kids[selected] || []).length && !busy && !drag);
         if (dimensionButton) dimensionButton.disabled = !canResize;
         if (lengthInput) lengthInput.disabled = !canResize;
         if (widthInput) widthInput.disabled = !canResize;
@@ -180,8 +180,8 @@
         future = []; editRevision++; controls(); say('Unsaved layout changes.');
     }
     function restore(v) { var b = byId[v.id]; b.x = v.x; b.y = v.y; b.rot = v.rot; b.len = v.len; b.wid = v.wid; editRevision++; render(); select(b.id); controls(); }
-    if (undoButton) undoButton.addEventListener('click', function () { if (busy || !history.length) return; var v = history.pop(); future.push(v); restore(v.before); });
-    if (redoButton) redoButton.addEventListener('click', function () { if (busy || !future.length) return; var v = future.pop(); history.push(v); restore(v.after); });
+    if (undoButton) undoButton.addEventListener('click', function () { if (busy || drag || !history.length) return; var v = history.pop(); future.push(v); restore(v.before); });
+    if (redoButton) redoButton.addEventListener('click', function () { if (busy || drag || !future.length) return; var v = future.pop(); history.push(v); restore(v.after); });
     window.addEventListener('beforeunload', function (ev) { if (dirty()) { ev.preventDefault(); ev.returnValue = ''; } });
 
 
@@ -406,7 +406,7 @@
         selected = id;
         if (changedSelection && editing && !drag) render();
         if (svgEl) Array.prototype.forEach.call(svgEl.querySelectorAll('.gm-bed'), function (g) { g.classList.toggle('is-selected', +g.getAttribute('data-id') === id); });
-        Array.prototype.forEach.call(turnBtns, function (t) { t.disabled = busy || !(editing && id); });
+        Array.prototype.forEach.call(turnBtns, function (t) { t.disabled = busy || !!drag || !(editing && id); });
         controls();
         if (lengthInput) lengthInput.value = byId[id] ? Number(byId[id].len).toFixed(2).replace(/\.?0+$/, '') : '';
         if (widthInput) widthInput.value = byId[id] ? Number(byId[id].wid).toFixed(2).replace(/\.?0+$/, '') : '';
@@ -505,13 +505,14 @@
     }
     Array.prototype.forEach.call(zoomBtns, function (btn) {
         btn.addEventListener('click', function () {
+            if (drag) return;
             var action = btn.getAttribute('data-zoom');
             zoomLevel = action === 'reset' ? 1 : Math.max(0.5, Math.min(4, zoomLevel * (action === 'in' ? 1.25 : 0.8)));
             render();
         });
     });
     if (dimensionButton) dimensionButton.addEventListener('click', function () {
-        var b = byId[selected]; if (!b || !editing || busy || (kids[b.id] || []).length) return;
+        var b = byId[selected]; if (!b || !editing || busy || drag || (kids[b.id] || []).length) return;
         var length = Number(lengthInput.value), width = Number(widthInput.value);
         if (!Number.isFinite(length) || !Number.isFinite(width) || length <= 0 || width <= 0 || length > 10000 || width > 10000) {
             say('Enter positive bed dimensions of 10,000 ft or less.', true); return;
