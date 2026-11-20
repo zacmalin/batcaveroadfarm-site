@@ -394,8 +394,8 @@
         if (svgEl) Array.prototype.forEach.call(svgEl.querySelectorAll('.gm-bed'), function (g) { g.classList.toggle('is-selected', +g.getAttribute('data-id') === id); });
         Array.prototype.forEach.call(turnBtns, function (t) { t.disabled = busy || !(editing && id); });
         controls();
-        if (lengthInput) lengthInput.value = byId[id] ? Number(byId[id].len).toFixed(2).replace(/\\.?0+$/, '') : '';
-        if (widthInput) widthInput.value = byId[id] ? Number(byId[id].wid).toFixed(2).replace(/\\.?0+$/, '') : '';
+        if (lengthInput) lengthInput.value = byId[id] ? Number(byId[id].len).toFixed(2).replace(/\.?0+$/, '') : '';
+        if (widthInput) widthInput.value = byId[id] ? Number(byId[id].wid).toFixed(2).replace(/\.?0+$/, '') : '';
         if (editing) { var b = byId[id]; var help = editbar && editbar.querySelector('[data-edit-help]'); if (help) help.textContent = b ? b.path + ' selected. Drag or rotate, then Save layout.' : 'Drag to move, tap to select, then rotate. Save layout when finished.'; }
         else showPanel(byId[id] || null);
     }
