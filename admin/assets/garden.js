@@ -144,6 +144,7 @@
     var editing = false, selected = D.focus && byId[D.focus] ? D.focus : 0;
     var svgEl = null, pxPerFt = 10;
     var history = [], future = [], busy = false;
+    var editRevision = 0;
     var revision = D.layoutRevision || '';
     var baseline = {};
     (D.beds || []).forEach(function (bed) { baseline[bed.id] = { x: bed.x, y: bed.y, rot: bed.rot }; });
@@ -161,9 +162,9 @@
     function record(bed, old) {
         if (!differs(bed,old)) return;
         history.push({ before: { id: bed.id, x: old.x, y: old.y, rot: old.rot }, after: state(bed) });
-        future = []; controls(); say('Unsaved layout changes.');
+        future = []; editRevision++; controls(); say('Unsaved layout changes.');
     }
-    function restore(v) { var b = byId[v.id]; b.x = v.x; b.y = v.y; b.rot = v.rot; render(); select(b.id); controls(); }
+    function restore(v) { var b = byId[v.id]; b.x = v.x; b.y = v.y; b.rot = v.rot; editRevision++; render(); select(b.id); controls(); }
     if (undoButton) undoButton.addEventListener('click', function () { if (busy || !history.length) return; var v = history.pop(); future.push(v); restore(v.before); });
     if (redoButton) redoButton.addEventListener('click', function () { if (busy || !future.length) return; var v = future.pop(); history.push(v); restore(v.after); });
     window.addEventListener('beforeunload', function (ev) { if (dirty()) { ev.preventDefault(); ev.returnValue = ''; } });
@@ -379,7 +380,7 @@
         selected = id;
         if (svgEl) Array.prototype.forEach.call(svgEl.querySelectorAll('.gm-bed'), function (g) { g.classList.toggle('is-selected', +g.getAttribute('data-id') === id); });
         Array.prototype.forEach.call(turnBtns, function (t) { t.disabled = !(editing && id); });
-        if (editing) { var b = byId[id]; var help = editbar && editbar.querySelector('[data-edit-help]'); if (help) help.textContent = b ? b.path + ' picked. Drag it, or turn it.' : 'Drag a bed to move it. Tap one to pick it, then turn it.'; }
+        if (editing) { var b = byId[id]; var help = editbar && editbar.querySelector('[data-edit-help]'); if (help) help.textContent = b ? b.path + ' selected. Drag or rotate, then Save layout.' : 'Drag to move, tap to select, then rotate. Save layout when finished.'; }
         else showPanel(byId[id] || null);
     }
 
@@ -392,11 +393,17 @@
         body.set('act','area_layout_save'); body.set('csrf_token',D.csrf); body.set('site_id',D.site);
         body.set('changes',JSON.stringify(changes));
         body.set('revision', revision);
+        var savingRevision = editRevision;
         busy = true; controls(); say('Saving layout…');
         fetch('areas.php', { method:'POST', body:body, credentials:'same-origin', headers:{ Accept:'application/json' } })
             .then(function (r) { if (!r.ok) throw new Error('Save failed.'); return r.json(); })
             .then(function (j) {
                 if (!j || !j.ok) throw new Error(j && j.error || 'Save failed.');
+                if (editRevision !== savingRevision) {
+                    revision = j.revision || revision;
+                    say('Layout saved, but newer edits remain unsaved.', true);
+                    return;
+                }
                 (D.beds || []).forEach(function (b) { baseline[b.id] = state(b); });
                 revision = j.revision || revision;
                 history = []; future = []; say('Layout saved.');
@@ -415,7 +422,7 @@
     if (stage) {
         stage.addEventListener('pointerdown', function (ev) {
             var g = ev.target.closest && ev.target.closest('.gm-bed');
-            if (!g || !editing) return;
+            if (!g || !editing || busy) return;
             var b = byId[+g.getAttribute('data-id')]; if (!b) return;
             var p = localPoint(g.parentNode, ev); if (!p) return;
             drag = { b: b, g: g, start: p, was: { x: b.x, y: b.y, rot: b.rot }, moved: false, id: ev.pointerId };
@@ -452,7 +459,7 @@
     }
     Array.prototype.forEach.call(turnBtns, function (t) {
         t.addEventListener('click', function () {
-            var b = byId[selected]; if (!b || !editing) return;
+            var b = byId[selected]; if (!b || !editing || busy) return;
             var was = { x: b.x, y: b.y, rot: b.rot };
             b.rot = (b.rot + parseInt(t.getAttribute('data-turn'), 10)) % 360;
             render(); record(b, was);
@@ -462,7 +469,7 @@
         if (busy || (editing && dirty())) { say('Save or undo changes before leaving edit mode.', true); return; }
         editing = !editing;
         moveBtn.setAttribute('aria-pressed', editing ? 'true' : 'false');
-        moveBtn.textContent = editing ? 'Done moving' : 'Move beds';
+        moveBtn.textContent = editing ? 'Done editing' : 'Edit beds';
         if (editbar) editbar.hidden = !editing;
         if (editing) showPanel(null);
         render(); select(editing ? 0 : selected);
