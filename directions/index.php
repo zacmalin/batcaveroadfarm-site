@@ -2,8 +2,9 @@
 // directions/index.php — Map & Directions with drive times from surrounding towns.
 if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm.php';   // farm website + emails from Settings (Farm OS Phase 0)
     // Title and description rewritten Nov 11, 2026: 115 Search impressions at position 7, 0 clicks.
+    // Description reworked Nov 20, 2026 (157 impressions, 0 clicks): say what's here before how to get here.
     $pageTitle    = "Directions to Bat Cave Road Farm | I-40 Exit 73, Old Fort NC";
-    $metaDesc     = "Take I-40 exit 73 to 4132 Bat Cave Road, Old Fort, NC: 30–35 minutes from Asheville, 20 from Black Mountain. Map, drive times and turn-by-turn directions.";
+    $metaDesc     = "Petting zoo & farm stand at 4132 Bat Cave Road, Old Fort, NC, off I-40 exit 73. 30 min from Asheville, 20 from Black Mountain. Free parking, map & directions.";
     $canonicalUrl = (bcrf_farm_url() . "/directions/");
     $ogImage      = (bcrf_farm_url() . "/img/og-home.jpg");
     require('../includes/head.php');
@@ -48,6 +49,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
 .dir-address{background:linear-gradient(160deg,#fdf4e3,#f0ddb8);border:2px solid #c9923a;border-radius:12px;padding:22px 24px;text-align:center;margin:0 0 34px}
 .dir-address .dir-gps-label{font-family:'Lora',serif;font-size:.78rem;font-weight:600;color:#8b5c2a;text-transform:uppercase;letter-spacing:.08em;margin:0 0 6px}
 .dir-address .dir-gps{font-family:'Rye',Georgia,serif;font-size:1.25rem;color:#3b2010;margin:0 0 16px}
+.dir-address .dir-heads-up{font-family:'Lora',serif;font-size:.88rem;line-height:1.55;color:#5c3317;max-width:560px;margin:-6px auto 16px}
 .dir-address .dir-btns{display:flex;justify-content:center;flex-wrap:wrap;gap:12px}
 .dir-section{margin:0 0 30px}
 .dir-section h2{font-family:'Rye',Georgia,serif;font-size:1.15rem;color:var(--cream,#f5ead6);text-shadow:1px 2px 6px rgba(0,0,0,.75);margin:0 0 12px}
@@ -89,6 +91,7 @@ if (!function_exists('bcrf_farm_url')) require_once __DIR__ . '/../includes/farm
     <div class="dir-address">
       <p class="dir-gps-label">Physical / GPS address</p>
       <p class="dir-gps">4132 Bat Cave Road, Old Fort, NC 28762</p>
+      <p class="dir-heads-up">Heads up: we're on Bat Cave <em>Road</em> in Old Fort, not in the village of Bat Cave near Chimney Rock. That's a different town and a long drive away, so double-check your GPS says Old Fort.</p>
       <div class="dir-btns">
         <a class="cta-btn" rel="noopener" target="_blank"
            href="https://maps.google.com/?q=4132+Bat+Cave+Road,+Old+Fort,+NC+28762">Open in Google Maps →</a>

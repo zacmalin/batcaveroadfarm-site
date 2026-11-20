@@ -338,3 +338,8 @@ a.recipe-chip--cuisine,a.recipe-chip--cuisine:link,a.recipe-chip--cuisine:visite
 .nutri-note{display:block;margin:8px 0 0;font-family:'Lora',serif;font-style:italic;font-size:.78rem;color:var(--brown-mid)}
 .recipe-allergens{margin:14px 0 0;font-family:'Lora',serif;font-size:.9rem;color:var(--brown-dark)}
 @media print{.nutri-grid div{background:none}}
+.recipe-intro{flex:1 1 100%;max-width:72ch;font-family:'Lora',serif;font-size:1rem;line-height:1.7;color:var(--brown-dark)}
+.recipe-intro p{margin:0 0 10px}
+.recipe-intro p:last-child{margin:0}
+.recipe-intro strong{color:var(--brown-mid)}
+@media print{.recipe-intro{font-size:10pt;line-height:1.4;max-width:none}}

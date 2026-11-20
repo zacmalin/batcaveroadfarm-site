@@ -213,6 +213,20 @@ if ($__lead !== '' && $__descPlain !== '') {
     $__descMeta = $__lead . '. ' . $__body;
 }
 $metaDesc     = $__descMeta !== '' ? $__descMeta : ("Make " . $__t . " at home — a farmhouse recipe from Bat Cave Road Farm in Old Fort, NC.");
+// Hand-written search snippet (migration 0077, Nov 20, 2026): when the editor's Search title / Search description
+// fields are filled, Google gets those words instead of the built ones above.
+if (trim((string)($recipe['search_title'] ?? '')) !== '')       $pageTitle = trim((string)$recipe['search_title']);
+if (trim((string)($recipe['search_description'] ?? '')) !== '') $metaDesc  = trim((string)$recipe['search_description']);
+// The description as readable paragraphs under the title (it used to feed only the meta tag and schema,
+// so the page had no intro text for searchers or Google). Plain text per editor paragraph; <strong> kept.
+$__intro = [];
+foreach (preg_split('#</p>|<br\s*/?>#i', (string)($recipe['description'] ?? '')) as $__para) {
+    $__para = preg_replace(['#<(?:strong|b)\b[^>]*>#i', '#</(?:strong|b)>#i'], ["\x01", "\x02"], $__para);   // mark bold, drop other tags
+    $__para = trim(preg_replace('/[\s\x{200B}]+/u', ' ', html_entity_decode(strip_tags($__para), ENT_QUOTES | ENT_HTML5, 'UTF-8')));
+    if (trim($__para, " \x01\x02") === '') continue;
+    if (substr_count($__para, "\x01") !== substr_count($__para, "\x02")) $__para = str_replace(["\x01", "\x02"], '', $__para);
+    $__intro[] = str_replace(["\x01", "\x02"], ['<strong>', '</strong>'], htmlspecialchars($__para, ENT_QUOTES, 'UTF-8'));
+}
 $canonicalUrl = (bcrf_farm_url() . "/recipes/") . $recipe['slug'] . "/";
 $pageCSS      = (bcrf_farm_url() . "/css/min.recipes.css");
 $pageJS       = [(bcrf_farm_url() . "/js/min.recipe.js"), (bcrf_farm_url() . "/js/min.share.js"), (bcrf_farm_url() . "/js/min.auth.js"), (bcrf_farm_url() . "/js/min.rating.js"), (bcrf_farm_url() . "/js/min.comments.js")];
@@ -455,6 +469,11 @@ $renderShare = function ($variant) use ($canonicalUrl, $recipe, $svg) {
         </div>
         <button type="button" class="recipe-print-btn">🖨️ Print recipe</button>
       </div>
+      <?php if ($__intro): ?>
+      <div class="recipe-intro">
+        <?php foreach ($__intro as $__para): ?><p><?= $__para ?></p><?php endforeach; ?>
+      </div>
+      <?php endif; ?>
     </div>
 
     <div class="recipe-body">
