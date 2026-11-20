@@ -164,13 +164,13 @@
     function snap() { return snapSelect ? Number(snapSelect.value) || 0.5 : 0.5; }
     function quantize(value) { var step = snap(); return Math.round(value / step) * step; }
     function controls() {
-        if (saveButton) saveButton.disabled = busy || !!drag || !dirty();
-        if (undoButton) undoButton.disabled = busy || !!drag || !history.length;
-        if (redoButton) redoButton.disabled = busy || !!drag || !future.length;
+        if (saveButton) saveButton.disabled = busy || !!drag || !!panDrag || !dirty();
+        if (undoButton) undoButton.disabled = busy || !!drag || !!panDrag || !history.length;
+        if (redoButton) redoButton.disabled = busy || !!drag || !!panDrag || !future.length;
         Array.prototype.forEach.call(nudgeBtns, function (b) { b.disabled = busy || !!drag || !editing || !selected; });
         Array.prototype.forEach.call(turnBtns, function (b) { b.disabled = busy || !!drag || !editing || !selected; });
-        if (moveBtn) moveBtn.disabled = busy || !!drag;
-        if (snapSelect) snapSelect.disabled = !!drag;
+        if (moveBtn) moveBtn.disabled = busy || !!drag || !!panDrag;
+        if (snapSelect) snapSelect.disabled = !!drag || !!panDrag;
         var selectedBed = byId[selected];
         var canResize = !!(editing && selectedBed && !(kids[selected] || []).length && !busy && !drag);
         if (dimensionButton) dimensionButton.disabled = !canResize;
@@ -183,8 +183,8 @@
         future = []; editRevision++; controls(); say('Unsaved layout changes.');
     }
     function restore(v) { var b = byId[v.id]; b.x = v.x; b.y = v.y; b.rot = v.rot; b.len = v.len; b.wid = v.wid; editRevision++; render(); select(b.id); controls(); }
-    if (undoButton) undoButton.addEventListener('click', function () { if (busy || drag || !history.length) return; var v = history.pop(); future.push(v); restore(v.before); });
-    if (redoButton) redoButton.addEventListener('click', function () { if (busy || drag || !future.length) return; var v = future.pop(); history.push(v); restore(v.after); });
+    if (undoButton) undoButton.addEventListener('click', function () { if (busy || drag || panDrag || !history.length) return; var v = history.pop(); future.push(v); restore(v.before); });
+    if (redoButton) redoButton.addEventListener('click', function () { if (busy || drag || panDrag || !future.length) return; var v = future.pop(); history.push(v); restore(v.after); });
     window.addEventListener('beforeunload', function (ev) { if (dirty()) { ev.preventDefault(); ev.returnValue = ''; } });
 
 
@@ -419,7 +419,7 @@
     }
 
     function saveLayout() {
-        if (busy || drag || !dirty()) return;
+        if (busy || drag || panDrag || !dirty()) return;
         var changes = (D.beds || []).filter(function (b) { return differs(b, baseline[b.id]); }).map(function (b) {
             return { id: b.id, x_ft: b.x, y_ft: b.y, rotation: b.rot, length_ft: b.len, width_ft: b.wid };
         });
@@ -457,13 +457,14 @@
         stage.addEventListener('pointerdown', function (ev) {
             var g = ev.target.closest && ev.target.closest('.gm-bed');
             if (!g) {
-                if (zoomLevel <= 1 || drag || panDrag) return;
+                if (zoomLevel <= 1 || drag || panDrag || busy || ev.isPrimary === false) return;
                 panDrag = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, ox: panX, oy: panY, lastX: panX, lastY: panY };
                 try { stage.setPointerCapture(ev.pointerId); } catch (e) { /* older browsers */ }
+                controls();
                 ev.preventDefault();
                 return;
             }
-            if (!editing || busy || drag || panDrag) return;
+            if (!editing || busy || drag || panDrag || ev.isPrimary === false) return;
             var b = byId[+g.getAttribute('data-id')]; if (!b) return;
             var p = localPoint(g.parentNode, ev); if (!p) return;
             var handle = ev.target.getAttribute && ev.target.getAttribute('data-resize');
@@ -516,7 +517,7 @@
             }
         });
         var end = function (ev) {
-            if (panDrag && ev.pointerId === panDrag.id) { panDrag = null; return; }
+            if (panDrag && ev.pointerId === panDrag.id) { panDrag = null; controls(); return; }
             if (!drag || ev.pointerId !== drag.id) return;
             var d = drag; drag = null; controls();
             if (d.moved) { render(); select(d.b.id); record(d.b, d.was); }
@@ -525,7 +526,7 @@
         stage.addEventListener('pointerup', end);
         function cancelGesture(ev) {
             if (panDrag && ev.pointerId === panDrag.id) {
-                panX = panDrag.ox; panY = panDrag.oy; panDrag = null; render(); return;
+                panX = panDrag.ox; panY = panDrag.oy; panDrag = null; render(); controls(); return;
             }
             if (!drag || ev.pointerId !== drag.id) return;
             var d = drag; drag = null;
@@ -536,6 +537,16 @@
         }
         stage.addEventListener('pointercancel', cancelGesture);
         stage.addEventListener('lostpointercapture', cancelGesture);
+        window.addEventListener('blur', function () {
+            if (drag) cancelGesture({ pointerId: drag.id });
+            else if (panDrag) cancelGesture({ pointerId: panDrag.id });
+        });
+        window.addEventListener('keydown', function (ev) {
+            if (ev.key !== 'Escape' || (!drag && !panDrag)) return;
+            ev.preventDefault();
+            if (drag) cancelGesture({ pointerId: drag.id });
+            else cancelGesture({ pointerId: panDrag.id });
+        });
         stage.addEventListener('click', function (ev) {
             if (editing) return;
             var g = ev.target.closest && ev.target.closest('.gm-bed');
@@ -587,7 +598,7 @@
         });
     });
     if (moveBtn) moveBtn.addEventListener('click', function () {
-        if (busy || drag || (editing && dirty())) { say('Finish the gesture and save or undo changes before leaving edit mode.', true); return; }
+        if (busy || drag || panDrag || (editing && dirty())) { say('Finish the gesture and save or undo changes before leaving edit mode.', true); return; }
         editing = !editing;
         controls();
         moveBtn.setAttribute('aria-pressed', editing ? 'true' : 'false');
