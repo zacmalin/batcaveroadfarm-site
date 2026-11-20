@@ -9,6 +9,7 @@ on:
       - 'admin/garden/areas.php'
       - 'includes/garden_areas.php'
       - 'tests/garden_planner_test.php'
+      - 'tests/garden_editor_geometry_test.js'
       - '.github/workflows/garden-editor.yml'
   pull_request:
     paths:
@@ -59,5 +60,7 @@ jobs:
           php -l tests/garden_planner_test.php
       - name: JavaScript syntax
         run: node --check admin/assets/garden.js
+      - name: Garden editor geometry regression tests
+        run: node tests/garden_editor_geometry_test.js
       - name: Garden planner database integration tests
         run: php tests/garden_planner_test.php
