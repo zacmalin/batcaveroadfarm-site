@@ -136,3 +136,9 @@
 .gm-snap-label select { min-height: 2.75rem; border: 1px solid #b7ad9c; border-radius: .45rem; background: #fff; color: #44403c; padding: .35rem .5rem; }
 .gm-editbtns [data-nudge] { min-width: 2.75rem; min-height: 2.75rem; font-size: 1.1rem; }
 .gm-editbtns [data-nudge]:focus-visible, .gm-snap-label select:focus-visible { outline: 2px solid #79523a; outline-offset: 2px; }
+
+/* Leaf-bed dimensions remain editable independently of crop records. */
+.gm-dimensions { display: inline-flex; align-items: end; gap: .5rem; flex-wrap: wrap; }
+.gm-dimensions label { display: flex; flex-direction: column; gap: .2rem; font-size: .8rem; color: #57534e; }
+.gm-dimensions input { width: 6.5rem; min-height: 2.75rem; border: 1px solid #b7ad9c; border-radius: .45rem; padding: .4rem .5rem; background: #fff; color: #44403c; }
+.gm-dimensions input:focus-visible { outline: 2px solid #79523a; outline-offset: 2px; }
