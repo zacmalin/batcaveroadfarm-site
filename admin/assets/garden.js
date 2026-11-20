@@ -330,6 +330,11 @@
         // Wood frame (Pictures) or a plain edge; the picked bed gets a red edge either way.
         if (pics && !area) shapeEl(b, { 'class': 'gm-frame', 'stroke-width': Math.max(Math.min(b.len, b.wid) * 0.06, 2.5 / pxPerFt), 'stroke-linejoin': 'round' }, g);
         shapeEl(b, { 'class': 'gm-outline', 'vector-effect': 'non-scaling-stroke' }, g);
+        if (editing && b.id === selected && !(kids[b.id] || []).length) {
+            var handleSize = Math.max(18 / pxPerFt, Math.min(b.len, b.wid) * 0.16);
+            svg('circle', { 'class': 'gm-resize-handle', 'data-resize': 'length', cx: b.len, cy: b.wid / 2, r: handleSize / 2, 'aria-label': 'Resize length' }, g);
+            svg('circle', { 'class': 'gm-resize-handle', 'data-resize': 'width', cx: b.len / 2, cy: b.wid, r: handleSize / 2, 'aria-label': 'Resize width' }, g);
+        }
         if (b.warnings.length) {
             var wf = Math.max(Math.min(fs, Math.min(b.len, b.wid) * 0.8), 0.6);
             var wt = svg('text', { x: b.len - wf * 0.15, y: wf * 0.95, 'class': 'gm-warn', 'text-anchor': 'end', 'font-size': wf, 'stroke-width': wf * 0.12 }, g); wt.textContent = '⚠';
@@ -403,7 +408,7 @@
         controls();
         if (lengthInput) lengthInput.value = byId[id] ? Number(byId[id].len).toFixed(2).replace(/\.?0+$/, '') : '';
         if (widthInput) widthInput.value = byId[id] ? Number(byId[id].wid).toFixed(2).replace(/\.?0+$/, '') : '';
-        if (editing) { var b = byId[id]; var help = editbar && editbar.querySelector('[data-edit-help]'); if (help) help.textContent = b ? b.path + ' selected. Drag or rotate, then Save layout.' : 'Drag to move, tap to select, then rotate. Save layout when finished.'; }
+        if (editing) { var b = byId[id]; var help = editbar && editbar.querySelector('[data-edit-help]'); if (help) help.textContent = b ? b.path + ' selected. Drag to move; use edge handles to resize a bed without child areas. Save layout when finished.' : 'Drag to move, tap to select, then rotate or resize. Save layout when finished.'; }
         else showPanel(byId[id] || null);
     }
 
@@ -448,7 +453,9 @@
             if (!g || !editing || busy) return;
             var b = byId[+g.getAttribute('data-id')]; if (!b) return;
             var p = localPoint(g.parentNode, ev); if (!p) return;
-            drag = { b: b, g: g, start: p, was: state(b), moved: false, id: ev.pointerId };
+            var handle = ev.target.getAttribute && ev.target.getAttribute('data-resize');
+            if (handle && (kids[b.id] || []).length) return;
+            drag = { b: b, g: g, start: p, was: state(b), moved: false, id: ev.pointerId, resize: handle || '' };
             try { stage.setPointerCapture(ev.pointerId); } catch (e) { /* older browsers */ }
             controls();
             ev.preventDefault();
@@ -459,18 +466,28 @@
             var dx = p.x - drag.start.x, dy = p.y - drag.start.y;
             if (!drag.moved && Math.abs(dx) * pxPerFt < 4 && Math.abs(dy) * pxPerFt < 4) return;
             drag.moved = true;
-            drag.b.x = quantize(drag.was.x + dx); drag.b.y = quantize(drag.was.y + dy);
-            drag.g.setAttribute('transform', tf(drag.b));
-            say(drag.b.name + ': ' + drag.b.x + ' ft across, ' + drag.b.y + ' ft down');
+            if (drag.resize) {
+                var angle = drag.was.rot * Math.PI / 180;
+                var along = dx * Math.cos(angle) + dy * Math.sin(angle);
+                var across = -dx * Math.sin(angle) + dy * Math.cos(angle);
+                var size = Math.max(0.01, Math.min(10000, quantize((drag.resize === 'length' ? drag.was.len : drag.was.wid) + (drag.resize === 'length' ? along : across))));
+                if (drag.resize === 'length') drag.b.len = size;
+                else drag.b.wid = size;
+                say(drag.b.name + ': ' + drag.b.len + ' × ' + drag.b.wid + ' ft. Release to apply.');
+            } else {
+                drag.b.x = quantize(drag.was.x + dx); drag.b.y = quantize(drag.was.y + dy);
+                drag.g.setAttribute('transform', tf(drag.b));
+                say(drag.b.name + ': ' + drag.b.x + ' ft across, ' + drag.b.y + ' ft down');
+            }
         });
         var end = function (ev) {
             if (!drag || ev.pointerId !== drag.id) return;
             var d = drag; drag = null; controls();
-            if (d.moved) { select(d.b.id); render(); record(d.b, d.was); }
+            if (d.moved) { render(); select(d.b.id); record(d.b, d.was); }
             else select(d.b.id);
         };
         stage.addEventListener('pointerup', end);
-        stage.addEventListener('pointercancel', function (ev) { if (drag && ev.pointerId === drag.id) { var d = drag; drag = null; d.b.x = d.was.x; d.b.y = d.was.y; render(); controls(); } });
+        stage.addEventListener('pointercancel', function (ev) { if (drag && ev.pointerId === drag.id) { var d = drag; drag = null; d.b.x = d.was.x; d.b.y = d.was.y; d.b.len = d.was.len; d.b.wid = d.was.wid; render(); controls(); } });
         stage.addEventListener('click', function (ev) {
             if (editing) return;
             var g = ev.target.closest && ev.target.closest('.gm-bed');
