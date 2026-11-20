@@ -2,6 +2,24 @@
 // Run with: node tests/garden_editor_geometry_test.js
 'use strict';
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const source = fs.readFileSync('admin/assets/garden.js', 'utf8');
+function productionFunction(name) {
+  const start = source.indexOf('function ' + name + '(');
+  assert.ok(start >= 0, name + ' must exist in production');
+  const brace = source.indexOf('{', start);
+  let depth = 0, end = -1;
+  for (let i = brace; i < source.length; i++) {
+    if (source[i] === '{') depth++;
+    if (source[i] === '}' && --depth === 0) { end = i + 1; break; }
+  }
+  assert.ok(end > brace, name + ' must be complete');
+  return vm.runInNewContext('(' + source.slice(start, end) + ')');
+}
+const state = productionFunction('state');
+const differs = productionFunction('differs');
+const corners = productionFunction('corners');
 
 function world(b, x, y) {
   const angle = b.rot * Math.PI / 180, c = Math.cos(angle), s = Math.sin(angle);
@@ -23,6 +41,11 @@ for (const rot of [0, 15, 45, 90, 135, 270, 359]) {
   for (const [length, width] of [[6, 3], [15, 3], [6, 9], [1, 1]]) {
     const before = { x: 10, y: 20, len: 6, wid: 3, rot };
     const after = resized(before, length, width);
+    assert.equal(differs(before, state(after)), length !== before.len || width !== before.wid);
+    assert.deepEqual(Object.keys(state(after)).sort(), ['id','len','rot','wid','x','y'].sort());
+    const worldCorners = corners(after);
+    close(worldCorners[0][0], world(after, 0, 0)[0]);
+    close(worldCorners[0][1], world(after, 0, 0)[1]);
     const origin = world(before, 0, 0);
     const newOrigin = world(after, 0, 0);
     close(origin[0], newOrigin[0]);
