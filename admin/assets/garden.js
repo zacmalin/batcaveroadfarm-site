@@ -262,6 +262,7 @@
         stage.textContent = '';
         var pics = colorBy === 'picture';
         stage.classList.toggle('is-pic', pics);
+        stage.classList.toggle('is-pannable', zoomLevel > 1);
         svgEl = svg('svg', { 'class': 'gm-svg' + (editing ? ' is-editing' : '') + (pics ? ' is-pic' : ''), viewBox: [x0, y0, w, h].join(' '), 'aria-hidden': 'true' }, stage);
         defsEl = svg('defs', {}, svgEl); picDefs = {}; picN = 0;
         pxPerFt = Math.min((stage.clientWidth || 320) / w, (window.innerHeight || 700) * 0.78 / h);   // the drawing is capped at 78% of the screen height
