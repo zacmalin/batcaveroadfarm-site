@@ -137,6 +137,8 @@
     var turnBtns = root.querySelectorAll('[data-turn]');
     var nudgeBtns = root.querySelectorAll('[data-nudge]');
     var snapSelect = root.querySelector('[data-snap]');
+    var zoomBtns = root.querySelectorAll('[data-zoom]');
+    var zoomLevel = 1;
     var lengthInput = root.querySelector('[data-length-ft]');
     var widthInput = root.querySelector('[data-width-ft]');
     var dimensionButton = root.querySelector('[data-apply-dimensions]');
@@ -249,6 +251,9 @@
         var e = extent(), pad = Math.max(1, (e.maxX - e.minX) * 0.03);
         var room = editing ? Math.max(8, (e.maxX - e.minX) * 0.25) : 0;
         var x0 = e.minX - pad, y0 = e.minY - pad, w = e.maxX - e.minX + 2 * pad + room, h = e.maxY - e.minY + 2 * pad + room * 0.5;
+        var midX = x0 + w / 2, midY = y0 + h / 2;
+        w /= zoomLevel; h /= zoomLevel;
+        x0 = midX - w / 2; y0 = midY - h / 2;
         stage.textContent = '';
         var pics = colorBy === 'picture';
         stage.classList.toggle('is-pic', pics);
@@ -265,7 +270,7 @@
         var north = svg('text', { x: x0 + w - fs * 0.6, y: y0 + fs * 1.3, 'class': 'gm-north', 'text-anchor': 'end', 'font-size': fs }, svgEl); north.textContent = 'N ↑';
         var layer = svg('g', { 'class': 'gm-layer' }, svgEl);
         roots.forEach(function (b) { drawBed(layer, b, fs); });
-        if (scaleEl) scaleEl.textContent = 'Each grid square is ' + step + ' ft. Top of the map is north.' + (editing ? '' : ' Tap a bed for its details.');
+        if (scaleEl) scaleEl.textContent = 'Each grid square is ' + step + ' ft. Top of the map is north. Zoom ' + Math.round(zoomLevel * 100) + '%.' + (editing ? '' : ' Tap a bed for its details.');
         legend();
     }
 
@@ -474,6 +479,13 @@
             if (g && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); select(+g.getAttribute('data-id')); }
         });
     }
+    Array.prototype.forEach.call(zoomBtns, function (btn) {
+        btn.addEventListener('click', function () {
+            var action = btn.getAttribute('data-zoom');
+            zoomLevel = action === 'reset' ? 1 : Math.max(0.5, Math.min(4, zoomLevel * (action === 'in' ? 1.25 : 0.8)));
+            render();
+        });
+    });
     if (dimensionButton) dimensionButton.addEventListener('click', function () {
         var b = byId[selected]; if (!b || !editing || busy || (kids[b.id] || []).length) return;
         var length = Number(lengthInput.value), width = Number(widthInput.value);
