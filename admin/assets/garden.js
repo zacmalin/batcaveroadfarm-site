@@ -475,9 +475,12 @@
                 var size = Math.max(0.01, Math.min(10000, quantize((drag.resize === 'length' ? drag.was.len : drag.was.wid) + (drag.resize === 'length' ? along : across))));
                 if (drag.resize === 'length') drag.b.len = size;
                 else drag.b.wid = size;
-                // Preview the entire bed while pointer capture remains on the stable stage.
-                // Full geometry, crop strips and handles are rebuilt on release.
-                drag.g.setAttribute('transform', tf(drag.b) + ' scale(' + (drag.b.len / drag.was.len) + ' ' + (drag.b.wid / drag.was.wid) + ')');
+                // Keep the opposite corner fixed in world space when resizing a rotated bed.
+                var deltaLen = drag.b.len - drag.was.len, deltaWid = drag.b.wid - drag.was.wid;
+                drag.b.x = drag.was.x + (deltaLen * (Math.cos(angle) - 1) - deltaWid * Math.sin(angle)) / 2;
+                drag.b.y = drag.was.y + (deltaLen * Math.sin(angle) + deltaWid * (Math.cos(angle) - 1)) / 2;
+                // Stretch existing SVG only for the gesture preview; rebuild crop strips on release.
+                drag.g.setAttribute('transform', tf(drag.was) + ' scale(' + (drag.b.len / drag.was.len) + ' ' + (drag.b.wid / drag.was.wid) + ')');
                 say(drag.b.name + ': ' + drag.b.len + ' × ' + drag.b.wid + ' ft. Release to apply.');
             } else {
                 drag.b.x = quantize(drag.was.x + dx); drag.b.y = quantize(drag.was.y + dy);
