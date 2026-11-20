@@ -251,7 +251,9 @@
         var e = extent(), pad = Math.max(1, (e.maxX - e.minX) * 0.03);
         var room = editing ? Math.max(8, (e.maxX - e.minX) * 0.25) : 0;
         var x0 = e.minX - pad, y0 = e.minY - pad, w = e.maxX - e.minX + 2 * pad + room, h = e.maxY - e.minY + 2 * pad + room * 0.5;
-        var midX = x0 + w / 2, midY = y0 + h / 2;
+        var focus = selected && byId[selected] && byId[selected].placed ? byId[selected] : null;
+        var midX = zoomLevel > 1 && focus ? focus.x + focus.len / 2 : x0 + w / 2;
+        var midY = zoomLevel > 1 && focus ? focus.y + focus.wid / 2 : y0 + h / 2;
         w /= zoomLevel; h /= zoomLevel;
         x0 = midX - w / 2; y0 = midY - h / 2;
         stage.textContent = '';
