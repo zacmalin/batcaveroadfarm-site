@@ -109,7 +109,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['act'] ?? '') === '
                 }
                 $length = garden_ft_to_m((string)$change['length_ft']);
                 $width = garden_ft_to_m((string)$change['width_ft']);
-                if ($length !== (string)$cur['length_m'] || $width !== (string)$cur['width_m']) {
+                if (abs((float)$length - (float)$cur['length_m']) > 0.0005 || abs((float)$width - (float)$cur['width_m']) > 0.0005) {
                     $children = $pdo->prepare('SELECT COUNT(*) FROM garden_growing_locations WHERE organization_id = ? AND site_id = ? AND parent_id = ? AND active = 1');
                     $children->execute([$org, $site, $id]);
                     if ((int)$children->fetchColumn() > 0) throw new InvalidArgumentException('Resize child beds before resizing their containing area.');
