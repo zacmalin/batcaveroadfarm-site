@@ -82,7 +82,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['act'] ?? '') === '
         $lock = $pdo->prepare('SELECT id FROM garden_growing_sites WHERE id = ? AND organization_id = ? FOR UPDATE');
         $lock->execute([$site, $org]);
         if (!$lock->fetchColumn()) throw new InvalidArgumentException('Garden not found.');
-        if (!hash_equals(garden_layout_revision($pdo, $org, $site), (string)($_POST['revision'] ?? ''))) {
+        if (!hash_equals(\Garden\Domain\garden_layout_revision($pdo, $org, $site), (string)($_POST['revision'] ?? ''))) {
             throw new DomainException('This garden changed since you opened it. Reload before saving to avoid overwriting another edit.');
         }
         foreach ($changes as $change) {
@@ -101,7 +101,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['act'] ?? '') === '
             if ($rot === false || $rot < 0 || $rot > 359) throw new InvalidArgumentException('Invalid rotation.');
             $lay->save($pdo, $org, $site, $id, (string)$cur['length_m'], (string)$cur['width_m'], garden_ft_to_m((string)$change['x_ft']), garden_ft_to_m((string)$change['y_ft']), (string)$rot);
         }
-        $nextRevision = garden_layout_revision($pdo, $org, $site);
+        $nextRevision = \Garden\Domain\garden_layout_revision($pdo, $org, $site);
         $pdo->commit();
         echo json_encode(['ok' => true, 'revision' => $nextRevision]);
     } catch (Throwable $e) {
@@ -388,7 +388,7 @@ if ($tab === 'map') {
     $data = garden_map_data($pdo, $org, $site, $areas, $plantings, $window, $today);
     $data['canEdit'] = $manage;
     $data['csrf'] = garden_csrf();
-    $data['layoutRevision'] = garden_layout_revision($pdo, $org, $sid);
+    $data['layoutRevision'] = \Garden\Domain\garden_layout_revision($pdo, $org, $sid);
     $data['focus'] = (int)($_GET['focus'] ?? 0);
     $year = (int)substr($today, 0, 4);
     $quick = ['now' => 'Today', (string)$year => 'This year', (string)($year - 1) => 'Last year'];
