@@ -28,8 +28,10 @@ for (const rot of [0, 15, 45, 90, 135, 270, 359]) {
     close(origin[0], newOrigin[0]);
     close(origin[1], newOrigin[1]);
     for (const [x, y] of [[0, 0], [6, 0], [0, 3], [6, 3]]) {
-      const scaled = world(before, x * length / before.len, y * width / before.wid);
-      // Preview scales old local coordinates before the original rotation/translation.
+      const angle = rot * Math.PI / 180;
+      const scaled = [origin[0] + Math.cos(angle) * x * length / before.len - Math.sin(angle) * y * width / before.wid,
+                      origin[1] + Math.sin(angle) * x * length / before.len + Math.cos(angle) * y * width / before.wid];
+      // Preview scales old local coordinates before original rotation/translation.
       const actual = world(after, x * length / before.len, y * width / before.wid);
       close(scaled[0], actual[0]);
       close(scaled[1], actual[1]);
