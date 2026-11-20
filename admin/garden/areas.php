@@ -67,6 +67,42 @@ function garden_swatch(string $color): string {
     return '<svg class="gm-swatch" viewBox="0 0 10 10" aria-hidden="true"><rect width="10" height="10" rx="2" fill="' . htmlspecialchars($color, ENT_QUOTES, 'UTF-8') . '"/></svg>';
 }
 
+// ── Save staged map edits in a single transaction. ──
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['act'] ?? '') === 'area_layout_save') {
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    try {
+        if (!hash_equals(garden_csrf(), (string)($_POST['csrf_token'] ?? ''))) throw new InvalidArgumentException('Security token expired.');
+        if (!garden_can_manage()) throw new InvalidArgumentException('Manager permission required.');
+        $site = garden_id('site_id', 'Choose a garden.');
+        $changes = json_decode((string)($_POST['changes'] ?? ''), true, 32, JSON_THROW_ON_ERROR);
+        if (!is_array($changes) || !array_is_list($changes) || !$changes || count($changes) > 250) throw new InvalidArgumentException('Provide 1–250 bed changes.');
+        $seen = [];
+        $pdo->beginTransaction();
+        foreach ($changes as $change) {
+            if (!is_array($change) || !isset($change['id'], $change['x_ft'], $change['y_ft'], $change['rotation'])) throw new InvalidArgumentException('Invalid bed change.');
+            $id = filter_var($change['id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            if (!$id || isset($seen[$id])) throw new InvalidArgumentException('Invalid or duplicate bed ID.');
+            $seen[$id] = true;
+            $cur = garden_area_row($pdo, $org, $id);
+            if (!$cur || (int)$cur['site_id'] !== $site || $cur['length_m'] === null) throw new InvalidArgumentException('Bed not found in this garden.');
+            foreach (['x_ft', 'y_ft'] as $axis) {
+                if (!is_numeric($change[$axis]) || !is_finite((float)$change[$axis]) || abs((float)$change[$axis]) > 100000) throw new InvalidArgumentException('Invalid coordinate.');
+            }
+            $rot = filter_var($change['rotation'], FILTER_VALIDATE_INT);
+            if ($rot === false || $rot < 0 || $rot > 359) throw new InvalidArgumentException('Invalid rotation.');
+            $lay->save($pdo, $org, $site, $id, (string)$cur['length_m'], (string)$cur['width_m'], garden_ft_to_m((string)$change['x_ft']), garden_ft_to_m((string)$change['y_ft']), (string)$rot);
+        }
+        $pdo->commit();
+        echo json_encode(['ok' => true]);
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        if ($e instanceof InvalidArgumentException || $e instanceof DomainException || $e instanceof JsonException) echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+        else { error_log('[garden] layout save: ' . $e->getMessage()); echo json_encode(['ok' => false, 'error' => 'Could not save layout.']); }
+    }
+    exit;
+}
+
 // ── Map drag: save one bed's spot and turn, answer JSON (garden.js) ──
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['act'] ?? '') === 'area_move') {
     header('Content-Type: application/json; charset=utf-8');
@@ -364,7 +400,12 @@ if ($tab === 'map') {
         <button type="button" class="gm-segbtn" data-color-by="status" aria-pressed="false">Status</button>
         <button type="button" class="gm-segbtn" data-color-by="bed" aria-pressed="false">Bed color</button>
       </div>
-      <?php if ($manage && $placed): ?><button type="button" class="gm-segbtn gm-move" data-move-toggle aria-pressed="false">Move beds</button><?php endif; ?>
+      <?php if ($manage && $placed): ?>
+      <button type="button" class="gm-segbtn" data-undo-layout disabled>Undo</button>
+      <button type="button" class="gm-segbtn" data-redo-layout disabled>Redo</button>
+      <button type="button" class="gm-segbtn" data-save-layout disabled>Save layout</button>
+      <button type="button" class="gm-segbtn gm-move" data-move-toggle aria-pressed="false">Edit beds</button>
+      <?php endif; ?>
     </div>
     <div class="gm-editbar" data-editbar hidden>
       <span data-edit-help>Drag a bed to move it. Tap one to pick it, then turn it.</span>
