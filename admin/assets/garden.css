@@ -130,3 +130,9 @@
 .gm-setgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr)); gap: .5rem; }
 .gm-setgrid figure { margin: 0; text-align: center; font-size: .6875rem; color: #57534e; line-height: 1.2; }
 .gm-setgrid img { display: block; width: 3rem; height: 3rem; object-fit: contain; margin: 0 auto .2rem; }
+
+/* Garden layout editor: touch-sized nudge and snap controls. */
+.gm-snap-label { display: inline-flex; align-items: center; gap: .4rem; font-size: .85rem; color: #57534e; }
+.gm-snap-label select { min-height: 2.75rem; border: 1px solid #b7ad9c; border-radius: .45rem; background: #fff; color: #44403c; padding: .35rem .5rem; }
+.gm-editbtns [data-nudge] { min-width: 2.75rem; min-height: 2.75rem; font-size: 1.1rem; }
+.gm-editbtns [data-nudge]:focus-visible, .gm-snap-label select:focus-visible { outline: 2px solid #79523a; outline-offset: 2px; }
