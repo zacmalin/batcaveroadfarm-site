@@ -410,7 +410,6 @@
         selected = id;
         if (changedSelection && editing && !drag && !panDrag) render();
         if (svgEl) Array.prototype.forEach.call(svgEl.querySelectorAll('.gm-bed'), function (g) { g.classList.toggle('is-selected', +g.getAttribute('data-id') === id); });
-        Array.prototype.forEach.call(turnBtns, function (t) { t.disabled = busy || !!drag || !!panDrag || !(editing && id); });
         controls();
         if (lengthInput) lengthInput.value = byId[id] ? Number(byId[id].len).toFixed(2).replace(/\.?0+$/, '') : '';
         if (widthInput) widthInput.value = byId[id] ? Number(byId[id].wid).toFixed(2).replace(/\.?0+$/, '') : '';
@@ -428,9 +427,12 @@
         body.set('changes',JSON.stringify(changes));
         body.set('revision', revision);
         var savingRevision = editRevision;
-        busy = true; controls(); select(selected); say('Saving layout…');
+        busy = true; controls(); say('Saving layout…');
         fetch('areas.php', { method:'POST', body:body, credentials:'same-origin', headers:{ Accept:'application/json' } })
-            .then(function (r) { if (!r.ok) throw new Error('Save failed.'); return r.json(); })
+            .then(function (r) {
+                return r.json().catch(function () { throw new Error('Server did not return a valid layout response.'); })
+                    .then(function (j) { if (!r.ok) throw new Error(j && j.error || 'Save failed.'); return j; });
+            })
             .then(function (j) {
                 if (!j || !j.ok) throw new Error(j && j.error || 'Save failed.');
                 if (editRevision !== savingRevision) {
@@ -443,7 +445,7 @@
                 history = []; future = []; say('Layout saved.');
             })
             .catch(function (e) { say(e.message || 'Could not save layout.',true); })
-            .finally(function () { busy = false; controls(); select(selected); });
+            .finally(function () { busy = false; controls(); });
     }
     if (saveButton) saveButton.addEventListener('click',saveLayout);
     // Pointer: tap = pick; in edit mode, drag = move (configurable snap).
@@ -522,11 +524,14 @@
         var end = function (ev) {
             if (panDrag && ev.pointerId === panDrag.id) { panDrag = null; controls(); return; }
             if (!drag || ev.pointerId !== drag.id) return;
-            var d = drag; drag = null; controls();
+            var d = drag; drag = null;
             if (d.moved) { render(); select(d.b.id); record(d.b, d.was); }
             else select(d.b.id);
+            controls();
         };
         stage.addEventListener('pointerup', end);
+        // Pointer capture is best-effort. Finish gestures released outside the SVG.
+        window.addEventListener('pointerup', end);
         function cancelGesture(ev) {
             if (panDrag && ev.pointerId === panDrag.id) {
                 panX = panDrag.ox; panY = panDrag.oy; panDrag = null; render(); controls(); return;
@@ -539,6 +544,7 @@
             say('Gesture cancelled; no changes applied.');
         }
         stage.addEventListener('pointercancel', cancelGesture);
+        window.addEventListener('pointercancel', cancelGesture);
         stage.addEventListener('lostpointercapture', cancelGesture);
         window.addEventListener('blur', function () {
             if (drag) cancelGesture({ pointerId: drag.id });
