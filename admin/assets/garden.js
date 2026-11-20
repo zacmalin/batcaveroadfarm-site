@@ -144,6 +144,7 @@
     var editing = false, selected = D.focus && byId[D.focus] ? D.focus : 0;
     var svgEl = null, pxPerFt = 10;
     var history = [], future = [], busy = false;
+    var revision = D.layoutRevision || '';
     var baseline = {};
     (D.beds || []).forEach(function (bed) { baseline[bed.id] = { x: bed.x, y: bed.y, rot: bed.rot }; });
     var saveButton = root.querySelector('[data-save-layout]');
@@ -390,12 +391,14 @@
         var body = new URLSearchParams();
         body.set('act','area_layout_save'); body.set('csrf_token',D.csrf); body.set('site_id',D.site);
         body.set('changes',JSON.stringify(changes));
+        body.set('revision', revision);
         busy = true; controls(); say('Saving layout…');
         fetch('areas.php', { method:'POST', body:body, credentials:'same-origin', headers:{ Accept:'application/json' } })
             .then(function (r) { if (!r.ok) throw new Error('Save failed.'); return r.json(); })
             .then(function (j) {
                 if (!j || !j.ok) throw new Error(j && j.error || 'Save failed.');
                 (D.beds || []).forEach(function (b) { baseline[b.id] = state(b); });
+                revision = j.revision || revision;
                 history = []; future = []; say('Layout saved.');
             })
             .catch(function (e) { say(e.message || 'Could not save layout.',true); })
@@ -456,7 +459,7 @@
         });
     });
     if (moveBtn) moveBtn.addEventListener('click', function () {
-        if (editing && dirty()) { say('Save or undo changes before leaving edit mode.', true); return; }
+        if (busy || (editing && dirty())) { say('Save or undo changes before leaving edit mode.', true); return; }
         editing = !editing;
         moveBtn.setAttribute('aria-pressed', editing ? 'true' : 'false');
         moveBtn.textContent = editing ? 'Done moving' : 'Move beds';
@@ -476,8 +479,10 @@
     // "Add to map": drop the bed below everything else, then reload on it.
     Array.prototype.forEach.call(document.querySelectorAll('[data-place]'), function (btn) {
         btn.addEventListener('click', function () {
-            var b = byId[+btn.getAttribute('data-place')]; if (!b) return;
+            var b = byId[+btn.getAttribute('data-place')]; if (!b || busy) return;
+            if (dirty()) { say('Save your layout changes before adding another bed.', true); return; }
             var e = extent();
+            var previous = state(b);
             b.x = 0; b.y = roots.length ? Math.ceil(e.maxY + 2) : 0; b.rot = 0;
             if (b.parent && byId[b.parent] && byId[b.parent].placed) b.y = 0;   // inside its area: start in the corner
             btn.disabled = true;
@@ -491,7 +496,7 @@
                     if (!j || !j.ok) throw new Error(j && j.error || 'Could not place bed.');
                     window.location.href = 'areas.php?site=' + D.site + '&tab=map&focus=' + b.id;
                 })
-                .catch(function (err) { say(err.message || 'Could not place bed.', true); btn.disabled = false; });
+                .catch(function (err) { b.x = previous.x; b.y = previous.y; b.rot = previous.rot; say(err.message || 'Could not place bed.', true); btn.disabled = false; });
         });
     });
     var rt = null;
