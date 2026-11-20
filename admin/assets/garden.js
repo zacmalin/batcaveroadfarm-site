@@ -458,7 +458,7 @@
             var g = ev.target.closest && ev.target.closest('.gm-bed');
             if (!g) {
                 if (zoomLevel <= 1 || drag || panDrag) return;
-                panDrag = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, ox: panX, oy: panY };
+                panDrag = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, ox: panX, oy: panY, lastX: panX, lastY: panY };
                 try { stage.setPointerCapture(ev.pointerId); } catch (e) { /* older browsers */ }
                 ev.preventDefault();
                 return;
@@ -475,11 +475,18 @@
         });
         stage.addEventListener('pointermove', function (ev) {
             if (panDrag && ev.pointerId === panDrag.id && svgEl) {
-                var bounds = svgEl.getBoundingClientRect(), view = svgEl.viewBox.baseVal;
-                if (bounds.width && bounds.height) {
-                    panX = panDrag.ox - (ev.clientX - panDrag.x) * view.width / bounds.width;
-                    panY = panDrag.oy - (ev.clientY - panDrag.y) * view.height / bounds.height;
-                    render();
+                var matrix = svgEl.getScreenCTM(), view = svgEl.viewBox.baseVal;
+                if (matrix) {
+                    var determinant = matrix.a * matrix.d - matrix.b * matrix.c;
+                    if (Math.abs(determinant) > 0.000001) {
+                        var screenDx = ev.clientX - panDrag.x, screenDy = ev.clientY - panDrag.y;
+                        panX = panDrag.ox - (matrix.d * screenDx - matrix.c * screenDy) / determinant;
+                        panY = panDrag.oy - (-matrix.b * screenDx + matrix.a * screenDy) / determinant;
+                        // Changing viewBox pans without reconstructing every bed and plant.
+                        view.x += panX - panDrag.lastX;
+                        view.y += panY - panDrag.lastY;
+                        panDrag.lastX = panX; panDrag.lastY = panY;
+                    }
                 }
                 return;
             }
