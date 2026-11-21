@@ -226,7 +226,7 @@ $ok(json_encode($fixtureMap, JSON_THROW_ON_ERROR) !== '', 'fixture map serialize
 echo 'PERF baseline: 133 Farm OS beds map-data generation ' . $fixtureMs . " ms (informational, not a pass threshold)\n";
 // Historical planting records must survive geometry edits.
 $historyBefore = (int)$one('SELECT COUNT(*) FROM garden_plantings WHERE location_id = ?', [$bed]);
-$layout = new Garden\\Domain\\GrowingAreaLayout();
+$layout = new Garden\Domain\GrowingAreaLayout();
 $layout->save($pdo, $org, $site, $bed, garden_ft_to_m('8'), garden_ft_to_m('4'), garden_ft_to_m('1'), garden_ft_to_m('2'), '90');
 $ok((int)$one('SELECT COUNT(*) FROM garden_plantings WHERE location_id = ?', [$bed]) === $historyBefore,
     'editing garden geometry preserves historical planting records');
