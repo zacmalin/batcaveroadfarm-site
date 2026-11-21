@@ -194,6 +194,45 @@ $otherBed = $gs->createLocation($pdo, $org, $anotherSite, 'Other bed', 'raised_b
 $ok(\Garden\Domain\garden_layout_revision($pdo, $org, $site) === $revisionBefore, 'other garden changes do not invalidate this layout');
 $throws(fn() => (new Garden\Domain\GrowingAreaLayout())->save($pdo, $org, $site, $otherBed, garden_ft_to_m('4'), garden_ft_to_m('4'), '0', '0', '0'), 'cross-garden bed editing is rejected', 'not found');
 
+// ── Representative Farm OS layouts and performance baselines ──
+// Use disposable test DB only. These are persisted locations, not mock-only SVG objects.
+$layoutFixtures = [
+    ['name' => 'Backyard', 'rows' => 2, 'cols' => 4, 'len' => '8', 'wid' => '4', 'path' => '3'],
+    ['name' => 'Raised', 'rows' => 5, 'cols' => 5, 'len' => '6', 'wid' => '3', 'path' => '2'],
+    ['name' => 'Market', 'rows' => 10, 'cols' => 10, 'len' => '20', 'wid' => '3', 'path' => '3'],
+];
+$fixtureSite = $gs->createSite($pdo, $org, 'Editor acceptance fixtures', 'America/New_York');
+$fixtureIds = [];
+foreach ($layoutFixtures as $fixture) {
+    $created = garden_lay_out_grid($pdo, $org, $fixtureSite, [
+        'prefix' => $fixture['name'], 'first' => 1, 'rows' => $fixture['rows'],
+        'cols' => $fixture['cols'], 'length_ft' => $fixture['len'],
+        'width_ft' => $fixture['wid'], 'path_ft' => $fixture['path'],
+        'x_ft' => '', 'y_ft' => '', 'kind' => 'raised_bed',
+        'parent_id' => 0, 'upright' => false, 'details' => [],
+    ]);
+    $ok(count($created) === $fixture['rows'] * $fixture['cols'], $fixture['name'] . ' fixture persists every bed');
+    array_push($fixtureIds, ...$created);
+}
+$fixtureLocations = $gs->locations($pdo, $org, $fixtureSite);
+$ok(count($fixtureLocations) === 133, 'realistic layout fixtures retain all 133 locations');
+$ok(count(array_unique(array_column($fixtureLocations, 'id'))) === 133, 'fixture IDs remain unique');
+$fixtureStart = hrtime(true);
+$fixtureMap = garden_map_data($pdo, $org, ['id' => $fixtureSite, 'name' => 'Editor acceptance fixtures'],
+    $fixtureLocations, [], garden_season_window('2026-summer', '2026-11-19'), '2026-11-19');
+$fixtureMs = round((hrtime(true) - $fixtureStart) / 1e6, 1);
+$ok(count($fixtureMap['beds']) === 133, 'map serialization includes every fixture bed');
+$ok(json_encode($fixtureMap, JSON_THROW_ON_ERROR) !== '', 'fixture map serializes to valid JSON');
+echo 'PERF baseline: 133 Farm OS beds map-data generation ' . $fixtureMs . " ms (informational, not a pass threshold)\n";
+// Historical planting records must survive geometry edits.
+$historyBefore = (int)$one('SELECT COUNT(*) FROM garden_plantings WHERE location_id = ?', [$bed]);
+$layout = new Garden\\Domain\\GrowingAreaLayout();
+$layout->save($pdo, $org, $site, $bed, garden_ft_to_m('8'), garden_ft_to_m('4'), garden_ft_to_m('1'), garden_ft_to_m('2'), '90');
+$ok((int)$one('SELECT COUNT(*) FROM garden_plantings WHERE location_id = ?', [$bed]) === $historyBefore,
+    'editing garden geometry preserves historical planting records');
+$ok((int)$one('SELECT COUNT(*) FROM garden_growing_locations WHERE id = ? AND active = 1', [$bed]) === 1,
+    'geometry edit preserves the existing growing-area identity');
+
 // ── Pages and assets ──
 foreach (['admin/assets/garden.js', 'admin/assets/garden.css', 'includes/garden_planner.php'] as $f) $ok(is_file($root . '/' . $f), "$f exists");
 $src = file_get_contents($root . '/admin/garden/areas.php');
