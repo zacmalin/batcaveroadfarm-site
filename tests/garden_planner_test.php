@@ -140,7 +140,7 @@ $ok(count($ids) === 6, 'a 2 × 3 grid makes 6 beds');
 $b15 = $pdo->query("SELECT * FROM garden_growing_locations WHERE name = 'Bed 15'")->fetch();
 $ok($b15 && garden_m_to_ft($b15['layout_x_m']) === '22' && garden_m_to_ft($b15['layout_y_m']) === '17', 'Bed 15 is third across, second down (22 ft, 17 ft)');
 $ok($b15['sun_exposure'] === 'full_sun' && $b15['irrigation'] === 'drip', 'grid beds get the shared details');
-$throws(fn() => garden_lay_out_grid($pdo, $org, $site, ['prefix' => 'Bed', 'first' => 12, 'rows' => 1, 'cols' => 1, 'length_ft' => '8', 'width_ft' => '4', 'path_ft' => '', 'x_ft' => '', 'y_ft' => '', 'kind' => 'raised_bed', 'parent_id' => 0]), 'a name already in use is refused', 'already');
+$throws(fn() => garden_lay_out_grid($pdo, $org, $site, ['prefix' => 'Bed', 'first' => 12, 'rows' => 1, 'cols' => 1, 'length_ft' => '8', 'width_ft' => '4', 'path_ft' => '', 'x_ft' => $fixture['x'], 'y_ft' => '0', 'kind' => 'raised_bed', 'parent_id' => 0]), 'a name already in use is refused', 'already');
 $before = (int)$one("SELECT COUNT(*) FROM garden_growing_locations");
 $throws(fn() => garden_lay_out_grid($pdo, $org, $site, ['prefix' => 'Row', 'first' => 1, 'rows' => 1, 'cols' => 3, 'length_ft' => '8', 'width_ft' => '4', 'path_ft' => '1', 'x_ft' => '', 'y_ft' => '', 'kind' => 'nope', 'parent_id' => 0]), 'a bad type stops the whole grid');
 $ok((int)$one("SELECT COUNT(*) FROM garden_growing_locations") === $before, 'nothing half-made after a refusal');
@@ -197,9 +197,9 @@ $throws(fn() => (new Garden\Domain\GrowingAreaLayout())->save($pdo, $org, $site,
 // ── Representative Farm OS layouts and performance baselines ──
 // Use disposable test DB only. These are persisted locations, not mock-only SVG objects.
 $layoutFixtures = [
-    ['name' => 'Backyard', 'rows' => 2, 'cols' => 4, 'len' => '8', 'wid' => '4', 'path' => '3'],
-    ['name' => 'Raised', 'rows' => 5, 'cols' => 5, 'len' => '6', 'wid' => '3', 'path' => '2'],
-    ['name' => 'Market', 'rows' => 10, 'cols' => 10, 'len' => '20', 'wid' => '3', 'path' => '3'],
+    ['name' => 'Backyard', 'rows' => 2, 'cols' => 4, 'len' => '8', 'wid' => '4', 'path' => '3', 'x' => '0'],
+    ['name' => 'Raised', 'rows' => 5, 'cols' => 5, 'len' => '6', 'wid' => '3', 'path' => '2', 'x' => '100'],
+    ['name' => 'Market', 'rows' => 10, 'cols' => 10, 'len' => '20', 'wid' => '3', 'path' => '3', 'x' => '300'],
 ];
 $fixtureSite = $gs->createSite($pdo, $org, 'Editor acceptance fixtures', 'America/New_York');
 $fixtureIds = [];
