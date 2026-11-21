@@ -30,7 +30,7 @@ use Garden\Domain\SoilPerennials;
 $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 $ui = garden_ui();
 if (!garden_ready($pdo)) {
-    if (($_POST['act'] ?? '') === 'area_move') { header('Content-Type: application/json'); echo json_encode(['ok' => false, 'error' => 'Run the garden migrations first.']); exit; }
+    if (in_array(($_POST['act'] ?? ''), ['area_move', 'area_layout_save'], true)) { header('Content-Type: application/json'); echo json_encode(['ok' => false, 'error' => 'Run the garden migrations first.']); exit; }
     bcrf_shell_open('Beds & areas — Garden');
     echo '<h1 class="', $ui['h1'], '">Beds &amp; areas</h1>', bcrf_shell_notice('warning', 'Run the garden migrations (0072 to 0076) in Settings › Database first.');
     bcrf_shell_close(); exit;
@@ -65,6 +65,67 @@ function garden_shape_icon(string $shape): string {
 /** A small square of color (an SVG, so the strict page policy allows it). */
 function garden_swatch(string $color): string {
     return '<svg class="gm-swatch" viewBox="0 0 10 10" aria-hidden="true"><rect width="10" height="10" rx="2" fill="' . htmlspecialchars($color, ENT_QUOTES, 'UTF-8') . '"/></svg>';
+}
+
+// ── Save staged map edits in a single transaction. ──
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['act'] ?? '') === 'area_layout_save') {
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    try {
+        if (!hash_equals(garden_csrf(), (string)($_POST['csrf_token'] ?? ''))) throw new InvalidArgumentException('Security token expired.');
+        if (!garden_can_manage()) throw new InvalidArgumentException('Manager permission required.');
+        $site = garden_id('site_id', 'Choose a garden.');
+        $changes = json_decode((string)($_POST['changes'] ?? ''), true, 32, JSON_THROW_ON_ERROR);
+        if (!is_array($changes) || !array_is_list($changes) || !$changes || count($changes) > 250) throw new InvalidArgumentException('Provide 1–250 bed changes.');
+        $seen = [];
+        $pdo->beginTransaction();
+        $lock = $pdo->prepare('SELECT id FROM garden_growing_sites WHERE id = ? AND organization_id = ? FOR UPDATE');
+        $lock->execute([$site, $org]);
+        if (!$lock->fetchColumn()) throw new InvalidArgumentException('Garden not found.');
+        if (!hash_equals(\Garden\Domain\garden_layout_revision($pdo, $org, $site), (string)($_POST['revision'] ?? ''))) {
+            throw new DomainException('This garden changed since you opened it. Reload before saving to avoid overwriting another edit.');
+        }
+        foreach ($changes as $change) {
+            if (!is_array($change) || !isset($change['id'], $change['x_ft'], $change['y_ft'], $change['rotation'])) throw new InvalidArgumentException('Invalid bed change.');
+            $id = filter_var($change['id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            if (!$id || isset($seen[$id])) throw new InvalidArgumentException('Invalid or duplicate bed ID.');
+            $seen[$id] = true;
+            $cur = garden_area_row($pdo, $org, $id);
+            if (!$cur || (int)$cur['site_id'] !== $site || (int)$cur['active'] !== 1 || $cur['length_m'] === null || $cur['width_m'] === null) throw new InvalidArgumentException('Bed not found in this garden.');
+            foreach (['x_ft', 'y_ft'] as $axis) {
+                if (!is_int($change[$axis]) && !is_float($change[$axis])) throw new InvalidArgumentException('Invalid coordinate type.');
+                if (!is_finite((float)$change[$axis]) || abs((float)$change[$axis]) > 100000) throw new InvalidArgumentException('Invalid coordinate.');
+            }
+            if (!is_int($change['rotation'])) throw new InvalidArgumentException('Invalid rotation type.');
+            $rot = filter_var($change['rotation'], FILTER_VALIDATE_INT);
+            if ($rot === false || $rot < 0 || $rot > 359) throw new InvalidArgumentException('Invalid rotation.');
+            $length = (string)$cur['length_m'];
+            $width = (string)$cur['width_m'];
+            if (array_key_exists('length_ft', $change) || array_key_exists('width_ft', $change)) {
+                if (!isset($change['length_ft'], $change['width_ft']) || !is_numeric($change['length_ft']) || !is_numeric($change['width_ft'])) throw new InvalidArgumentException('Invalid dimensions.');
+                foreach (['length_ft', 'width_ft'] as $dimension) {
+                    if (!is_int($change[$dimension]) && !is_float($change[$dimension])) throw new InvalidArgumentException('Invalid dimension type.');
+                    if (!is_finite((float)$change[$dimension]) || $change[$dimension] <= 0 || $change[$dimension] > 10000) throw new InvalidArgumentException('Dimensions must be positive and no more than 10,000 ft.');
+                }
+                $length = garden_ft_to_m((string)$change['length_ft']);
+                $width = garden_ft_to_m((string)$change['width_ft']);
+                if (abs((float)$length - (float)$cur['length_m']) > 0.0005 || abs((float)$width - (float)$cur['width_m']) > 0.0005) {
+                    $children = $pdo->prepare('SELECT COUNT(*) FROM garden_growing_locations WHERE organization_id = ? AND site_id = ? AND parent_id = ? AND active = 1');
+                    $children->execute([$org, $site, $id]);
+                    if ((int)$children->fetchColumn() > 0) throw new InvalidArgumentException('Resize child beds before resizing their containing area.');
+                }
+            }
+            $lay->save($pdo, $org, $site, $id, $length, $width, garden_ft_to_m((string)$change['x_ft']), garden_ft_to_m((string)$change['y_ft']), (string)$rot);
+        }
+        $nextRevision = \Garden\Domain\garden_layout_revision($pdo, $org, $site);
+        $pdo->commit();
+        echo json_encode(['ok' => true, 'revision' => $nextRevision]);
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        if ($e instanceof InvalidArgumentException || $e instanceof DomainException || $e instanceof JsonException) echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+        else { error_log('[garden] layout save: ' . $e->getMessage()); echo json_encode(['ok' => false, 'error' => 'Could not save layout.']); }
+    }
+    exit;
 }
 
 // ── Map drag: save one bed's spot and turn, answer JSON (garden.js) ──
@@ -343,6 +404,7 @@ if ($tab === 'map') {
     $data = garden_map_data($pdo, $org, $site, $areas, $plantings, $window, $today);
     $data['canEdit'] = $manage;
     $data['csrf'] = garden_csrf();
+    $data['layoutRevision'] = \Garden\Domain\garden_layout_revision($pdo, $org, $sid);
     $data['focus'] = (int)($_GET['focus'] ?? 0);
     $year = (int)substr($today, 0, 4);
     $quick = ['now' => 'Today', (string)$year => 'This year', (string)($year - 1) => 'Last year'];
@@ -364,11 +426,41 @@ if ($tab === 'map') {
         <button type="button" class="gm-segbtn" data-color-by="status" aria-pressed="false">Status</button>
         <button type="button" class="gm-segbtn" data-color-by="bed" aria-pressed="false">Bed color</button>
       </div>
-      <?php if ($manage && $placed): ?><button type="button" class="gm-segbtn gm-move" data-move-toggle aria-pressed="false">Move beds</button><?php endif; ?>
+      <?php if ($placed): ?>
+      <span class="gm-editbtns" data-no-icons role="group" aria-label="Map zoom">
+        <button type="button" class="gm-segbtn" data-zoom="out" aria-label="Zoom out">−</button>
+        <button type="button" class="gm-segbtn" data-zoom="reset" aria-label="Reset zoom">100%</button>
+        <button type="button" class="gm-segbtn" data-zoom="in" aria-label="Zoom in">+</button>
+      </span>
+      <?php endif; ?>
+      <?php if ($manage && $placed): ?>
+      <button type="button" class="gm-segbtn" data-undo-layout disabled>Undo</button>
+      <button type="button" class="gm-segbtn" data-redo-layout disabled>Redo</button>
+      <button type="button" class="gm-segbtn" data-save-layout disabled>Save layout</button>
+      <button type="button" class="gm-segbtn gm-move" data-move-toggle aria-pressed="false">Edit beds</button>
+      <?php endif; ?>
     </div>
     <div class="gm-editbar" data-editbar hidden>
-      <span data-edit-help>Drag a bed to move it. Tap one to pick it, then turn it.</span>
-      <span class="gm-editbtns" data-no-icons>
+      <span data-edit-help>Drag to move or select a bed, then use the controls. Save layout when finished.</span>
+      <label class="gm-snap-label" for="gm-snap">Snap
+        <select id="gm-snap" data-snap aria-label="Movement snap distance">
+          <option value="0.25">¼ ft</option>
+          <option value="0.5" selected>½ ft</option>
+          <option value="1">1 ft</option>
+        </select>
+      </label>
+      <span class="gm-editbtns" data-no-icons role="group" aria-label="Move selected bed">
+        <button type="button" class="gm-segbtn" data-nudge="left" aria-label="Move bed left" disabled>←</button>
+        <button type="button" class="gm-segbtn" data-nudge="up" aria-label="Move bed up" disabled>↑</button>
+        <button type="button" class="gm-segbtn" data-nudge="down" aria-label="Move bed down" disabled>↓</button>
+        <button type="button" class="gm-segbtn" data-nudge="right" aria-label="Move bed right" disabled>→</button>
+      </span>
+      <span class="gm-dimensions" role="group" aria-label="Selected bed dimensions">
+        <label>Length (ft) <input type="number" min="0.01" max="10000" step="0.01" inputmode="decimal" data-length-ft disabled></label>
+        <label>Width (ft) <input type="number" min="0.01" max="10000" step="0.01" inputmode="decimal" data-width-ft disabled></label>
+        <button type="button" class="gm-segbtn" data-apply-dimensions disabled>Apply size</button>
+      </span>
+      <span class="gm-editbtns" data-no-icons role="group" aria-label="Rotate selected bed">
         <button type="button" class="gm-segbtn" data-turn="90" disabled>Turn 90°</button>
         <button type="button" class="gm-segbtn" data-turn="15" disabled>Turn 15°</button>
       </span>

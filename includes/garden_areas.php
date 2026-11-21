@@ -125,6 +125,13 @@ final class GardenService
 
 }
 
+/** Revision of every active location's geometry; rejects stale editor drafts. */
+function garden_layout_revision(PDO $pdo, int $org, int $site): string {
+    $q = $pdo->prepare('SELECT id, parent_id, length_m, width_m, layout_x_m, layout_y_m, rotation_degrees FROM garden_growing_locations WHERE organization_id = ? AND site_id = ? AND active = 1 ORDER BY id');
+    $q->execute([$org, $site]);
+    return hash('sha256', json_encode($q->fetchAll(PDO::FETCH_NUM), JSON_THROW_ON_ERROR));
+}
+
 /** Physical footprints and 2D layout for nested garden areas, independent of Farm OS identity. */
 final class GrowingAreaLayout
 {

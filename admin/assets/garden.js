@@ -135,6 +135,13 @@
     var panel = document.querySelector('[data-panel]');
     var moveBtn = root.querySelector('[data-move-toggle]');
     var turnBtns = root.querySelectorAll('[data-turn]');
+    var nudgeBtns = root.querySelectorAll('[data-nudge]');
+    var snapSelect = root.querySelector('[data-snap]');
+    var zoomBtns = root.querySelectorAll('[data-zoom]');
+    var zoomLevel = 1, panX = 0, panY = 0;
+    var lengthInput = root.querySelector('[data-length-ft]');
+    var widthInput = root.querySelector('[data-width-ft]');
+    var dimensionButton = root.querySelector('[data-apply-dimensions]');
     var byId = {}, kids = {};
     (D.beds || []).forEach(function (b) { byId[b.id] = b; });
     (D.beds || []).forEach(function (b) { if (b.placed && b.parent && byId[b.parent] && byId[b.parent].placed) (kids[b.parent] = kids[b.parent] || []).push(b); });
@@ -143,6 +150,43 @@
     var ART = D.art || {}, picDefs = {}, defsEl = null, picN = 0;
     var editing = false, selected = D.focus && byId[D.focus] ? D.focus : 0;
     var svgEl = null, pxPerFt = 10;
+    var history = [], future = [], busy = false;
+    var editRevision = 0;
+    var revision = D.layoutRevision || '';
+    var baseline = {};
+    (D.beds || []).forEach(function (bed) { baseline[bed.id] = { id: bed.id, x: bed.x, y: bed.y, rot: bed.rot, len: bed.len, wid: bed.wid }; });
+    var saveButton = root.querySelector('[data-save-layout]');
+    var undoButton = root.querySelector('[data-undo-layout]');
+    var redoButton = root.querySelector('[data-redo-layout]');
+    function state(bed) { return { id: bed.id, x: bed.x, y: bed.y, rot: bed.rot, len: bed.len, wid: bed.wid }; }
+    function differs(a,b) { return a.x !== b.x || a.y !== b.y || a.rot !== b.rot || a.len !== b.len || a.wid !== b.wid; }
+    function dirty() { return (D.beds || []).some(function (bed) { return differs(bed, baseline[bed.id]); }); }
+    function snap() { return snapSelect ? Number(snapSelect.value) || 0.5 : 0.5; }
+    function quantize(value) { var step = snap(); return Math.round(value / step) * step; }
+    function controls() {
+        if (saveButton) saveButton.disabled = busy || !!drag || !!panDrag || !dirty();
+        if (undoButton) undoButton.disabled = busy || !!drag || !!panDrag || !history.length;
+        if (redoButton) redoButton.disabled = busy || !!drag || !!panDrag || !future.length;
+        Array.prototype.forEach.call(nudgeBtns, function (b) { b.disabled = busy || !!drag || !!panDrag || !editing || !selected; });
+        Array.prototype.forEach.call(turnBtns, function (b) { b.disabled = busy || !!drag || !!panDrag || !editing || !selected; });
+        if (moveBtn) moveBtn.disabled = busy || !!drag || !!panDrag;
+        if (snapSelect) snapSelect.disabled = !!drag || !!panDrag;
+        var selectedBed = byId[selected];
+        var canResize = !!(editing && selectedBed && !(kids[selected] || []).length && !busy && !drag && !panDrag);
+        if (dimensionButton) dimensionButton.disabled = !canResize;
+        if (lengthInput) lengthInput.disabled = !canResize;
+        if (widthInput) widthInput.disabled = !canResize;
+    }
+    function record(bed, old) {
+        if (!differs(bed,old)) return;
+        history.push({ before: old, after: state(bed) });
+        future = []; editRevision++; controls(); say('Unsaved layout changes.');
+    }
+    function restore(v) { var b = byId[v.id]; b.x = v.x; b.y = v.y; b.rot = v.rot; b.len = v.len; b.wid = v.wid; editRevision++; render(); select(b.id); controls(); }
+    if (undoButton) undoButton.addEventListener('click', function () { if (busy || drag || panDrag || !history.length) return; var v = history.pop(); future.push(v); restore(v.before); });
+    if (redoButton) redoButton.addEventListener('click', function () { if (busy || drag || panDrag || !future.length) return; var v = future.pop(); history.push(v); restore(v.after); });
+    window.addEventListener('beforeunload', function (ev) { if (dirty()) { ev.preventDefault(); ev.returnValue = ''; } });
+
 
     function say(msg, bad) { if (!statusEl) return; statusEl.textContent = msg || ''; statusEl.classList.toggle('is-bad', !!bad); }
     function tf(b) { return 'translate(' + (b.x + b.len / 2) + ' ' + (b.y + b.wid / 2) + ') rotate(' + b.rot + ') translate(' + (-b.len / 2) + ' ' + (-b.wid / 2) + ')'; }
@@ -210,9 +254,15 @@
         var e = extent(), pad = Math.max(1, (e.maxX - e.minX) * 0.03);
         var room = editing ? Math.max(8, (e.maxX - e.minX) * 0.25) : 0;
         var x0 = e.minX - pad, y0 = e.minY - pad, w = e.maxX - e.minX + 2 * pad + room, h = e.maxY - e.minY + 2 * pad + room * 0.5;
+        var focus = selected && byId[selected] && byId[selected].placed && roots.some(function (b) { return b.id === selected; }) ? byId[selected] : null;
+        var midX = zoomLevel > 1 && focus ? focus.x + focus.len / 2 : x0 + w / 2;
+        var midY = zoomLevel > 1 && focus ? focus.y + focus.wid / 2 : y0 + h / 2;
+        w /= zoomLevel; h /= zoomLevel;
+        x0 = midX - w / 2 + panX; y0 = midY - h / 2 + panY;
         stage.textContent = '';
         var pics = colorBy === 'picture';
         stage.classList.toggle('is-pic', pics);
+        stage.classList.toggle('is-pannable', zoomLevel > 1);
         svgEl = svg('svg', { 'class': 'gm-svg' + (editing ? ' is-editing' : '') + (pics ? ' is-pic' : ''), viewBox: [x0, y0, w, h].join(' '), 'aria-hidden': 'true' }, stage);
         defsEl = svg('defs', {}, svgEl); picDefs = {}; picN = 0;
         pxPerFt = Math.min((stage.clientWidth || 320) / w, (window.innerHeight || 700) * 0.78 / h);   // the drawing is capped at 78% of the screen height
@@ -220,13 +270,13 @@
         // Grid every step feet; heavier every 5 steps.
         var step = niceStep(Math.max(w, h)), gG = svg('g', { 'class': 'gm-grid' }, svgEl);
         // The grid runs past the drawing so it fills the whole card when the map is narrower than the screen.
-        var gx0 = x0 - w * 2, gx1 = x0 + w * 3;
-        for (var gx = Math.ceil(gx0 / step) * step; gx <= gx1; gx += step) svg('line', { x1: gx, y1: y0, x2: gx, y2: y0 + h, 'class': Math.round(gx / step) % 5 === 0 ? 'gm-grid-major' : '' }, gG);
-        for (var gy = Math.ceil(y0 / step) * step; gy <= y0 + h; gy += step) svg('line', { x1: gx0, y1: gy, x2: gx1, y2: gy, 'class': Math.round(gy / step) % 5 === 0 ? 'gm-grid-major' : '' }, gG);
+        var gx0 = x0 - w * 2, gx1 = x0 + w * 3, gy0 = y0 - h * 2, gy1 = y0 + h * 3;
+        for (var gx = Math.ceil(gx0 / step) * step; gx <= gx1; gx += step) svg('line', { x1: gx, y1: gy0, x2: gx, y2: gy1, 'class': Math.round(gx / step) % 5 === 0 ? 'gm-grid-major' : '' }, gG);
+        for (var gy = Math.ceil(gy0 / step) * step; gy <= gy1; gy += step) svg('line', { x1: gx0, y1: gy, x2: gx1, y2: gy, 'class': Math.round(gy / step) % 5 === 0 ? 'gm-grid-major' : '' }, gG);
         var north = svg('text', { x: x0 + w - fs * 0.6, y: y0 + fs * 1.3, 'class': 'gm-north', 'text-anchor': 'end', 'font-size': fs }, svgEl); north.textContent = 'N ↑';
         var layer = svg('g', { 'class': 'gm-layer' }, svgEl);
         roots.forEach(function (b) { drawBed(layer, b, fs); });
-        if (scaleEl) scaleEl.textContent = 'Each grid square is ' + step + ' ft. Top of the map is north.' + (editing ? '' : ' Tap a bed for its details.');
+        if (scaleEl) scaleEl.textContent = 'Each grid square is ' + step + ' ft. Top of the map is north. Zoom ' + Math.round(zoomLevel * 100) + '%.' + (editing ? '' : ' Tap a bed for its details.');
         legend();
     }
 
@@ -284,6 +334,11 @@
         // Wood frame (Pictures) or a plain edge; the picked bed gets a red edge either way.
         if (pics && !area) shapeEl(b, { 'class': 'gm-frame', 'stroke-width': Math.max(Math.min(b.len, b.wid) * 0.06, 2.5 / pxPerFt), 'stroke-linejoin': 'round' }, g);
         shapeEl(b, { 'class': 'gm-outline', 'vector-effect': 'non-scaling-stroke' }, g);
+        if (editing && b.id === selected && !(kids[b.id] || []).length) {
+            var handleSize = Math.max(18 / pxPerFt, Math.min(b.len, b.wid) * 0.16);
+            svg('circle', { 'class': 'gm-resize-handle', 'data-resize': 'length', cx: b.len, cy: b.wid / 2, r: handleSize / 2, 'aria-label': 'Resize length' }, g);
+            svg('circle', { 'class': 'gm-resize-handle', 'data-resize': 'width', cx: b.len / 2, cy: b.wid, r: handleSize / 2, 'aria-label': 'Resize width' }, g);
+        }
         if (b.warnings.length) {
             var wf = Math.max(Math.min(fs, Math.min(b.len, b.wid) * 0.8), 0.6);
             var wt = svg('text', { x: b.len - wf * 0.15, y: wf * 0.95, 'class': 'gm-warn', 'text-anchor': 'end', 'font-size': wf, 'stroke-width': wf * 0.12 }, g); wt.textContent = '⚠';
@@ -351,34 +406,60 @@
     }
 
     function select(id) {
+        var changedSelection = selected !== id;
         selected = id;
+        if (changedSelection && editing && !drag && !panDrag) render();
         if (svgEl) Array.prototype.forEach.call(svgEl.querySelectorAll('.gm-bed'), function (g) { g.classList.toggle('is-selected', +g.getAttribute('data-id') === id); });
-        Array.prototype.forEach.call(turnBtns, function (t) { t.disabled = !(editing && id); });
-        if (editing) { var b = byId[id]; var help = editbar && editbar.querySelector('[data-edit-help]'); if (help) help.textContent = b ? b.path + ' picked. Drag it, or turn it.' : 'Drag a bed to move it. Tap one to pick it, then turn it.'; }
+        controls();
+        if (lengthInput) lengthInput.value = byId[id] ? Number(byId[id].len).toFixed(2).replace(/\.?0+$/, '') : '';
+        if (widthInput) widthInput.value = byId[id] ? Number(byId[id].wid).toFixed(2).replace(/\.?0+$/, '') : '';
+        if (editing) { var b = byId[id]; var help = editbar && editbar.querySelector('[data-edit-help]'); if (help) help.textContent = b ? b.path + ' selected. Drag to move; use edge handles to resize a bed without child areas. Save layout when finished.' : 'Drag to move, tap to select, then rotate or resize. Save layout when finished.'; }
         else showPanel(byId[id] || null);
     }
 
-    // Save one bed's spot. On a refusal it goes back where it was.
-    function save(b, was) {
+    function saveLayout() {
+        if (busy || drag || panDrag || !dirty()) return;
+        var changes = (D.beds || []).filter(function (b) { return differs(b, baseline[b.id]); }).map(function (b) {
+            return { id: b.id, x_ft: b.x, y_ft: b.y, rotation: b.rot, length_ft: b.len, width_ft: b.wid };
+        });
         var body = new URLSearchParams();
-        body.set('act', 'area_move'); body.set('csrf_token', D.csrf); body.set('site_id', D.site); body.set('area_id', b.id);
-        body.set('x_ft', (Math.round(b.x * 100) / 100).toString()); body.set('y_ft', (Math.round(b.y * 100) / 100).toString()); body.set('rotation', String(b.rot));
-        say('Saving ' + b.name + '…');
-        return fetch('areas.php', { method: 'POST', body: body, credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
-            .then(function (r) { return r.json(); })
-            .then(function (j) {
-                if (j && j.ok) { say('Saved ' + b.name + '.'); return true; }
-                var e = new Error((j && j.error) || 'Could not save.'); e.fromServer = true; throw e;
+        body.set('act','area_layout_save'); body.set('csrf_token',D.csrf); body.set('site_id',D.site);
+        body.set('changes',JSON.stringify(changes));
+        body.set('revision', revision);
+        var savingRevision = editRevision;
+        busy = true; controls(); say('Saving layout…');
+        fetch('areas.php', { method:'POST', body:body, credentials:'same-origin', headers:{ Accept:'application/json' } })
+            .then(function (r) {
+                return r.json().catch(function () { throw new Error('Server did not return a valid layout response.'); })
+                    .then(function (j) { if (!r.ok) throw new Error(j && j.error || 'Save failed.'); return j; });
             })
-            .catch(function (err) {
-                if (was) { b.x = was.x; b.y = was.y; b.rot = was.rot; render(); }
-                say(err && err.fromServer ? err.message : 'Could not save ' + b.name + '. Check your connection and try again.', true);
-                return false;
-            });
+            .then(function (j) {
+                if (!j || !j.ok) throw new Error(j && j.error || 'Save failed.');
+                if (editRevision !== savingRevision) {
+                    revision = j.revision || revision;
+                    say('Layout saved, but newer edits remain unsaved.', true);
+                    return;
+                }
+                (D.beds || []).forEach(function (b) { baseline[b.id] = state(b); });
+                revision = j.revision || revision;
+                history = []; future = []; say('Layout saved.');
+            })
+            .catch(function (e) { say(e.message || 'Could not save layout.',true); })
+            .finally(function () { busy = false; controls(); });
     }
-
-    // Pointer: tap = pick; in Move mode, drag = move (snaps to half a foot).
-    var drag = null;
+    if (saveButton) saveButton.addEventListener('click',saveLayout);
+    // Pointer: tap = pick; in edit mode, drag = move (configurable snap).
+    var drag = null, panDrag = null;
+    // Convert an incremental pointer movement from screen pixels to map feet.
+    function panDelta(matrix, screenDx, screenDy) {
+        if (!matrix) return null;
+        var determinant = matrix.a * matrix.d - matrix.b * matrix.c;
+        if (!Number.isFinite(determinant) || Math.abs(determinant) <= 0.000001) return null;
+        return {
+            x: (matrix.d * screenDx - matrix.c * screenDy) / determinant,
+            y: (-matrix.b * screenDx + matrix.a * screenDy) / determinant
+        };
+    }
     function localPoint(gParent, ev) {
         var m = gParent.getScreenCTM(); if (!m) return null;
         var pt = svgEl.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
@@ -387,31 +468,99 @@
     if (stage) {
         stage.addEventListener('pointerdown', function (ev) {
             var g = ev.target.closest && ev.target.closest('.gm-bed');
-            if (!g || !editing) return;
+            if (!g) {
+                if (zoomLevel <= 1 || drag || panDrag || busy || ev.isPrimary === false) return;
+                panDrag = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, ox: panX, oy: panY };
+                try { stage.setPointerCapture(ev.pointerId); } catch (e) { /* older browsers */ }
+                controls();
+                ev.preventDefault();
+                return;
+            }
+            if (!editing || busy || drag || panDrag || ev.isPrimary === false) return;
             var b = byId[+g.getAttribute('data-id')]; if (!b) return;
             var p = localPoint(g.parentNode, ev); if (!p) return;
-            drag = { b: b, g: g, start: p, was: { x: b.x, y: b.y, rot: b.rot }, moved: false, id: ev.pointerId };
+            var handle = ev.target.getAttribute && ev.target.getAttribute('data-resize');
+            if (handle && (kids[b.id] || []).length) return;
+            drag = { b: b, g: g, start: p, was: state(b), moved: false, id: ev.pointerId, resize: handle || '' };
             try { stage.setPointerCapture(ev.pointerId); } catch (e) { /* older browsers */ }
+            controls();
             ev.preventDefault();
         });
         stage.addEventListener('pointermove', function (ev) {
+            if (panDrag && ev.pointerId === panDrag.id && svgEl) {
+                var delta = panDelta(svgEl.getScreenCTM(), ev.clientX - panDrag.x, ev.clientY - panDrag.y);
+                if (delta) {
+                    // Update only the viewport; garden geometry stays untouched.
+                    panX -= delta.x; panY -= delta.y;
+                    svgEl.viewBox.baseVal.x -= delta.x;
+                    svgEl.viewBox.baseVal.y -= delta.y;
+                    panDrag.x = ev.clientX; panDrag.y = ev.clientY;
+                }
+                return;
+            }
             if (!drag || ev.pointerId !== drag.id) return;
             var p = localPoint(drag.g.parentNode, ev); if (!p) return;
             var dx = p.x - drag.start.x, dy = p.y - drag.start.y;
             if (!drag.moved && Math.abs(dx) * pxPerFt < 4 && Math.abs(dy) * pxPerFt < 4) return;
             drag.moved = true;
-            drag.b.x = Math.round((drag.was.x + dx) * 2) / 2; drag.b.y = Math.round((drag.was.y + dy) * 2) / 2;
-            drag.g.setAttribute('transform', tf(drag.b));
-            say(drag.b.name + ': ' + drag.b.x + ' ft across, ' + drag.b.y + ' ft down');
+            if (drag.resize) {
+                var angle = drag.was.rot * Math.PI / 180;
+                var along = dx * Math.cos(angle) + dy * Math.sin(angle);
+                var across = -dx * Math.sin(angle) + dy * Math.cos(angle);
+                var size = Math.max(0.01, Math.min(10000, quantize((drag.resize === 'length' ? drag.was.len : drag.was.wid) + (drag.resize === 'length' ? along : across))));
+                size = Math.round(size * 100) / 100;
+                if (drag.resize === 'length') drag.b.len = size;
+                else drag.b.wid = size;
+                // Keep the opposite corner fixed in world space when resizing a rotated bed.
+                var deltaLen = drag.b.len - drag.was.len, deltaWid = drag.b.wid - drag.was.wid;
+                drag.b.x = drag.was.x + (deltaLen * (Math.cos(angle) - 1) - deltaWid * Math.sin(angle)) / 2;
+                drag.b.y = drag.was.y + (deltaLen * Math.sin(angle) + deltaWid * (Math.cos(angle) - 1)) / 2;
+                // Scale the original SVG about its original local origin. The anchored
+                // resize keeps that world-space corner fixed, matching final geometry.
+                // Rebuild crop strips and handles on release.
+                drag.g.setAttribute('transform', tf(drag.was) + ' scale(' + (drag.b.len / drag.was.len) + ' ' + (drag.b.wid / drag.was.wid) + ')');
+                say(drag.b.name + ': ' + drag.b.len + ' × ' + drag.b.wid + ' ft. Release to apply.');
+            } else {
+                drag.b.x = quantize(drag.was.x + dx); drag.b.y = quantize(drag.was.y + dy);
+                drag.g.setAttribute('transform', tf(drag.b));
+                say(drag.b.name + ': ' + drag.b.x + ' ft across, ' + drag.b.y + ' ft down');
+            }
         });
         var end = function (ev) {
+            if (panDrag && ev.pointerId === panDrag.id) { panDrag = null; render(); controls(); return; }
             if (!drag || ev.pointerId !== drag.id) return;
             var d = drag; drag = null;
-            if (d.moved) { select(d.b.id); render(); save(d.b, d.was); }
+            if (d.moved) { render(); select(d.b.id); record(d.b, d.was); }
             else select(d.b.id);
+            controls();
         };
         stage.addEventListener('pointerup', end);
-        stage.addEventListener('pointercancel', function (ev) { if (drag && ev.pointerId === drag.id) { var d = drag; drag = null; d.b.x = d.was.x; d.b.y = d.was.y; render(); } });
+        // Pointer capture is best-effort. Finish gestures released outside the SVG.
+        window.addEventListener('pointerup', end);
+        function cancelGesture(ev) {
+            if (panDrag && ev.pointerId === panDrag.id) {
+                panX = panDrag.ox; panY = panDrag.oy; panDrag = null; render(); controls(); return;
+            }
+            if (!drag || ev.pointerId !== drag.id) return;
+            var d = drag; drag = null;
+            d.b.x = d.was.x; d.b.y = d.was.y; d.b.rot = d.was.rot;
+            d.b.len = d.was.len; d.b.wid = d.was.wid;
+            render(); select(d.b.id); controls();
+            say('Gesture cancelled; no changes applied.');
+        }
+        stage.addEventListener('pointercancel', cancelGesture);
+        window.addEventListener('pointercancel', cancelGesture);
+        stage.addEventListener('lostpointercapture', cancelGesture);
+        window.addEventListener('blur', function () {
+            if (drag) cancelGesture({ pointerId: drag.id });
+            else if (panDrag) cancelGesture({ pointerId: panDrag.id });
+        });
+        window.addEventListener('keydown', function (ev) {
+            if (ev.key !== 'Escape' || (!drag && !panDrag)) return;
+            ev.preventDefault();
+            if (drag) cancelGesture({ pointerId: drag.id });
+            else cancelGesture({ pointerId: panDrag.id });
+        });
         stage.addEventListener('click', function (ev) {
             if (editing) return;
             var g = ev.target.closest && ev.target.closest('.gm-bed');
@@ -422,22 +571,56 @@
             if (g && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); select(+g.getAttribute('data-id')); }
         });
     }
+    Array.prototype.forEach.call(zoomBtns, function (btn) {
+        btn.addEventListener('click', function () {
+            if (drag || panDrag) return;
+            var action = btn.getAttribute('data-zoom');
+            if (action === 'reset') { panX = 0; panY = 0; }
+            zoomLevel = action === 'reset' ? 1 : Math.max(0.5, Math.min(4, zoomLevel * (action === 'in' ? 1.25 : 0.8)));
+            render();
+        });
+    });
+    if (dimensionButton) dimensionButton.addEventListener('click', function () {
+        var b = byId[selected]; if (!b || !editing || busy || drag || panDrag || (kids[b.id] || []).length) return;
+        var length = Number(lengthInput.value), width = Number(widthInput.value);
+        if (!Number.isFinite(length) || !Number.isFinite(width) || length <= 0 || width <= 0 || length > 10000 || width > 10000) {
+            say('Enter positive bed dimensions of 10,000 ft or less.', true); return;
+        }
+        var was = state(b);
+        b.len = Math.round(length * 100) / 100;
+        b.wid = Math.round(width * 100) / 100;
+        if (differs(b, was)) { render(); select(b.id); record(b, was); }
+    });
+    Array.prototype.forEach.call(nudgeBtns, function (t) {
+        t.addEventListener('click', function () {
+            var b = byId[selected]; if (!b || !editing || busy || drag || panDrag) return;
+            var direction = t.getAttribute('data-nudge');
+            var was = state(b), step = snap();
+            if (direction === 'left') b.x = quantize(b.x - step);
+            if (direction === 'right') b.x = quantize(b.x + step);
+            if (direction === 'up') b.y = quantize(b.y - step);
+            if (direction === 'down') b.y = quantize(b.y + step);
+            if (differs(b, was)) { render(); select(b.id); record(b, was); }
+        });
+    });
     Array.prototype.forEach.call(turnBtns, function (t) {
         t.addEventListener('click', function () {
-            var b = byId[selected]; if (!b || !editing) return;
-            var was = { x: b.x, y: b.y, rot: b.rot };
+            var b = byId[selected]; if (!b || !editing || busy || drag || panDrag) return;
+            var was = state(b);
             b.rot = (b.rot + parseInt(t.getAttribute('data-turn'), 10)) % 360;
-            render(); save(b, was);
+            render(); record(b, was);
         });
     });
     if (moveBtn) moveBtn.addEventListener('click', function () {
+        if (busy || drag || panDrag || (editing && dirty())) { say('Finish the gesture and save or undo changes before leaving edit mode.', true); return; }
         editing = !editing;
+        controls();
         moveBtn.setAttribute('aria-pressed', editing ? 'true' : 'false');
-        moveBtn.textContent = editing ? 'Done moving' : 'Move beds';
+        moveBtn.textContent = editing ? 'Done editing' : 'Edit beds';
         if (editbar) editbar.hidden = !editing;
         if (editing) showPanel(null);
         render(); select(editing ? 0 : selected);
-        say(editing ? 'Move mode on. Each drop saves.' : '');
+        say(editing ? 'Edit mode: select Save layout to keep changes.' : '');
     });
     Array.prototype.forEach.call(root.querySelectorAll('[data-color-by]'), function (b) {
         b.setAttribute('aria-pressed', b.getAttribute('data-color-by') === colorBy ? 'true' : 'false');
@@ -450,20 +633,29 @@
     // "Add to map": drop the bed below everything else, then reload on it.
     Array.prototype.forEach.call(document.querySelectorAll('[data-place]'), function (btn) {
         btn.addEventListener('click', function () {
-            var b = byId[+btn.getAttribute('data-place')]; if (!b) return;
+            var b = byId[+btn.getAttribute('data-place')]; if (!b || busy) return;
+            if (dirty()) { say('Save your layout changes before adding another bed.', true); return; }
             var e = extent();
+            var previous = state(b);
             b.x = 0; b.y = roots.length ? Math.ceil(e.maxY + 2) : 0; b.rot = 0;
             if (b.parent && byId[b.parent] && byId[b.parent].placed) b.y = 0;   // inside its area: start in the corner
             btn.disabled = true;
-            save(b, null).then(function (ok) {
-                if (ok) window.location.href = 'areas.php?site=' + D.site + '&tab=map&focus=' + b.id;
-                else btn.disabled = false;
-            });
+            var body = new URLSearchParams();
+            body.set('act', 'area_move'); body.set('csrf_token', D.csrf);
+            body.set('site_id', D.site); body.set('area_id', b.id);
+            body.set('x_ft', String(b.x)); body.set('y_ft', String(b.y)); body.set('rotation', '0');
+            fetch('areas.php', { method: 'POST', body: body, credentials: 'same-origin', headers: { Accept: 'application/json' } })
+                .then(function (r) { return r.json(); })
+                .then(function (j) {
+                    if (!j || !j.ok) throw new Error(j && j.error || 'Could not place bed.');
+                    window.location.href = 'areas.php?site=' + D.site + '&tab=map&focus=' + b.id;
+                })
+                .catch(function (err) { b.x = previous.x; b.y = previous.y; b.rot = previous.rot; say(err.message || 'Could not place bed.', true); btn.disabled = false; });
         });
     });
     var rt = null;
     window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(render, 150); });
-    render();
+    render(); controls();
     if (selected) {
         select(selected);
         var g = svgEl && svgEl.querySelector('.gm-bed[data-id="' + selected + '"]');

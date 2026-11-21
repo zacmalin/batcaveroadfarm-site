@@ -130,3 +130,24 @@
 .gm-setgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr)); gap: .5rem; }
 .gm-setgrid figure { margin: 0; text-align: center; font-size: .6875rem; color: #57534e; line-height: 1.2; }
 .gm-setgrid img { display: block; width: 3rem; height: 3rem; object-fit: contain; margin: 0 auto .2rem; }
+
+/* Garden layout editor: touch-sized nudge and snap controls. */
+.gm-snap-label { display: inline-flex; align-items: center; gap: .4rem; font-size: .85rem; color: #57534e; }
+.gm-snap-label select { min-height: 2.75rem; border: 1px solid #b7ad9c; border-radius: .45rem; background: #fff; color: #44403c; padding: .35rem .5rem; }
+.gm-editbtns [data-nudge] { min-width: 2.75rem; min-height: 2.75rem; font-size: 1.1rem; }
+.gm-editbtns [data-nudge]:focus-visible, .gm-snap-label select:focus-visible { outline: 2px solid #79523a; outline-offset: 2px; }
+
+/* Leaf-bed dimensions remain editable independently of crop records. */
+.gm-dimensions { display: inline-flex; align-items: end; gap: .5rem; flex-wrap: wrap; }
+.gm-dimensions label { display: flex; flex-direction: column; gap: .2rem; font-size: .8rem; color: #57534e; }
+.gm-dimensions input { width: 6.5rem; min-height: 2.75rem; border: 1px solid #b7ad9c; border-radius: .45rem; padding: .4rem .5rem; background: #fff; color: #44403c; }
+.gm-dimensions input:focus-visible { outline: 2px solid #79523a; outline-offset: 2px; }
+
+/* Resize handles are SVG geometry, not flattened artwork. */
+.gm-resize-handle { fill: #fffdf8; stroke: #79523a; stroke-width: 2.5px; vector-effect: non-scaling-stroke; cursor: ew-resize; touch-action: none; }
+.gm-resize-handle[data-resize="width"] { cursor: ns-resize; }
+.gm-resize-handle:active { fill: #d8e2cd; }
+
+/* On zoomed maps, dragging empty ground pans without scrolling the page. */
+.gm-stage.is-pannable .gm-svg { touch-action: none; }
+.gm-stage.is-pannable .gm-grid { cursor: grab; }

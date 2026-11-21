@@ -140,7 +140,7 @@ $ok(count($ids) === 6, 'a 2 × 3 grid makes 6 beds');
 $b15 = $pdo->query("SELECT * FROM garden_growing_locations WHERE name = 'Bed 15'")->fetch();
 $ok($b15 && garden_m_to_ft($b15['layout_x_m']) === '22' && garden_m_to_ft($b15['layout_y_m']) === '17', 'Bed 15 is third across, second down (22 ft, 17 ft)');
 $ok($b15['sun_exposure'] === 'full_sun' && $b15['irrigation'] === 'drip', 'grid beds get the shared details');
-$throws(fn() => garden_lay_out_grid($pdo, $org, $site, ['prefix' => 'Bed', 'first' => 12, 'rows' => 1, 'cols' => 1, 'length_ft' => '8', 'width_ft' => '4', 'path_ft' => '', 'x_ft' => '', 'y_ft' => '', 'kind' => 'raised_bed', 'parent_id' => 0]), 'a name already in use is refused', 'already');
+$throws(fn() => garden_lay_out_grid($pdo, $org, $site, ['prefix' => 'Bed', 'first' => 12, 'rows' => 1, 'cols' => 1, 'length_ft' => '8', 'width_ft' => '4', 'path_ft' => '', 'x_ft' => $fixture['x'], 'y_ft' => '0', 'kind' => 'raised_bed', 'parent_id' => 0]), 'a name already in use is refused', 'already');
 $before = (int)$one("SELECT COUNT(*) FROM garden_growing_locations");
 $throws(fn() => garden_lay_out_grid($pdo, $org, $site, ['prefix' => 'Row', 'first' => 1, 'rows' => 1, 'cols' => 3, 'length_ft' => '8', 'width_ft' => '4', 'path_ft' => '1', 'x_ft' => '', 'y_ft' => '', 'kind' => 'nope', 'parent_id' => 0]), 'a bad type stops the whole grid');
 $ok((int)$one("SELECT COUNT(*) FROM garden_growing_locations") === $before, 'nothing half-made after a refusal');
@@ -170,6 +170,68 @@ $ok(array_column($b1y['plantings'], 'crop') === ['Tomato'], '2025 map shows only
 $ok(garden_family_color('Solanaceae') === garden_family_color('solanaceae') && garden_family_color('Madeupaceae') !== '', 'family colors ignore case and cover any family');
 $json = json_encode($m);
 $ok($json !== false && strlen($json) > 100, 'map data turns into JSON');
+
+// ── Garden editor revision and transactional rollback ──
+$revisionBefore = \Garden\Domain\garden_layout_revision($pdo, $org, $site);
+$ok(strlen($revisionBefore) === 64, 'layout revision is a SHA-256 digest');
+$pdo->beginTransaction();
+try {
+    (new Garden\Domain\GrowingAreaLayout())->save($pdo, $org, $site, $bed, garden_ft_to_m('8'), garden_ft_to_m('4'), garden_ft_to_m('2'), garden_ft_to_m('2'), '15');
+    $ok(\Garden\Domain\garden_layout_revision($pdo, $org, $site) !== $revisionBefore, 'layout revision changes when a bed moves');
+} finally { $pdo->rollBack(); }
+$ok(\Garden\Domain\garden_layout_revision($pdo, $org, $site) === $revisionBefore, 'rollback restores the layout revision');
+$pdo->beginTransaction();
+try {
+    (new Garden\Domain\GrowingAreaLayout())->save($pdo, $org, $site, $bed, garden_ft_to_m('9'), garden_ft_to_m('5'), garden_ft_to_m('0'), garden_ft_to_m('0'), '0');
+    $size = $pdo->query('SELECT length_m, width_m FROM garden_growing_locations WHERE id = ' . (int)$bed)->fetch();
+    $ok(abs((float)$size['length_m'] - (float)garden_ft_to_m('9')) < 0.001 && abs((float)$size['width_m'] - (float)garden_ft_to_m('5')) < 0.001, 'precise dimensions persist in metric');
+    $ok(\Garden\Domain\garden_layout_revision($pdo, $org, $site) !== $revisionBefore, 'resizing changes the revision');
+} finally { $pdo->rollBack(); }
+$ok(\Garden\Domain\garden_layout_revision($pdo, $org, $site) === $revisionBefore, 'resizing rollback restores the revision');
+$anotherSite = $gs->createSite($pdo, $org, 'Other garden', 'America/New_York');
+$otherBed = $gs->createLocation($pdo, $org, $anotherSite, 'Other bed', 'raised_bed', garden_sqft_to_sqm('16'));
+(new Garden\Domain\GrowingAreaLayout())->save($pdo, $org, $anotherSite, $otherBed, garden_ft_to_m('4'), garden_ft_to_m('4'), '0', '0', '0');
+$ok(\Garden\Domain\garden_layout_revision($pdo, $org, $site) === $revisionBefore, 'other garden changes do not invalidate this layout');
+$throws(fn() => (new Garden\Domain\GrowingAreaLayout())->save($pdo, $org, $site, $otherBed, garden_ft_to_m('4'), garden_ft_to_m('4'), '0', '0', '0'), 'cross-garden bed editing is rejected', 'not found');
+
+// ── Representative Farm OS layouts and performance baselines ──
+// Use disposable test DB only. These are persisted locations, not mock-only SVG objects.
+$layoutFixtures = [
+    ['name' => 'Backyard', 'rows' => 2, 'cols' => 4, 'len' => '8', 'wid' => '4', 'path' => '3', 'x' => '0'],
+    ['name' => 'Raised', 'rows' => 5, 'cols' => 5, 'len' => '6', 'wid' => '3', 'path' => '2', 'x' => '100'],
+    ['name' => 'Market', 'rows' => 10, 'cols' => 10, 'len' => '20', 'wid' => '3', 'path' => '3', 'x' => '300'],
+];
+$fixtureSite = $gs->createSite($pdo, $org, 'Editor acceptance fixtures', 'America/New_York');
+$fixtureIds = [];
+foreach ($layoutFixtures as $fixture) {
+    $created = garden_lay_out_grid($pdo, $org, $fixtureSite, [
+        'prefix' => $fixture['name'], 'first' => 1, 'rows' => $fixture['rows'],
+        'cols' => $fixture['cols'], 'length_ft' => $fixture['len'],
+        'width_ft' => $fixture['wid'], 'path_ft' => $fixture['path'],
+        'x_ft' => '', 'y_ft' => '', 'kind' => 'raised_bed',
+        'parent_id' => 0, 'upright' => false, 'details' => [],
+    ]);
+    $ok(count($created) === $fixture['rows'] * $fixture['cols'], $fixture['name'] . ' fixture persists every bed');
+    array_push($fixtureIds, ...$created);
+}
+$fixtureLocations = $gs->locations($pdo, $org, $fixtureSite);
+$ok(count($fixtureLocations) === 133, 'realistic layout fixtures retain all 133 locations');
+$ok(count(array_unique(array_column($fixtureLocations, 'id'))) === 133, 'fixture IDs remain unique');
+$fixtureStart = hrtime(true);
+$fixtureMap = garden_map_data($pdo, $org, ['id' => $fixtureSite, 'name' => 'Editor acceptance fixtures'],
+    $fixtureLocations, [], garden_season_window('2026-summer', '2026-11-19'), '2026-11-19');
+$fixtureMs = round((hrtime(true) - $fixtureStart) / 1e6, 1);
+$ok(count($fixtureMap['beds']) === 133, 'map serialization includes every fixture bed');
+$ok(json_encode($fixtureMap, JSON_THROW_ON_ERROR) !== '', 'fixture map serializes to valid JSON');
+echo 'PERF baseline: 133 Farm OS beds map-data generation ' . $fixtureMs . " ms (informational, not a pass threshold)\n";
+// Historical planting records must survive geometry edits.
+$historyBefore = (int)$one('SELECT COUNT(*) FROM garden_plantings WHERE location_id = ?', [$bed]);
+$layout = new Garden\Domain\GrowingAreaLayout();
+$layout->save($pdo, $org, $site, $bed, garden_ft_to_m('8'), garden_ft_to_m('4'), garden_ft_to_m('1'), garden_ft_to_m('2'), '90');
+$ok((int)$one('SELECT COUNT(*) FROM garden_plantings WHERE location_id = ?', [$bed]) === $historyBefore,
+    'editing garden geometry preserves historical planting records');
+$ok((int)$one('SELECT COUNT(*) FROM garden_growing_locations WHERE id = ? AND active = 1', [$bed]) === 1,
+    'geometry edit preserves the existing growing-area identity');
 
 // ── Pages and assets ──
 foreach (['admin/assets/garden.js', 'admin/assets/garden.css', 'includes/garden_planner.php'] as $f) $ok(is_file($root . '/' . $f), "$f exists");
